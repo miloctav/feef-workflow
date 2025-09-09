@@ -1,0 +1,259 @@
+<script setup lang="ts">
+import ContactCard from '~/components/ContactCard.vue';
+import { getCompanyById } from '~/utils/data'
+
+definePageMeta({
+  layout: "dashboard-feef",
+});
+
+const route = useRoute()
+const company = getCompanyById(route.params.id as string)
+
+if (!company) {
+  throw createError({ statusCode: 404, statusMessage: 'Entreprise non trouvée' })
+}
+</script>
+
+<template>
+  <UDashboardPanel id="companies">
+    <template #header>
+      <UDashboardNavbar :title="company.raisonSociale.nom">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+      </UDashboardNavbar>
+    </template>
+    <template #body>
+      <!-- Container principal avec 80% de largeur -->
+      <div class="w-4/5 mx-auto">
+        <UCard class="mb-6">
+          <div class="flex items-start gap-6">
+            <!-- Icône entreprise à gauche -->
+            <div class="flex-shrink-0">
+              <UIcon 
+                name="i-lucide-building-2" 
+                class="w-16 h-16 text-primary"
+              />
+            </div>
+            
+            <!-- Informations à droite -->
+            <div class="flex-1 grid grid-cols-2 gap-6">
+              <!-- Colonne gauche -->
+              <div>
+                <h1 class="font-bold text-xl text-gray-900 mb-4">Raison sociale</h1>
+                
+                <div class="space-y-3">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-gray-600">SIREN:</span>
+                    <span class="text-gray-900">{{ company.raisonSociale.siren }}</span>
+                  </div>
+                  
+                  <div class="flex items-center gap-2">
+                    <UIcon name="i-lucide-phone" class="w-4 h-4 text-gray-500" />
+                    <div class="text-gray-900">{{ company.raisonSociale.telephone }}</div>
+                  </div>
+                  
+                  <div class="flex items-center gap-2">
+                    <UIcon name="i-lucide-map-pin" class="w-4 h-4 text-gray-500" />
+                    <span class="text-sm font-medium text-gray-600">Sites:</span>
+                    <span class="text-gray-900">{{ company.sites.nombreSites }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Colonne droite -->
+              <div>
+                <!-- Espacement pour aligner avec le début du SIREN -->
+                <div class="h-10 mb-4"></div>
+                
+                <div class="space-y-1 text-gray-700">
+                  <div>{{ company.raisonSociale.adresse }}</div>
+                  <div>{{ company.raisonSociale.cp }} {{ company.raisonSociale.ville }}</div>
+                  <div class="text-gray-600">{{ company.raisonSociale.region }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </UCard>
+        
+        <!-- 3 cartes pour les contacts -->
+        <div class="grid grid-cols-3 gap-6 mb-6">
+          <!-- Card Dirigeant -->
+          <ContactCard 
+            :contact="company.dirigeant" 
+            icon="i-lucide-crown"
+          />
+
+          <!-- Card Pilote -->
+          <ContactCard 
+            :contact="company.pilote" 
+            icon="i-lucide-user-cog"
+          />
+
+          <!-- Card Comptabilité -->
+          <ContactCard 
+            :contact="company.comptabilite" 
+            icon="i-lucide-calculator"
+          />
+        </div>
+
+        <!-- Card Appartenance Groupe (conditionnelle) -->
+        <UCard v-if="company.appartenanceGroupe.appartientGroupe" class="mb-6">
+          <template #header>
+            <div class="flex items-center gap-3">
+              <UIcon name="i-lucide-building" class="w-6 h-6 text-primary" />
+              <h2 class="font-bold text-xl text-gray-900">Groupe {{ company.appartenanceGroupe.nomGroupe }}</h2>
+            </div>
+          </template>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Structures labellisées -->
+            <div v-if="company.appartenanceGroupe.structuresLabellisees && company.appartenanceGroupe.structuresLabellisees.length > 0">
+              <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <UIcon name="i-lucide-badge-check" class="w-4 h-4 text-green-600" />
+                Structures labellisées
+              </h3>
+              <div class="space-y-2">
+                <UBadge 
+                  v-for="structure in company.appartenanceGroupe.structuresLabellisees" 
+                  :key="structure"
+                  variant="subtle" 
+                  color="success" 
+                  class="mr-2"
+                >
+                  {{ structure }}
+                </UBadge>
+              </div>
+            </div>
+
+            <!-- Structures en cours de labellisation -->
+            <div v-if="company.appartenanceGroupe.structuresEnCoursLabellisation && company.appartenanceGroupe.structuresEnCoursLabellisation.length > 0">
+              <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <UIcon name="i-lucide-clock" class="w-4 h-4 text-orange-600" />
+                En cours de labellisation
+              </h3>
+              <div class="space-y-2">
+                <UBadge 
+                  v-for="structure in company.appartenanceGroupe.structuresEnCoursLabellisation" 
+                  :key="structure"
+                  variant="subtle" 
+                  color="warning" 
+                  class="mr-2"
+                >
+                  {{ structure }}
+                </UBadge>
+              </div>
+            </div>
+
+            <!-- Engagement du groupe -->
+            <div v-if="company.appartenanceGroupe.wantEngageALLGroupe">
+              <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <UIcon name="i-lucide-target" class="w-4 h-4 text-blue-600" />
+                Engagement groupe
+              </h3>
+              <p class="text-gray-700 text-sm">
+                {{ company.appartenanceGroupe.wantEngageALLGroupe }}
+              </p>
+            </div>
+          </div>
+        </UCard>
+
+        <!-- Card Salariés -->
+        <UCard class="mb-6">
+          <template #header>
+            <div class="flex items-center gap-3">
+              <UIcon name="i-lucide-users" class="w-6 h-6 text-primary" />
+              <h2 class="font-bold text-xl text-gray-900">{{ company.salaries.nombreTotalSalaries }} Salariés</h2>
+            </div>
+          </template>
+          
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Graphique et légende sur la même ligne -->
+            <div class="flex items-center gap-6">
+              <!-- Graphique en camembert -->
+              <div class="relative w-32 h-32 flex-shrink-0">
+                <svg viewBox="0 0 42 42" class="w-full h-full">
+                  <!-- Cercle de fond -->
+                  <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#e5e7eb" stroke-width="3"/>
+                  
+                  <!-- Segment Administratif -->
+                  <circle 
+                    cx="21" 
+                    cy="21" 
+                    r="15.915" 
+                    fill="transparent" 
+                    :stroke="'#3b82f6'" 
+                    stroke-width="3"
+                    :stroke-dasharray="`${(company.salaries.personnelAdministratif / company.salaries.nombreTotalSalaries) * 100} ${100 - (company.salaries.personnelAdministratif / company.salaries.nombreTotalSalaries) * 100}`"
+                    stroke-dashoffset="25"
+                    transform="rotate(-90 21 21)"
+                  />
+                  
+                  <!-- Segment Production -->
+                  <circle 
+                    cx="21" 
+                    cy="21" 
+                    r="15.915" 
+                    fill="transparent" 
+                    :stroke="'#10b981'" 
+                    stroke-width="3"
+                    :stroke-dasharray="`${(company.salaries.personnelProduction / company.salaries.nombreTotalSalaries) * 100} ${100 - (company.salaries.personnelProduction / company.salaries.nombreTotalSalaries) * 100}`"
+                    :stroke-dashoffset="`${25 - (company.salaries.personnelAdministratif / company.salaries.nombreTotalSalaries) * 100}`"
+                    transform="rotate(-90 21 21)"
+                  />
+                </svg>
+                
+                <!-- Centre du graphique avec total -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="text-center">
+                    <div class="text-xl font-bold text-gray-900">{{ company.salaries.nombreTotalSalaries }}</div>
+                    <div class="text-xs text-gray-600">Total</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Légende -->
+              <div class="space-y-2 text-sm">
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span>Administratif: {{ company.salaries.personnelAdministratif }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span>Production: {{ company.salaries.personnelProduction }}</span>
+                </div>
+                <!-- Info siège en texte simple -->
+                <div class="text-gray-600 text-sm mt-3 pt-2 border-t">
+                  <span class="font-medium">Personnel siège:</span> {{ company.salaries.nombreSalariesSiege }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Informations RH compactes -->
+            <div class="space-y-2">
+              <!-- Présence CSE -->
+              <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg w-fit">
+                <UIcon name="i-lucide-shield-check" class="w-4 h-4 text-gray-600" />
+                <span class="text-sm font-medium">CSE</span>
+                <UBadge 
+                  :variant="company.salaries.presenceCSE ? 'solid' : 'outline'" 
+                  :color="company.salaries.presenceCSE ? 'success' : 'neutral'"
+                  size="sm"
+                >
+                  {{ company.salaries.presenceCSE ? 'Oui' : 'Non' }}
+                </UBadge>
+              </div>
+
+              <!-- Ressources RSE -->
+              <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg w-fit">
+                <UIcon name="i-lucide-leaf" class="w-4 h-4 text-gray-600" />
+                <span class="text-sm font-medium">Ressources RSE</span>
+                <span class="font-semibold text-gray-900 text-sm">{{ company.salaries.ressourcesRSE }} ETP/an</span>
+              </div>
+            </div>
+          </div>
+        </UCard>
+      </div>
+    </template>
+  </UDashboardPanel>
+</template>
