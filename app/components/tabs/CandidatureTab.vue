@@ -1,0 +1,548 @@
+<template>
+  <div class="bg-gray-50 rounded-b-lg p-6 min-h-[300px]">
+    <!-- En-tête -->
+    <div class="flex items-start gap-4 mb-6">
+      <UIcon name="i-lucide-file-text" class="w-6 h-6 text-primary mt-1" />
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Résumé de candidature</h3>
+        <p class="text-gray-600 text-sm">Informations détaillées du dossier d'inscription de l'entreprise</p>
+      </div>
+    </div>
+
+    <div class="space-y-8">
+      <!-- Section 0: Informations de candidature -->
+      <UCard>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-info" class="w-5 h-5 text-indigo-600" />
+            <h4 class="font-semibold">Informations de candidature</h4>
+          </div>
+        </template>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <!-- Audit souhaité -->
+          <div class="text-center p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+            <UIcon name="i-lucide-calendar-check" class="w-6 h-6 text-indigo-600 mx-auto mb-2" />
+            <h5 class="text-sm font-medium text-gray-900 mb-1">Audit souhaité</h5>
+            <div class="space-y-1">
+              <p class="text-xs font-medium text-indigo-800">
+                {{ company.auditSouhaite.moisAudit || 'À définir' }}
+              </p>
+              <p class="text-xs text-gray-600">
+                {{ company.auditSouhaite.organismeEvaluateur }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Éligibilité validée -->
+          <div class="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+            <UIcon name="i-lucide-shield-check" class="w-6 h-6 text-green-600 mx-auto mb-2" />
+            <h5 class="text-sm font-medium text-gray-900 mb-1">Éligibilité</h5>
+            <div class="space-y-1">
+              <UBadge color="success" variant="solid" size="xs">Validée</UBadge>
+              <p class="text-xs text-gray-600">{{ company.eligibilite.dateValidation }}</p>
+              <p class="text-xs text-gray-500">{{ company.eligibilite.signataire.prenom }} {{ company.eligibilite.signataire.nom }}</p>
+            </div>
+          </div>
+
+          <!-- Contrat mis en ligne -->
+          <div 
+            class="text-center p-4 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer transition-all hover:bg-blue-100 hover:shadow-md group"
+            @click="openContract"
+          >
+            <UIcon name="i-lucide-file-text" class="w-6 h-6 text-blue-600 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+            <h5 class="text-sm font-medium text-gray-900 mb-1">Contrat mis en ligne</h5>
+            <div class="space-y-1">
+              <p class="text-xs font-medium text-blue-800">
+                {{ company.workflow.contratLabellisation.envoiContrat || 'Non disponible' }}
+              </p>
+              <div class="flex items-center justify-center gap-1 text-xs text-gray-600">
+                <span>Cliquer pour consulter</span>
+                <UIcon name="i-lucide-external-link" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Contrat signé -->
+          <div class="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <UIcon name="i-lucide-file-signature" class="w-6 h-6 text-purple-600 mx-auto mb-2" />
+            <h5 class="text-sm font-medium text-gray-900 mb-1">Contrat signé</h5>
+            <div class="space-y-1">
+              <UBadge 
+                :color="company.workflow.contratLabellisation.contratSigne ? 'success' : 'warning'" 
+                variant="solid" 
+                size="xs"
+              >
+                {{ company.workflow.contratLabellisation.contratSigne ? 'Signé' : 'En attente' }}
+              </UBadge>
+              <p class="text-xs text-gray-600">
+                {{ company.workflow.contratLabellisation.contratSigne || 'Non signé' }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </UCard>
+
+      <!-- Section 1: Activités de l'entreprise -->
+      <UCard>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-factory" class="w-5 h-5 text-blue-600" />
+            <h4 class="font-semibold">Activités de l'entreprise</h4>
+          </div>
+        </template>
+        
+        <div class="grid grid-cols-3 gap-6">
+          <!-- Production -->
+          <div class="space-y-4">
+            <h5 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Production</h5>
+           <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Production propre</span>
+                <UBadge :color="company.activites.productionPropre ? 'success' : 'neutral'" variant="soft">
+                  {{ company.activites.productionPropre ? 'Oui' : 'Non' }}
+                </UBadge>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Production sous-traitance</span>
+                <UBadge :color="company.activites.productionSousTraitance ? 'success' : 'neutral'" variant="soft">
+                  {{ company.activites.productionSousTraitance ? 'Oui' : 'Non' }}
+                </UBadge>
+              </div>
+            </div>
+          </div>
+
+          <!-- Conditionnement -->
+          <div class="space-y-4">
+            <h5 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Conditionnement</h5>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Conditionnement propre</span>
+                <UBadge :color="company.activites.conditionnementPropre ? 'success' : 'neutral'" variant="soft">
+                  {{ company.activites.conditionnementPropre ? 'Oui' : 'Non' }}
+                </UBadge>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Conditionnement sous-traitance</span>
+                <UBadge :color="company.activites.conditionnementSousTraitance ? 'success' : 'neutral'" variant="soft">
+                  {{ company.activites.conditionnementSousTraitance ? 'Oui' : 'Non' }}
+                </UBadge>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logistique -->
+          <div class="space-y-4">
+            <h5 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Logistique</h5>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Logistique propre</span>
+                <UBadge :color="company.activites.logistiquePropre ? 'success' : 'neutral'" variant="soft">
+                  {{ company.activites.logistiquePropre ? 'Oui' : 'Non' }}
+                </UBadge>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Logistique sous-traitance</span>
+                <UBadge :color="company.activites.logistiqueSousTraitance ? 'success' : 'neutral'" variant="soft">
+                  {{ company.activites.logistiqueSousTraitance ? 'Oui' : 'Non' }}
+                </UBadge>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activités exclues (si applicable) -->
+        <div v-if="company.activites.exclusionActivites" class="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div class="flex items-start gap-3">
+            <UIcon name="i-lucide-alert-triangle" class="w-5 h-5 text-red-600 mt-0.5" />
+            <div class="flex-1">
+              <h5 class="text-sm font-semibold text-red-800 mb-2">Activités exclues du périmètre</h5>
+              <div class="space-y-2">
+                <div v-if="company.activites.activitesExclues">
+                  <label class="block text-xs font-medium text-red-700 mb-1">Activités concernées :</label>
+                  <p class="text-sm text-red-900 bg-white p-2 rounded border border-red-200">
+                    {{ company.activites.activitesExclues }}
+                  </p>
+                </div>
+                <div v-if="company.activites.raisonExclusion">
+                  <label class="block text-xs font-medium text-red-700 mb-1">Raison de l'exclusion :</label>
+                  <p class="text-sm text-red-900 bg-white p-2 rounded border border-red-200">
+                    {{ company.activites.raisonExclusion }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </UCard>
+
+      <!-- Section 2: Sous-traitance -->
+      <UCard>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-handshake" class="w-5 h-5 text-purple-600" />
+            <h4 class="font-semibold">Sous-traitance</h4>
+          </div>
+        </template>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Nature de la sous-traitance</label>
+            <p class="text-sm text-gray-900 bg-white p-3 rounded border">
+              {{ company.sousTraitance.nature }}
+            </p>
+          </div>
+
+          <!-- Graphique de répartition géographique -->
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <h5 class="text-sm font-medium text-gray-700 mb-3">Répartition du CA sous-traitance</h5>
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                  <span class="text-sm text-gray-600">Part totale</span>
+                  <span class="font-medium">{{ company.sousTraitance.partCATotale }}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    class="bg-purple-600 h-2 rounded-full" 
+                    :style="`width: ${company.sousTraitance.partCATotale}%`"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h5 class="text-sm font-medium text-gray-700 mb-3">Répartition géographique</h5>
+              
+              <!-- Légende -->
+              <div class="flex flex-wrap gap-4 mb-3">
+                <div class="flex items-center gap-2 text-xs">
+                  <div class="w-3 h-3 bg-blue-500 rounded"></div>
+                  <span class="text-gray-600">France: {{ company.sousTraitance.partCAFrance }}%</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs">
+                  <div class="w-3 h-3 bg-green-500 rounded"></div>
+                  <span class="text-gray-600">Europe: {{ company.sousTraitance.partCAEurope }}%</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs">
+                  <div class="w-3 h-3 bg-orange-500 rounded"></div>
+                  <span class="text-gray-600">Hors Europe: {{ company.sousTraitance.partCAHorsEurope }}%</span>
+                </div>
+              </div>
+              
+              <!-- Graphique en barres empilées -->
+              <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                <div class="h-full flex">
+                  <!-- France -->
+                  <div 
+                    class="bg-blue-500 h-full transition-all duration-300"
+                    :style="`width: ${company.sousTraitance.partCAFrance}%`"
+                  ></div>
+                  <!-- Europe -->
+                  <div 
+                    class="bg-green-500 h-full transition-all duration-300"
+                    :style="`width: ${company.sousTraitance.partCAEurope}%`"
+                  ></div>
+                  <!-- Hors Europe -->
+                  <div 
+                    class="bg-orange-500 h-full transition-all duration-300"
+                    :style="`width: ${company.sousTraitance.partCAHorsEurope}%`"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </UCard>
+
+      <!-- Section 3: Négoce (si applicable) -->
+      <UCard v-if="company.negoce && company.negoce.partCATotale > 0">
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-trending-up" class="w-5 h-5 text-orange-600" />
+            <h4 class="font-semibold">Activité de négoce</h4>
+          </div>
+        </template>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Nature du négoce</label>
+            <p class="text-sm text-gray-900 bg-white p-3 rounded border">
+              {{ company.negoce.nature || 'Non précisé' }}
+            </p>
+          </div>
+
+          <!-- Graphiques de répartition -->
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <h5 class="text-sm font-medium text-gray-700 mb-3">Répartition du CA négoce</h5>
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                  <span class="text-sm text-gray-600">Part totale</span>
+                  <span class="font-medium">{{ company.negoce.partCATotale }}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    class="bg-orange-600 h-2 rounded-full" 
+                    :style="`width: ${company.negoce.partCATotale}%`"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="company.negoce.partCAFrance || company.negoce.partCAEurope || company.negoce.partCAHorsEurope">
+              <h5 class="text-sm font-medium text-gray-700 mb-3">Répartition géographique</h5>
+              
+              <!-- Légende -->
+              <div class="flex flex-wrap gap-4 mb-3">
+                <div class="flex items-center gap-2 text-xs">
+                  <div class="w-3 h-3 bg-blue-500 rounded"></div>
+                  <span class="text-gray-600">France: {{ company.negoce.partCAFrance || 0 }}%</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs">
+                  <div class="w-3 h-3 bg-green-500 rounded"></div>
+                  <span class="text-gray-600">Europe: {{ company.negoce.partCAEurope || 0 }}%</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs">
+                  <div class="w-3 h-3 bg-orange-500 rounded"></div>
+                  <span class="text-gray-600">Hors Europe: {{ company.negoce.partCAHorsEurope || 0 }}%</span>
+                </div>
+              </div>
+              
+              <!-- Graphique en barres empilées -->
+              <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                <div class="h-full flex">
+                  <!-- France -->
+                  <div 
+                    class="bg-blue-500 h-full transition-all duration-300"
+                    :style="`width: ${company.negoce.partCAFrance || 0}%`"
+                  ></div>
+                  <!-- Europe -->
+                  <div 
+                    class="bg-green-500 h-full transition-all duration-300"
+                    :style="`width: ${company.negoce.partCAEurope || 0}%`"
+                  ></div>
+                  <!-- Hors Europe -->
+                  <div 
+                    class="bg-orange-500 h-full transition-all duration-300"
+                    :style="`width: ${company.negoce.partCAHorsEurope || 0}%`"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </UCard>
+
+      <!-- Section 4: Typologie des produits -->
+      <UCard>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-package" class="w-5 h-5 text-green-600" />
+            <h4 class="font-semibold">Typologie des produits</h4>
+          </div>
+        </template>
+
+        <div class="space-y-4">
+          <!-- Nature des produits sur toute la largeur -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Nature des produits</label>
+            <p class="text-sm text-gray-900 bg-white p-3 rounded border">
+              {{ company.produits.natureProduits }}
+            </p>
+          </div>
+
+          <!-- Informations détaillées et graphique -->
+          <div class="grid grid-cols-2 gap-6">
+            <!-- Informations sur les gammes et marques -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre de gammes</label>
+                <div class="flex items-center gap-2">
+                  <span class="text-2xl font-bold text-green-600">{{ company.produits.nombreGammes }}</span>
+                  <span class="text-sm text-gray-500">gammes</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Marques</label>
+                <p class="text-sm text-gray-900">{{ company.produits.marques }}</p>
+              </div>
+            </div>
+
+            <!-- Graphique empilé alimentaire/non-alimentaire -->
+            <div>
+              <h5 class="text-sm font-medium text-gray-700 mb-3">Répartition par volume</h5>
+              
+              <!-- Légende -->
+              <div class="flex flex-wrap gap-4 mb-3">
+                <div class="flex items-center gap-2 text-xs">
+                  <div class="w-3 h-3 bg-green-500 rounded"></div>
+                  <span class="text-gray-600">Alimentaires: {{ company.produits.partVolumeAlimentaires }}%</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs">
+                  <div class="w-3 h-3 bg-blue-500 rounded"></div>
+                  <span class="text-gray-600">Non-alimentaires: {{ company.produits.partVolumeNonAlimentaires }}%</span>
+                </div>
+              </div>
+              
+              <!-- Graphique en barres empilées -->
+              <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                <div class="h-full flex">
+                  <!-- Produits alimentaires -->
+                  <div 
+                    class="bg-green-500 h-full transition-all duration-300"
+                    :style="`width: ${company.produits.partVolumeAlimentaires}%`"
+                  ></div>
+                  <!-- Produits non-alimentaires -->
+                  <div 
+                    class="bg-blue-500 h-full transition-all duration-300"
+                    :style="`width: ${company.produits.partVolumeNonAlimentaires}%`"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </UCard>
+
+      <!-- Section 5: Labellisations et RSE -->
+      <UCard>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-award" class="w-5 h-5 text-yellow-600" />
+            <h4 class="font-semibold">Labellisations et démarches RSE</h4>
+          </div>
+        </template>
+
+        <div class="space-y-6">
+          <!-- Certification biologique -->
+          <div class="flex items-center gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+            <UIcon name="i-lucide-leaf" class="w-6 h-6 text-green-600" />
+            <div class="flex-1">
+              <h5 class="font-medium text-gray-900 mb-1">Certification biologique</h5>
+              <UBadge :color="company.labellisations.biologique ? 'success' : 'neutral'" variant="solid">
+                {{ company.labellisations.biologique ? 'Certifié Bio' : 'Non certifié' }}
+              </UBadge>
+            </div>
+          </div>
+
+          <!-- Grille des autres labellisations -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Labellisations QSE -->
+            <div class="space-y-3">
+              <div class="flex items-center gap-2 mb-3">
+                <UIcon name="i-lucide-shield-check" class="w-5 h-5 text-blue-600" />
+                <h5 class="font-semibold text-gray-900">Qualité - Sécurité - Environnement</h5>
+              </div>
+              
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-2">Labellisation principale</label>
+                <div class="bg-white p-3 rounded border border-gray-200">
+                  <p class="text-sm text-gray-900 font-medium">
+                    {{ company.labellisations.labellisationQSE || 'Aucune labellisation' }}
+                  </p>
+                </div>
+              </div>
+
+              <div v-if="company.labellisations.autreQSE" class="mt-3">
+                <label class="block text-xs font-medium text-gray-600 mb-2">Autre QSE (spécifiée)</label>
+                <div class="bg-blue-50 p-3 rounded border border-blue-200">
+                  <p class="text-sm text-blue-900 font-medium">
+                    {{ company.labellisations.autreQSE }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Labellisations RSE -->
+            <div class="space-y-3">
+              <div class="flex items-center gap-2 mb-3">
+                <UIcon name="i-lucide-heart-handshake" class="w-5 h-5 text-purple-600" />
+                <h5 class="font-semibold text-gray-900">Responsabilité Sociétale</h5>
+              </div>
+              
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-2">Labellisation principale</label>
+                <div class="bg-white p-3 rounded border border-gray-200">
+                  <p class="text-sm text-gray-900 font-medium">
+                    {{ company.labellisations.labellisationRSE || 'Aucune démarche formalisée' }}
+                  </p>
+                </div>
+              </div>
+
+              <div v-if="company.labellisations.autreRSE" class="mt-3">
+                <label class="block text-xs font-medium text-gray-600 mb-2">Autre RSE (spécifiée)</label>
+                <div class="bg-purple-50 p-3 rounded border border-purple-200">
+                  <p class="text-sm text-purple-900 font-medium">
+                    {{ company.labellisations.autreRSE }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Commerce équitable -->
+            <div class="space-y-3">
+              <div class="flex items-center gap-2 mb-3">
+                <UIcon name="i-lucide-handshake" class="w-5 h-5 text-orange-600" />
+                <h5 class="font-semibold text-gray-900">Commerce Équitable</h5>
+              </div>
+              
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-2">Labellisation principale</label>
+                <div class="bg-white p-3 rounded border border-gray-200">
+                  <p class="text-sm text-gray-900 font-medium">
+                    {{ company.labellisations.labellisationEquitable || 'Aucune certification' }}
+                  </p>
+                </div>
+              </div>
+
+              <div v-if="company.labellisations.autreEquitable" class="mt-3">
+                <label class="block text-xs font-medium text-gray-600 mb-2">Autre équitable (spécifiée)</label>
+                <div class="bg-orange-50 p-3 rounded border border-orange-200">
+                  <p class="text-sm text-orange-900 font-medium">
+                    {{ company.labellisations.autreEquitable }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      
+      </UCard>
+    </div>
+
+    <!-- Document Viewer pour le contrat -->
+    <DocumentViewer 
+      v-model:open="isContractViewerOpen" 
+      :document="contractDocument" 
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { DOCUMENTS } from '~/utils/data'
+import DocumentViewer from '~/components/DocumentViewer.vue'
+
+interface Props {
+  company: any
+}
+
+const props = defineProps<Props>()
+
+// État pour le viewer du contrat
+const isContractViewerOpen = ref(false)
+
+// Document contrat
+const contractDocument = computed(() => {
+  return DOCUMENTS.find(doc => doc.id === 'contrat-labellisation')
+})
+
+// Fonction pour ouvrir le contrat
+const openContract = () => {
+  if (contractDocument.value && props.company.workflow.contratLabellisation.envoiContrat) {
+    isContractViewerOpen.value = true
+  }
+}
+</script>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { getCompanyById } from '~/utils/data'
+import type { Alert } from '~/utils/data'
 
 definePageMeta({
   layout: "dashboard-feef",
@@ -200,6 +201,23 @@ const tabItems = ref([
     value: 'decision'
   }
 ]);
+
+// Mapping des types d'alertes vers les couleurs Nuxt UI - couleurs douces
+const alertColorMapping: Record<string, 'warning' | 'info' | 'success'> = {
+  warning: 'warning', 
+  info: 'info',
+  success: 'success'
+};
+
+// Gestion des alertes
+function dismissAlert(alertId: string) {
+  if (company && company.workflow.alerts) {
+    const index = company.workflow.alerts.findIndex(alert => alert.id === alertId);
+    if (index !== -1) {
+      company.workflow.alerts.splice(index, 1);
+    }
+  }
+}
 </script>
 
 <template>
@@ -225,11 +243,11 @@ const tabItems = ref([
                 class="w-16 h-16 text-primary"
               />
               <UBadge 
-                :variant="company.workflow.type === 'initial' ? 'solid' : 'outline'"
-                :color="company.workflow.type === 'initial' ? 'primary' : 'warning'"
+                :variant="company.workflow.type === 'Initial' ? 'solid' : 'outline'"
+                :color="company.workflow.type === 'Initial' ? 'primary' : 'warning'"
                 size="lg"
               >
-                {{ company.workflow.type === 'initial' ? 'Initial' : 'Renouvellement' }}
+                {{ company.workflow.type }}
               </UBadge>
             </div>
             
@@ -324,13 +342,29 @@ const tabItems = ref([
 
         </UCard>
         
+        <!-- Section des alertes -->
+        <div v-if="company.workflow.alerts && company.workflow.alerts.length > 0" class="mb-6">
+          <div class="space-y-2">
+            <UAlert
+              v-for="alert in company.workflow.alerts"
+              :key="alert.id"
+              :color="alertColorMapping[alert.type]"
+              variant="subtle"
+              :description="alert.description"
+              :icon="alert.icon"
+              :close="alert.dismissible"
+              @update:open="dismissAlert(alert.id)"
+            />
+          </div>
+        </div>
+        
       </div>
       
       <!-- Stepper des étapes de labellisation - pleine largeur -->
       <div class="w-full px-8 mb-6">
         <UStepper 
           :items="stepperItems" 
-          :model-value="currentStepValue"
+          :model-value="3"
           color="primary"
           size="lg"
           class="w-full"
@@ -378,38 +412,23 @@ const tabItems = ref([
       <div class="w-full px-6 mb-6">
         <UTabs :items="tabItems" default-value="documents" class="w-full" orientation="horizontal">
           <template #documents>
-            <div class="bg-gray-50 rounded-b-lg p-6 min-h-[300px]">
-              <!-- Contenu Documents à implémenter -->
-              <p class="text-gray-600">Section Documents - À implémenter</p>
-            </div>
+            <DocumentsTab :company="company" />
           </template>
           
           <template #candidature>
-            <div class="bg-gray-50 rounded-b-lg p-6 min-h-[300px]">
-              <!-- Contenu Candidature à implémenter -->
-              <p class="text-gray-600">Section Candidature - À implémenter</p>
-            </div>
+            <CandidatureTab :company="company" />
           </template>
           
           <template #engagement>
-            <div class="bg-gray-50 rounded-b-lg p-6 min-h-[300px]">
-              <!-- Contenu Engagement à implémenter -->
-              <p class="text-gray-600">Section Engagement - À implémenter</p>
-            </div>
+            <EngagementTab :company="company" />
           </template>
           
           <template #audit>
-            <div class="bg-gray-50 rounded-b-lg p-6 min-h-[300px]">
-              <!-- Contenu Audit à implémenter -->
-              <p class="text-gray-600">Section Audit - À implémenter</p>
-            </div>
+            <AuditTab :company="company" />
           </template>
           
           <template #decision>
-            <div class="bg-gray-50 rounded-b-lg p-6 min-h-[300px]">
-              <!-- Contenu Décision à implémenter -->
-              <p class="text-gray-600">Section Décision - À implémenter</p>
-            </div>
+            <DecisionTab :company="company" />
           </template>
         </UTabs>
       </div>
