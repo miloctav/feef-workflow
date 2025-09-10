@@ -48,14 +48,8 @@ function onSelectRow(row: TableRow<Company>, e?: Event) {
 <template>
   <UDashboardPanel id="companies">
     <template #header>
-      <UDashboardNavbar title="Entreprises">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-        </UDashboardNavbar>
-    </template>
-
-    <template #body>
+      <NavBar />
+    </template>    <template #body>
       <div class="w-full space-y-4 pb-4">
         <UTable
           :data="data"

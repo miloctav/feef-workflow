@@ -17,11 +17,7 @@ if (!company) {
 <template>
   <UDashboardPanel id="companies">
     <template #header>
-      <UDashboardNavbar :title="company.raisonSociale.nom">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
+      <NavBar />
     </template>
     <template #body>
       <!-- Container principal avec 80% de largeur -->
@@ -29,15 +25,24 @@ if (!company) {
         <UCard class="mb-6">
           <div class="flex items-start gap-6">
             <!-- Icône entreprise à gauche -->
-            <div class="flex-shrink-0">
+            <div class="flex-shrink-0 flex flex-col items-center gap-3">
               <UIcon 
                 name="i-lucide-building-2" 
                 class="w-16 h-16 text-primary"
               />
+              <UButton
+                color="neutral"
+                variant="outline"
+                size="sm"
+                icon="i-lucide-users"
+                class="text-xs"
+              >
+                Gérer les comptes
+              </UButton>
             </div>
             
             <!-- Informations à droite -->
-            <div class="flex-1 grid grid-cols-2 gap-6">
+            <div class="flex-1 grid grid-cols-3 gap-6">
               <!-- Colonne gauche -->
               <div>
                 <h1 class="font-bold text-xl text-gray-900 mb-4">Raison sociale</h1>
@@ -61,7 +66,7 @@ if (!company) {
                 </div>
               </div>
               
-              <!-- Colonne droite -->
+              <!-- Colonne centre -->
               <div>
                 <!-- Espacement pour aligner avec le début du SIREN -->
                 <div class="h-10 mb-4"></div>
@@ -70,6 +75,65 @@ if (!company) {
                   <div>{{ company.raisonSociale.adresse }}</div>
                   <div>{{ company.raisonSociale.cp }} {{ company.raisonSociale.ville }}</div>
                   <div class="text-gray-600">{{ company.raisonSociale.region }}</div>
+                </div>
+              </div>
+              
+              <!-- Colonne droite - Dossiers -->
+              <div>
+                <h2 class="font-bold text-xl text-gray-900 mb-4">Dossiers</h2>
+                
+                <div class="space-y-2">
+                  <!-- Dossier principal actuel -->
+                  <div class="flex flex-wrap gap-2 items-center">
+                    <NuxtLink 
+                      :to="`/feef/labeling-cases/${company.id}`"
+                      class="text-sm font-medium text-gray-900 hover:text-primary hover:underline cursor-pointer"
+                    >
+                      {{ company.workflow.type }} (2025)
+                    </NuxtLink>
+                    <UBadge 
+                      :variant="'subtle'" 
+                      :color="company.workflow.state === 'CANDIDATURE' ? 'neutral' : 
+                              company.workflow.state === 'ENGAGEMENT' ? 'warning' : 
+                              company.workflow.state === 'AUDIT' ? 'info' :
+                              company.workflow.state === 'DECISION' ? 'primary' :
+                              company.workflow.state === 'LABELISE' ? 'success' : 'error'"
+                      size="sm"
+                    >
+                      {{ company.workflow.state }}
+                    </UBadge>
+                  </div>
+                  
+                  <!-- Dossiers précédents (exemples) -->
+                  <div v-if="company.workflow.type === 'Renouvellement'" class="flex flex-wrap gap-2 items-center">
+                    <NuxtLink 
+                      :to="`/feef/labeling-cases/prev-${company.id}`"
+                      class="text-sm font-medium text-gray-700 hover:text-primary hover:underline cursor-pointer"
+                    >
+                      Initial (2022)
+                    </NuxtLink>
+                    <UBadge 
+                      variant="subtle" 
+                      color="success"
+                      size="sm"
+                    >
+                      LABELISE
+                    </UBadge>
+                  </div>
+                  
+                  <!-- Dossier futur potentiel (exemple) -->
+                  <div v-if="company.workflow.state === 'LABELISE'" class="flex flex-wrap gap-2 items-center opacity-60">
+                    <span class="text-sm font-medium text-gray-500 cursor-not-allowed">
+                      Renouvellement (2028)
+                    </span>
+                    <UBadge 
+                      variant="outline" 
+                      color="neutral"
+                      size="sm"
+                    >
+                      À venir
+                    </UBadge>
+                  </div>
                 </div>
               </div>
             </div>

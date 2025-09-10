@@ -7,11 +7,7 @@ definePageMeta({
 <template>
   <UDashboardPanel id="dashboard">
     <template #header>
-      <UDashboardNavbar title="Dashboard">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
+      <NavBar />
     </template>
 
     <template #body>

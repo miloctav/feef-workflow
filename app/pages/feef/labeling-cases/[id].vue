@@ -259,7 +259,7 @@ function dismissAlert(alertId: string) {
                 
                 <div class="space-y-3">
                   <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-gray-600">Raison sociale:</span>
+                    <span class="text-sm font-medium text-gray-600">Nom:</span>
                     <NuxtLink :to="`/feef/companies/${company.id}`" class="text-gray-900 font-medium hover:text-primary hover:underline cursor-pointer">
                       {{ company.raisonSociale.nom }}
                     </NuxtLink>

@@ -8,6 +8,18 @@ export interface Alert {
   dismissible?: boolean
 }
 
+export interface Account {
+  prenom: string
+  nom: string
+  role: typeof accountRole[keyof typeof accountRole]
+}
+
+export interface OE {
+  id: string
+  nom: string
+  accounts: Account[]
+}
+
 export interface Company {
   id: string
   raisonSociale: {
@@ -214,6 +226,11 @@ export const labelingCaseState = {
 export const lebelingCaseType = {
   initial : "Initial",
   renouvellement : "Renouvellement",
+} as const
+
+export const accountRole = {
+  administrateur: "administrateur",
+  chargeAffaire: "chargé d'affaire"
 } as const
 
 export const COMPANIES: Company[] = [
@@ -928,6 +945,10 @@ export function getCompanyById(id: string): Company | undefined {
   return COMPANIES.find((company) => company.id === id)
 }
 
+export function getOEById(id: string): OE | undefined {
+  return ORGANISMES_EVALUATEURS.find((oe) => oe.id === id)
+}
+
 export interface Documents {
   id: string
   name: string
@@ -1080,5 +1101,55 @@ export const DOCUMENTS: Documents[] = [
     uploadedBy: "FEEF - Service Labellisation",
     fileSize: "1.9 MB",
     fileType: "PDF"
+  }
+]
+
+export const ORGANISMES_EVALUATEURS: OE[] = [
+  {
+    id: 'sgs',
+    nom: 'SGS',
+    accounts: [
+      {
+        prenom: 'Sophie',
+        nom: 'MARTIN',
+        role: accountRole.administrateur
+      },
+      {
+        prenom: 'Jean',
+        nom: 'DUPONT',
+        role: accountRole.chargeAffaire
+      },
+      {
+        prenom: 'Marie',
+        nom: 'BERNARD',
+        role: accountRole.chargeAffaire
+      }
+    ]
+  },
+  {
+    id: 'ecocert',
+    nom: 'Ecocert',
+    accounts: [
+      {
+        prenom: 'Jean-Pierre',
+        nom: 'DUBOIS',
+        role: accountRole.administrateur
+      },
+      {
+        prenom: 'Catherine',
+        nom: 'LEROY',
+        role: accountRole.chargeAffaire
+      },
+      {
+        prenom: 'Philippe',
+        nom: 'ROUSSEAU',
+        role: accountRole.chargeAffaire
+      },
+      {
+        prenom: 'Anne',
+        nom: 'MOREAU',
+        role: accountRole.chargeAffaire
+      }
+    ]
   }
 ]
