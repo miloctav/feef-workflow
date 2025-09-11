@@ -181,16 +181,20 @@ const closeViewer = () => {
 
 // Raccourci clavier pour fermer (Échap)
 onMounted(() => {
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === 'Escape' && isOpen.value) {
-      closeViewer()
+  if (typeof window !== 'undefined') {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen.value) {
+        closeViewer()
+      }
     }
+    
+    document.addEventListener('keydown', handleKeyDown)
+    
+    onUnmounted(() => {
+      if (typeof window !== 'undefined') {
+        document.removeEventListener('keydown', handleKeyDown)
+      }
+    })
   }
-  
-  document.addEventListener('keydown', handleKeyDown)
-  
-  onUnmounted(() => {
-    document.removeEventListener('keydown', handleKeyDown)
-  })
 })
 </script>
