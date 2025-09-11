@@ -34,7 +34,6 @@ const stepperItems = computed(() => {
   return [
     {
       title: 'Candidature',
-      description: 'Validation de l\'éligibilité et signature du contrat',
       icon: 'i-lucide-file-text',
       value: 'candidacy',
       completed: currentStepIndex >= 0,
@@ -45,12 +44,12 @@ const stepperItems = computed(() => {
           icon: 'i-lucide-check-circle'
         },
         {
-          label: 'Envoi contrat',
+          label: 'Envoi contrat de labellisation',
           value: company.workflow.contratLabellisation.envoiContrat,
           icon: 'i-lucide-send'
         },
         {
-          label: 'Contrat signé',
+          label: 'Contrat de labellisation signé',
           value: company.workflow.contratLabellisation.contratSigne,
           icon: 'i-lucide-pen-tool'
         }
@@ -58,66 +57,60 @@ const stepperItems = computed(() => {
     },
     {
       title: 'Engagement',
-      description: 'Préparation de l\'audit et signature contrat OE',
       icon: 'i-lucide-handshake',
       value: 'engagement',
       completed: currentStepIndex >= 1,
       dates: [
         {
-          label: 'Contrat OE signé',
+          label: 'Devis OE signé',
           value: company.workflow.contratOE.contratSigne,
-          icon: 'i-lucide-pen-tool'
-        },
-        {
-          label: 'Transmission plan audit',
-          value: company.workflow.audit.dateTransmissionPlan,
-          icon: 'i-lucide-calendar-days'
-        },
-        {
-          label: 'Audit planifié',
-          value: `${company.workflow.audit.dateDebutPlanifiee} - ${company.workflow.audit.dateFinPlanifiee}`,
-          icon: 'i-lucide-calendar-check'
+          icon: 'i-lucide-file-signature'
         }
       ]
     },
     {
       title: 'Audit',
-      description: 'Réalisation de l\'audit et revue documentaire',
       icon: 'i-lucide-search',
       value: 'audit',
       completed: currentStepIndex >= 2,
       dates: [
         {
-          label: 'Revue documentaire',
-          value: company.workflow.audit.revueDocumentaire.dateTransmission,
-          icon: 'i-lucide-file-check'
+          label: 'Plan audit transmis',
+          value: company.workflow.audit.dateTransmissionPlan,
+          icon: 'i-lucide-calendar-days'
+        },
+        {
+          label: 'Période audit planifiée',
+          value: company.workflow.audit.dateDebutPlanifiee && company.workflow.audit.dateFinPlanifiee ? 
+            `${company.workflow.audit.dateDebutPlanifiee} - ${company.workflow.audit.dateFinPlanifiee}` : undefined,
+          icon: 'i-lucide-calendar-check'
         },
         {
           label: 'Audit réalisé',
-          value: company.workflow.audit.dateDebutReelle ? `${company.workflow.audit.dateDebutReelle} - ${company.workflow.audit.dateFinReelle}` : undefined,
+          value: company.workflow.audit.dateDebutReelle && company.workflow.audit.dateFinReelle ? 
+            `${company.workflow.audit.dateDebutReelle} - ${company.workflow.audit.dateFinReelle}` : undefined,
           icon: 'i-lucide-clipboard-check'
         }
       ]
     },
     {
       title: 'Décision',
-      description: 'Analyse du rapport et émission de l\'avis',
       icon: 'i-lucide-scale',
       value: 'decision',
       completed: currentStepIndex >= 3,
       dates: [
         {
-          label: 'Rapport transmis',
-          value: company.workflow.rapport.dateTransmission,
+          label: 'Rapport simplifié transmis',
+          value: company.workflow.rapport.rapportSimplifie?.dateTransmission,
           icon: 'i-lucide-file-text'
         },
         {
-          label: 'Performance globale',
-          value: company.workflow.rapport.performanceGlobale ? `${company.workflow.rapport.performanceGlobale}%` : undefined,
-          icon: 'i-lucide-bar-chart-3'
+          label: 'Rapport détaillé transmis',
+          value: company.workflow.rapport.rapportDetaille?.dateTransmission,
+          icon: 'i-lucide-file-chart-line'
         },
         {
-          label: 'Avis émis',
+          label: 'Avis de labellisation émis',
           value: company.workflow.avis.dateTransmission,
           icon: 'i-lucide-message-square'
         }
@@ -125,7 +118,6 @@ const stepperItems = computed(() => {
     },
     {
       title: 'Labellisé',
-      description: 'Attestation délivrée et labellisation effective',
       icon: 'i-lucide-award',
       value: 'labeled',
       completed: currentStepIndex >= 4,
@@ -136,7 +128,7 @@ const stepperItems = computed(() => {
           icon: 'i-lucide-certificate'
         },
         {
-          label: 'Validité',
+          label: 'Validité de l\'attestation',
           value: company.workflow.attestation.dateValidite,
           icon: 'i-lucide-calendar'
         }
@@ -391,7 +383,6 @@ function dismissAlert(alertId: string) {
           
           <template #description="{ item }">
             <div class="space-y-1 text-sm">
-              <div class="text-gray-700">{{ item.description }}</div>
               <div v-if="item.dates && item.dates.length > 0" class="space-y-1">
                 <div v-for="date in item.dates" :key="date.label" class="flex items-center gap-2 text-xs">
                   <UIcon :name="date.icon" class="w-3 h-3 text-gray-500" />

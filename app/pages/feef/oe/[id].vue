@@ -27,6 +27,11 @@ const columns: TableColumn<Account>[] = [
     cell: ({ row }) => `${row.original.prenom} ${row.original.nom}`,
   },
   {
+    accessorKey: "email",
+    header: "Adresse email",
+    cell: ({ row }) => row.original.email,
+  },
+  {
     accessorKey: "role",
     header: "Rôle",
     cell: ({ row }) => {

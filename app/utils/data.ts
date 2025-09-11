@@ -11,6 +11,7 @@ export interface Alert {
 export interface Account {
   prenom: string
   nom: string
+  email: string
   role: typeof accountRole[keyof typeof accountRole]
 }
 
@@ -1112,16 +1113,19 @@ export const ORGANISMES_EVALUATEURS: OE[] = [
       {
         prenom: 'Sophie',
         nom: 'MARTIN',
+        email: 'sophie.martin@sgs.com',
         role: accountRole.administrateur
       },
       {
         prenom: 'Jean',
         nom: 'DUPONT',
+        email: 'jean.dupont@sgs.com',
         role: accountRole.chargeAffaire
       },
       {
         prenom: 'Marie',
         nom: 'BERNARD',
+        email: 'marie.bernard@sgs.com',
         role: accountRole.chargeAffaire
       }
     ]
@@ -1133,21 +1137,25 @@ export const ORGANISMES_EVALUATEURS: OE[] = [
       {
         prenom: 'Jean-Pierre',
         nom: 'DUBOIS',
+        email: 'jean-pierre.dubois@ecocert.com',
         role: accountRole.administrateur
       },
       {
         prenom: 'Catherine',
         nom: 'LEROY',
+        email: 'catherine.leroy@ecocert.com',
         role: accountRole.chargeAffaire
       },
       {
         prenom: 'Philippe',
         nom: 'ROUSSEAU',
+        email: 'philippe.rousseau@ecocert.com',
         role: accountRole.chargeAffaire
       },
       {
         prenom: 'Anne',
         nom: 'MOREAU',
+        email: 'anne.moreau@ecocert.com',
         role: accountRole.chargeAffaire
       }
     ]

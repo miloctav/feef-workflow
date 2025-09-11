@@ -1,5 +1,33 @@
 <template>
   <div class="bg-gray-50 rounded-b-lg p-6 min-h-[300px]">
+    <!-- Sélecteur de phase de candidature -->
+    <div class="bg-white p-4 rounded-lg border border-gray-200 mb-6">
+      <div class="flex items-center gap-4 mb-4">
+        <UIcon name="i-lucide-settings" class="w-5 h-5 text-gray-600" />
+        <h4 class="font-medium text-gray-900">Simulateur de phase de candidature</h4>
+      </div>
+      
+      <div class="flex gap-6">
+        <label v-for="option in phaseOptions" :key="option.value" class="flex items-center gap-2 cursor-pointer">
+          <input
+            v-model="selectedPhase"
+            :value="option.value"
+            type="radio"
+            name="phase"
+            class="w-4 h-4 text-primary border-gray-300 focus:ring-primary"
+          />
+          <span class="text-sm text-gray-700">{{ option.label }}</span>
+        </label>
+      </div>
+      
+      <div class="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
+        <p class="text-sm text-blue-800">
+          <UIcon name="i-lucide-info" class="w-4 h-4 inline mr-1" />
+          {{ phaseDescriptions[selectedPhase as keyof typeof phaseDescriptions] }}
+        </p>
+      </div>
+    </div>
+
     <!-- En-tête -->
     <div class="flex items-start gap-4 mb-6">
       <UIcon name="i-lucide-file-text" class="w-6 h-6 text-primary mt-1" />
@@ -26,57 +54,179 @@
             <h5 class="text-sm font-medium text-gray-900 mb-1">Audit souhaité</h5>
             <div class="space-y-1">
               <p class="text-xs font-medium text-indigo-800">
-                {{ company.auditSouhaite.moisAudit || 'À définir' }}
+                {{ simulatedData.auditSouhaite.moisAudit || 'À définir' }}
               </p>
               <p class="text-xs text-gray-600">
-                {{ company.auditSouhaite.organismeEvaluateur }}
+                {{ simulatedData.auditSouhaite.organismeEvaluateur }}
               </p>
             </div>
           </div>
 
-          <!-- Éligibilité validée -->
-          <div class="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-            <UIcon name="i-lucide-shield-check" class="w-6 h-6 text-green-600 mx-auto mb-2" />
+          <!-- Éligibilité -->
+          <div :class="[
+            'text-center p-4 rounded-lg border',
+            simulatedData.eligibilite.dateValidation 
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-orange-50 border-orange-200'
+          ]">
+            <UIcon 
+              :name="simulatedData.eligibilite.dateValidation ? 'i-lucide-shield-check' : 'i-lucide-shield-alert'" 
+              :class="[
+                'w-6 h-6 mx-auto mb-2',
+                simulatedData.eligibilite.dateValidation ? 'text-green-600' : 'text-orange-600'
+              ]" 
+            />
             <h5 class="text-sm font-medium text-gray-900 mb-1">Éligibilité</h5>
-            <div class="space-y-1">
-              <UBadge color="success" variant="solid" size="xs">Validée</UBadge>
-              <p class="text-xs text-gray-600">{{ company.eligibilite.dateValidation }}</p>
-              <p class="text-xs text-gray-500">{{ company.eligibilite.signataire.prenom }} {{ company.eligibilite.signataire.nom }}</p>
+            <div class="space-y-2">
+              <UBadge 
+                :color="simulatedData.eligibilite.dateValidation ? 'success' : 'warning'" 
+                variant="solid" 
+                size="xs"
+              >
+                {{ simulatedData.eligibilite.dateValidation ? 'Validée' : 'En attente de validation' }}
+              </UBadge>
+              
+              <div v-if="simulatedData.eligibilite.dateValidation">
+                <p class="text-xs text-gray-600">{{ simulatedData.eligibilite.dateValidation }}</p>
+                <p class="text-xs text-gray-500">{{ simulatedData.eligibilite.signataire.prenom }} {{ simulatedData.eligibilite.signataire.nom }}</p>
+              </div>
+              
+              <div v-else>
+                <UButton
+                  @click="validateEligibility"
+                  color="success"
+                  size="xs"
+                  icon="i-lucide-check"
+                  class="mt-2"
+                >
+                  Valider l'éligibilité
+                </UButton>
+                <p class="text-xs text-gray-500 mt-1">Action FEEF uniquement</p>
+              </div>
             </div>
           </div>
 
           <!-- Contrat mis en ligne -->
           <div 
-            class="text-center p-4 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer transition-all hover:bg-blue-100 hover:shadow-md group"
-            @click="openContract"
+            :class="[
+              'text-center p-4 rounded-lg border transition-all',
+              !simulatedData.eligibilite.dateValidation
+                ? 'bg-gray-100 border-gray-300 opacity-50'
+                : simulatedData.contratLabellisation.envoiContrat 
+                  ? 'bg-blue-50 border-blue-200 cursor-pointer hover:bg-blue-100 hover:shadow-md group' 
+                  : 'bg-yellow-50 border-yellow-200'
+            ]"
+            @click="simulatedData.contratLabellisation.envoiContrat && simulatedData.eligibilite.dateValidation ? openContract() : null"
           >
-            <UIcon name="i-lucide-file-text" class="w-6 h-6 text-blue-600 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+            <UIcon 
+              :name="!simulatedData.eligibilite.dateValidation 
+                ? 'i-lucide-lock' 
+                : simulatedData.contratLabellisation.envoiContrat 
+                  ? 'i-lucide-file-text' 
+                  : 'i-lucide-upload'" 
+              :class="[
+                'w-6 h-6 mx-auto mb-2 transition-transform',
+                !simulatedData.eligibilite.dateValidation 
+                  ? 'text-gray-400'
+                  : simulatedData.contratLabellisation.envoiContrat 
+                    ? 'text-blue-600 group-hover:scale-110' 
+                    : 'text-yellow-600'
+              ]" 
+            />
             <h5 class="text-sm font-medium text-gray-900 mb-1">Contrat mis en ligne</h5>
-            <div class="space-y-1">
-              <p class="text-xs font-medium text-blue-800">
-                {{ company.workflow.contratLabellisation.envoiContrat || 'Non disponible' }}
+            <div class="space-y-2">
+              <p class="text-xs font-medium" :class="
+                !simulatedData.eligibilite.dateValidation 
+                  ? 'text-gray-500' 
+                  : simulatedData.contratLabellisation.envoiContrat 
+                    ? 'text-blue-800' 
+                    : 'text-yellow-700'
+              ">
+                {{ !simulatedData.eligibilite.dateValidation 
+                  ? 'Éligibilité requise' 
+                  : simulatedData.contratLabellisation.envoiContrat || 'Prêt à mettre en ligne' }}
               </p>
-              <div class="flex items-center justify-center gap-1 text-xs text-gray-600">
+              
+              <!-- Actions selon l'état -->
+              <div v-if="simulatedData.contratLabellisation.envoiContrat && simulatedData.eligibilite.dateValidation" class="flex items-center justify-center gap-1 text-xs text-gray-600">
                 <span>Cliquer pour consulter</span>
                 <UIcon name="i-lucide-external-link" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              
+              <div v-else-if="!simulatedData.eligibilite.dateValidation" class="text-xs text-gray-500">
+                En attente de validation d'éligibilité
+              </div>
+              
+              <div v-else>
+                <UButton
+                  @click="publishContract"
+                  color="primary"
+                  size="xs"
+                  icon="i-lucide-upload"
+                  class="mt-1"
+                >
+                  Mettre en ligne
+                </UButton>
+                <p class="text-xs text-gray-500 mt-1">Action FEEF</p>
               </div>
             </div>
           </div>
 
           <!-- Contrat signé -->
-          <div class="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-            <UIcon name="i-lucide-file-signature" class="w-6 h-6 text-purple-600 mx-auto mb-2" />
+          <div :class="[
+            'text-center p-4 rounded-lg border',
+            !simulatedData.eligibilite.dateValidation
+              ? 'bg-gray-100 border-gray-300 opacity-50'
+              : simulatedData.contratLabellisation.contratSigne 
+                ? 'bg-purple-50 border-purple-200' 
+                : simulatedData.contratLabellisation.envoiContrat 
+                  ? 'bg-yellow-50 border-yellow-200' 
+                  : 'bg-gray-50 border-gray-200 opacity-60'
+          ]">
+            <UIcon 
+              :name="!simulatedData.eligibilite.dateValidation 
+                ? 'i-lucide-lock'
+                : simulatedData.contratLabellisation.contratSigne 
+                  ? 'i-lucide-file-signature' 
+                  : simulatedData.contratLabellisation.envoiContrat 
+                    ? 'i-lucide-clock' 
+                    : 'i-lucide-file-x'" 
+              :class="[
+                'w-6 h-6 mx-auto mb-2',
+                !simulatedData.eligibilite.dateValidation 
+                  ? 'text-gray-400'
+                  : simulatedData.contratLabellisation.contratSigne 
+                    ? 'text-purple-600' 
+                    : simulatedData.contratLabellisation.envoiContrat 
+                      ? 'text-yellow-600' 
+                      : 'text-gray-400'
+              ]" 
+            />
             <h5 class="text-sm font-medium text-gray-900 mb-1">Contrat signé</h5>
             <div class="space-y-1">
               <UBadge 
-                :color="company.workflow.contratLabellisation.contratSigne ? 'success' : 'warning'" 
+                :color="!simulatedData.eligibilite.dateValidation 
+                  ? 'neutral'
+                  : simulatedData.contratLabellisation.contratSigne 
+                    ? 'success' 
+                    : simulatedData.contratLabellisation.envoiContrat 
+                      ? 'warning' 
+                      : 'neutral'" 
                 variant="solid" 
                 size="xs"
               >
-                {{ company.workflow.contratLabellisation.contratSigne ? 'Signé' : 'En attente' }}
+                {{ !simulatedData.eligibilite.dateValidation 
+                  ? 'Éligibilité requise'
+                  : simulatedData.contratLabellisation.contratSigne 
+                    ? 'Signé' 
+                    : simulatedData.contratLabellisation.envoiContrat 
+                      ? 'En attente de signature' 
+                      : 'Contrat non disponible' }}
               </UBadge>
               <p class="text-xs text-gray-600">
-                {{ company.workflow.contratLabellisation.contratSigne || 'Non signé' }}
+                {{ !simulatedData.eligibilite.dateValidation 
+                  ? 'En attente de validation'
+                  : simulatedData.contratLabellisation.contratSigne || 'Non signé' }}
               </p>
             </div>
           </div>
@@ -534,6 +684,77 @@ const props = defineProps<Props>()
 // État pour le viewer du contrat
 const isContractViewerOpen = ref(false)
 
+// Phase de candidature sélectionnée
+const selectedPhase = ref('phase0')
+
+// Options pour les phases
+const phaseOptions = [
+  { value: 'phase0', label: 'Phase 0 - Éligibilité non validée' },
+  { value: 'phase1', label: 'Phase 1 - Contrat non mis en ligne' },
+  { value: 'phase2', label: 'Phase 2 - Contrat mis en ligne, non signé' },
+  { value: 'phase3', label: 'Phase 3 - Contrat signé' }
+]
+
+// Descriptions des phases
+const phaseDescriptions = {
+  'phase0': 'Le dossier de candidature est en cours d\'examen. L\'éligibilité n\'est pas encore validée par la FEEF.',
+  'phase1': 'L\'éligibilité est validée mais le contrat de labellisation n\'est pas encore disponible.',
+  'phase2': 'Le contrat de labellisation a été mis en ligne et est disponible pour signature.',
+  'phase3': 'Le contrat de labellisation a été signé par l\'entreprise. La candidature est complète.'
+}
+
+// Données simulées basées sur la phase
+const simulatedData = computed(() => {
+  const baseData = {
+    auditSouhaite: props.company.auditSouhaite
+  }
+
+  switch (selectedPhase.value) {
+    case 'phase0':
+      return {
+        ...baseData,
+        eligibilite: {
+          ...props.company.eligibilite,
+          estEligible: false,
+          dateValidation: null
+        },
+        contratLabellisation: {
+          envoiContrat: null,
+          contratSigne: null
+        }
+      }
+    case 'phase1':
+      return {
+        ...baseData,
+        eligibilite: props.company.eligibilite,
+        contratLabellisation: {
+          envoiContrat: null,
+          contratSigne: null
+        }
+      }
+    case 'phase2':
+      return {
+        ...baseData,
+        eligibilite: props.company.eligibilite,
+        contratLabellisation: {
+          envoiContrat: '1/8/2025',
+          contratSigne: null
+        }
+      }
+    case 'phase3':
+      return {
+        ...baseData,
+        eligibilite: props.company.eligibilite,
+        contratLabellisation: {
+          envoiContrat: '1/8/2025',
+          contratSigne: '10/8/2025'
+        }
+      }
+    default:
+      return props.company.workflow
+  }
+})
+
 // Document contrat
 const contractDocument = computed(() => {
   return DOCUMENTS.find(doc => doc.id === 'contrat-labellisation')
@@ -541,8 +762,20 @@ const contractDocument = computed(() => {
 
 // Fonction pour ouvrir le contrat
 const openContract = () => {
-  if (contractDocument.value && props.company.workflow.contratLabellisation.envoiContrat) {
+  if (contractDocument.value && simulatedData.value.contratLabellisation.envoiContrat) {
     isContractViewerOpen.value = true
   }
+}
+
+// Fonction pour valider l'éligibilité (factice)
+const validateEligibility = () => {
+  // Simulation de la validation d'éligibilité
+  selectedPhase.value = 'phase1'
+}
+
+// Fonction pour mettre en ligne le contrat (factice)
+const publishContract = () => {
+  // Simulation de la mise en ligne du contrat
+  selectedPhase.value = 'phase2'
 }
 </script>

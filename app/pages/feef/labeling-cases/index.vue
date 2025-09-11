@@ -58,6 +58,13 @@ interface LabelingCase {
   etat: string;
   organismeEvaluateur: string;
   dateValidation: string;
+  dateAuditCible: string;
+  dateAuditReel: string;
+  alerteDelais: 'vert' | 'orange' | 'rouge';
+  nomAuditeur: string;
+  rapportAudit: string;
+  avisLabellisation: string;
+  original: any;
 }
 
 // Computed pour vérifier s'il y a des filtres actifs
@@ -93,6 +100,21 @@ function resetFilters() {
   };
 }
 
+// Fonction pour calculer l'alerte délais
+function getAlerteDelais(company: Company): 'vert' | 'orange' | 'rouge' {
+  const today = new Date();
+  const dateAuditPlanifiee = company.workflow.audit.dateDebutPlanifiee;
+  
+  if (!dateAuditPlanifiee) return 'vert';
+  
+  const auditDate = new Date(dateAuditPlanifiee);
+  const diffDays = Math.ceil((auditDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+  
+  if (diffDays < 0) return 'rouge'; // Audit dépassé
+  if (diffDays <= 7) return 'orange'; // Audit dans moins de 7 jours
+  return 'vert'; // Audit dans plus de 7 jours
+}
+
 // Transformation des données entreprises en dossiers de labellisation
 const labelingCases = computed(() => 
   data.value.map(company => ({
@@ -103,6 +125,14 @@ const labelingCases = computed(() =>
     etat: company.workflow.state,
     organismeEvaluateur: company.workflow.partageOE,
     dateValidation: company.eligibilite.dateValidation,
+    dateAuditCible: `${company.workflow.audit.dateDebutPlanifiee} - ${company.workflow.audit.dateFinPlanifiee}`,
+    dateAuditReel: company.workflow.audit.dateDebutReelle && company.workflow.audit.dateFinReelle ? 
+      `${company.workflow.audit.dateDebutReelle} - ${company.workflow.audit.dateFinReelle}` : 'Non réalisé',
+    alerteDelais: getAlerteDelais(company),
+    nomAuditeur: `${company.workflow.audit.auditeur.prenom} ${company.workflow.audit.auditeur.nom}`,
+    rapportAudit: company.workflow.rapport.rapportSimplifie?.isAvailable ? 'Disponible' : 
+                  company.workflow.rapport.rapportDetaille?.isAvailable ? 'Disponible' : 'En attente',
+    avisLabellisation: company.workflow.avis.avis || 'En attente',
     original: company
   }))
 );
@@ -138,6 +168,36 @@ const columns: TableColumn<LabelingCase>[] = [
     header: "Date Validation",
     cell: ({ row }) => row.original.dateValidation,
   },
+  {
+    accessorKey: "dateAuditCible",
+    header: "Date Audit Cible",
+    cell: ({ row }) => row.original.dateAuditCible,
+  },
+  {
+    accessorKey: "dateAuditReel",
+    header: "Date Audit Réel",
+    cell: ({ row }) => row.original.dateAuditReel,
+  },
+  {
+    accessorKey: "alerteDelais",
+    header: "Alerte Délais",
+    cell: ({ row }) => row.original.alerteDelais,
+  },
+  {
+    accessorKey: "nomAuditeur",
+    header: "Nom Auditeur",
+    cell: ({ row }) => row.original.nomAuditeur,
+  },
+  {
+    accessorKey: "rapportAudit",
+    header: "Rapport d'Audit",
+    cell: ({ row }) => row.original.rapportAudit,
+  },
+  {
+    accessorKey: "avisLabellisation",
+    header: "Avis Labellisation",
+    cell: ({ row }) => row.original.avisLabellisation,
+  },
 ];
 
 function onSelectRow(row: TableRow<LabelingCase>, e?: Event) {
@@ -164,16 +224,18 @@ function getEtatColor(etat: string): "neutral" | "primary" | "warning" | "second
 
     <template #body>
       <div class="w-full space-y-6 pb-4">
-        <!-- Section des filtres -->
-        <div class="max-w-[65%]">
-          <!-- En-tête des filtres -->
-          <div class="flex items-center gap-2 mb-4">
-            <UIcon name="i-heroicons-funnel" class="w-5 h-5 text-gray-600" />
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtres</h3>
-          </div>
+        <!-- Section des filtres et actions -->
+        <div class="flex gap-8">
+          <!-- Section des filtres -->
+          <div class="flex-1 max-w-[60%]">
+            <!-- En-tête des filtres -->
+            <div class="flex items-center gap-2 mb-4">
+              <UIcon name="i-heroicons-funnel" class="w-5 h-5 text-gray-600" />
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filtres</h3>
+            </div>
 
-          <!-- Filtres -->
-          <div class="space-y-4">
+            <!-- Filtres -->
+            <div class="space-y-4">
             <!-- Première ligne de filtres -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <UFormGroup label="Type de dossier">
@@ -316,8 +378,69 @@ function getEtatColor(etat: string): "neutral" | "primary" | "warning" | "second
               Alertes importantes
             </UBadge>
           </div>
+          </div>
 
+          <!-- Section des boutons Import/Export -->
+          <div class="min-w-[300px]">
+            <!-- En-tête des actions -->
+            <div class="flex items-center gap-2 mb-4">
+              <UIcon name="i-heroicons-arrow-down-tray" class="w-5 h-5 text-gray-600" />
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Import/Export</h3>
+            </div>
 
+            <!-- Boutons d'actions -->
+            <div class="space-y-4">
+              <!-- SGS -->
+              <div class="space-y-2">
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">SGS</h4>
+                <div class="flex gap-2">
+                  <UButton
+                    color="primary"
+                    variant="outline"
+                    size="sm"
+                    icon="i-heroicons-arrow-down-tray"
+                    class="flex-1"
+                  >
+                    Importer SGS
+                  </UButton>
+                  <UButton
+                    color="primary"
+                    variant="outline"
+                    size="sm"
+                    icon="i-heroicons-arrow-up-tray"
+                    class="flex-1"
+                  >
+                    Exporter SGS
+                  </UButton>
+                </div>
+              </div>
+
+              <!-- Ecocert -->
+              <div class="space-y-2">
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Ecocert</h4>
+                <div class="flex gap-2">
+                  <UButton
+                    color="secondary"
+                    variant="outline"
+                    size="sm"
+                    icon="i-heroicons-arrow-down-tray"
+                    class="flex-1"
+                  >
+                    Importer Ecocert
+                  </UButton>
+                  <UButton
+                    color="secondary"
+                    variant="outline"
+                    size="sm"
+                    icon="i-heroicons-arrow-up-tray"
+                    class="flex-1"
+                  >
+                    Exporter Ecocert
+                  </UButton>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Tableau des dossiers -->
@@ -344,6 +467,43 @@ function getEtatColor(etat: string): "neutral" | "primary" | "warning" | "second
               size="sm"
             >
               {{ row.original.etat }}
+            </UBadge>
+          </template>
+
+          <template #alerteDelais-data="{ row }">
+            <UBadge 
+              variant="solid"
+              :color="row.original.alerteDelais === 'vert' ? 'success' : 
+                     row.original.alerteDelais === 'orange' ? 'warning' : 'error'"
+              size="sm"
+            >
+              <UIcon 
+                :name="row.original.alerteDelais === 'vert' ? 'i-heroicons-check-circle' : 
+                      row.original.alerteDelais === 'orange' ? 'i-heroicons-exclamation-triangle' : 
+                      'i-heroicons-x-circle'"
+                class="w-3 h-3"
+              />
+            </UBadge>
+          </template>
+
+          <template #rapportAudit-data="{ row }">
+            <UBadge 
+              :variant="row.original.rapportAudit === 'Disponible' ? 'solid' : 'outline'"
+              :color="row.original.rapportAudit === 'Disponible' ? 'success' : 'neutral'"
+              size="sm"
+            >
+              {{ row.original.rapportAudit }}
+            </UBadge>
+          </template>
+
+          <template #avisLabellisation-data="{ row }">
+            <UBadge 
+              :variant="row.original.avisLabellisation !== 'En attente' ? 'solid' : 'outline'"
+              :color="row.original.avisLabellisation === 'FAVORABLE' ? 'success' : 
+                     row.original.avisLabellisation === 'DEFAVORABLE' ? 'error' : 'neutral'"
+              size="sm"
+            >
+              {{ row.original.avisLabellisation }}
             </UBadge>
           </template>
         </UTable>
