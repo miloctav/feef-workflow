@@ -76,7 +76,7 @@
                   </p>
                 </div>
                 
-                <!-- Informations de mise en ligne ou message -->
+                <!-- Informations de mise en ligne ou bouton de mise en ligne -->
                 <div class="flex items-center gap-6 flex-shrink-0 text-xs text-gray-500">
                   <template v-if="document.isAvailable">
                     <span class="flex items-center gap-1 whitespace-nowrap">
@@ -97,9 +97,19 @@
                       <UIcon name="i-lucide-clock" class="w-3 h-3" />
                       À remettre avant le {{ document.dateLimiteDepot }}
                     </span>
-                    <span class="text-gray-400 italic whitespace-nowrap" v-else>
+                    <span class="text-gray-400 italic whitespace-nowrap mr-4" v-else>
                       Non disponible
                     </span>
+                    <!-- Bouton pour mettre en ligne -->
+                    <UButton 
+                      color="primary" 
+                      size="xs"
+                      icon="i-lucide-upload"
+                      @click.stop="uploadDocument(document)"
+                      class="ml-2"
+                    >
+                      Mettre en ligne
+                    </UButton>
                   </template>
                 </div>
               </div>
@@ -326,5 +336,11 @@ function openDocument(document: any) {
     selectedDocument.value = document
     isViewerOpen.value = true
   }
+}
+
+function uploadDocument(document: any) {
+  console.log('Mise en ligne du document:', document.name)
+  // TODO: Implémenter la logique de mise en ligne du document
+  // Ici on pourrait ouvrir un modal de téléchargement ou déclencher un processus de mise en ligne
 }
 </script>

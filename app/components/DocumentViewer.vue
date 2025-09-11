@@ -13,7 +13,7 @@
             </p>
           </div>
           
-          <!-- Sélecteur de version et bouton télécharger -->
+          <!-- Sélecteur de version et boutons d'action -->
           <div v-if="document?.isAvailable" class="flex items-end gap-3 min-w-0 flex-shrink-0 ml-auto mr-4">
             <div class="flex flex-col gap-2">
               <label class="text-xs font-semibold text-gray-700 uppercase tracking-wide">Version du document</label>
@@ -29,15 +29,25 @@
                 }"
               />
             </div>
-            <UButton 
-              :href="pdfUrl" 
-              target="_blank" 
-              color="primary" 
-              variant="solid" 
-              icon="i-lucide-download"
-              label="Télécharger"
-              size="sm"
-            />
+            <div class="flex gap-2">
+              <UButton 
+                @click="importNewVersion"
+                color="secondary" 
+                variant="outline" 
+                icon="i-lucide-upload"
+                label="Importer nouvelle version"
+                size="sm"
+              />
+              <UButton 
+                :href="pdfUrl" 
+                target="_blank" 
+                color="primary" 
+                variant="solid" 
+                icon="i-lucide-download"
+                label="Télécharger"
+                size="sm"
+              />
+            </div>
           </div>
         </div>
         
@@ -157,6 +167,13 @@ const documentVersions = computed(() => [
 const pdfUrl = computed(() => {
   return `/file-pdf-test-${selectedVersion.value}.pdf`
 })
+
+// Fonction factice pour importer une nouvelle version
+const importNewVersion = () => {
+  console.log('Importation d\'une nouvelle version du document:', props.document?.name)
+  // TODO: Implémenter la logique d'importation d'une nouvelle version
+  // Ici on pourrait ouvrir un modal de téléchargement de fichier
+}
 
 const closeViewer = () => {
   isOpen.value = false

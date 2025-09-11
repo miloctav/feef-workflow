@@ -54,10 +54,7 @@
             <h5 class="text-sm font-medium text-gray-900 mb-1">Audit souhaité</h5>
             <div class="space-y-1">
               <p class="text-xs font-medium text-indigo-800">
-                {{ simulatedData.auditSouhaite.moisAudit || 'À définir' }}
-              </p>
-              <p class="text-xs text-gray-600">
-                {{ simulatedData.auditSouhaite.organismeEvaluateur }}
+                12/12/2024
               </p>
             </div>
           </div>
