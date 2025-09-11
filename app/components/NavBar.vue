@@ -25,14 +25,7 @@ const defaultBreadcrumbItems = computed<BreadcrumbItem[]>(() => {
   const pathSegments = route.path.split('/').filter(Boolean)
   const items: BreadcrumbItem[] = []
 
-  // Accueil toujours en premier
-  items.push({
-    label: 'Accueil',
-    icon: 'i-heroicons-home',
-    to: '/'
-  })
-
-  // Construction du breadcrumb basé sur les segments de l'URL
+  // Construction du breadcrumb basé sur les segments de l'URL (en excluant 'feef')
   let currentPath = ''
   
   for (let i = 0; i < pathSegments.length; i++) {
@@ -45,9 +38,8 @@ const defaultBreadcrumbItems = computed<BreadcrumbItem[]>(() => {
     
     switch (segment) {
       case 'feef':
-        label = 'FEEF'
-        icon = 'i-heroicons-building-office'
-        break
+        // Ignorer le segment 'feef'
+        continue
       case 'companies':
         label = 'Entreprises'
         icon = 'i-heroicons-building-storefront'
@@ -89,13 +81,12 @@ const defaultBreadcrumbItems = computed<BreadcrumbItem[]>(() => {
   <UDashboardNavbar>
     <template #leading>
       <UDashboardSidebarCollapse />
+      <UBreadcrumb 
+        :items="defaultBreadcrumbItems" 
+        separator-icon="i-heroicons-chevron-right"
+        class="ml-4"
+      />
     </template>
-
-    <UBreadcrumb 
-      :items="defaultBreadcrumbItems" 
-      separator-icon="i-heroicons-chevron-right"
-      class="flex-1 mx-4"
-    />
 
     <template #trailing>
       <slot name="actions" />

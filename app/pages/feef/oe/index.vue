@@ -39,11 +39,7 @@ function onSelectRow(row: TableRow<OE>, e?: Event) {
 <template>
   <UDashboardPanel id="oe">
     <template #header>
-      <UDashboardNavbar title="Organismes Évaluateurs">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-        </UDashboardNavbar>
+      <NavBar />
     </template>
 
     <template #body>

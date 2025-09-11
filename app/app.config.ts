@@ -1,7 +1,9 @@
-import { defineAppConfig } from "nuxt/app";
-
 export default defineAppConfig({
   ui: {
+    colors: {
+      primary: 'blue',    // couleur principale (doit exister dans Tailwind)
+      secondary: 'zinc'   // couleur secondaire
+    },
     prose: {
       h2: {
         slots: { base: 'font-source-sans text-4xl font-bold' }
@@ -21,8 +23,4 @@ export default defineAppConfig({
     },
     
   },
-  colors: {
-      primary: 'blue',    // couleur principale (doit exister dans Tailwind)
-      secondary: 'pink'   // couleur secondaire
-    }
 })

@@ -223,11 +223,7 @@ function dismissAlert(alertId: string) {
 <template>
   <UDashboardPanel id="labeling-case-detail">
     <template #header>
-      <UDashboardNavbar :title="`Dossier ${company.raisonSociale.nom}`">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
+      <NavBar />
     </template>
     
     <template #body>
