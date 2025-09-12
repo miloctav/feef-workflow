@@ -41,60 +41,25 @@
         </div>
       </template>
       
-      <div class="grid grid-cols-3 gap-4">
-        <!-- Rapport simplifié -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Rapport d'audit -->
         <div class="text-center p-4 bg-purple-50 rounded-lg border border-purple-200 cursor-pointer transition-all hover:bg-purple-100 hover:shadow-md group"
-             @click="viewRapportSimplifie"
-             :class="{ 'opacity-50 cursor-not-allowed': !simulatedData.workflow.rapport.rapportSimplifie?.isAvailable }">
+             @click="viewRapport"
+             :class="{ 'opacity-50 cursor-not-allowed': !simulatedData.workflow.rapport.rapport?.isAvailable }">
           <UIcon name="i-lucide-file-text" class="w-6 h-6 text-purple-600 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-          <h5 class="text-sm font-medium text-gray-900 mb-1">Rapport simplifié</h5>
+          <h5 class="text-sm font-medium text-gray-900 mb-1">Rapport d'audit</h5>
           <div class="space-y-1">
             <p class="text-xs font-medium text-purple-800">
-              {{ simulatedData.workflow.rapport.rapportSimplifie?.dateTransmission ? 
-                `Transmis le ${simulatedData.workflow.rapport.rapportSimplifie.dateTransmission}` : 
+              {{ simulatedData.workflow.rapport.rapport?.dateTransmission ? 
+                `Transmis le ${simulatedData.workflow.rapport.rapport.dateTransmission}` : 
                 'Non disponible' }}
             </p>
-            <div v-if="simulatedData.workflow.rapport.rapportSimplifie?.isAvailable" class="flex items-center justify-center gap-1 text-xs text-gray-600">
+            <div v-if="simulatedData.workflow.rapport.rapport?.isAvailable" class="flex items-center justify-center gap-1 text-xs text-gray-600">
               <span>Cliquer pour consulter</span>
               <UIcon name="i-lucide-external-link" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <div v-else>
-              <p class="text-xs text-gray-500 mb-2">Synthèse non disponible</p>
-              <!-- Bouton pour mettre en ligne en phase 0 -->
-              <div v-if="selectedPhase === 'phase0'">
-                <UButton 
-                  color="primary" 
-                  size="xs"
-                  icon="i-lucide-upload"
-                  disabled
-                  class="w-full"
-                >
-                  Mettre en ligne
-                </UButton>
-                <p class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Rapport détaillé -->
-        <div class="text-center p-4 bg-indigo-50 rounded-lg border border-indigo-200 cursor-pointer transition-all hover:bg-indigo-100 hover:shadow-md group"
-             @click="viewRapportDetaille"
-             :class="{ 'opacity-50 cursor-not-allowed': !simulatedData.workflow.rapport.rapportDetaille?.isAvailable }">
-          <UIcon name="i-lucide-file-chart-line" class="w-6 h-6 text-indigo-600 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-          <h5 class="text-sm font-medium text-gray-900 mb-1">Rapport détaillé</h5>
-          <div class="space-y-1">
-            <p class="text-xs font-medium text-indigo-800">
-              {{ simulatedData.workflow.rapport.rapportDetaille?.dateTransmission ? 
-                `Transmis le ${simulatedData.workflow.rapport.rapportDetaille.dateTransmission}` : 
-                'Non disponible' }}
-            </p>
-            <div v-if="simulatedData.workflow.rapport.rapportDetaille?.isAvailable" class="flex items-center justify-center gap-1 text-xs text-gray-600">
-              <span>Cliquer pour consulter</span>
-              <UIcon name="i-lucide-external-link" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-            <div v-else>
-              <p class="text-xs text-gray-500 mb-2">Rapport complet non disponible</p>
+              <p class="text-xs text-gray-500 mb-2">Rapport non disponible</p>
               <!-- Bouton pour mettre en ligne en phase 0 -->
               <div v-if="selectedPhase === 'phase0'">
                 <UButton 
@@ -323,6 +288,7 @@
                 size="xs"
                 icon="i-lucide-edit"
                 class="w-full"
+                disabled
               >
                 Saisir l'avis OE
               </UButton>
@@ -333,10 +299,11 @@
                 size="xs"
                 icon="i-lucide-edit"
                 class="w-full"
+                disabled
               >
                 Mettre en ligne l'avis de labellisation
               </UButton>
-              <p class="text-xs text-gray-500 text-center mt-1">Action FEEF/OE</p>
+              <p class="text-xs text-gray-500 text-center mt-1">Action OE</p>
             </div>
           </div>
 
@@ -451,7 +418,7 @@
               <div>
                 <h4 class="text-lg font-semibold text-emerald-900 mb-2">Validation de la labellisation</h4>
                 <p class="text-sm text-emerald-800 mb-4">
-                  En validant, vous générerez automatiquement l'attestation de labellisation avec une validité de 3 ans.
+                  En validant, vous générerez automatiquement l'attestation de labellisation avec une validité de 1 an.
                 </p>
               </div>
               
@@ -776,8 +743,7 @@ const simulatedData = computed(() => {
         workflow: {
           ...baseData.workflow,
           rapport: {
-            rapportSimplifie: { isAvailable: false, dateTransmission: null },
-            rapportDetaille: { isAvailable: false, dateTransmission: null },
+            rapport: { isAvailable: false, dateTransmission: null },
             performanceGlobale: undefined,
             planAction: { isAvailable: false, dateLimiteDepot: null }
           },
@@ -803,8 +769,7 @@ const simulatedData = computed(() => {
         workflow: {
           ...baseData.workflow,
           rapport: {
-            rapportSimplifie: { isAvailable: true, dateTransmission: '15/8/2025' },
-            rapportDetaille: { isAvailable: true, dateTransmission: '15/8/2025' },
+            rapport: { isAvailable: true, dateTransmission: '15/8/2025' },
             performanceGlobale: 58,
             planAction: { isAvailable: false, dateLimiteDepot: '30/9/2025' }
           },
@@ -830,8 +795,7 @@ const simulatedData = computed(() => {
         workflow: {
           ...baseData.workflow,
           rapport: {
-            rapportSimplifie: { isAvailable: true, dateTransmission: '15/8/2025' },
-            rapportDetaille: { isAvailable: true, dateTransmission: '15/8/2025' },
+            rapport: { isAvailable: true, dateTransmission: '15/8/2025' },
             performanceGlobale: 58,
             planAction: { 
               isAvailable: true, 
@@ -863,8 +827,7 @@ const simulatedData = computed(() => {
         workflow: {
           ...baseData.workflow,
           rapport: {
-            rapportSimplifie: { isAvailable: true, dateTransmission: '15/8/2025' },
-            rapportDetaille: { isAvailable: true, dateTransmission: '15/8/2025' },
+            rapport: { isAvailable: true, dateTransmission: '15/8/2025' },
             performanceGlobale: 58,
             planAction: { isAvailable: true, dateTransmission: '25/9/2025', valideParOE: true, dateValidation: '28/9/2025' }
           },
@@ -890,8 +853,7 @@ const simulatedData = computed(() => {
         workflow: {
           ...baseData.workflow,
           rapport: {
-            rapportSimplifie: { isAvailable: true, dateTransmission: '15/8/2025' },
-            rapportDetaille: { isAvailable: true, dateTransmission: '15/8/2025' },
+            rapport: { isAvailable: true, dateTransmission: '15/8/2025' },
             performanceGlobale: 78,
             planAction: { isAvailable: false, dateLimiteDepot: null }
           },
@@ -917,8 +879,7 @@ const simulatedData = computed(() => {
         workflow: {
           ...baseData.workflow,
           rapport: {
-            rapportSimplifie: { isAvailable: true, dateTransmission: '15/8/2025' },
-            rapportDetaille: { isAvailable: true, dateTransmission: '15/8/2025' },
+            rapport: { isAvailable: true, dateTransmission: '15/8/2025' },
             performanceGlobale: 78,
             planAction: { isAvailable: false, dateLimiteDepot: null }
           },
@@ -944,8 +905,7 @@ const simulatedData = computed(() => {
         workflow: {
           ...baseData.workflow,
           rapport: {
-            rapportSimplifie: { isAvailable: true, dateTransmission: '15/8/2025' },
-            rapportDetaille: { isAvailable: true, dateTransmission: '15/8/2025' },
+            rapport: { isAvailable: true, dateTransmission: '15/8/2025' },
             performanceGlobale: 78,
             planAction: { isAvailable: false, dateLimiteDepot: null }
           },
@@ -970,13 +930,9 @@ const simulatedData = computed(() => {
   }
 })
 
-// Computed properties pour les rapports d'audit
-const rapportSimplifiedDocument = computed(() => 
-  DOCUMENTS.find(doc => doc.id === 'rapport-audit-simplifie')
-)
-
-const rapportDetailledDocument = computed(() => 
-  DOCUMENTS.find(doc => doc.id === 'rapport-audit-detaille')  
+// Computed properties pour le rapport d'audit
+const rapportDocument = computed(() => 
+  DOCUMENTS.find(doc => doc.id === 'rapport-audit')
 )
 
 const planActionDocument = computed(() => 
@@ -1023,41 +979,20 @@ const attestationDocument = computed(() =>
   DOCUMENTS.find(doc => doc.id === 'attestation-labellisation')
 )
 
-// Méthodes pour consulter les rapports
-function viewRapportSimplifie() {
-  if (simulatedData.value.workflow.rapport.rapportSimplifie?.isAvailable) {
-    let doc = rapportSimplifiedDocument.value
+// Méthodes pour consulter le rapport
+function viewRapport() {
+  if (simulatedData.value.workflow.rapport.rapport?.isAvailable) {
+    let doc = rapportDocument.value
     if (!doc) {
       doc = {
-        id: 'rapport-audit-simplifie',
-        name: 'Rapport d\'audit simplifié',
-        description: 'Rapport simplifié de l\'audit de labellisation',
+        id: 'rapport-audit',
+        name: 'Rapport d\'audit',
+        description: 'Rapport complet de l\'audit de labellisation',
         labelingCaseState: 'DECISION',
         isAvailable: true,
-        dateUpload: simulatedData.value.workflow.rapport.rapportSimplifie?.dateTransmission || undefined,
+        dateUpload: simulatedData.value.workflow.rapport.rapport?.dateTransmission || undefined,
         uploadedBy: 'Organisme Évaluateur',
-        fileSize: '2.3 MB',
-        fileType: 'PDF'
-      }
-    }
-    selectedDocument.value = doc
-    documentViewer.value = true
-  }
-}
-
-function viewRapportDetaille() {
-  if (simulatedData.value.workflow.rapport.rapportDetaille?.isAvailable) {
-    let doc = rapportDetailledDocument.value
-    if (!doc) {
-      doc = {
-        id: 'rapport-audit-detaille',
-        name: 'Rapport d\'audit détaillé',
-        description: 'Rapport détaillé de l\'audit de labellisation',
-        labelingCaseState: 'DECISION',
-        isAvailable: true,
-        dateUpload: simulatedData.value.workflow.rapport.rapportDetaille?.dateTransmission || undefined,
-        uploadedBy: 'Organisme Évaluateur',
-        fileSize: '4.7 MB',
+        fileSize: '3.5 MB',
         fileType: 'PDF'
       }
     }

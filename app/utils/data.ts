@@ -165,11 +165,7 @@ export interface Company {
     rapport: {
       dateTransmission?: string
       performanceGlobale?: number
-      rapportSimplifie?: {
-        dateTransmission?: string
-        isAvailable?: boolean
-      }
-      rapportDetaille?: {
+      rapport?: {
         dateTransmission?: string
         isAvailable?: boolean
       }
@@ -383,12 +379,8 @@ export const COMPANIES: Company[] = [
       },
       rapport: {
         performanceGlobale: 62,
-        rapportSimplifie: {
+        rapport: {
           dateTransmission: "15/9/2025",
-          isAvailable: true
-        },
-        rapportDetaille: {
-          dateTransmission: "18/9/2025",
           isAvailable: true
         },
         planAction: {

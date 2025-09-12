@@ -54,7 +54,10 @@
             <h5 class="text-sm font-medium text-gray-900 mb-1">Audit souhaité</h5>
             <div class="space-y-1">
               <p class="text-xs font-medium text-indigo-800">
-                12/12/2024
+                {{ company.auditSouhaite?.date || '12/12/2024' }}
+              </p>
+              <p class="text-xs text-gray-600">
+                OE : {{ 'Appel d\'offre' }}
               </p>
             </div>
           </div>

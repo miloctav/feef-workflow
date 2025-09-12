@@ -39,6 +39,15 @@ if (!company) {
               >
                 Gérer les comptes
               </UButton>
+              <UButton
+                color="neutral"
+                variant="outline"
+                size="sm"
+                icon="i-lucide-edit"
+                class="text-xs"
+              >
+                Modifier les infos
+              </UButton>
             </div>
             
             <!-- Informations à droite -->

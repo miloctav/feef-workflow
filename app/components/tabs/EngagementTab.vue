@@ -45,7 +45,7 @@
           </div>
         </template>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-2 gap-4">
           <!-- Choix de l'OE -->
           <div :class="[
             'text-center p-4 rounded-lg border',
@@ -89,31 +89,30 @@
           <!-- Devis mis en ligne -->
           <div 
             :class="[
-              'text-center p-4 rounded-lg border transition-all',
+              'text-center p-4 rounded-lg border',
               simulatedData.workflow.partageOE === 'Non choisi'
                 ? 'bg-gray-100 border-gray-300 opacity-50'
                 : simulatedData.workflow.contratOE.devisEnLigne 
-                  ? 'bg-blue-50 border-blue-200 cursor-pointer hover:bg-blue-100 hover:shadow-md group' 
+                  ? 'bg-blue-50 border-blue-200' 
                   : 'bg-yellow-50 border-yellow-200'
             ]"
-            @click="simulatedData.workflow.contratOE.devisEnLigne && simulatedData.workflow.partageOE !== 'Non choisi' ? viewContract() : null"
           >
             <UIcon 
               :name="simulatedData.workflow.partageOE === 'Non choisi'
                 ? 'i-lucide-lock' 
                 : simulatedData.workflow.contratOE.devisEnLigne 
-                  ? 'i-lucide-file-text' 
-                  : 'i-lucide-upload'" 
+                  ? 'i-lucide-file-check' 
+                  : 'i-lucide-clock'" 
               :class="[
-                'w-6 h-6 mx-auto mb-2 transition-transform',
+                'w-6 h-6 mx-auto mb-2',
                 simulatedData.workflow.partageOE === 'Non choisi'
                   ? 'text-gray-400'
                   : simulatedData.workflow.contratOE.devisEnLigne 
-                    ? 'text-blue-600 group-hover:scale-110' 
+                    ? 'text-blue-600' 
                     : 'text-yellow-600'
               ]" 
             />
-            <h5 class="text-sm font-medium text-gray-900 mb-1">Devis en ligne</h5>
+            <h5 class="text-sm font-medium text-gray-900 mb-1">Engagement OE</h5>
             <div class="space-y-2">
               <p class="text-xs font-medium" :class="
                 simulatedData.workflow.partageOE === 'Non choisi'
@@ -124,18 +123,18 @@
               ">
                 {{ simulatedData.workflow.partageOE === 'Non choisi'
                   ? 'OE requis' 
-                  : simulatedData.workflow.contratOE.devisEnLigne || 'Prêt à mettre en ligne' }}
+                  : simulatedData.workflow.contratOE.devisEnLigne || 'En attente d\'engagement' }}
               </p>
               
-              <!-- Actions selon l'état -->
+              <!-- Informations selon l'état -->
               <div v-if="simulatedData.workflow.contratOE.devisEnLigne && simulatedData.workflow.partageOE !== 'Non choisi'" class="space-y-1">
-                <div class="flex items-center justify-center gap-1 text-xs text-gray-600">
-                  <span>Cliquer pour consulter</span>
-                  <UIcon name="i-lucide-external-link" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
+                <p class="text-xs text-gray-600">
+                  <UIcon name="i-lucide-calendar" class="w-3 h-3 mr-1 inline" />
+                  Date d'engagement : {{ simulatedData.workflow.contratOE.devisEnLigne }}
+                </p>
                 <p class="text-xs text-gray-500">
                   <UIcon name="i-lucide-user" class="w-3 h-3 mr-1 inline" />
-                  Mis en ligne par : {{ simulatedData.workflow.contratOE.devisMisEnLignePar }}
+                  Déposé par : {{ simulatedData.workflow.contratOE.devisMisEnLignePar }}
                 </p>
               </div>
               
@@ -144,113 +143,26 @@
               </div>
               
               <div v-else>
-                <UButton
-                  @click="publishQuote"
-                  color="primary"
-                  size="xs"
-                  icon="i-lucide-upload"
-                  class="mt-1"
-                >
-                  Mettre en ligne
-                </UButton>
-                <p class="text-xs text-gray-500 mt-1">Action OE/FEEF</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Devis signé -->
-          <div :class="[
-            'text-center p-4 rounded-lg border',
-            simulatedData.workflow.partageOE === 'Non choisi'
-              ? 'bg-gray-100 border-gray-300 opacity-50'
-              : simulatedData.workflow.contratOE.contratSigne 
-                ? 'bg-purple-50 border-purple-200' 
-                : simulatedData.workflow.contratOE.devisEnLigne 
-                  ? 'bg-yellow-50 border-yellow-200' 
-                  : 'bg-gray-50 border-gray-200 opacity-60'
-          ]">
-            <UIcon 
-              :name="simulatedData.workflow.partageOE === 'Non choisi'
-                ? 'i-lucide-lock'
-                : simulatedData.workflow.contratOE.contratSigne 
-                  ? 'i-lucide-file-signature' 
-                  : simulatedData.workflow.contratOE.devisEnLigne 
-                    ? 'i-lucide-clock' 
-                    : 'i-lucide-file-x'" 
-              :class="[
-                'w-6 h-6 mx-auto mb-2',
-                simulatedData.workflow.partageOE === 'Non choisi'
-                  ? 'text-gray-400'
-                  : simulatedData.workflow.contratOE.contratSigne 
-                    ? 'text-purple-600' 
-                    : simulatedData.workflow.contratOE.devisEnLigne 
-                      ? 'text-yellow-600' 
-                      : 'text-gray-400'
-              ]" 
-            />
-            <h5 class="text-sm font-medium text-gray-900 mb-1">Devis signé</h5>
-            <div class="space-y-2">
-              <UBadge 
-                :color="simulatedData.workflow.partageOE === 'Non choisi'
-                  ? 'neutral'
-                  : simulatedData.workflow.contratOE.contratSigne 
-                    ? 'success' 
-                    : simulatedData.workflow.contratOE.devisEnLigne 
-                      ? 'warning' 
-                      : 'neutral'" 
-                variant="solid" 
-                size="xs"
-              >
-                {{ simulatedData.workflow.partageOE === 'Non choisi'
-                  ? 'OE requis'
-                  : simulatedData.workflow.contratOE.contratSigne 
-                    ? 'Signé' 
-                    : simulatedData.workflow.contratOE.devisEnLigne 
-                      ? 'En attente de signature' 
-                      : 'Devis non disponible' }}
-              </UBadge>
-              
-              <div v-if="simulatedData.workflow.contratOE.contratSigne">
-                <p class="text-xs text-gray-600">{{ simulatedData.workflow.contratOE.contratSigne }}</p>
-                <p v-if="simulatedData.workflow.contratOE.signePar" class="text-xs text-gray-500">{{ simulatedData.workflow.contratOE.signePar }}</p>
-              </div>
-              
-              <div v-else-if="simulatedData.workflow.contratOE.devisEnLigne && simulatedData.workflow.partageOE !== 'Non choisi'">
-                <p class="text-xs text-gray-500">Signature par l'entreprise</p>
-                <p class="text-xs text-gray-400 mt-1">En attente de l'entreprise</p>
-              </div>
-              
-              <div v-else>
-                <p class="text-xs text-gray-600">Non signé</p>
+                <p class="text-xs text-gray-500">En attente de mise en ligne</p>
+                <p class="text-xs text-gray-400 mt-1">Par l'entreprise ou l'OE</p>
               </div>
             </div>
           </div>
         </div>
       </UCard>
 
-    <!-- DocumentViewer pour consulter le contrat -->
-    <DocumentViewer
-      :document="currentDocument"
-      v-model:open="showDocumentViewer"
-    />
-
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { DOCUMENTS, ORGANISMES_EVALUATEURS } from '~/utils/data'
-import type { Documents } from '~/utils/data'
+import { ORGANISMES_EVALUATEURS } from '~/utils/data'
 
 interface Props {
   company: any
 }
 
 const props = defineProps<Props>()
-
-// État pour le DocumentViewer
-const showDocumentViewer = ref(false)
-const currentDocument = ref<Documents | undefined>()
 
 // Phase d'engagement sélectionnée
 const selectedPhase = ref('phase0')
@@ -263,16 +175,14 @@ const editedOE = ref('')
 const phaseOptions = [
   { value: 'phase0', label: 'Phase 0 - OE non choisi' },
   { value: 'phase1', label: 'Phase 1 - OE choisi' },
-  { value: 'phase2', label: 'Phase 2 - Devis en ligne' },
-  { value: 'phase3', label: 'Phase 3 - Devis signé' }
+  { value: 'phase2', label: 'Phase 2 - Devis en ligne' }
 ]
 
 // Descriptions des phases
 const phaseDescriptions = {
   'phase0': 'L\'entreprise n\'a pas encore choisi son Organisme Évaluateur parmi les options disponibles.',
   'phase1': 'L\'entreprise a sélectionné son Organisme Évaluateur. Le devis peut être préparé et mis en ligne.',
-  'phase2': 'Le devis a été mis en ligne par l\'OE ou la FEEF et est disponible pour signature.',
-  'phase3': 'Le devis a été signé par l\'entreprise. La phase d\'engagement est complète.'
+  'phase2': 'Le devis a été mis en ligne par l\'OE ou la FEEF et est disponible pour consultation. Le devis est déjà signé lors de sa mise en ligne.'
 }
 
 // Données simulées basées sur la phase
@@ -328,29 +238,10 @@ const simulatedData = computed(() => {
             dureeAudit: props.company.workflow.audit.dureeAudit
           },
           contratOE: {
-            contratSigne: null,
-            signePar: null,
-            devisEnLigne: '15/8/2025',
-            devisMisEnLignePar: 'Marie Dubois (FEEF)',
-            devisValide: null,
-            paiement: null
-          }
-        }
-      }
-    case 'phase3':
-      return {
-        ...baseData,
-        workflow: {
-          partageOE: props.company.workflow.partageOE,
-          audit: {
-            type: props.company.workflow.audit.type,
-            dureeAudit: props.company.workflow.audit.dureeAudit
-          },
-          contratOE: {
             contratSigne: '20/8/2025',
             signePar: props.company.workflow.contratOE.signePar,
             devisEnLigne: '15/8/2025',
-            devisMisEnLignePar: 'Marie Dubois (FEEF)',
+            devisMisEnLignePar: 'Jean Dupont (Entreprise)',
             devisValide: '16/8/2025',
             paiement: '21/8/2025'
           }
@@ -361,21 +252,9 @@ const simulatedData = computed(() => {
   }
 })
 
-// Trouver le devis OE dans les documents
+// Trouver le devis OE dans les documents (pour référence)
 const contractDocument = computed(() => {
-  return DOCUMENTS.find(doc => doc.id === 'contrat-labellisation')
+  // Document de référence pour les métadonnées, mais non accessible à la FEEF
+  return null
 })
-
-// Fonction pour ouvrir le devis dans le DocumentViewer
-const viewContract = () => {
-  if (contractDocument.value && simulatedData.value.workflow.contratOE.devisEnLigne) {
-    currentDocument.value = contractDocument.value
-    showDocumentViewer.value = true
-  }
-}
-
-// Fonctions pour les actions FEEF/OE (factices)
-const publishQuote = () => {
-  selectedPhase.value = 'phase2'
-}
 </script>
