@@ -180,21 +180,28 @@ const closeViewer = () => {
 }
 
 // Raccourci clavier pour fermer (Échap)
-onMounted(() => {
-  if (typeof window !== 'undefined') {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen.value) {
+let keydownHandler: ((event: KeyboardEvent) => void) | null = null
+
+watch(isOpen, (newValue) => {
+  if (newValue && typeof window !== 'undefined') {
+    // Ajouter l'écouteur quand le modal s'ouvre
+    keydownHandler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         closeViewer()
       }
     }
-    
-    document.addEventListener('keydown', handleKeyDown)
-    
-    onUnmounted(() => {
-      if (typeof window !== 'undefined') {
-        document.removeEventListener('keydown', handleKeyDown)
-      }
-    })
+    document.addEventListener('keydown', keydownHandler)
+  } else if (!newValue && keydownHandler && typeof window !== 'undefined') {
+    // Supprimer l'écouteur quand le modal se ferme
+    document.removeEventListener('keydown', keydownHandler)
+    keydownHandler = null
+  }
+}, { immediate: true })
+
+// Nettoyage au démontage du composant
+onUnmounted(() => {
+  if (keydownHandler && typeof window !== 'undefined') {
+    document.removeEventListener('keydown', keydownHandler)
   }
 })
 </script>
