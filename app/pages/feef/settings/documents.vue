@@ -126,7 +126,7 @@ function deleteDocument(document: Documents) {
 </script>
 
 <template>
-  <UDashboardPanel id="settings">
+  <UDashboardPanel id="documentsSettings">
     <template #header>
       <NavBar />
     </template>
