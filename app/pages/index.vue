@@ -25,7 +25,7 @@
         <UButton
           block
           label="Entreprise"
-          to="/companies"
+          to="/company"
           size="xl"
           color="neutral"
           icon="i-heroicons-building-office"

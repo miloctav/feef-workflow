@@ -8,7 +8,7 @@ defineProps({
     required: true
   },
   role: {
-    type: String as PropType<"oe" | "feef">,
+    type: String as PropType<"oe" | "feef" | "company">,
     required: false,
     default: 'feef'
   }
@@ -36,7 +36,7 @@ defineProps({
             Gérer les comptes
           </UButton>
           <UButton
-            v-if="role === 'feef'"
+            v-if="role === 'feef' || role === 'company'"
             color="neutral"
             variant="outline"
             size="sm"
@@ -44,6 +44,16 @@ defineProps({
             class="text-xs"
           >
             Modifier les infos
+          </UButton>
+          <UButton
+            v-if="role === 'company'"
+            color="neutral"
+            variant="outline"
+            size="sm"
+            icon="i-lucide-plus"
+            class="text-xs"
+          >
+            Nouveau dossier
           </UButton>
         </div>
         <!-- Informations à droite -->
