@@ -16,9 +16,9 @@
         <h5 class="text-sm font-medium text-gray-900 mb-1">Rapport d'audit</h5>
         <div class="space-y-1">
           <p class="text-xs font-medium text-purple-800">
-            {{ rapport.dateTransmission ? 
-              `Transmis le ${rapport.dateTransmission}` : 
-              'Non disponible' }}
+              {{ rapport.dateTransmission ? 
+                `Transmis le ${rapport.dateTransmission}, par Jean Martin` : 
+                'Non disponible' }}
           </p>
           <div v-if="rapport?.isAvailable" class="flex items-center justify-center gap-1 text-xs text-gray-600">
             <span>Cliquer pour consulter</span>
@@ -32,7 +32,7 @@
                 color="primary" 
                 size="xs"
                 icon="i-lucide-upload"
-                disabled
+                :disabled="props.role !== 'oe'"
                 class="w-full"
               >
                 Mettre en ligne
@@ -69,7 +69,7 @@
               color="primary" 
               size="xs"
               icon="i-lucide-edit"
-              disabled
+              :disabled="props.role !== 'oe'"
               class="w-full"
             >
               Saisir le score
@@ -90,9 +90,12 @@ interface Props {
   } | undefined
   performanceGlobale: number | undefined
   selectedPhase: string
+  role?: 'oe' | 'feef'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  role: 'feef'
+})
 
 const emit = defineEmits<{
   viewRapport: []

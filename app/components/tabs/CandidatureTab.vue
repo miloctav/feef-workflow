@@ -116,7 +116,7 @@
                   ? 'bg-blue-50 border-blue-200 cursor-pointer hover:bg-blue-100 hover:shadow-md group' 
                   : 'bg-yellow-50 border-yellow-200'
             ]"
-            @click="simulatedData.contratLabellisation.envoiContrat && simulatedData.eligibilite.dateValidation ? openContract() : null"
+            @click="simulatedData.contratLabellisation.envoiContrat && simulatedData.eligibilite.dateValidation && role !== 'oe' ? openContract() : null"
           >
             <UIcon 
               :name="!simulatedData.eligibilite.dateValidation 
@@ -148,9 +148,12 @@
               </p>
               
               <!-- Actions selon l'état -->
-              <div v-if="simulatedData.contratLabellisation.envoiContrat && simulatedData.eligibilite.dateValidation" class="flex items-center justify-center gap-1 text-xs text-gray-600">
-                <span>Cliquer pour consulter</span>
-                <UIcon name="i-lucide-external-link" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div v-if="simulatedData.contratLabellisation.envoiContrat && simulatedData.eligibilite.dateValidation">
+                <span v-if="role !== 'oe'" class="flex items-center justify-center gap-1 text-xs text-gray-600 w-full">
+                  Cliquer pour consulter
+                  <UIcon name="i-lucide-external-link" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </span>
+                <span v-else class="text-xs text-gray-400">Consultation du contrat non autorisée pour OE</span>
               </div>
               
               <div v-else-if="!simulatedData.eligibilite.dateValidation" class="text-xs text-gray-500">
@@ -158,16 +161,18 @@
               </div>
               
               <div v-else>
-                <UButton
-                  @click="publishContract"
-                  color="primary"
-                  size="xs"
-                  icon="i-lucide-upload"
-                  class="mt-1"
-                >
-                  Mettre en ligne
-                </UButton>
-                <p class="text-xs text-gray-500 mt-1">Action FEEF</p>
+                <template v-if="role !== 'oe'">
+                  <UButton
+                    @click="publishContract"
+                    color="primary"
+                    size="xs"
+                    icon="i-lucide-upload"
+                    class="mt-1"
+                  >
+                    Mettre en ligne
+                  </UButton>
+                  <p class="text-xs text-gray-500 mt-1">Action FEEF</p>
+                </template>
               </div>
             </div>
           </div>
@@ -242,64 +247,7 @@
           </div>
         </template>
         
-        <div class="grid grid-cols-3 gap-6">
-          <!-- Production -->
-          <div class="space-y-4">
-            <h5 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Production</h5>
-           <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Production propre</span>
-                <UBadge :color="company.activites.productionPropre ? 'success' : 'neutral'" variant="soft">
-                  {{ company.activites.productionPropre ? 'Oui' : 'Non' }}
-                </UBadge>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Production sous-traitance</span>
-                <UBadge :color="company.activites.productionSousTraitance ? 'success' : 'neutral'" variant="soft">
-                  {{ company.activites.productionSousTraitance ? 'Oui' : 'Non' }}
-                </UBadge>
-              </div>
-            </div>
-          </div>
-
-          <!-- Conditionnement -->
-          <div class="space-y-4">
-            <h5 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Conditionnement</h5>
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Conditionnement propre</span>
-                <UBadge :color="company.activites.conditionnementPropre ? 'success' : 'neutral'" variant="soft">
-                  {{ company.activites.conditionnementPropre ? 'Oui' : 'Non' }}
-                </UBadge>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Conditionnement sous-traitance</span>
-                <UBadge :color="company.activites.conditionnementSousTraitance ? 'success' : 'neutral'" variant="soft">
-                  {{ company.activites.conditionnementSousTraitance ? 'Oui' : 'Non' }}
-                </UBadge>
-              </div>
-            </div>
-          </div>
-
-          <!-- Logistique -->
-          <div class="space-y-4">
-            <h5 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Logistique</h5>
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Logistique propre</span>
-                <UBadge :color="company.activites.logistiquePropre ? 'success' : 'neutral'" variant="soft">
-                  {{ company.activites.logistiquePropre ? 'Oui' : 'Non' }}
-                </UBadge>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-600">Logistique sous-traitance</span>
-                <UBadge :color="company.activites.logistiqueSousTraitance ? 'success' : 'neutral'" variant="soft">
-                  {{ company.activites.logistiqueSousTraitance ? 'Oui' : 'Non' }}
-                </UBadge>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ActivitesGrid :activites="company.activites" />
 
         <!-- Activités exclues (si applicable) -->
         <div v-if="company.activites.exclusionActivites" class="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -672,14 +620,16 @@
 </template>
 
 <script setup lang="ts">
-import { DOCUMENTS } from '~/utils/data'
-import DocumentViewer from '~/components/DocumentViewer.vue'
+import ActivitesGrid from '~/components/ActivitesGrid.vue'
 
 interface Props {
   company: any
+  role?: 'oe' | 'feef'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  role: 'feef'
+})
 
 // État pour le viewer du contrat
 const isContractViewerOpen = ref(false)

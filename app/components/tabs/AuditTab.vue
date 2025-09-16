@@ -120,6 +120,12 @@
                     ? 'Disponible' 
                     : 'En préparation' }}
               </UBadge>
+                <!-- Bouton pour OE en phase0 -->
+                <div v-if="props.role === 'oe' && selectedPhase === 'phase0'">
+                  <UButton color="primary" size="sm" icon="i-lucide-plus" @click.stop="addAuditPlanDates">
+                    Ajouter le plan et les dates d'audit
+                  </UButton>
+                </div>
               
               <div v-if="simulatedData.workflow.audit.planAuditDisponible">
                 <!-- Informations du plan d'audit -->
@@ -241,9 +247,12 @@ import type { Documents } from '~/utils/data'
 
 interface Props {
   company: any
+  role?: 'oe' | 'feef'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  role: 'feef'
+})
 
 // État pour le DocumentViewer
 const showDocumentViewer = ref(false)
@@ -372,8 +381,8 @@ const viewAuditPlan = () => {
   }
 }
 
-// Fonction pour mettre le plan d'audit en ligne (action FEEF/OE)
-const publishAuditPlan = () => {
-  selectedPhase.value = 'phase1'
+// Fonction pour OE pour ajouter le plan et les dates d'audit en phase0
+function addAuditPlanDates() {
+  
 }
 </script>

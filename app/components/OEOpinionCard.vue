@@ -47,12 +47,12 @@
         </div>
         
         <div v-else class="space-y-2">
-          <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div v-if="role === 'feef'" class="p-3 bg-gray-50 rounded-lg border border-gray-200">
             <div class="flex items-center gap-2">
               <UIcon name="i-lucide-clock" class="w-4 h-4 text-gray-600" />
               <span class="text-gray-700">En attente de l'avis de l'OE</span>
             </div>
-          </div>
+            </div>
           
           <!-- Boutons d'action pour saisie avis (phases 3 et 4) -->
           <div v-if="selectedPhase === 'phase3' || (selectedPhase === 'phase4' && !avis?.dateTransmission)">
@@ -61,7 +61,7 @@
               size="xs"
               icon="i-lucide-edit"
               class="w-full"
-              disabled
+              :disabled="props.role !== 'oe'"
             >
               Saisir l'avis OE
             </UButton>
@@ -72,7 +72,7 @@
               size="xs"
               icon="i-lucide-edit"
               class="w-full"
-              disabled
+              :disabled="props.role !== 'oe'"
             >
               Mettre en ligne l'avis de labellisation
             </UButton>
@@ -105,7 +105,7 @@
           <!-- Date de dépôt -->
           <div v-if="avis.avisLabellisation.dateTransmission" class="flex items-center gap-2 mb-3 text-xs text-blue-700">
             <UIcon name="i-lucide-calendar-plus" class="w-3 h-3" />
-            <span>Émis le {{ avis.avisLabellisation.dateTransmission }}</span>
+            <span>Émis le {{ avis.avisLabellisation.dateTransmission }} par Jean Dupont</span>
           </div>
           
           <!-- Bouton pour consulter -->
@@ -171,9 +171,12 @@ interface Props {
     }
   }
   selectedPhase: string
+  role?: "oe" | "feef"
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  role: 'feef'
+})
 
 const emit = defineEmits<{
   viewAvisLabellisation: []

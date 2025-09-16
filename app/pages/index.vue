@@ -17,7 +17,7 @@
         <UButton
           block
           label="Organisme Évaluateur"
-          to="/organisme"
+          to="/oe"
           size="xl"
           color="secondary"
           icon="i-heroicons-user-group"
@@ -25,7 +25,7 @@
         <UButton
           block
           label="Entreprise"
-          to="/entreprise"
+          to="/companies"
           size="xl"
           color="neutral"
           icon="i-heroicons-building-office"

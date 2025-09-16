@@ -18,6 +18,7 @@
       :rapport="simulatedData.workflow.rapport.rapport"
       :performance-globale="simulatedData.workflow.rapport.performanceGlobale"
       :selected-phase="selectedPhase"
+      :role="props.role"
       @view-rapport="viewRapport"
     />
     
@@ -35,6 +36,7 @@
       :avis="simulatedData.workflow.avis"
       :selected-phase="selectedPhase"
       @view-avis-labellisation="viewAvisLabellisation"
+      :role="props.role"
     />
       
     <!-- Validation FEEF -->
@@ -48,6 +50,7 @@
       @sign-attestation-f-e-e-f="signAttestationFEEF"
       @check-entreprise-signature="checkEntrepriseSignature"
       @view-attestation="viewAttestation"
+      :role="props.role"
     />
 
     <div v-if="['phase5','phase6'].includes(selectedPhase)" class="flex gap-6">
@@ -55,13 +58,14 @@
         <LicenseContractCard
           :is-signed="selectedPhase === 'phase6' || licenseSigned"
           :signed-date="licenseSignedDate"
+          :selected-phase="selectedPhase"
           @view-license="viewLicenseContract"
         />
       </div>
       <div class="w-1/2">
         <AttestationCard
           :can-view="selectedPhase === 'phase6'"
-          :pending-message="selectedPhase === 'phase5' ? 'L\'attestation sera disponible une fois le contrat de licence de marque signé.' : ''"
+          :selected-phase="selectedPhase"
           @view-attestation="viewAttestation"
         />
       </div>
@@ -77,14 +81,18 @@
 </template>
 
 <script setup lang="ts">
+import { select } from '#build/ui';
 import { DOCUMENTS } from '~/utils/data'
 import type { Company, Documents } from '~/utils/data'
 
 interface Props {
   company: Company
+  role?: 'oe' | 'feef'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  role: 'feef'
+})
 
 // Phase de décision sélectionnée
 const selectedPhase = ref('phase0')

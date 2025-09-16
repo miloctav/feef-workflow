@@ -3,7 +3,7 @@
     <template #header>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-shield-check-2" class="w-5 h-5 text-emerald-600" />
+          <UIcon name="i-lucide-file-badge-2" class="w-5 h-5 text-emerald-600" />
           <h4 class="font-semibold">Validation FEEF</h4>
         </div>
         <UBadge 
@@ -25,11 +25,11 @@
           <div class="text-center space-y-4">
             <div class="flex justify-center">
               <div class="p-3 bg-emerald-100 rounded-full">
-                <UIcon name="i-lucide-certificate" class="w-6 h-6 text-emerald-600" />
+                <UIcon name="i-lucide-file-badge-2" class="w-6 h-6 text-emerald-600" />
               </div>
             </div>
             
-            <div>
+            <div v-if="props.role === 'feef'">
               <h4 class="text-lg font-semibold text-emerald-900 mb-2">Validation de la labellisation</h4>
               <p class="text-sm text-emerald-800 mb-4">
                 En validant, vous générerez automatiquement l'attestation de labellisation avec une validité de 1 an.
@@ -37,16 +37,20 @@
             </div>
             
             <UButton 
-              @click="validateLabellisation"
-              color="success" 
-              icon="i-lucide-check-circle"
-              size="lg"
-              :disabled="selectedPhase !== 'phase5'"
-              class="px-8 py-3 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              Valider la labellisation
-            </UButton>
-            <p v-if="selectedPhase !== 'phase5'" class="text-xs text-gray-500">Action disponible en phase 5</p>
+                v-if="!(props.role === 'oe' && selectedPhase === 'phase4')"
+                @click="validateLabellisation"
+                color="success" 
+                icon="i-lucide-check-circle"
+                size="lg"
+                :disabled="selectedPhase !== 'phase5'"
+                class="px-8 py-3 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                Valider la labellisation
+              </UButton>
+              <p v-if="selectedPhase !== 'phase5' && !(props.role === 'oe' && selectedPhase === 'phase4')" class="text-xs text-gray-500">Action disponible en phase 5</p>
+              <div v-if="props.role === 'oe' && selectedPhase === 'phase4'" class="text-sm text-emerald-800 font-semibold py-4">
+                En attente de validation par la FEEF
+              </div>
           </div>
         </div>
       </div>
@@ -317,9 +321,12 @@ interface Props {
     }
   }
   selectedPhase: string
+  role?: "oe" | "feef"
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  role: 'feef'
+})
 
 const emit = defineEmits<{
   validateLabellisation: []

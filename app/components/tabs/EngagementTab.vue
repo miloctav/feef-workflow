@@ -87,16 +87,18 @@
           </div>
 
           <!-- Devis mis en ligne -->
-          <div 
-            :class="[
-              'text-center p-4 rounded-lg border',
-              simulatedData.workflow.partageOE === 'Non choisi'
-                ? 'bg-gray-100 border-gray-300 opacity-50'
-                : simulatedData.workflow.contratOE.devisEnLigne 
-                  ? 'bg-blue-50 border-blue-200' 
-                  : 'bg-yellow-50 border-yellow-200'
-            ]"
-          >
+            <div 
+              :class="[ 
+                'text-center p-4 rounded-lg border',
+                simulatedData.workflow.partageOE === 'Non choisi'
+                  ? 'bg-gray-100 border-gray-300 opacity-50'
+                  : simulatedData.workflow.contratOE.devisEnLigne 
+                    ? 'bg-blue-50 border-blue-200' 
+                    : 'bg-yellow-50 border-yellow-200'
+              ]"
+              @click="handleCardClick"
+              :style="props.role === 'oe' && selectedPhase === 'phase2' ? 'cursor:pointer;' : ''"
+            >
             <UIcon 
               :name="simulatedData.workflow.partageOE === 'Non choisi'
                 ? 'i-lucide-lock' 
@@ -145,24 +147,35 @@
               <div v-else>
                 <p class="text-xs text-gray-500">En attente de mise en ligne</p>
                 <p class="text-xs text-gray-400 mt-1">Par l'entreprise ou l'OE</p>
+                  <!-- Bouton Ajouter un devis pour OE en phase1 -->
+                  <div v-if="props.role === 'oe' && selectedPhase === 'phase1'">
+                    <UButton color="primary" size="sm" icon="i-lucide-upload">
+                      Ajouter un devis
+                    </UButton>
+                  </div>
               </div>
             </div>
           </div>
         </div>
       </UCard>
-
     </div>
+    <!-- Document Viewer pour OE en phase2 -->
+    <DocumentViewer v-model:open="isViewerOpen" :document="selectedDocument" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ORGANISMES_EVALUATEURS } from '~/utils/data'
+import DocumentViewer from '~/components/DocumentViewer.vue'
 
 interface Props {
   company: any
+  role?: 'feef' | 'oe'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  role: 'feef'
+})
 
 // Phase d'engagement sélectionnée
 const selectedPhase = ref('phase0')
@@ -252,9 +265,25 @@ const simulatedData = computed(() => {
   }
 })
 
-// Trouver le devis OE dans les documents (pour référence)
-const contractDocument = computed(() => {
-  // Document de référence pour les métadonnées, mais non accessible à la FEEF
-  return null
-})
+
+
+// Ajout état pour le document viewer
+const isViewerOpen = ref(false)
+const selectedDocument = ref<any>(null)
+
+// Fonction pour ouvrir le document viewer en phase2 pour OE
+function handleCardClick() {
+  if (props.role === 'oe' && selectedPhase.value === 'phase2') {
+    // Simuler un document à afficher
+    selectedDocument.value = {
+      name: 'Devis OE',
+      fileType: 'pdf',
+      isAvailable: true,
+      description: 'Devis mis en ligne par l’OE',
+      dateUpload: simulatedData.value.workflow.contratOE.devisEnLigne,
+      uploadedBy: simulatedData.value.workflow.contratOE.devisMisEnLignePar
+    }
+    isViewerOpen.value = true
+  }
+}
 </script>

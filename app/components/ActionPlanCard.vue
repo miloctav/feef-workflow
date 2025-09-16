@@ -39,7 +39,7 @@
             <div v-else-if="selectedPhase === 'phase2b'" class="space-y-2">
               <div class="flex items-center gap-2 text-xs text-amber-700">
                 <UIcon name="i-lucide-clock" class="w-3 h-3" />
-                <span>En attente de validation par la FEEF/OE</span>
+                <span>En attente de validation par l'OE</span>
               </div>
               <div class="flex gap-2">
                 <UButton 
@@ -51,7 +51,7 @@
                   Valider
                 </UButton>
               </div>
-              <p class="text-xs text-gray-500 text-center">Actions FEEF/OE</p>
+              <p class="text-xs text-gray-500 text-center">Actions OE</p>
             </div>
             <div v-else class="space-y-2">
               <div class="flex items-center gap-2 text-xs text-amber-700">
@@ -67,7 +67,7 @@
               >
                 Valider le plan d'action
               </UButton>
-              <p class="text-xs text-gray-500 text-center">Action FEEF/OE</p>
+              <p class="text-xs text-gray-500 text-center">Action OE</p>
             </div>
           </div>
           

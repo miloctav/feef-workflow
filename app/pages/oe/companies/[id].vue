@@ -3,7 +3,7 @@ import CompanyDetail from '~/components/CompanyDetail.vue';
 import { getCompanyById } from '~/utils/data'
 
 definePageMeta({
-  layout: "dashboard-feef",
+  layout: "dashboard-oe",
 });
 
 const route = useRoute()
@@ -22,7 +22,7 @@ if (!company) {
     <template #body>
       <!-- Container principal avec 80% de largeur -->
       <div class="w-4/5 mx-auto">
-        <CompanyDetail :company="company" />
+        <CompanyDetail :company="company" role="oe" />
       </div>
     </template>
   </UDashboardPanel>

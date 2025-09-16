@@ -49,9 +49,7 @@ const defaultBreadcrumbItems = computed<BreadcrumbItem[]>(() => {
         icon = 'i-heroicons-folder'
         break
       case 'oe':
-        label = 'Organismes Évaluateurs'
-        icon = 'i-heroicons-users'
-        break
+        continue
       case 'settings':
         label = 'Paramètres'
         icon = 'i-heroicons-cog-6-tooth'

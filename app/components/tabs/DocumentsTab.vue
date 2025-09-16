@@ -102,6 +102,7 @@
                     </span>
                     <!-- Bouton pour mettre en ligne -->
                     <UButton 
+                      v-if="props.role !== 'oe'"
                       color="primary" 
                       size="xs"
                       icon="i-lucide-upload"
@@ -134,9 +135,11 @@ import DocumentViewer from '~/components/DocumentViewer.vue'
 
 interface Props {
   company: any
+  role?: 'feef' | 'oe'
 }
-
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  role: 'feef'
+})
 
 // Organiser les documents par phase de labellisation
 const documentsByPhase = computed(() => {

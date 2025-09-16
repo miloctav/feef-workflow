@@ -54,19 +54,10 @@
 
 <script setup lang="ts">
 const items = [
-  { label: 'Dashboard', icon: 'i-lucide-home', to: '/feef' },
-  { label: 'Entreprises', icon: 'i-lucide-users', to: '/feef/companies' },
-  { label: 'Dossiers de labellisation', icon: 'i-lucide-folder', to: '/feef/labeling-cases' },
-  { label: 'Organismes Évaluateurs', icon: 'i-lucide-shield-check', to: '/feef/oe' },
-  {
-    label: 'Paramètres',
-    icon: 'i-lucide-settings',
-    defaultOpen: true,
-    children: [
-      { label: 'Configuration des documents', icon: 'i-lucide-file-text', to: '/feef/settings/documents' },
-      { label: 'Gestion des comptes FEEF', icon: 'i-lucide-users-2', to: '/feef/settings/accounts' }
-    ]
-  },
-  { label: 'Notifications', icon: 'i-lucide-bell', to: '/feef/notifications' }
+  { label: 'Dashboard', icon: 'i-lucide-home', to: '/oe' },
+  { label: 'Entreprises', icon: 'i-lucide-users', to: '/oe/companies' },
+  { label: 'Dossiers de labellisation', icon: 'i-lucide-folder', to: '/oe/labeling-cases' },
+  { label: 'Gestion des comptes FEEF', icon: 'i-lucide-users-2', to: '/oe/accounts' },
+  { label: 'Notifications', icon: 'i-lucide-bell', to: '/oe/notifications' }
 ]
 </script>

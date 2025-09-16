@@ -4,7 +4,7 @@
       <UIcon name="i-lucide-file-signature" class="w-6 h-6 text-yellow-600" />
       <h4 class="font-semibold text-yellow-900">Contrat de licence de marque</h4>
     </div>
-    <p class="text-gray-700 text-sm mb-2">Ce contrat doit être signé par l'entreprise pour obtenir l'attestation de labellisation.</p>
+    <p v-if="props.selectedPhase === 'phase5'" class="text-gray-700 text-sm mb-2">Ce contrat doit être signé par l'entreprise pour obtenir l'attestation de labellisation.</p>
     <div class="flex items-center gap-2 justify-center mb-2">
       <span class="text-xs text-gray-500">Statut :</span>
       <span :class="statusClass">{{ statusText }}</span>
@@ -21,6 +21,7 @@ import { computed } from 'vue'
 interface Props {
   isSigned: boolean
   signedDate?: string
+  selectedPhase: string
 }
 
 const props = defineProps<Props>()
