@@ -37,18 +37,16 @@
             </div>
             
             <UButton 
-                v-if="!(props.role === 'oe' && selectedPhase === 'phase4')"
+                v-if="(props.role === 'feef' && selectedPhase === 'phase4')"
                 @click="validateLabellisation"
                 color="success" 
                 icon="i-lucide-check-circle"
                 size="lg"
-                :disabled="selectedPhase !== 'phase5'"
                 class="px-8 py-3 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 Valider la labellisation
               </UButton>
-              <p v-if="selectedPhase !== 'phase5' && !(props.role === 'oe' && selectedPhase === 'phase4')" class="text-xs text-gray-500">Action disponible en phase 5</p>
-              <div v-if="props.role === 'oe' && selectedPhase === 'phase4'" class="text-sm text-emerald-800 font-semibold py-4">
+              <div v-if="(props.role === 'oe' || props.role === 'company') && selectedPhase === 'phase4'" class="text-sm text-emerald-800 font-semibold py-4">
                 En attente de validation par la FEEF
               </div>
           </div>
@@ -321,7 +319,7 @@ interface Props {
     }
   }
   selectedPhase: string
-  role?: "oe" | "feef"
+  role?: "oe" | "feef" | "company"
 }
 
 const props = withDefaults(defineProps<Props>(), {

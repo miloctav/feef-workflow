@@ -51,6 +51,9 @@ function onSelectRow(row: TableRow<Company>, e?: Event) {
       <NavBar />
     </template>    <template #body>
       <div class="w-full space-y-4 pb-4">
+        <div class="flex justify-end mb-2">
+          <UButton color="primary" icon="i-lucide-plus" size="sm" class="font-semibold">Créer une nouvelle entreprise</UButton>
+        </div>
         <UTable
           :data="data"
           :columns="columns"

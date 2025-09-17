@@ -28,6 +28,7 @@
       :performance-globale="simulatedData.workflow.rapport.performanceGlobale"
       :selected-phase="selectedPhase"
       :needs-plan-action="needsPlanAction"
+      :role="props.role"
       @view-plan-action="viewPlanAction"
     />
 
@@ -59,6 +60,7 @@
           :is-signed="selectedPhase === 'phase6' || licenseSigned"
           :signed-date="licenseSignedDate"
           :selected-phase="selectedPhase"
+          :role="props.role"
           @view-license="viewLicenseContract"
         />
       </div>
@@ -87,7 +89,7 @@ import type { Company, Documents } from '~/utils/data'
 
 interface Props {
   company: Company
-  role?: 'oe' | 'feef'
+  role?: 'oe' | 'feef' | 'company'
 }
 
 const props = withDefaults(defineProps<Props>(), {

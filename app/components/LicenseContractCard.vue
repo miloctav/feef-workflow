@@ -6,8 +6,13 @@
     </div>
     <p v-if="props.selectedPhase === 'phase5'" class="text-gray-700 text-sm mb-2">Ce contrat doit être signé par l'entreprise pour obtenir l'attestation de labellisation.</p>
     <div class="flex items-center gap-2 justify-center mb-2">
-      <span class="text-xs text-gray-500">Statut :</span>
-      <span :class="statusClass">{{ statusText }}</span>
+      <template v-if="!props.isSigned && props.role === 'company'">
+        <UButton color="primary" size="xs" icon="i-lucide-pen" class="ml-2">Cliquer pour signer</UButton>
+      </template>
+      <template v-else>
+        <span class="text-xs text-gray-500">Statut :</span>
+        <span :class="statusClass">{{ statusText }}</span>
+      </template>
     </div>
     <div class="mt-3">
       <span class="text-yellow-700 underline text-sm group-hover:text-yellow-900">Cliquer pour consulter le contrat</span>
@@ -22,9 +27,12 @@ interface Props {
   isSigned: boolean
   signedDate?: string
   selectedPhase: string
+  role?: "oe" | "feef" | "company"
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  role: 'feef'
+})
 
 const statusText = computed(() => {
   return props.isSigned ? 'Signé' : 'En attente de signature par l\'entreprise'

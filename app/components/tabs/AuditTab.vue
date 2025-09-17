@@ -76,6 +76,10 @@
                 <p class="text-xs text-orange-700">{{ simulatedData.workflow.audit.revueDocumentaire.documentsManquants || 0 }} docs à transmettre</p>
                 <p class="text-xs text-gray-500">Transmission en cours</p>
               </div>
+                <!-- Date limite de dépôt visible uniquement à la phase 0 -->
+                <div v-if="selectedPhase === 'phase0'">
+                  <p class="text-xs text-red-700 font-semibold">date limite de dépôt : 12/12/2025</p>
+                </div>
             </div>
           </div>
 
@@ -195,31 +199,35 @@
               <div v-if="simulatedData.workflow.audit.auditTermine">
                 <p class="text-xs text-emerald-800">{{ simulatedData.workflow.audit.dateDebutReelle }} - {{ simulatedData.workflow.audit.dateFinReelle }}</p>
                 <p class="text-xs text-gray-600">Audit réalisé</p>
-                <UButton
-                  color="neutral"
-                  size="xs"
-                  icon="i-lucide-edit"
-                  class="mt-1"
-                  disabled
-                >
-                  Modifier les dates
-                </UButton>
-                <p class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
+                <template v-if="role !== 'company'">
+                  <UButton
+                    color="neutral"
+                    size="xs"
+                    icon="i-lucide-edit"
+                    class="mt-1"
+                    disabled
+                  >
+                    Modifier les dates
+                  </UButton>
+                  <p class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
+                </template>
               </div>
               
               <div v-else-if="simulatedData.workflow.audit.datesAuditPlanifiees">
                 <p class="text-xs text-emerald-800">{{ simulatedData.workflow.audit.dateDebutPlanifiee }} - {{ simulatedData.workflow.audit.dateFinPlanifiee }}</p>
                 <p class="text-xs text-gray-500">Audit en préparation</p>
-                <UButton
-                  color="neutral"
-                  size="xs"
-                  icon="i-lucide-edit"
-                  class="mt-1"
-                  disabled
-                >
-                  Modifier les dates
-                </UButton>
-                <p class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
+                <template v-if="role !== 'company'">
+                  <UButton
+                    color="neutral"
+                    size="xs"
+                    icon="i-lucide-edit"
+                    class="mt-1"
+                    disabled
+                  >
+                    Modifier les dates
+                  </UButton>
+                  <p class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
+                </template>
               </div>
               
               <div v-else>
@@ -247,7 +255,7 @@ import type { Documents } from '~/utils/data'
 
 interface Props {
   company: any
-  role?: 'oe' | 'feef'
+  role?: 'oe' | 'feef' | 'company'
 }
 
 const props = withDefaults(defineProps<Props>(), {

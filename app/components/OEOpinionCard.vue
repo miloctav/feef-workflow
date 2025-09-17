@@ -54,29 +54,32 @@
             </div>
             </div>
           
-          <!-- Boutons d'action pour saisie avis (phases 3 et 4) -->
-          <div v-if="selectedPhase === 'phase3' || (selectedPhase === 'phase4' && !avis?.dateTransmission)">
-            <UButton 
-              color="primary" 
-              size="xs"
-              icon="i-lucide-edit"
-              class="w-full"
-              :disabled="props.role !== 'oe'"
-            >
-              Saisir l'avis OE
-            </UButton>
-          </div>
-          <div v-if="selectedPhase === 'phase3' || (selectedPhase === 'phase4' && !avis?.dateTransmission)">
-            <UButton 
-              color="primary" 
-              size="xs"
-              icon="i-lucide-edit"
-              class="w-full"
-              :disabled="props.role !== 'oe'"
-            >
-              Mettre en ligne l'avis de labellisation
-            </UButton>
-            <p class="text-xs text-gray-500 text-center mt-1">Action OE</p>
+          <!-- Phase 3 : affichage selon le rôle -->
+          <div v-if="selectedPhase === 'phase3'">
+            <template v-if="props.role === 'company'">
+              <p class="text-xs text-gray-500 text-center">En attente que l'OE rentre son avis.</p>
+            </template>
+            <template v-else>
+              <UButton 
+                color="primary" 
+                size="xs"
+                icon="i-lucide-edit"
+                class="w-full"
+                :disabled="props.role !== 'oe'"
+              >
+                Saisir l'avis OE
+              </UButton>
+              <UButton 
+                color="primary" 
+                size="xs"
+                icon="i-lucide-edit"
+                class="w-full"
+                :disabled="props.role !== 'oe'"
+              >
+                Mettre en ligne l'avis de labellisation
+              </UButton>
+              <p class="text-xs text-gray-500 text-center mt-1">Action OE</p>
+            </template>
           </div>
         </div>
 
@@ -171,7 +174,7 @@ interface Props {
     }
   }
   selectedPhase: string
-  role?: "oe" | "feef"
+  role?: "oe" | "feef" | "company"
 }
 
 const props = withDefaults(defineProps<Props>(), {

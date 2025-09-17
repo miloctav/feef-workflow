@@ -13,129 +13,9 @@ if (!company) {
   throw createError({ statusCode: 404, statusMessage: 'Dossier de labellisation non trouvé' })
 }
 
-function getEtatColor(etat: string): "neutral" | "primary" | "warning" | "secondary" | "success" | "info" | "error" {
-  const colors: Record<string, "neutral" | "primary" | "warning" | "secondary" | "success" | "info" | "error"> = {
-    'candidacy': 'neutral',
-    'engagement': 'primary', 
-    'audit': 'warning',
-    'decision': 'secondary',
-    'labeled': 'success'
-  };
-  return colors[etat] || 'neutral';
-}
-
 // Ordre des étapes pour déterminer lesquelles sont complétées
 const stepOrder = ['candidacy', 'engagement', 'audit', 'decision', 'labeled'];
 
-// Configuration des étapes du stepper
-const stepperItems = computed(() => {
-  const currentStepIndex = stepOrder.indexOf(company.workflow.state);
-  
-  return [
-    {
-      title: 'Candidature',
-      icon: 'i-lucide-file-text',
-      value: 'candidacy',
-      completed: currentStepIndex >= 0,
-      dates: [
-        {
-          label: 'Date validation éligibilité',
-          value: company.eligibilite.dateValidation,
-          icon: 'i-lucide-check-circle'
-        },
-        {
-          label: 'Envoi contrat de labellisation',
-          value: company.workflow.contratLabellisation.envoiContrat,
-          icon: 'i-lucide-send'
-        },
-        {
-          label: 'Contrat de labellisation signé',
-          value: company.workflow.contratLabellisation.contratSigne,
-          icon: 'i-lucide-pen-tool'
-        }
-      ]
-    },
-    {
-      title: 'Engagement',
-      icon: 'i-lucide-handshake',
-      value: 'engagement',
-      completed: currentStepIndex >= 1,
-      dates: [
-        {
-          label: 'Devis OE signé',
-          value: company.workflow.contratOE.contratSigne,
-          icon: 'i-lucide-file-signature'
-        }
-      ]
-    },
-    {
-      title: 'Audit',
-      icon: 'i-lucide-search',
-      value: 'audit',
-      completed: currentStepIndex >= 2,
-      dates: [
-        {
-          label: 'Plan audit transmis',
-          value: company.workflow.audit.dateTransmissionPlan,
-          icon: 'i-lucide-calendar-days'
-        },
-        {
-          label: 'Période audit planifiée',
-          value: company.workflow.audit.dateDebutPlanifiee && company.workflow.audit.dateFinPlanifiee ? 
-            `${company.workflow.audit.dateDebutPlanifiee} - ${company.workflow.audit.dateFinPlanifiee}` : undefined,
-          icon: 'i-lucide-calendar-check'
-        },
-        {
-          label: 'Audit réalisé',
-          value: company.workflow.audit.dateDebutReelle && company.workflow.audit.dateFinReelle ? 
-            `${company.workflow.audit.dateDebutReelle} - ${company.workflow.audit.dateFinReelle}` : undefined,
-          icon: 'i-lucide-clipboard-check'
-        }
-      ]
-    },
-    {
-      title: 'Décision',
-      icon: 'i-lucide-scale',
-      value: 'decision',
-      completed: currentStepIndex >= 3,
-      dates: [
-        {
-          label: 'Rapport simplifié transmis',
-          value: company.workflow.rapport.rapportSimplifie?.dateTransmission,
-          icon: 'i-lucide-file-text'
-        },
-        {
-          label: 'Rapport détaillé transmis',
-          value: company.workflow.rapport.rapportDetaille?.dateTransmission,
-          icon: 'i-lucide-file-chart-line'
-        },
-        {
-          label: 'Avis de labellisation émis',
-          value: company.workflow.avis.dateTransmission,
-          icon: 'i-lucide-message-square'
-        }
-      ]
-    },
-    {
-      title: 'Labellisé',
-      icon: 'i-lucide-award',
-      value: 'labeled',
-      completed: currentStepIndex >= 4,
-      dates: [
-        {
-          label: 'Attestation transmise',
-          value: company.workflow.attestation.dateTransmission,
-          icon: 'i-lucide-certificate'
-        },
-        {
-          label: 'Validité de l\'attestation',
-          value: company.workflow.attestation.dateValidite,
-          icon: 'i-lucide-calendar'
-        }
-      ]
-    }
-  ]
-});
 
 // Étape actuelle basée sur l'état du workflow
 const currentStepValue = computed(() => {
@@ -350,49 +230,11 @@ function dismissAlert(alertId: string) {
       
       <!-- Stepper des étapes de labellisation - pleine largeur -->
       <div class="w-full px-8 mb-6">
-        <UStepper 
-          :items="stepperItems" 
-          :model-value="3"
+        <Stepper
+          :workflow="company.workflow"
           color="primary"
           size="lg"
-          class="w-full"
-        >
-          <template #indicator="{ item }">
-            <div 
-              :class="[
-                'flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors',
-                getStepStatus(item.value) === 'completed'
-                  ? 'bg-green-500 border-green-500 text-white'
-                  : getStepStatus(item.value) === 'current'
-                  ? 'bg-primary border-primary text-white'
-                  : 'bg-white border-gray-300 text-gray-400'
-              ]"
-            >
-              <UIcon 
-                v-if="getStepStatus(item.value) === 'completed'"
-                name="i-lucide-check" 
-                class="w-4 h-4" 
-              />
-              <UIcon 
-                v-else
-                :name="item.icon" 
-                class="w-4 h-4" 
-              />
-            </div>
-          </template>
-          
-          <template #description="{ item }">
-            <div class="space-y-1 text-sm">
-              <div v-if="item.dates && item.dates.length > 0" class="space-y-1">
-                <div v-for="date in item.dates" :key="date.label" class="flex items-center gap-2 text-xs">
-                  <UIcon :name="date.icon" class="w-3 h-3 text-gray-500" />
-                  <span class="text-gray-600">{{ date.label }}:</span>
-                  <span class="text-gray-900 font-medium">{{ date.value || 'Non défini' }}</span>
-                </div>
-              </div>
-            </div>
-          </template>
-        </UStepper>
+        />
       </div>
       
       <!-- Tabs pour les différentes sections -->

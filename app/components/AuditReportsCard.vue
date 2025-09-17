@@ -29,6 +29,7 @@
             <!-- Bouton pour mettre en ligne en phase 0 -->
             <div v-if="selectedPhase === 'phase0'">
               <UButton 
+                v-if="props.role !== 'company'"
                 color="primary" 
                 size="xs"
                 icon="i-lucide-upload"
@@ -37,7 +38,7 @@
               >
                 Mettre en ligne
               </UButton>
-              <p class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
+              <p v-if="props.role !== 'company'" class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
             </div>
           </div>
         </div>
@@ -66,6 +67,7 @@
           <!-- Boutons d'action pour phase 0 -->
           <div v-if="selectedPhase === 'phase0'" class="mt-2">
             <UButton 
+              v-if="props.role !== 'company'"
               color="primary" 
               size="xs"
               icon="i-lucide-edit"
@@ -74,7 +76,7 @@
             >
               Saisir le score
             </UButton>
-            <p class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
+            <p v-if="props.role !== 'company'" class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
           </div>
         </div>
       </div>
@@ -90,7 +92,7 @@ interface Props {
   } | undefined
   performanceGlobale: number | undefined
   selectedPhase: string
-  role?: 'oe' | 'feef'
+  role?: 'oe' | 'feef' | 'company'
 }
 
 const props = withDefaults(defineProps<Props>(), {

@@ -47,12 +47,16 @@
 
         <div class="grid grid-cols-2 gap-4">
           <!-- Choix de l'OE -->
-          <div :class="[
-            'text-center p-4 rounded-lg border',
-            simulatedData.workflow.partageOE !== 'Non choisi'
-              ? 'bg-green-50 border-green-200' 
-              : 'bg-orange-50 border-orange-200'
-          ]">
+          <div
+            :class="[
+              'text-center p-4 rounded-lg border transition-all',
+              simulatedData.workflow.partageOE !== 'Non choisi'
+                ? 'bg-green-50 border-green-200'
+                : 'bg-orange-50 border-orange-200 cursor-pointer hover:bg-orange-100 hover:shadow-md group',
+              role === 'company' && selectedPhase === 'phase0' && simulatedData.workflow.partageOE === 'Non choisi' ? 'cursor-pointer hover:bg-orange-100 hover:shadow-md group' : ''
+            ]"
+            @click="role === 'company' && selectedPhase === 'phase0' && simulatedData.workflow.partageOE === 'Non choisi' ? null : undefined"
+          >
             <UIcon 
               :name="simulatedData.workflow.partageOE !== 'Non choisi' ? 'i-lucide-building-2' : 'i-lucide-help-circle'" 
               :class="[
@@ -81,7 +85,12 @@
               
               <div v-else>
                 <p class="text-xs text-gray-500">Choix de l'OE par l'entreprise</p>
-                <p class="text-xs text-gray-400 mt-1">En attente de sélection</p>
+                <template v-if="role === 'company' && selectedPhase === 'phase0'">
+                  <span class="flex items-center justify-center gap-1 text-xs text-gray-600 w-full mt-2">
+                    Cliquer pour choisir
+                    <UIcon name="i-lucide-pointer" class="w-3 h-3" />
+                  </span>
+                </template>
               </div>
             </div>
           </div>
@@ -146,9 +155,8 @@
               
               <div v-else>
                 <p class="text-xs text-gray-500">En attente de mise en ligne</p>
-                <p class="text-xs text-gray-400 mt-1">Par l'entreprise ou l'OE</p>
                   <!-- Bouton Ajouter un devis pour OE en phase1 -->
-                  <div v-if="props.role === 'oe' && selectedPhase === 'phase1'">
+                  <div v-if="(props.role === 'oe' || props.role === 'company') && selectedPhase === 'phase1'">
                     <UButton color="primary" size="sm" icon="i-lucide-upload">
                       Ajouter un devis
                     </UButton>
@@ -170,7 +178,7 @@ import DocumentViewer from '~/components/DocumentViewer.vue'
 
 interface Props {
   company: any
-  role?: 'feef' | 'oe'
+  role?: 'feef' | 'oe' | 'company'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -179,10 +187,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Phase d'engagement sélectionnée
 const selectedPhase = ref('phase0')
-
-// Options pour les organismes évaluateurs
-const oeOptions = ORGANISMES_EVALUATEURS
-const editedOE = ref('')
 
 // Options pour les phases
 const phaseOptions = [

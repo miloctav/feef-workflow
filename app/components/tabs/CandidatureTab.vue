@@ -29,12 +29,19 @@
     </div>
 
     <!-- En-tête -->
-    <div class="flex items-start gap-4 mb-6">
-      <UIcon name="i-lucide-file-text" class="w-6 h-6 text-primary mt-1" />
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">Résumé de candidature</h3>
-        <p class="text-gray-600 text-sm">Informations détaillées du dossier d'inscription de l'entreprise</p>
+    <div class="flex items-start gap-4 mb-6 justify-between">
+      <div class="flex items-start gap-4">
+        <UIcon name="i-lucide-file-text" class="w-6 h-6 text-primary mt-1" />
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Résumé de candidature</h3>
+          <p class="text-gray-600 text-sm">Informations détaillées du dossier d'inscription de l'entreprise</p>
+        </div>
       </div>
+      <template v-if="role === 'company'">
+        <UButton color="primary" icon="i-lucide-edit" size="md" class="font-semibold">
+          Modifier les informations sur l'entreprise
+        </UButton>
+      </template>
     </div>
 
     <div class="space-y-8">
@@ -49,7 +56,10 @@
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <!-- Audit souhaité -->
-          <div class="text-center p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+          <div
+            class="text-center p-4 bg-indigo-50 rounded-lg border border-indigo-200 cursor-pointer group"
+            @click="role === 'company' ? null : undefined"
+          >
             <UIcon name="i-lucide-calendar-check" class="w-6 h-6 text-indigo-600 mx-auto mb-2" />
             <h5 class="text-sm font-medium text-gray-900 mb-1">Audit souhaité</h5>
             <div class="space-y-1">
@@ -59,6 +69,12 @@
               <p class="text-xs text-gray-600">
                 OE : {{ 'Appel d\'offre' }}
               </p>
+              <template v-if="role === 'company'">
+                <span class="flex items-center justify-center gap-1 text-xs text-gray-600 w-full mt-2">
+                  Cliquer pour modifier
+                  <UIcon name="i-lucide-edit" class="w-3 h-3" />
+                </span>
+              </template>
             </div>
           </div>
 
@@ -178,16 +194,20 @@
           </div>
 
           <!-- Contrat signé -->
-          <div :class="[
-            'text-center p-4 rounded-lg border',
-            !simulatedData.eligibilite.dateValidation
-              ? 'bg-gray-100 border-gray-300 opacity-50'
-              : simulatedData.contratLabellisation.contratSigne 
-                ? 'bg-purple-50 border-purple-200' 
-                : simulatedData.contratLabellisation.envoiContrat 
-                  ? 'bg-yellow-50 border-yellow-200' 
-                  : 'bg-gray-50 border-gray-200 opacity-60'
-          ]">
+          <div
+            :class="[
+              'text-center p-4 rounded-lg border transition-all',
+              !simulatedData.eligibilite.dateValidation
+                ? 'bg-gray-100 border-gray-300 opacity-50'
+                : simulatedData.contratLabellisation.contratSigne 
+                  ? 'bg-purple-50 border-purple-200' 
+                  : simulatedData.contratLabellisation.envoiContrat 
+                    ? 'bg-yellow-50 border-yellow-200 cursor-pointer hover:bg-yellow-100 hover:shadow-md group' 
+                    : 'bg-gray-50 border-gray-200 opacity-60',
+              role === 'company' && selectedPhase === 'phase2' && simulatedData.contratLabellisation.envoiContrat && !simulatedData.contratLabellisation.contratSigne ? 'cursor-pointer hover:bg-yellow-100 hover:shadow-md group' : ''
+            ]"
+            @click="role === 'company' && selectedPhase === 'phase2' && simulatedData.contratLabellisation.envoiContrat && !simulatedData.contratLabellisation.contratSigne ? null : undefined"
+          >
             <UIcon 
               :name="!simulatedData.eligibilite.dateValidation 
                 ? 'i-lucide-lock'
@@ -233,6 +253,12 @@
                   ? 'En attente de validation'
                   : simulatedData.contratLabellisation.contratSigne || 'Non signé' }}
               </p>
+              <template v-if="role === 'company' && selectedPhase === 'phase2'">
+                <span class="flex items-center justify-center gap-1 text-xs text-gray-600 w-full mt-2">
+                  Cliquer pour signer
+                  <UIcon name="i-lucide-pen" class="w-3 h-3" />
+                </span>
+              </template>
             </div>
           </div>
         </div>
@@ -624,7 +650,7 @@ import ActivitesGrid from '~/components/ActivitesGrid.vue'
 
 interface Props {
   company: any
-  role?: 'oe' | 'feef'
+  role?: 'oe' | 'feef' | "company"
 }
 
 const props = withDefaults(defineProps<Props>(), {
