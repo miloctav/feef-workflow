@@ -6,7 +6,8 @@ definePageMeta({
   layout: "dashboard-company",
 });
 
-const company = getCompanyById("alpha" as string)
+const route = useRoute()
+const company = getCompanyById(route.params.id as string)
 
 if (!company) {
   throw createError({ statusCode: 404, statusMessage: 'Entreprise non trouvée' })

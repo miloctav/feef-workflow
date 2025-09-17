@@ -109,7 +109,7 @@
               
               <div v-else>
                 <UButton
-                  @click="validateEligibility"
+                v-if="role === 'feef'"
                   color="success"
                   size="xs"
                   icon="i-lucide-check"
@@ -179,7 +179,7 @@
               <div v-else>
                 <template v-if="role !== 'oe'">
                   <UButton
-                    @click="publishContract"
+                    v-if="role === 'feef'"
                     color="primary"
                     size="xs"
                     icon="i-lucide-upload"

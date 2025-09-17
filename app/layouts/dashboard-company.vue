@@ -19,25 +19,17 @@
       </template>
 
       <template #default="{ collapsed }">
-        <UButton
-          :label="collapsed ? undefined : 'Rechercher...'"
-          icon="i-lucide-search"
-          color="neutral"
-          variant="outline"
-          block
-          :square="collapsed"
-        >
-          <template v-if="!collapsed" #trailing>
-            <div class="flex items-center gap-0.5 ms-auto">
-              <UKbd value="meta" variant="subtle" />
-              <UKbd value="K" variant="subtle" />
-            </div>
-          </template>
-        </UButton>
+  <SwitchCompanyMenu :collapsed="collapsed" @update:id="selectedCompanyId = $event" />
 
         <UNavigationMenu
           :collapsed="collapsed"
-          :items="items"
+          :items="items.slice(0,2)"
+          orientation="vertical"
+        />
+        <USeparator label="Dossiers de labellisation" class="my-3" />
+        <UNavigationMenu
+          :collapsed="collapsed"
+          :items="items.slice(3)"
           orientation="vertical"
         />
       </template>
@@ -58,9 +50,16 @@
 </template>
 
 <script setup lang="ts">
-const items = [
-  { label: 'Mon entreprise', icon: 'i-lucide-home', to: '/company' },
-  { label: 'Dossiers de labellisation', icon: 'i-lucide-folder', to: '/company/labeling-cases/alpha' },
-  { label: 'Notifications', icon: 'i-lucide-bell', to: '/company/notifications' }
-]
+import { ref, computed } from 'vue'
+import { COMPANIES } from '../components/../utils/data'
+
+const selectedCompanyId = ref(COMPANIES.length > 0 ? COMPANIES[0].id : '')
+
+const items = computed(() => [
+  { label: 'Mon entreprise', icon: 'i-lucide-home', to: `/company/${selectedCompanyId.value}` },
+  { label: 'Notifications', icon: 'i-lucide-bell', to: `/company/notifications` },
+  { type: 'label' as const, label: '' },
+  { label: 'Renouvellement (2025)', icon: 'i-lucide-folder', to: `/company/labeling-cases/${selectedCompanyId.value}` },
+  { label: 'Initial (2024)', icon: 'i-lucide-folder', to: `/company/labeling-cases/${selectedCompanyId.value}` }
+])
 </script>
