@@ -17,6 +17,8 @@ const props = withDefaults(defineProps<Props>(), {
 // Génération automatique du breadcrumb basé sur la route si pas d'items fournis
 const route = useRoute()
 
+const { isNotificationsSlideoverOpen } = useDashboard()
+
 const defaultBreadcrumbItems = computed<BreadcrumbItem[]>(() => {
   if (props.breadcrumbItems.length > 0) {
     return props.breadcrumbItems
@@ -85,6 +87,21 @@ const defaultBreadcrumbItems = computed<BreadcrumbItem[]>(() => {
         class="ml-4"
       />
     </template>
+
+     <template #right>
+          <UTooltip text="Notifications" :shortcuts="['N']">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              square
+              @click="isNotificationsSlideoverOpen = true"
+            >
+              <UChip color="error" inset>
+                <UIcon name="i-lucide-bell" class="size-5 shrink-0" />
+              </UChip>
+            </UButton>
+          </UTooltip>
+        </template>
 
     <template #trailing>
       <slot name="actions" />

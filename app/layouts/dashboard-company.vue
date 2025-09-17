@@ -1,6 +1,6 @@
 <template>
   <UDashboardGroup>
-    <UDashboardSidebar collapsible resizable>
+    <UDashboardSidebar collapsible resizable :ui="{ footer: 'lg:border-t lg:border-default' }">
       <template #header="{ collapsed }">
         <NuxtLink to="/">
           <img 
@@ -41,6 +41,10 @@
           orientation="vertical"
         />
       </template>
+
+      <template #footer="{ collapsed }">
+        <UserMenu :collapsed="collapsed" />
+      </template>
     </UDashboardSidebar>
     
     <UDashboardPanel>
@@ -49,6 +53,7 @@
       </template>
       <slot />
     </UDashboardPanel>
+    <NotificationsSlideover />
   </UDashboardGroup>
 </template>
 

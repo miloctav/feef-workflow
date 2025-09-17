@@ -1,32 +1,19 @@
 <template>
   <UDashboardGroup>
-    <UDashboardSidebar collapsible resizable>
+    <UDashboardSidebar collapsible resizable :ui="{ footer: 'lg:border-t lg:border-default' }">
       <template #header="{ collapsed }">
         <NuxtLink to="/">
-          <img 
-            v-if="!collapsed"
-            class="w-[150px] h-auto cursor-pointer" 
-            alt="Fédération des Entreprises et Entrepreneurs de France" 
-            src="https://www.feef.org/wp-content/uploads/2025/01/logo_feef.svg"
-          >
-          <img 
-            v-else
-            class="h-8 w-8 mx-auto cursor-pointer" 
-            alt="FEEF" 
-            src="https://www.feef.org/wp-content/uploads/2025/01/logo_feef.svg"
-          >
+          <img v-if="!collapsed" class="w-[150px] h-auto cursor-pointer"
+            alt="Fédération des Entreprises et Entrepreneurs de France"
+            src="https://www.feef.org/wp-content/uploads/2025/01/logo_feef.svg">
+          <img v-else class="h-8 w-8 mx-auto cursor-pointer" alt="FEEF"
+            src="https://www.feef.org/wp-content/uploads/2025/01/logo_feef.svg">
         </NuxtLink>
       </template>
 
       <template #default="{ collapsed }">
-        <UButton
-          :label="collapsed ? undefined : 'Rechercher...'"
-          icon="i-lucide-search"
-          color="neutral"
-          variant="outline"
-          block
-          :square="collapsed"
-        >
+        <UButton :label="collapsed ? undefined : 'Rechercher...'" icon="i-lucide-search" color="neutral"
+          variant="outline" block :square="collapsed">
           <template v-if="!collapsed" #trailing>
             <div class="flex items-center gap-0.5 ms-auto">
               <UKbd value="meta" variant="subtle" />
@@ -35,20 +22,21 @@
           </template>
         </UButton>
 
-        <UNavigationMenu
-          :collapsed="collapsed"
-          :items="items"
-          orientation="vertical"
-        />
+        <UNavigationMenu :collapsed="collapsed" :items="items" orientation="vertical" />
+      </template>
+
+      <template #footer="{ collapsed }">
+        <UserMenu :collapsed="collapsed" />
       </template>
     </UDashboardSidebar>
-    
+
     <UDashboardPanel>
       <template #header>
         <UDashboardNavbar />
       </template>
       <slot />
     </UDashboardPanel>
+    <NotificationsSlideover />
   </UDashboardGroup>
 </template>
 
