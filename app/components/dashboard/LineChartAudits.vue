@@ -85,7 +85,7 @@ onMounted(() => {
       <canvas ref="chartRef" style="width: 100%; height: 100%;"></canvas>
     </div>
     <!-- Sélecteur d'année sous le graphique -->
-    <div class="mt-4 flex justify-center w-full">
+    <div class="flex justify-center w-full">
       <div class="flex items-center gap-2">
         <UButton icon="i-lucide-chevron-left" @click="prevYear" :disabled="selectedYear === yearsList[0]" variant="outline" color="neutral" />
         <span class="font-semibold text-lg w-16 text-center">{{ selectedYear }}</span>

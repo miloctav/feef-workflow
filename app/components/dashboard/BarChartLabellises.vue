@@ -89,7 +89,7 @@ onMounted(() => {
       <canvas ref="chartRef" style="width: 100%; height: 100%;"></canvas>
     </div>
     <!-- Sélecteur de plage d'années sous le graphique -->
-    <div class="mt-4 flex justify-center w-full">
+    <div class="flex justify-center w-full">
       <div class="flex items-center gap-2">
         <UButton icon="i-lucide-chevron-left" @click="prevRange" :disabled="selectedRangeIdx === 0" variant="outline" color="neutral" />
         <span class="font-semibold text-lg w-32 text-center">{{ rangesList[selectedRangeIdx].label }}</span>
