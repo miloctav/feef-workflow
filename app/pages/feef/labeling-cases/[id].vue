@@ -16,12 +16,6 @@ if (!company) {
 // Ordre des étapes pour déterminer lesquelles sont complétées
 const stepOrder = ['candidacy', 'engagement', 'audit', 'decision', 'labeled'];
 
-
-// Étape actuelle basée sur l'état du workflow
-const currentStepValue = computed(() => {
-  return company.workflow.state;
-});
-
 // Fonction pour déterminer le statut d'une étape
 function getStepStatus(stepValue: string): 'completed' | 'current' | 'pending' {
   if (!company) return 'pending';
