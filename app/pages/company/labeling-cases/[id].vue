@@ -198,9 +198,12 @@ function dismissAlert(alertId: string) {
           <div v-if="company.perimetreLabellisation" class="mt-6 pt-4 border-t border-gray-200">
             <div class="flex items-start gap-3">
               <UIcon name="i-lucide-target" class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 class="font-semibold text-gray-900 mb-2">Périmètre de labellisation</h3>
-                <p class="text-gray-700 text-sm leading-relaxed">
+              <div class="flex flex-col items-start gap-2">
+                <div class="flex flex-row items-center gap-2">
+                  <h3 class="font-semibold text-gray-900 mb-2">Périmètre de labellisation</h3>
+                  <UButton color="primary" variant="soft" size="xs" icon="i-lucide-edit">Modifier</UButton>
+                </div>
+                <p class="text-gray-700 text-sm leading-relaxed mt-2">
                   {{ company.perimetreLabellisation }}
                 </p>
               </div>
@@ -238,7 +241,7 @@ function dismissAlert(alertId: string) {
       <div class="w-full px-6 mb-6">
         <UTabs :items="tabItems" default-value="documents" class="w-full" orientation="horizontal">
           <template #documents>
-            <DocumentsTab :company="company" />
+            <DocumentsTab :company="company" role="company"/>
           </template>
           
           <template #candidature>

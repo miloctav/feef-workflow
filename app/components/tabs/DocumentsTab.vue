@@ -33,9 +33,13 @@
       <template #leading="{ item }">
         <div class="flex items-center gap-3">
           <UIcon :name="item.icon" class="w-5 h-5" :class="item.iconColor" />
+          <span>{{ item.title }}</span>
           <UBadge :color="item.badgeColor" variant="soft" size="sm">
             {{ item.documents.length }} document{{ item.documents.length > 1 ? 's' : '' }}
           </UBadge>
+          <span class="flex items-center gap-2">
+            <UButton v-if="(item.title === 'Phase de candidature' || item.title === 'Phase d\'audit') && role === 'company'" icon="i-lucide-plus" size="xs" >Document libre</UButton>
+          </span>
         </div>
       </template>
       
@@ -135,7 +139,7 @@ import DocumentViewer from '~/components/DocumentViewer.vue'
 
 interface Props {
   company: any
-  role?: 'feef' | 'oe'
+  role?: 'feef' | 'oe' | 'company'
 }
 const props = withDefaults(defineProps<Props>(), {
   role: 'feef'
@@ -158,7 +162,7 @@ const documentsByPhase = computed(() => {
 // Préparer les items pour l'accordion
 const accordionItems = computed(() => {
   return Object.entries(documentsByPhase.value).map(([phaseKey, documents]) => ({
-    label: getPhaseLabel(phaseKey),
+    title: getPhaseLabel(phaseKey),
     icon: getPhaseIcon(phaseKey),
     iconColor: getPhaseIconColor(phaseKey),
     badgeColor: getPhaseColor(phaseKey),

@@ -972,11 +972,8 @@ export const DOCUMENTS: Documents[] = [
     name: "Devis Organisme Évaluateur", 
     description: "Devis officiel établi par l'Organisme Évaluateur pour la labellisation", 
     labelingCaseState: labelingCaseState.candidacy,
-    isAvailable: true,
-    dateUpload: "10/8/2025",
-    uploadedBy: "Organisme Évaluateur - Service Commercial",
-    fileSize: "1.2 MB",
-    fileType: "PDF"
+    isAvailable: false,
+    dateLimiteDepot: "30/07/2025"
   },
   { 
     id: "doc2", 
@@ -1001,7 +998,7 @@ export const DOCUMENTS: Documents[] = [
     id: "doc5", 
     name: "Plan d'action RSE", 
     description: "Plan détaillant les actions RSE prévues pour l'année à venir", 
-    labelingCaseState: labelingCaseState.engagement,
+    labelingCaseState: labelingCaseState.audit,
     isAvailable: false,
     dateLimiteDepot: "15/10/2025"
   },
@@ -1009,7 +1006,7 @@ export const DOCUMENTS: Documents[] = [
     id: "doc6", 
     name: "Contrat de labellisation", 
     description: "Contrat signé entre l'entreprise et l'organisme de labellisation", 
-    labelingCaseState: labelingCaseState.engagement,
+    labelingCaseState: labelingCaseState.candidacy,
     isAvailable: true,
     dateUpload: "01/08/2025",
     uploadedBy: "FEEF - Service Labellisation",
@@ -1018,7 +1015,7 @@ export const DOCUMENTS: Documents[] = [
   },
   { 
     id: "plan-audit", 
-    name: "Plan d'audit détaillé", 
+    name: "Plan d'audit", 
     description: "Plan d'audit établi par l'Organisme Évaluateur incluant programme et méthologie", 
     labelingCaseState: labelingCaseState.audit,
     isAvailable: true,
@@ -1029,24 +1026,13 @@ export const DOCUMENTS: Documents[] = [
   },
   { 
     id: "rapport-audit-simplifie", 
-    name: "Rapport d'audit simplifié", 
+    name: "Rapport d'audit", 
     description: "Synthèse des résultats d'audit avec les principales conclusions", 
-    labelingCaseState: labelingCaseState.audit,
+    labelingCaseState: labelingCaseState.decision,
     isAvailable: true,
     dateUpload: "15/09/2025",
     uploadedBy: "Organisme Évaluateur - Auditeur principal",
     fileSize: "1.5 MB",
-    fileType: "PDF"
-  },
-  { 
-    id: "rapport-audit-detaille", 
-    name: "Rapport d'audit détaillé", 
-    description: "Rapport complet d'audit incluant tous les détails et recommandations", 
-    labelingCaseState: labelingCaseState.audit,
-    isAvailable: true,
-    dateUpload: "18/09/2025",
-    uploadedBy: "Organisme Évaluateur - Auditeur principal",
-    fileSize: "4.2 MB",
     fileType: "PDF"
   },
   { 
@@ -1059,30 +1045,6 @@ export const DOCUMENTS: Documents[] = [
     uploadedBy: "Entreprise - Direction Générale",
     fileSize: "2.1 MB",
     fileType: "PDF"
-  },
-  { 
-    id: "doc7", 
-    name: "Rapport d'audit", 
-    description: "Rapport détaillant les résultats de l'audit réalisé par l'organisme évaluateur", 
-    labelingCaseState: labelingCaseState.audit,
-    isAvailable: false,
-    dateLimiteDepot: "20/11/2025"
-  },
-  { 
-    id: "doc8", 
-    name: "Plan d'amélioration", 
-    description: "Document listant les points d'amélioration identifiés lors de l'audit", 
-    labelingCaseState: labelingCaseState.audit,
-    isAvailable: false,
-    dateLimiteDepot: "25/11/2025"
-  },
-  { 
-    id: "doc10", 
-    name: "Certificat de labellisation", 
-    description: "Certificat officiel attestant que l'entreprise est labellisée", 
-    labelingCaseState: labelingCaseState.labeled,
-    isAvailable: false,
-    dateLimiteDepot: "30/12/2025"
   },
   { 
     id: "attestation-labellisation", 
