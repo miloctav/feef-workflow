@@ -30,13 +30,6 @@ definePageMeta({
   layout: 'dashboard-feef'
 })
 
-
-const colorOptions = [
-  { label: 'Tous', value: '' },
-  { label: 'Vert', value: 'green' },
-  { label: 'Orange', value: 'orange' },
-  { label: 'Rouge', value: 'red' }
-]
 const oeOptions = ref<SelectItem[]>([
   { label: 'Tous', value: 'all' },
   { label: 'SGS', value: 'sgs' },
@@ -47,7 +40,7 @@ const selectedOE = ref(oeOptions.value[0].value)
 // Données factices par catégorie et card
 const dashboardCategories = [
   {
-    label: 'Candidature',
+    label: 'Demande de dossiers',
     cards: [
       { shortText: 'Candidature initialisée', value: 7, alertesRouges: 0, alertesOranges: 0, color: 'border-blue-500', bgColor: 'bg-blue-50' },
       { shortText: 'En attente validation FEEF', value: 12, alertesRouges: 1, alertesOranges: 0, color: 'border-green-500', bgColor: 'bg-green-50' },
@@ -92,13 +85,28 @@ const categoryTotals = dashboardCategories.map(cat => cat.cards.reduce((sum, car
       <div class="p-6 space-y-6">
         <!-- Titre dashboard + select OE -->
         <div class="flex flex-row items-center justify-center w-full mb-2">
-          <span class="font-bold text-4xl">Dashboard</span>
+          <span class="font-bold text-4xl">Tableau de bord</span>
         </div>
         <div class="flex flex-row items-center gap-2 min-w-[220px] mb-2">
           <label class="font-semibold text-gray-700 whitespace-nowrap">Organisme évaluateur</label>
           <USelect v-model="selectedOE" :items="oeOptions" value-key="value" class="w-32" />
         </div>
         <USeparator class="mb-6" />
+        <!-- Bloc infos entreprises, import et export -->
+        <div class="flex flex-row gap-6 px-6 mb-6">
+          <div class="bg-white rounded-xl shadow p-6 flex-1 flex flex-col items-center justify-center">
+            <span class="text-gray-500 text-sm mb-1">Nombre d'entreprises</span>
+            <span class="text-3xl font-bold text-primary-600">128</span>
+          </div>
+          <div class="bg-white rounded-xl shadow p-6 flex-1 flex flex-col items-center justify-center">
+            <span class="text-gray-500 text-sm mb-1">Dernier import</span>
+            <span class="text-lg font-semibold text-gray-800">21/09/2025 à 14:32</span>
+          </div>
+          <div class="bg-white rounded-xl shadow p-6 flex-1 flex flex-col items-center justify-center">
+            <span class="text-gray-500 text-sm mb-1">Dernier export</span>
+            <span class="text-lg font-semibold text-gray-800">20/09/2025 à 18:05</span>
+          </div>
+        </div>
         <!-- Dossiers en cours (sans titre) -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-6 justify-start">
           <div v-for="(cat, i) in dashboardCategories" :key="cat.label" class="flex flex-col">
@@ -107,12 +115,20 @@ const categoryTotals = dashboardCategories.map(cat => cat.cards.reduce((sum, car
               &nbsp;{{ cat.label }}
             </h2>
             <div class="flex flex-col gap-6">
-              <DashboardCard v-for="(card, j) in cat.cards" :key="j" v-bind="card" />
+              <DashboardCard
+                v-for="(card, j) in cat.cards"
+                :key="j"
+                v-bind="card"
+                :lastValue="j % 3 === 0 ? undefined : card.value - (j % 2 === 0 ? 2 : -1)"
+                :lastDate="j % 3 === 0 ? undefined : '20/09/2025 à 10:15'"
+                :trend="j % 3 === 0 ? undefined : (card.value > (card.value - (j % 2 === 0 ? 2 : -1)) ? 'up' : 'down')"
+              />
             </div>
           </div>
         </div>
         <!-- Barre de progression état des dossiers -->
         <div class="w-full px-6 mt-10">
+          <h2 class="text-xl font-bold mb-2 text-center">État des dossiers</h2>
           <div class="relative w-full h-8 bg-gray-100 rounded-full shadow-lg overflow-hidden flex text-xs font-bold">
             <div class="h-full flex items-center justify-center text-orange-900 transition-all duration-500"
               :style="`width: ${attentePct}%; background: #fed7aa`">
@@ -141,8 +157,14 @@ const categoryTotals = dashboardCategories.map(cat => cat.cards.reduce((sum, car
         <!-- Bloc Statistiques -->
         <div>
           <div class="flex flex-row items-center gap-4 w-full">
-            <BarChartLabellises />
-            <LineChartAudits />
+            <div class="flex flex-col items-center w-1/2">
+              <h2 class="text-xl font-bold mb-2 text-center">Labellisés par année</h2>
+              <BarChartLabellises />
+            </div>
+            <div class="flex flex-col items-center w-1/2">
+              <h2 class="text-xl font-bold mb-2 text-center">Audits prévus par mois</h2>
+              <LineChartAudits />
+            </div>
           </div>
         </div>
       </div>

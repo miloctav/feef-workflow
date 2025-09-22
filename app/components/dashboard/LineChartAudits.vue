@@ -1,23 +1,25 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
-import { Chart, LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+// @ts-ignore
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import type { SelectItem } from '@nuxt/ui';
 
-Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend);
+Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, ChartDataLabels);
 
 const chartRef = ref<HTMLCanvasElement | null>(null);
-const chartInstance = ref<Chart<"line", number[], string> | null>(null);
+const chartInstance = ref<Chart<'bar', number[], string> | null>(null);
 
 // Années disponibles et sélection
 const yearsList = [2023, 2024, 2025];
-const selectedYear = ref(yearsList[yearsList.length - 1]);
+const selectedYear = ref<number>(yearsList[yearsList.length - 1]);
 
 function prevYear() {
-  const idx = yearsList.indexOf(selectedYear.value);
+  const idx = yearsList.indexOf(selectedYear.value ?? yearsList[0]);
   if (idx > 0) selectedYear.value = yearsList[idx - 1];
 }
 function nextYear() {
-  const idx = yearsList.indexOf(selectedYear.value);
+  const idx = yearsList.indexOf(selectedYear.value ?? yearsList[0]);
   if (idx < yearsList.length - 1) selectedYear.value = yearsList[idx + 1];
 }
 
@@ -33,20 +35,17 @@ const labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Se
 onMounted(() => {
   if (chartRef.value) {
     chartInstance.value = new Chart(chartRef.value, {
-      type: 'line',
+      type: 'bar',
       data: {
         labels,
         datasets: [
           {
             label: 'Audits prévus',
-            data: auditsDataByYear[selectedYear.value]!,
-            fill: false,
+            data: auditsDataByYear[selectedYear.value ?? yearsList[0]] ?? [],
+            backgroundColor: 'rgba(16, 185, 129, 0.5)',
             borderColor: 'rgba(16, 185, 129, 1)',
-            backgroundColor: 'rgba(16, 185, 129, 0.2)',
-            tension: 0.4,
-            pointRadius: 5,
-            pointBackgroundColor: 'rgba(16, 185, 129, 1)',
-            borderWidth: 3,
+            borderWidth: 2,
+            borderRadius: 6,
           }
         ]
       },
@@ -55,8 +54,15 @@ onMounted(() => {
         maintainAspectRatio: false,
         layout: { padding: { top: 16, bottom: 16, left: 16, right: 16 } },
         plugins: {
-          legend: { display: false }, // on gère notre propre légende
-          tooltip: { enabled: true }
+          legend: { display: false },
+          tooltip: { enabled: true },
+          datalabels: {
+            anchor: 'center',
+            align: 'center',
+            color: '#fff',
+            font: { weight: 'bold', size: 14 },
+            formatter: function(value: number) { return value; }
+          } as any
         },
         scales: {
           x: {

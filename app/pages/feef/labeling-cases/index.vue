@@ -7,6 +7,8 @@ definePageMeta({
   layout: "dashboard-feef",
 });
 
+const UBadge = resolveComponent('UBadge')
+
 const data = ref(COMPANIES);
 
 // États des filtres (factices pour le design)
@@ -181,7 +183,11 @@ const columns: TableColumn<LabelingCase>[] = [
   {
     accessorKey: "alerteDelais",
     header: "Alerte Délais",
-    cell: ({ row }) => row.original.alerteDelais,
+    cell: ({ row }) => {
+      const color = ({ vert: 'success', orange: 'warning', rouge: 'error' })[row.getValue('alerteDelais') as string];
+      const label = ({ vert: 'Verte', orange: 'Orange', rouge: 'Rouge' })[row.getValue('alerteDelais') as string];
+      return h(UBadge, { class: 'capitalize', variant: 'soft', color }, () => label);
+    },
   },
   {
     accessorKey: "nomAuditeur",

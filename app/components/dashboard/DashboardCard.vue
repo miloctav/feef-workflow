@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Props: value, shortText, alertesRouges, alertesOranges, color, bgColor
+// Props: value, shortText, alertesRouges, alertesOranges, color, bgColor, lastValue, lastDate, trend
 defineProps<{
   value: string | number
   shortText: string
@@ -7,6 +7,9 @@ defineProps<{
   alertesOranges?: number
   color?: string
   bgColor?: string
+  lastValue?: number
+  lastDate?: string
+  trend?: 'up' | 'down'
 }>()
 </script>
 
@@ -16,7 +19,20 @@ defineProps<{
       <div class="flex flex-row gap-3 items-start w-full">
         <!-- Gros chiffre fixe -->
         <span class="text-5xl font-bold shrink-0">{{ value }}</span>
-
+        <!-- Flèche tendance + tooltip -->
+        <UTooltip
+          v-if="trend && lastValue !== undefined && lastDate"
+          :text="`${lastValue} le ${lastDate}`"
+          placement="top"
+        >
+          <span>
+            <UIcon
+              :name="trend === 'up' ? 'i-heroicons-arrow-up-right-20-solid' : 'i-heroicons-arrow-down-right-20-solid'"
+              :class="trend === 'up' ? 'text-green-500' : 'text-red-500'"
+              class="w-6 h-6 ml-1"
+            />
+          </span>
+        </UTooltip>
         <!-- Partie droite qui s’étend -->
         <div class="flex flex-col flex-1 min-w-0 w-full">
           <span class="text-sm text-muted truncate">
