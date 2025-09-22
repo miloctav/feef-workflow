@@ -16,12 +16,8 @@ const dossiersFinalisesParAn = [
   { annee: 2025, nombre: 8 }
 ]
 
-const anneeOptions = dossiersFinalisesParAn.map(item => ({ label: String(item.annee), value: item.annee }))
 const selectedAnnee = ref(dossiersFinalisesParAn.length > 0 ? dossiersFinalisesParAn[dossiersFinalisesParAn.length - 1].annee : 0)
-const nombreFinalisesAnnee = computed(() => {
-  const found = dossiersFinalisesParAn.find(item => item.annee === selectedAnnee.value)
-  return found ? found.nombre : 0
-})
+
 // Données fictives pour la barre de progression
 const dossierStats = {
   attente: 14,
