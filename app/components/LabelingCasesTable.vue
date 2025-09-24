@@ -307,8 +307,16 @@ function getEtatColor(etat: string): "neutral" | "primary" | "warning" | "second
             </div>
           </UCard>
         </div>
+        <!-- Champ de recherche entreprise -->
+        <div class="flex flex-row items-center gap-2 mt-8 mb-4">
+          <UInput
+            placeholder="Rechercher une entreprise..."
+            icon="i-heroicons-magnifying-glass"
+            class="w-80"
+          />
+        </div>
         <!-- Tableau modernisé -->
-        <div class="mt-8">
+        <div>
           <UTable
             :data="labelingCases"
             :columns="columns"

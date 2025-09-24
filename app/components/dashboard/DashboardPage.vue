@@ -91,14 +91,16 @@ const categoryTotals = dashboardCategories.map(cat => cat.cards.reduce((sum, car
             <span class="text-gray-500 text-sm mb-1">Nombre d'entreprises</span>
             <span class="text-3xl font-bold text-primary-600">128</span>
           </div>
-          <div class="bg-white rounded-xl shadow p-6 flex-1 flex flex-col items-center justify-center">
-            <span class="text-gray-500 text-sm mb-1">Dernier import</span>
-            <span class="text-lg font-semibold text-gray-800">21/09/2025 à 14:32</span>
-          </div>
-          <div class="bg-white rounded-xl shadow p-6 flex-1 flex flex-col items-center justify-center">
-            <span class="text-gray-500 text-sm mb-1">Dernier export</span>
-            <span class="text-lg font-semibold text-gray-800">20/09/2025 à 18:05</span>
-          </div>
+          <template v-if="props.role === 'oe' || (selectedOE && selectedOE !== 'all')">
+            <div class="bg-white rounded-xl shadow p-6 flex-1 flex flex-col items-center justify-center">
+              <span class="text-gray-500 text-sm mb-1">Dernier import</span>
+              <span class="text-lg font-semibold text-gray-800">21/09/2025 à 14:32</span>
+            </div>
+            <div class="bg-white rounded-xl shadow p-6 flex-1 flex flex-col items-center justify-center">
+              <span class="text-gray-500 text-sm mb-1">Dernier export</span>
+              <span class="text-lg font-semibold text-gray-800">20/09/2025 à 18:05</span>
+            </div>
+          </template>
         </div>
         <!-- Dossiers en cours (sans titre) -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-6 justify-start">
@@ -151,12 +153,12 @@ const categoryTotals = dashboardCategories.map(cat => cat.cards.reduce((sum, car
         <div>
           <div class="flex flex-row items-center gap-4 w-full">
             <div class="flex flex-col items-center w-1/2">
-              <h2 class="text-xl font-bold mb-2 text-center">Labellisés par année</h2>
-              <BarChartLabellises />
-            </div>
-            <div class="flex flex-col items-center w-1/2">
               <h2 class="text-xl font-bold mb-2 text-center">Audits prévus par mois</h2>
               <LineChartAudits />
+            </div>
+            <div class="flex flex-col items-center w-1/2">
+              <h2 class="text-xl font-bold mb-2 text-center">Labellisés par année</h2>
+              <BarChartLabellises />
             </div>
           </div>
         </div>

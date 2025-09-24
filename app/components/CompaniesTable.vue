@@ -96,9 +96,17 @@ function onSelectRow(row: TableRow<Company>, e?: Event) {
 
 <template>
     <div class="w-full space-y-4 pb-4">
-        <div v-if="role==='feef'" class="flex justify-end mb-2">
-          <UButton color="primary" icon="i-lucide-plus" size="sm" class="font-semibold">Créer une nouvelle entreprise
-          </UButton>
+        <!-- Champ de recherche + bouton création sur la même ligne -->
+        <div class="flex flex-row items-center justify-between mb-2">
+          <UInput
+            placeholder="Rechercher par nom d'entreprise..."
+            icon="i-heroicons-magnifying-glass"
+            class="w-80"
+          />
+          <div v-if="role==='feef'">
+            <UButton color="primary" icon="i-lucide-plus" size="sm" class="font-semibold">Créer une nouvelle entreprise
+            </UButton>
+          </div>
         </div>
         <UTable :data="data" :columns="columns"
           class="shadow-lg rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 transition-all"

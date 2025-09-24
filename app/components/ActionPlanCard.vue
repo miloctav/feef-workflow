@@ -45,6 +45,9 @@
                 <UButton v-if="props.role === 'oe'" color="success" size="xs" icon="i-lucide-check" class="flex-1">
                   Valider
                 </UButton>
+                <UButton v-if="props.role === 'oe'" color="error" size="xs" icon="i-lucide-x" class="flex-1">
+                  Refuser
+                </UButton>
               </div>
             </div>
             <div v-else class="space-y-2">

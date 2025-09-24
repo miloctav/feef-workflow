@@ -23,62 +23,90 @@ function nextYear() {
   if (idx < yearsList.length - 1) selectedYear.value = yearsList[idx + 1];
 }
 
-// Données fictives par année
-const auditsDataByYear: Record<number, number[]> = {
-  2023: [1, 2, 2, 3, 2, 4, 5, 3, 2, 4, 2, 1],
-  2024: [2, 3, 4, 5, 3, 6, 7, 5, 4, 6, 3, 2],
-  2025: [3, 4, 5, 6, 4, 7, 8, 6, 5, 7, 4, 3],
+
+// Données fictives par année et par type (Initial/Renouvellement)
+const auditsDataInitialByYear: Record<number, number[]> = {
+  2023: [1, 1, 1, 2, 1, 2, 3, 2, 1, 2, 1, 1],
+  2024: [1, 2, 2, 3, 2, 3, 4, 3, 2, 3, 2, 1],
+  2025: [2, 2, 3, 3, 2, 4, 5, 3, 2, 4, 2, 2],
+};
+const auditsDataRenouvByYear: Record<number, number[]> = {
+  2023: [0, 1, 1, 1, 1, 2, 2, 1, 1, 2, 1, 0],
+  2024: [1, 1, 2, 2, 1, 3, 3, 2, 2, 3, 1, 1],
+  2025: [1, 2, 2, 3, 2, 3, 3, 3, 3, 3, 2, 1],
 };
 
 const labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 
-onMounted(() => {
-  if (chartRef.value) {
-    chartInstance.value = new Chart(chartRef.value, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'Audits prévus',
-            data: auditsDataByYear[selectedYear.value ?? yearsList[0]] ?? [],
-            backgroundColor: 'rgba(16, 185, 129, 0.5)',
-            borderColor: 'rgba(16, 185, 129, 1)',
-            borderWidth: 2,
-            borderRadius: 6,
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: { padding: { top: 16, bottom: 16, left: 16, right: 16 } },
-        plugins: {
-          legend: { display: false },
-          tooltip: { enabled: true },
-          datalabels: {
-            anchor: 'center',
-            align: 'center',
-            color: '#fff',
-            font: { weight: 'bold', size: 14 },
-            formatter: function(value: number) { return value; }
-          } as any
+
+function renderChart() {
+  if (!chartRef.value) return;
+  if (chartInstance.value) chartInstance.value.destroy();
+  chartInstance.value = new Chart(chartRef.value, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Initial',
+          data: auditsDataInitialByYear[selectedYear.value ?? yearsList[0]] ?? [],
+          backgroundColor: 'rgba(59, 130, 246, 0.7)',
+          borderColor: 'rgba(59, 130, 246, 1)',
+          borderWidth: 2,
+          borderRadius: 6,
+          stack: 'Stack 0',
         },
-        scales: {
-          x: {
-            grid: { display: false },
-            title: { display: true, text: 'Mois', font: { size: 12 } },
-            ticks: { font: { size: 12 } }
-          },
-          y: {
-            beginAtZero: true,
-            title: { display: true, text: 'Audits prévus', font: { size: 12 } },
-            ticks: { font: { size: 12 } }
-          }
+        {
+          label: 'Renouvellement',
+          data: auditsDataRenouvByYear[selectedYear.value ?? yearsList[0]] ?? [],
+          backgroundColor: 'rgba(16, 185, 129, 0.7)',
+          borderColor: 'rgba(16, 185, 129, 1)',
+          borderWidth: 2,
+          borderRadius: 6,
+          stack: 'Stack 0',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 16, bottom: 16, left: 16, right: 16 } },
+      plugins: {
+        legend: { display: true },
+        tooltip: { enabled: true },
+        datalabels: {
+          anchor: 'center',
+          align: 'center',
+          color: '#fff',
+          font: { weight: 'bold', size: 14 },
+          formatter: function(value: number) { return value; }
+        } as any
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          title: { display: true, text: 'Mois', font: { size: 12 } },
+          ticks: { font: { size: 12 } },
+          stacked: true,
+        },
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Audits prévus', font: { size: 12 } },
+          ticks: { font: { size: 12 } },
+          stacked: true,
         }
       }
-    });
-  }
+    }
+  });
+}
+
+onMounted(() => {
+  renderChart();
+});
+
+// Mettre à jour le graphique quand l'année change
+watch(selectedYear, () => {
+  renderChart();
 });
 
 
