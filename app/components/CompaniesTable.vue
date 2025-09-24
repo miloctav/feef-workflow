@@ -14,6 +14,52 @@ const props = withDefaults(defineProps<Props>(), {
 
 const data = ref(COMPANIES);
 
+// États des filtres
+const filters = ref({
+  type: '',
+  state: '',
+  oe: ''
+});
+
+const typeItems = ref(['Tous les types', 'Initial', 'Renouvellement']);
+const stateItems = ref(['Tous les états', 'CANDIDATURE', 'ENGAGEMENT', 'AUDIT', 'DECISION', 'LABELISE']);
+const oeItems = ref(['Tous les OE', 'SGS', 'Ecocert']);
+
+// Computed pour vérifier s'il y a des filtres actifs
+const hasActiveFilters = computed(() => {
+  return filters.value.type !== '' ||
+         filters.value.state !== '' ||
+         filters.value.oe !== '';
+});
+
+// Fonction pour réinitialiser les filtres
+function resetFilters() {
+  filters.value = {
+    type: '',
+    state: '',
+    oe: ''
+  };
+}
+
+// Données filtrées
+const filteredCompanies = computed(() =>
+  data.value.filter(company => {
+    // Filtrage par type
+    if (filters.value.type && filters.value.type !== 'Tous les types' && company.workflow.type !== filters.value.type) {
+      return false;
+    }
+    // Filtrage par état
+    if (filters.value.state && filters.value.state !== 'Tous les états' && company.workflow.state !== filters.value.state) {
+      return false;
+    }
+    // Filtrage par OE
+    if (filters.value.oe && filters.value.oe !== 'Tous les OE' && company.workflow.partageOE !== filters.value.oe) {
+      return false;
+    }
+    return true;
+  })
+);
+
 // Génère une date fictive de renouvellement pour chaque entreprise
 function getRenewalDate(company: Company): string {
   // Pour la démo, on prend la date de création + 1 an, ou une date fixe
@@ -95,7 +141,40 @@ function onSelectRow(row: TableRow<Company>, e?: Event) {
 </script>
 
 <template>
-    <div class="w-full space-y-4 pb-4">
+    <div class="w-full space-y-8 pb-4">
+        <!-- Filtres -->
+        <UCard class="shadow-md rounded-xl p-6 bg-white dark:bg-gray-900">
+          <div class="flex items-center gap-2 mb-6">
+            <UIcon name="i-heroicons-funnel" class="w-6 h-6 text-primary" />
+            <h3 class="text-xl font-bold text-primary">Filtres entreprises</h3>
+          </div>
+          <div class="space-y-4">
+            <div :class="role === 'feef' ? 'grid grid-cols-1 md:grid-cols-3 gap-4' : 'grid grid-cols-1 md:grid-cols-2 gap-4'">
+              <UFormGroup label="Type de dossier">
+                <USelect v-model="filters.type" :items="typeItems" placeholder="Type" class="w-full" />
+              </UFormGroup>
+              <UFormGroup label="État du dossier">
+                <USelect v-model="filters.state" :items="stateItems" placeholder="État" class="w-full" />
+              </UFormGroup>
+              <UFormGroup v-if="role==='feef'" label="Organisme Évaluateur">
+                <USelect v-model="filters.oe" :items="oeItems" placeholder="OE" class="w-full" />
+              </UFormGroup>
+            </div>
+            <div class="flex items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <UButton color="primary" size="sm" icon="i-heroicons-magnifying-glass">Appliquer</UButton>
+              <UButton @click="resetFilters" color="neutral" variant="outline" size="sm" icon="i-heroicons-x-mark">Réinitialiser</UButton>
+              <div class="ml-auto text-sm text-gray-600 dark:text-gray-400">
+                <span class="font-bold">{{ filteredCompanies.length }}</span> entreprise{{ filteredCompanies.length > 1 ? 's' : '' }} trouvée{{ filteredCompanies.length > 1 ? 's' : '' }}
+              </div>
+            </div>
+            <div v-if="hasActiveFilters" class="flex flex-wrap gap-2 mt-2">
+              <UBadge v-if="filters.type" variant="subtle" color="primary" size="sm">Type: {{filters.type}}</UBadge>
+              <UBadge v-if="filters.state" variant="subtle" color="info" size="sm">État: {{filters.state}}</UBadge>
+              <UBadge v-if="filters.oe" variant="subtle" color="secondary" size="sm">OE: {{ filters.oe }}</UBadge>
+            </div>
+          </div>
+        </UCard>
+
         <!-- Champ de recherche + bouton création sur la même ligne -->
         <div class="flex flex-row items-center justify-between mb-2">
           <UInput
@@ -108,7 +187,7 @@ function onSelectRow(row: TableRow<Company>, e?: Event) {
             </UButton>
           </div>
         </div>
-        <UTable :data="data" :columns="columns"
+        <UTable :data="filteredCompanies" :columns="columns"
           class="shadow-lg rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 transition-all"
           thead-class="bg-gray-50 dark:bg-gray-800 sticky top-0 z-10"
           tbody-class="hover:bg-gray-50 dark:hover:bg-gray-900" @select="onSelectRow">
@@ -137,7 +216,7 @@ function onSelectRow(row: TableRow<Company>, e?: Event) {
         </UTable>
       </div>
       <div class="flex justify-center border-t border-default pt-4">
-        <UPagination :default-page="1" :items-per-page="10" :total="data.length" size="lg" class="mt-2"
+        <UPagination :default-page="1" :items-per-page="10" :total="filteredCompanies.length" size="lg" class="mt-2"
           @update:page="(p) => { }" />
       </div>
 </template>
