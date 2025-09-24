@@ -16,9 +16,9 @@ defineProps<{
 <template>
   <UPageCard class="w-full py-0" spotlight>
     <template #default>
-      <div class="flex flex-row gap-3 items-start w-full">
+      <div class="flex flex-row gap-2 items-start w-full">
         <!-- Gros chiffre fixe -->
-        <span class="text-5xl font-bold shrink-0">{{ value }}</span>
+        <span class="text-4xl font-bold shrink-0">{{ value }}</span>
         <!-- Flèche tendance + tooltip -->
         <UTooltip
           v-if="trend && lastValue !== undefined && lastDate"
@@ -29,7 +29,7 @@ defineProps<{
             <UIcon
               :name="trend === 'up' ? 'i-heroicons-arrow-up-right-20-solid' : 'i-heroicons-arrow-down-right-20-solid'"
               :class="trend === 'up' ? 'text-green-500' : 'text-red-500'"
-              class="w-6 h-6 ml-1"
+              class="w-5 h-5 ml-1"
             />
           </span>
         </UTooltip>
@@ -38,10 +38,10 @@ defineProps<{
           <span class="text-sm text-muted truncate">
             {{ shortText }}
           </span>
-          <div class="flex flex-row gap-2 mt-1 flex-wrap">
-            <UBadge v-if="alertesRouges && alertesRouges > 0" class="bg-red-100 text-red-700 border-none">{{
+          <div class="flex flex-row gap-1 mt-0.5 flex-wrap">
+            <UBadge v-if="alertesRouges && alertesRouges > 0" class="bg-red-100 text-red-700 border-none text-xs px-1.5 py-0.5">{{
               alertesRouges }} alertes</UBadge>
-            <UBadge v-if="alertesOranges && alertesOranges > 0" class="bg-orange-100 text-orange-700 border-none">{{
+            <UBadge v-if="alertesOranges && alertesOranges > 0" class="bg-orange-100 text-orange-700 border-none text-xs px-1.5 py-0.5">{{
               alertesOranges }} alertes</UBadge>
           </div>
         </div>

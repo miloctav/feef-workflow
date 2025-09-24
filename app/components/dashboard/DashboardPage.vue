@@ -75,41 +75,41 @@ const categoryTotals = dashboardCategories.map(cat => cat.cards.reduce((sum, car
 </script>
 
 <template>
-    <div class="p-6 space-y-6">
+    <div class="p-4 space-y-4">
         <!-- Titre dashboard + select OE -->
-        <div class="flex flex-row items-center justify-center w-full mb-2">
-          <span class="font-bold text-4xl">Tableau de bord</span>
+        <div class="flex flex-row items-center justify-center w-full mb-1">
+          <span class="font-bold text-3xl">Tableau de bord</span>
         </div>
-        <div v-if="role === 'feef'" class="flex flex-row items-center gap-2 min-w-[220px] mb-2">
+        <div v-if="role === 'feef'" class="flex flex-row items-center gap-2 min-w-[220px] mb-1">
           <label class="font-semibold text-gray-700 whitespace-nowrap">Organisme évaluateur</label>
           <USelect v-model="selectedOE" :items="oeOptions" value-key="value" class="w-32" />
         </div>
-        <USeparator class="mb-6" />
+        <USeparator class="mb-3" />
         <!-- Bloc infos entreprises, import et export -->
-        <div class="flex flex-row gap-6 px-6 mb-6">
-          <div class="bg-white rounded-xl shadow p-6 flex-1 flex flex-col items-center justify-center">
+        <div class="flex flex-row gap-4 px-4 mb-4">
+          <div class="bg-white rounded-xl shadow p-4 flex-1 flex flex-col items-center justify-center">
             <span class="text-gray-500 text-sm mb-1">Nombre d'entreprises</span>
-            <span class="text-3xl font-bold text-primary-600">128</span>
+            <span class="text-2xl font-bold text-primary-600">128</span>
           </div>
           <template v-if="props.role === 'oe' || (selectedOE && selectedOE !== 'all')">
-            <div class="bg-white rounded-xl shadow p-6 flex-1 flex flex-col items-center justify-center">
+            <div class="bg-white rounded-xl shadow p-4 flex-1 flex flex-col items-center justify-center">
               <span class="text-gray-500 text-sm mb-1">Dernier import</span>
-              <span class="text-lg font-semibold text-gray-800">21/09/2025 à 14:32</span>
+              <span class="text-base font-semibold text-gray-800">21/09/2025 à 14:32</span>
             </div>
-            <div class="bg-white rounded-xl shadow p-6 flex-1 flex flex-col items-center justify-center">
+            <div class="bg-white rounded-xl shadow p-4 flex-1 flex flex-col items-center justify-center">
               <span class="text-gray-500 text-sm mb-1">Dernier export</span>
-              <span class="text-lg font-semibold text-gray-800">20/09/2025 à 18:05</span>
+              <span class="text-base font-semibold text-gray-800">20/09/2025 à 18:05</span>
             </div>
           </template>
         </div>
         <!-- Dossiers en cours (sans titre) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-6 justify-start">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 px-4 justify-start">
           <div v-for="(cat, i) in dashboardCategories" :key="cat.label" class="flex flex-col">
-            <h2 class="text-xl font-bold text-gray-800 mb-4 text-center">
+            <h2 class="text-lg font-bold text-gray-800 mb-2 text-center">
               <span class="text-primary-600">{{ categoryTotals[i] }}</span>
               &nbsp;{{ cat.label }}
             </h2>
-            <div class="flex flex-col gap-6">
+            <div class="flex flex-col gap-3">
               <DashboardCard
                 v-for="(card, j) in cat.cards"
                 :key="j"
@@ -122,9 +122,9 @@ const categoryTotals = dashboardCategories.map(cat => cat.cards.reduce((sum, car
           </div>
         </div>
         <!-- Barre de progression état des dossiers -->
-        <div class="w-full px-6 mt-10">
-          <h2 class="text-xl font-bold mb-2 text-center">État des dossiers</h2>
-          <div class="relative w-full h-8 bg-gray-100 rounded-full shadow-lg overflow-hidden flex text-xs font-bold">
+        <div class="w-full px-4 mt-6">
+          <h2 class="text-lg font-bold mb-2 text-center">État des dossiers</h2>
+          <div class="relative w-full h-6 bg-gray-100 rounded-full shadow-lg overflow-hidden flex text-xs font-bold">
             <div class="h-full flex items-center justify-center text-orange-900 transition-all duration-500"
               :style="`width: ${attentePct}%; background: #fed7aa`">
               <span v-if="attentePct > 10" class="w-full text-center">
@@ -148,16 +148,16 @@ const categoryTotals = dashboardCategories.map(cat => cat.cards.reduce((sum, car
             </div>
           </div>
         </div>
-        <USeparator class="my-8" />
+        <USeparator class="my-4" />
         <!-- Bloc Statistiques -->
         <div>
           <div class="flex flex-row items-center gap-4 w-full">
             <div class="flex flex-col items-center w-1/2">
-              <h2 class="text-xl font-bold mb-2 text-center">Audits prévus par mois</h2>
+              <h2 class="text-lg font-bold mb-1 text-center">Audits prévus par mois</h2>
               <LineChartAudits />
             </div>
             <div class="flex flex-col items-center w-1/2">
-              <h2 class="text-xl font-bold mb-2 text-center">Labellisés par année</h2>
+              <h2 class="text-lg font-bold mb-1 text-center">Labellisés par année</h2>
               <BarChartLabellises />
             </div>
           </div>
