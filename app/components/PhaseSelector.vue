@@ -51,7 +51,8 @@ const phaseOptions = [
   { value: 'phase3', label: 'Phase 3 - Plan d\'action validé' },
   { value: 'phase4', label: 'Phase 4 - Avis OE et labellisation' },
   { value: 'phase5', label: 'Phase 5 - Contrat de licence de marque à signer' },
-  { value: 'phase6', label: 'Phase 6 - Attestation de labellisation disponible' }
+  { value: 'phase6', label: 'Phase 6 - Validation labellisation FEEF' },
+  { value: 'phase7', label: 'Phase 7 - Attestation de labellisation disponible' }
 ]
 
 // Descriptions des phases
@@ -61,7 +62,8 @@ const phaseDescriptions = {
   'phase2b': 'Plan d\'action déposé par l\'entreprise, en attente de validation par la FEEF ou l\'OE.',
   'phase3': 'Plan d\'action mis en ligne et validé par l\'OE.',
   'phase4': 'Avis de l\'OE et avis de labellisation saisis et mis en ligne.',
-  'phase5': 'La labellisation est validée par la FEEF. Le contrat de licence de marque doit être signé par l\'entreprise pour obtenir l\'attestation.',
-  'phase6': 'Le contrat de licence de marque est signé. L\'attestation officielle de labellisation FEEF est disponible et peut être consultée.'
+  'phase5': 'La labellisation est validée par la FEEF. Le contrat de licence de marque doit être signé par l\'entreprise.',
+  'phase6': 'Le contrat de licence est signé. La FEEF peut maintenant valider définitivement la labellisation.',
+  'phase7': 'Labellisation validée par la FEEF. L\'attestation officielle de labellisation FEEF est disponible et peut être consultée.'
 }
 </script>

@@ -54,11 +54,11 @@
       :role="props.role"
     />
 
-    <div v-if="['phase5','phase6'].includes(selectedPhase)" class="flex gap-6">
+    <div v-if="['phase5','phase6','phase7'].includes(selectedPhase)" class="flex gap-6">
       <div class="w-1/2">
         <LicenseContractCard
-          :is-signed="selectedPhase === 'phase6' || licenseSigned"
-          :signed-date="licenseSignedDate"
+          :is-signed="['phase6', 'phase7'].includes(selectedPhase) || licenseSigned"
+          :signed-date="['phase6', 'phase7'].includes(selectedPhase) ? '10/10/2025' : licenseSignedDate"
           :selected-phase="selectedPhase"
           :role="props.role"
           @view-license="viewLicenseContract"
@@ -66,9 +66,13 @@
       </div>
       <div class="w-1/2">
         <AttestationCard
-          :can-view="selectedPhase === 'phase6'"
+          :can-view="selectedPhase === 'phase7'"
+          :can-validate="['phase5', 'phase6'].includes(selectedPhase)"
+          :validation-enabled="selectedPhase === 'phase6'"
           :selected-phase="selectedPhase"
+          :role="props.role"
           @view-attestation="viewAttestation"
+          @validate-labellisation="validateLabellisation"
         />
       </div>
     </div>
@@ -313,6 +317,32 @@ const simulatedData = computed(() => {
           attestation: {
             dateTransmission: '8/10/2025',
             dateValidite: '8/10/2028',
+            signatureFEEF: { isGenerated: true, dateSigned: null, signePar: null },
+            signatureEntreprise: { isConfirmed: false, dateSigned: null, signePar: null }
+          }
+        }
+      }
+    case 'phase7':
+      return {
+        ...baseData,
+        workflow: {
+          ...baseData.workflow,
+          rapport: {
+            rapport: { isAvailable: true, dateTransmission: '15/8/2025' },
+            performanceGlobale: 78,
+            planAction: { isAvailable: false, dateLimiteDepot: null }
+          },
+          avis: {
+            avis: 'favorable',
+            dateTransmission: '5/10/2025',
+            argumentaire: 'Suite à l\'audit réalisé, l\'entreprise démontre une maîtrise satisfaisante des exigences du référentiel. Les quelques points d\'amélioration identifiés ne constituent pas d\'obstacles à l\'attribution du label.',
+            absencePointsBloquants: true,
+            avisLabellisation: { isAvailable: true, dateTransmission: '5/10/2025' },
+            decisionFEEF: { statut: 'accepte', dateDecision: '8/10/2025', validePar: 'Katrin BARROIS - Directrice FEEF' }
+          },
+          attestation: {
+            dateTransmission: '8/10/2025',
+            dateValidite: '8/10/2028',
             signatureFEEF: { isGenerated: true, dateSigned: '8/10/2025', signePar: 'Katrin BARROIS - Directrice FEEF' },
             signatureEntreprise: { isConfirmed: true, dateSigned: '9/10/2025', signePar: `${props.company.dirigeant.prenom} ${props.company.dirigeant.nom} - ${props.company.dirigeant.fonction}` }
           }
@@ -431,8 +461,8 @@ function viewAvisOE() {
 
 // Méthodes pour la validation FEEF
 function validateLabellisation() {
-  // Avancer vers la phase 6 (attestation finalisée)
-  selectedPhase.value = 'phase6'
+  // Avancer vers la phase 7 (attestation finalisée)
+  selectedPhase.value = 'phase7'
   console.log('Labellisation validée avec succès!')
 }
 
