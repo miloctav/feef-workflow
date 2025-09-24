@@ -289,20 +289,26 @@ function getEtatColor(etat: string): "neutral" | "primary" | "warning" | "second
                 <h3 class="text-xl font-bold text-secondary">Import / Export</h3>
               </div>
               <div class="space-y-4">
-                <div class="space-y-2">
-                  <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">SGS</h4>
-                  <div class="flex gap-2">
-                    <UButton color="primary" variant="outline" size="sm" icon="i-heroicons-arrow-down-tray" class="flex-1">Importer</UButton>
-                    <UButton color="primary" variant="outline" size="sm" icon="i-heroicons-arrow-up-tray" class="flex-1">Exporter</UButton>
-                  </div>
+                <div v-if="role === 'oe'" class="flex gap-2">
+                  <UButton color="primary" variant="outline" size="sm" icon="i-heroicons-arrow-down-tray" class="flex-1">Importer</UButton>
+                  <UButton color="primary" variant="outline" size="sm" icon="i-heroicons-arrow-up-tray" class="flex-1">Exporter</UButton>
                 </div>
-                <div class="space-y-2">
-                  <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Ecocert</h4>
-                  <div class="flex gap-2">
-                    <UButton color="secondary" variant="outline" size="sm" icon="i-heroicons-arrow-down-tray" class="flex-1">Importer</UButton>
-                    <UButton color="secondary" variant="outline" size="sm" icon="i-heroicons-arrow-up-tray" class="flex-1">Exporter</UButton>
+                <template v-else>
+                  <div class="space-y-2">
+                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">SGS</h4>
+                    <div class="flex gap-2">
+                      <UButton color="primary" variant="outline" size="sm" icon="i-heroicons-arrow-down-tray" class="flex-1">Importer</UButton>
+                      <UButton color="primary" variant="outline" size="sm" icon="i-heroicons-arrow-up-tray" class="flex-1">Exporter</UButton>
+                    </div>
                   </div>
-                </div>
+                  <div class="space-y-2">
+                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Ecocert</h4>
+                    <div class="flex gap-2">
+                      <UButton color="secondary" variant="outline" size="sm" icon="i-heroicons-arrow-down-tray" class="flex-1">Importer</UButton>
+                      <UButton color="secondary" variant="outline" size="sm" icon="i-heroicons-arrow-up-tray" class="flex-1">Exporter</UButton>
+                    </div>
+                  </div>
+                </template>
               </div>
             </div>
           </UCard>
