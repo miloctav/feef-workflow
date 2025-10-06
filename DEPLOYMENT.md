@@ -54,13 +54,13 @@ EMAIL=votre-email@example.com
 ### 2.1 Démarrer les services
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### 2.2 Vérifier que tous les services sont actifs
 
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 Tous les services doivent avoir le status "Up".
