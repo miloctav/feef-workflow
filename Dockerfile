@@ -18,8 +18,14 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Set environment to production for build
+ENV NODE_ENV=production
+
 # Build the application
 RUN npm run build
+
+# Verify .output exists
+RUN ls -la /app/.output
 
 # Production image, copy all the files and run nuxt
 FROM base AS runner
