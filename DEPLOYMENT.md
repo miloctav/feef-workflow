@@ -78,7 +78,7 @@ L'application devrait être accessible en HTTP.
 Exécutez la commande suivante en remplaçant par votre domaine et email :
 
 ```bash
-docker-compose run --rm certbot certonly --webroot \
+docker compose run --rm certbot certonly --webroot \
   --webroot-path=/var/www/certbot \
   -d votre-domaine.com \
   -d www.votre-domaine.com \
@@ -156,7 +156,7 @@ server {
 ### 3.3 Recharger Nginx
 
 ```bash
-docker-compose restart nginx
+docker compose restart nginx
 ```
 
 ### 3.4 Vérifier HTTPS
@@ -170,7 +170,7 @@ Le service Certbot est configuré pour renouveler automatiquement les certificat
 ### Tester le renouvellement manuellement
 
 ```bash
-docker-compose run --rm certbot renew --dry-run
+docker compose run --rm certbot renew --dry-run
 ```
 
 ## Gestion de l'application
@@ -179,44 +179,47 @@ docker-compose run --rm certbot renew --dry-run
 
 ```bash
 # Tous les services
-docker-compose logs -f
+docker compose logs -f
 
 # Service spécifique
-docker-compose logs -f app
-docker-compose logs -f nginx
-docker-compose logs -f postgres
+docker compose logs -f app
+docker compose logs -f nginx
+docker compose logs -f postgres
 ```
 
 ### Redémarrer l'application
 
 ```bash
 # Tous les services
-docker-compose restart
+docker compose restart
 
 # Service spécifique
-docker-compose restart app
+docker compose restart app
 ```
 
 ### Mettre à jour l'application
 
 ```bash
-# Récupérer les dernières modifications
-git pull
+# Utiliser le script de mise à jour automatique
+cd /apps
+./update.sh
 
-# Reconstruire et redémarrer l'application
-docker-compose up -d --build app
+# Ou manuellement:
+cd /apps/feef-workflow
+git pull
+docker compose up -d --build app
 ```
 
 ### Arrêter les services
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ### Arrêter et supprimer les volumes (ATTENTION : supprime les données)
 
 ```bash
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Accès aux services
@@ -240,13 +243,13 @@ Puis accédez à `http://localhost:9001` avec les identifiants configurés dans 
 ### Sauvegarder PostgreSQL
 
 ```bash
-docker-compose exec postgres pg_dump -U feef_user feef_db > backup-$(date +%Y%m%d).sql
+docker compose exec postgres pg_dump -U feef_user feef_db > backup-$(date +%Y%m%d).sql
 ```
 
 ### Restaurer PostgreSQL
 
 ```bash
-cat backup-YYYYMMDD.sql | docker-compose exec -T postgres psql -U feef_user feef_db
+cat backup-YYYYMMDD.sql | docker compose exec -T postgres psql -U feef_user feef_db
 ```
 
 ### Sauvegarder MinIO
@@ -284,23 +287,23 @@ sudo ufw enable
 
 ```bash
 # Vérifier les logs
-docker-compose logs app
+docker compose logs app
 
 # Vérifier que PostgreSQL est prêt
-docker-compose logs postgres
+docker compose logs postgres
 ```
 
 ### Problème de certificat SSL
 
 ```bash
 # Vérifier les logs Certbot
-docker-compose logs certbot
+docker compose logs certbot
 
 # Vérifier la configuration Nginx
-docker-compose exec nginx nginx -t
+docker compose exec nginx nginx -t
 
 # Régénérer le certificat
-docker-compose run --rm certbot certonly --webroot \
+docker compose run --rm certbot certonly --webroot \
   --webroot-path=/var/www/certbot \
   -d votre-domaine.com \
   --email votre-email@example.com \
@@ -312,22 +315,22 @@ docker-compose run --rm certbot certonly --webroot \
 
 ```bash
 # Vérifier les logs
-docker-compose logs minio
+docker compose logs minio
 
 # Vérifier les permissions du volume
-docker-compose exec minio ls -la /data
+docker compose exec minio ls -la /data
 ```
 
 ### Erreur de connexion à la base de données
 
 Vérifiez que :
-1. Le service PostgreSQL est démarré : `docker-compose ps postgres`
+1. Le service PostgreSQL est démarré : `docker compose ps postgres`
 2. Les variables d'environnement dans `.env` sont correctes
 3. L'application attend que PostgreSQL soit prêt (healthcheck configuré)
 
 ## Support
 
-Pour toute question ou problème, consultez les logs avec `docker-compose logs -f` et vérifiez que :
+Pour toute question ou problème, consultez les logs avec `docker compose logs -f` et vérifiez que :
 - Le DNS pointe correctement vers votre VPS
 - Les ports 80 et 443 sont ouverts
 - Les services Docker sont tous en état "Up"
