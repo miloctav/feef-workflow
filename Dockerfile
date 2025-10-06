@@ -21,11 +21,19 @@ COPY . .
 # Set environment to production for build
 ENV NODE_ENV=production
 
+# Run postinstall to prepare Nuxt
+RUN npm run postinstall
+
 # Build the application
 RUN npm run build
 
-# Verify .output exists
-RUN ls -la /app/.output
+# Debug: Check what was generated
+RUN echo "=== Checking build output ===" && \
+    ls -la /app/ && \
+    echo "=== Looking for .output ===" && \
+    find /app -name ".output" -type d || echo "No .output found" && \
+    echo "=== Looking for .nuxt ===" && \
+    find /app -name ".nuxt" -type d || echo "No .nuxt found"
 
 # Production image, copy all the files and run nuxt
 FROM base AS runner
