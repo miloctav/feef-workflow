@@ -81,12 +81,13 @@
                     <h2 class="font-bold text-xl text-gray-900">Audit</h2>
                   </div>
                   <UButton
+                    v-if="role === 'feef'"
                     icon="i-lucide-plus"
                     size="sm"
                     color="primary"
                     @click="addLabelingCase"
                   >
-                    Nouveau dossier
+                    Nouvel Audit
                   </UButton>
                 </div>
               </template>
