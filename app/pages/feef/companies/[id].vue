@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CompanyDetail from '~/components/CompanyDetail.vue';
+import CompanyTabs from '~/components/CompanyTabs.vue'
 import { getCompanyById } from '~/utils/data'
 
 definePageMeta({
@@ -20,10 +20,7 @@ if (!company) {
       <NavBar />
     </template>
     <template #body>
-      <!-- Container principal avec 80% de largeur -->
-      <div class="w-4/5 mx-auto">
-        <CompanyDetail :company="company" />
-      </div>
+      <CompanyTabs :company="company" role="feef" />
     </template>
   </UDashboardPanel>
 </template>

@@ -47,7 +47,7 @@ const defaultBreadcrumbItems = computed<BreadcrumbItem[]>(() => {
         icon = 'i-heroicons-building-storefront'
         break
       case 'labeling-cases':
-        label = 'Dossiers de Labellisation'
+        label = 'Audit'
         icon = 'i-heroicons-folder'
         break
       case 'oe':

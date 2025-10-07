@@ -30,6 +30,14 @@
           color="neutral"
           icon="i-heroicons-building-office"
         />
+        <UButton
+          block
+          label="Auditeur"
+          to="/auditeur"
+          size="xl"
+          color="info"
+          icon="i-heroicons-building-office"
+        />
       </div>
     </UCard>
   </div>

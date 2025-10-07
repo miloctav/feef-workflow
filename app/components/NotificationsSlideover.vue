@@ -16,6 +16,20 @@ function getNotificationIcon(type: Notification['type']) {
 import { formatTimeAgo } from '@vueuse/core'
 
 const { isNotificationsSlideoverOpen } = useDashboard()
+const route = useRoute()
+
+// Détecter le rôle en fonction de la route
+const notificationsPagePath = computed(() => {
+  const path = route.path
+  if (path.startsWith('/feef')) {
+    return '/feef/notifications'
+  } else if (path.startsWith('/oe')) {
+    return '/oe/notifications'
+  } else if (path.startsWith('/company')) {
+    return '/company/notifications'
+  }
+  return '/feef/notifications' // fallback
+})
 
 interface Notification {
   id: string
@@ -99,6 +113,23 @@ const notifications = [
     v-model:open="isNotificationsSlideoverOpen"
     title="Notifications"
   >
+    <template #header>
+      <div class="flex items-center justify-between w-full">
+        <h2 class="text-lg font-semibold text-gray-900">
+          Notifications
+        </h2>
+        <UButton
+          :to="notificationsPagePath"
+          color="primary"
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-list"
+          @click="isNotificationsSlideoverOpen = false"
+        >
+          Voir toutes
+        </UButton>
+      </div>
+    </template>
     <template #body>
       <div class="space-y-3 px-2 py-2">
         <div

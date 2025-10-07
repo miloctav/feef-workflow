@@ -2,7 +2,7 @@
 import type { SelectItem } from '@nuxt/ui';
 
 interface Props {
-  role?: 'oe' | 'feef'
+  role?: 'oe' | 'feef' | 'auditeur'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -75,7 +75,11 @@ const categoryTotals = dashboardCategories.map(cat => cat.cards.reduce((sum, car
 </script>
 
 <template>
-    <div class="p-4 space-y-4">
+    <div v-if="role === 'auditeur'" class="p-4 space-y-4">
+        <!-- Vue spécifique auditeur -->
+        <AuditsTable />
+    </div>
+    <div v-else class="p-4 space-y-4">
         <!-- Titre dashboard + select OE -->
         <div class="flex flex-row items-center justify-center w-full mb-1">
           <span class="font-bold text-3xl">Tableau de bord</span>

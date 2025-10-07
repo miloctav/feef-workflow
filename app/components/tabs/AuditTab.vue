@@ -243,7 +243,6 @@
       :document="currentDocument"
       v-model:open="showDocumentViewer"
     />
-    Ajouter la liste des documents demandés par l'OE
     </div>
     
   </div>

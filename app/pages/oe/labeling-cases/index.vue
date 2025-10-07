@@ -49,7 +49,7 @@ const entrepriseOptions = [
   { label: 'Zeta', value: 'Zeta' }
 ];
 
-// Interface pour représenter un dossier de labellisation
+// Interface pour représenter un audit
 interface LabelingCase {
   id: string;
   entreprise: string;
@@ -115,7 +115,7 @@ function getAlerteDelais(company: Company): 'vert' | 'orange' | 'rouge' {
   return 'vert'; // Audit dans plus de 7 jours
 }
 
-// Transformation des données entreprises en dossiers de labellisation
+// Transformation des données entreprises en audits
 const labelingCases = computed(() => 
   data.value.map(company => ({
     id: company.id,

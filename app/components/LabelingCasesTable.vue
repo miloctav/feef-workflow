@@ -6,10 +6,12 @@ const UBadge = resolveComponent('UBadge')
 interface Props {
   company: Company
   role?: 'oe' | 'feef' | 'company'
+  withFilters?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  role: 'feef'
+  role: 'feef',
+  withFilters: true
 })
 
 const data = ref(COMPANIES);
@@ -41,7 +43,7 @@ const entrepriseItems = ref([
   'Zeta'
 ]);
 
-// Interface pour représenter un dossier de labellisation
+// Interface pour représenter un audit
 interface LabelingCase {
   id: string;
   entreprise: string;
@@ -98,7 +100,7 @@ function getAlerteDelais(company: Company): 'vert' | 'orange' | 'rouge' {
   return 'vert'; // Audit dans plus de 7 jours
 }
 
-// Transformation des données entreprises en dossiers de labellisation
+// Transformation des données entreprises en audits
 const labelingCases = computed(() =>
   data.value
     .map(company => {
@@ -220,7 +222,7 @@ function getEtatColor(etat: string): "neutral" | "primary" | "warning" | "second
 
 <template>
     <div class="w-full space-y-8 pb-4">
-        <div class="flex flex-col lg:flex-row gap-8">
+        <div v-if="withFilters" class="flex flex-col lg:flex-row gap-8">
           <!-- Filtres dans une carte -->
           <UCard class="flex-1 shadow-md rounded-xl p-6 bg-white dark:bg-gray-900">
             <div class="flex items-center gap-2 mb-6">
@@ -314,7 +316,7 @@ function getEtatColor(etat: string): "neutral" | "primary" | "warning" | "second
           </UCard>
         </div>
         <!-- Champ de recherche entreprise -->
-        <div class="flex flex-row items-center gap-2 mt-8 mb-4">
+        <div v-if="withFilters" class="flex flex-row items-center gap-2 mt-8 mb-4">
           <UInput
             placeholder="Rechercher une entreprise..."
             icon="i-heroicons-magnifying-glass"
