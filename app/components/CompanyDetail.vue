@@ -68,56 +68,37 @@ defineProps({
               <div class="text-gray-600">{{ company.raisonSociale.region }}</div>
             </div>
           </div>
-          <!-- Colonne droite - Dossiers -->
+          <!-- Colonne droite - Actions -->
           <div>
-            <h2 class="font-bold text-xl text-gray-900 mb-4">Dossiers</h2>
+            <h2 class="font-bold text-xl text-gray-900 mb-4">Actions</h2>
             <div class="space-y-2">
-              <div class="flex flex-wrap gap-2 items-center">
-                <NuxtLink 
-                  :to="`/${role}/labeling-cases/${company.id}`"
-                  class="text-sm font-medium text-gray-900 hover:text-primary hover:underline cursor-pointer"
-                >
-                  {{ company.workflow.type }} (2025)
-                </NuxtLink>
-                <UBadge 
-                  :variant="'subtle'" 
-                  :color="company.workflow.state === 'CANDIDATURE' ? 'neutral' : 
-                          company.workflow.state === 'ENGAGEMENT' ? 'warning' : 
-                          company.workflow.state === 'AUDIT' ? 'info' :
-                          company.workflow.state === 'DECISION' ? 'primary' :
-                          company.workflow.state === 'LABELISE' ? 'success' : 'error'"
-                  size="sm"
-                >
-                  {{ company.workflow.state }}
-                </UBadge>
-              </div>
-              <div v-if="company.workflow.type === 'Renouvellement'" class="flex flex-wrap gap-2 items-center">
-                <NuxtLink 
-                  :to="`/${role}/labeling-cases/prev-${company.id}`"
-                  class="text-sm font-medium text-gray-700 hover:text-primary hover:underline cursor-pointer"
-                >
-                  Initial (2022)
-                </NuxtLink>
-                <UBadge 
-                  variant="subtle" 
-                  color="success"
-                  size="sm"
-                >
-                  LABELISE
-                </UBadge>
-              </div>
-              <div v-if="company.workflow.state === 'LABELISE'" class="flex flex-wrap gap-2 items-center opacity-60">
-                <span class="text-sm font-medium text-gray-500 cursor-not-allowed">
-                  Renouvellement (2028)
-                </span>
-                <UBadge 
-                  variant="outline" 
-                  color="neutral"
-                  size="sm"
-                >
-                  À venir
-                </UBadge>
-              </div>
+              <UButton
+                v-if="role === 'company'"
+                color="primary"
+                variant="solid"
+                size="md"
+                icon="i-lucide-upload"
+              >
+                Déposer le dossier
+              </UButton>
+              <UButton
+                v-if="role === 'feef'"
+                color="success"
+                variant="solid"
+                size="md"
+                icon="i-lucide-check"
+              >
+                Valider le dossier
+              </UButton>
+              <UButton
+                v-if="role === 'oe'"
+                color="primary"
+                variant="solid"
+                size="md"
+                icon="i-lucide-user-plus"
+              >
+                Affecter un chargé d'affaire
+              </UButton>
             </div>
           </div>
         </div>
@@ -303,9 +284,29 @@ defineProps({
     </div>
     <UCard class="mb-6">
       <template #header>
-        <div class="flex items-center gap-3">
-          <UIcon name="i-lucide-users" class="w-6 h-6 text-primary" />
-          <h2 class="font-bold text-xl text-gray-900">{{ company.salaries.nombreTotalSalaries }} Salariés</h2>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <UIcon name="i-lucide-users" class="w-6 h-6 text-primary" />
+            <h2 class="font-bold text-xl text-gray-900">{{ company.salaries.nombreTotalSalaries }} Salariés</h2>
+          </div>
+          <UButton
+            v-if="role === 'feef' || role === 'oe'"
+            color="primary"
+            variant="outline"
+            size="sm"
+            icon="i-lucide-refresh-cw"
+          >
+            Demander une mise à jour des informations
+          </UButton>
+          <UButton
+            v-if="role === 'company'"
+            color="primary"
+            variant="outline"
+            size="sm"
+            icon="i-lucide-edit"
+          >
+            Mettre à jour les informations
+          </UButton>
         </div>
       </template>
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -381,9 +382,29 @@ defineProps({
     <!-- Section: Activités de l'entreprise -->
     <UCard class="mb-6">
       <template #header>
-        <div class="flex items-center gap-3">
-          <UIcon name="i-lucide-factory" class="w-6 h-6 text-primary" />
-          <h2 class="font-bold text-xl text-gray-900">Activités de l'entreprise</h2>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <UIcon name="i-lucide-factory" class="w-6 h-6 text-primary" />
+            <h2 class="font-bold text-xl text-gray-900">Activités de l'entreprise</h2>
+          </div>
+          <UButton
+            v-if="role === 'feef' || role === 'oe'"
+            color="primary"
+            variant="outline"
+            size="sm"
+            icon="i-lucide-refresh-cw"
+          >
+            Demander une mise à jour des informations
+          </UButton>
+          <UButton
+            v-if="role === 'company'"
+            color="primary"
+            variant="outline"
+            size="sm"
+            icon="i-lucide-edit"
+          >
+            Mettre à jour les informations
+          </UButton>
         </div>
       </template>
 
@@ -417,9 +438,29 @@ defineProps({
     <!-- Section: Sous-traitance -->
     <UCard class="mb-6">
       <template #header>
-        <div class="flex items-center gap-3">
-          <UIcon name="i-lucide-handshake" class="w-6 h-6 text-primary" />
-          <h2 class="font-bold text-xl text-gray-900">Sous-traitance</h2>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <UIcon name="i-lucide-handshake" class="w-6 h-6 text-primary" />
+            <h2 class="font-bold text-xl text-gray-900">Sous-traitance</h2>
+          </div>
+          <UButton
+            v-if="role === 'feef' || role === 'oe'"
+            color="primary"
+            variant="outline"
+            size="sm"
+            icon="i-lucide-refresh-cw"
+          >
+            Demander une mise à jour des informations
+          </UButton>
+          <UButton
+            v-if="role === 'company'"
+            color="primary"
+            variant="outline"
+            size="sm"
+            icon="i-lucide-edit"
+          >
+            Mettre à jour les informations
+          </UButton>
         </div>
       </template>
 
@@ -575,9 +616,29 @@ defineProps({
     <!-- Section: Typologie des produits -->
     <UCard class="mb-6">
       <template #header>
-        <div class="flex items-center gap-3">
-          <UIcon name="i-lucide-package" class="w-6 h-6 text-primary" />
-          <h2 class="font-bold text-xl text-gray-900">Typologie des produits</h2>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <UIcon name="i-lucide-package" class="w-6 h-6 text-primary" />
+            <h2 class="font-bold text-xl text-gray-900">Typologie des produits</h2>
+          </div>
+          <UButton
+            v-if="role === 'feef' || role === 'oe'"
+            color="primary"
+            variant="outline"
+            size="sm"
+            icon="i-lucide-refresh-cw"
+          >
+            Demander une mise à jour des informations
+          </UButton>
+          <UButton
+            v-if="role === 'company'"
+            color="primary"
+            variant="outline"
+            size="sm"
+            icon="i-lucide-edit"
+          >
+            Mettre à jour les informations
+          </UButton>
         </div>
       </template>
 
@@ -647,9 +708,29 @@ defineProps({
     <!-- Section: Labellisations et RSE -->
     <UCard class="mb-6">
       <template #header>
-        <div class="flex items-center gap-3">
-          <UIcon name="i-lucide-award" class="w-6 h-6 text-primary" />
-          <h2 class="font-bold text-xl text-gray-900">Labellisations et démarches RSE</h2>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <UIcon name="i-lucide-award" class="w-6 h-6 text-primary" />
+            <h2 class="font-bold text-xl text-gray-900">Labellisations et démarches RSE</h2>
+          </div>
+          <UButton
+            v-if="role === 'feef' || role === 'oe'"
+            color="primary"
+            variant="outline"
+            size="sm"
+            icon="i-lucide-refresh-cw"
+          >
+            Demander une mise à jour des informations
+          </UButton>
+          <UButton
+            v-if="role === 'company'"
+            color="primary"
+            variant="outline"
+            size="sm"
+            icon="i-lucide-edit"
+          >
+            Mettre à jour les informations
+          </UButton>
         </div>
       </template>
 

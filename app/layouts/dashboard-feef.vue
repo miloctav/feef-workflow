@@ -60,7 +60,7 @@
 <script setup lang="ts">
 const items = [
   { label: 'Dashboard', icon: 'i-lucide-home', to: '/feef' },
-  { label: 'Entreprises', icon: 'i-lucide-users', to: '/feef/companies' },
+  { label: 'Entités', icon: 'i-lucide-users', to: '/feef/companies' },
   { label: 'Audits', icon: 'i-lucide-folder', to: '/feef/labeling-cases' },
   { label: 'Organismes Évaluateurs', icon: 'i-lucide-shield-check', to: '/feef/oe' },
   {

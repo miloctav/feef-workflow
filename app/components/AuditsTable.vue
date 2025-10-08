@@ -55,7 +55,7 @@ const audits = computed(() =>
 const columns: TableColumn<Audit>[] = [
   {
     accessorKey: "entreprise",
-    header: "Entreprise",
+    header: "Entité",
     cell: ({ row }) => row.original.entreprise,
   },
   {

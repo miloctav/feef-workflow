@@ -271,7 +271,8 @@ export const COMPANIES: Company[] = [
       email: "comptabilité@alfa.fr"
     },
     appartenanceGroupe: {
-      appartientGroupe: false
+      appartientGroupe: false,
+      maitreLabelisation: true
     },
     sites: {
       nombreSites: 1
@@ -444,7 +445,8 @@ export const COMPANIES: Company[] = [
       email: "comptabilité@beta.com"
     },
     appartenanceGroupe: {
-      appartientGroupe: false
+      appartientGroupe: false,
+      maitreLabelisation: true
     },
     sites: {
       nombreSites: 6

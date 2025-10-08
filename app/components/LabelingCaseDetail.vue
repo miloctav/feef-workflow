@@ -24,7 +24,7 @@ const tabItems = ref([
     value: 'dossier'
   },
   {
-    label: 'Audit',
+    label: "Planification d'audit",
     icon: 'i-lucide-search',
     slot: 'audit',
     value: 'audit'
@@ -146,7 +146,16 @@ function dismissAlert(alertId: string) {
                 <span class="text-gray-900">{{ company.workflow.audit.auditeur.prenom }} {{ company.workflow.audit.auditeur.nom }}</span>
               </div>
 
-
+              <UButton
+                v-if="role === 'oe'"
+                color="primary"
+                variant="outline"
+                size="sm"
+                icon="i-lucide-user-cog"
+                class="mt-3"
+              >
+                Modifier l'auditeur affecté
+              </UButton>
             </div>
           </div>
         </div>

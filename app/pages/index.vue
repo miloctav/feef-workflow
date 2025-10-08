@@ -24,7 +24,7 @@
         />
         <UButton
           block
-          label="Entreprise"
+          label="Entité"
           to="/company/alpha"
           size="xl"
           color="neutral"

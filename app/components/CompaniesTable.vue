@@ -16,18 +16,24 @@ const data = ref(COMPANIES);
 
 // États des filtres
 const filters = ref({
-  type: '',
+  auditType: '',
+  entityType: '',
+  labelingStatus: '',
   state: '',
   oe: ''
 });
 
-const typeItems = ref(['Tous les types', 'Initial', 'Renouvellement']);
+const entityTypeItems = ref(['Tous les types', 'Entreprise', 'Groupe']);
+const auditTypeItems = ref(['Tous les types', 'Initial', 'Renouvellement', "Suivi"]);
+const labelingStatusItems = ref(['Tous les statuts', 'Maître', 'Suiveur']);
 const stateItems = ref(['Tous les états', 'CANDIDATURE', 'ENGAGEMENT', 'AUDIT', 'DECISION', 'LABELISE']);
 const oeItems = ref(['Tous les OE', 'SGS', 'Ecocert']);
 
 // Computed pour vérifier s'il y a des filtres actifs
 const hasActiveFilters = computed(() => {
-  return filters.value.type !== '' ||
+  return filters.value.auditType !== '' ||
+         filters.value.entityType !== '' ||
+         filters.value.labelingStatus !== '' ||
          filters.value.state !== '' ||
          filters.value.oe !== '';
 });
@@ -35,7 +41,9 @@ const hasActiveFilters = computed(() => {
 // Fonction pour réinitialiser les filtres
 function resetFilters() {
   filters.value = {
-    type: '',
+    auditType: '',
+    entityType: '',
+    labelingStatus: '',
     state: '',
     oe: ''
   };
@@ -44,9 +52,29 @@ function resetFilters() {
 // Données filtrées
 const filteredCompanies = computed(() =>
   data.value.filter(company => {
-    // Filtrage par type
-    if (filters.value.type && filters.value.type !== 'Tous les types' && company.workflow.type !== filters.value.type) {
+    // Filtrage par type d'audit
+    if (filters.value.auditType && filters.value.auditType !== 'Tous les types' && company.workflow.type !== filters.value.auditType) {
       return false;
+    }
+    // Filtrage par type d'entité
+    if (filters.value.entityType && filters.value.entityType !== 'Tous les types') {
+      const isGroupe = company.appartenanceGroupe.estGroupe;
+      if (filters.value.entityType === 'Groupe' && !isGroupe) {
+        return false;
+      }
+      if (filters.value.entityType === 'Entreprise' && isGroupe) {
+        return false;
+      }
+    }
+    // Filtrage par statut de labellisation
+    if (filters.value.labelingStatus && filters.value.labelingStatus !== 'Tous les statuts') {
+      const isMaitre = company.appartenanceGroupe.maitreLabelisation;
+      if (filters.value.labelingStatus === 'Maître' && !isMaitre) {
+        return false;
+      }
+      if (filters.value.labelingStatus === 'Suiveur' && isMaitre) {
+        return false;
+      }
     }
     // Filtrage par état
     if (filters.value.state && filters.value.state !== 'Tous les états' && company.workflow.state !== filters.value.state) {
@@ -78,6 +106,26 @@ const columns: TableColumn<Company>[] = [
     accessorKey: "raisonSociale.siren",
     header: "SIREN",
     cell: ({ row }) => row.original.raisonSociale.siren,
+  },
+  {
+    accessorKey: "appartenanceGroupe.estGroupe",
+    header: "Type d'entité",
+    cell: ({ row }) => {
+      const isGroupe = row.original.appartenanceGroupe.estGroupe;
+      const label = isGroupe ? 'Groupe' : 'Entreprise';
+      const color = isGroupe ? 'secondary' : 'neutral';
+      return h(resolveComponent('UBadge'), { color, variant: 'soft', size: 'sm' }, () => label);
+    },
+  },
+  {
+    accessorKey: "appartenanceGroupe.maitreLabelisation",
+    header: "Statut labellisation",
+    cell: ({ row }) => {
+      const isMaitre = row.original.appartenanceGroupe.maitreLabelisation;
+      const label = isMaitre ? 'Maître' : 'Suiveur';
+      const color = isMaitre ? 'success' : 'info';
+      return h(resolveComponent('UBadge'), { color, variant: 'soft', size: 'sm' }, () => label);
+    },
   },
   {
     accessorKey: "pilote",
@@ -146,12 +194,18 @@ function onSelectRow(row: TableRow<Company>, e?: Event) {
         <UCard class="shadow-md rounded-xl p-6 bg-white dark:bg-gray-900">
           <div class="flex items-center gap-2 mb-6">
             <UIcon name="i-heroicons-funnel" class="w-6 h-6 text-primary" />
-            <h3 class="text-xl font-bold text-primary">Filtres entreprises</h3>
+            <h3 class="text-xl font-bold text-primary">Filtres entités</h3>
           </div>
           <div class="space-y-4">
-            <div :class="role === 'feef' ? 'grid grid-cols-1 md:grid-cols-3 gap-4' : 'grid grid-cols-1 md:grid-cols-2 gap-4'">
+            <div :class="role === 'feef' ? 'grid grid-cols-1 md:grid-cols-5 gap-4' : 'grid grid-cols-1 md:grid-cols-4 gap-4'">
               <UFormGroup label="Type de dossier">
-                <USelect v-model="filters.type" :items="typeItems" placeholder="Type" class="w-full" />
+                <USelect v-model="filters.auditType" :items="auditTypeItems" placeholder="Type d'audit" class="w-full" />
+              </UFormGroup>
+              <UFormGroup label="Type d'entité">
+                <USelect v-model="filters.entityType" :items="entityTypeItems" placeholder="Type d'entité" class="w-full" />
+              </UFormGroup>
+              <UFormGroup label="Statut labellisation">
+                <USelect v-model="filters.labelingStatus" :items="labelingStatusItems" placeholder="Statut" class="w-full" />
               </UFormGroup>
               <UFormGroup label="État du dossier">
                 <USelect v-model="filters.state" :items="stateItems" placeholder="État" class="w-full" />
@@ -168,7 +222,9 @@ function onSelectRow(row: TableRow<Company>, e?: Event) {
               </div>
             </div>
             <div v-if="hasActiveFilters" class="flex flex-wrap gap-2 mt-2">
-              <UBadge v-if="filters.type" variant="subtle" color="primary" size="sm">Type: {{filters.type}}</UBadge>
+              <UBadge v-if="filters.auditType" variant="subtle" color="primary" size="sm">Type: {{filters.auditType}}</UBadge>
+              <UBadge v-if="filters.entityType" variant="subtle" color="secondary" size="sm">Entité: {{filters.entityType}}</UBadge>
+              <UBadge v-if="filters.labelingStatus" variant="subtle" color="success" size="sm">Statut: {{filters.labelingStatus}}</UBadge>
               <UBadge v-if="filters.state" variant="subtle" color="info" size="sm">État: {{filters.state}}</UBadge>
               <UBadge v-if="filters.oe" variant="subtle" color="secondary" size="sm">OE: {{ filters.oe }}</UBadge>
             </div>
@@ -178,12 +234,12 @@ function onSelectRow(row: TableRow<Company>, e?: Event) {
         <!-- Champ de recherche + bouton création sur la même ligne -->
         <div class="flex flex-row items-center justify-between mb-2">
           <UInput
-            placeholder="Rechercher par nom d'entreprise..."
+            placeholder="Rechercher par nom d'entité..."
             icon="i-heroicons-magnifying-glass"
             class="w-80"
           />
           <div v-if="role==='feef'">
-            <UButton color="primary" icon="i-lucide-plus" size="sm" class="font-semibold">Créer une nouvelle entreprise
+            <UButton color="primary" icon="i-lucide-plus" size="sm" class="font-semibold">Créer une nouvelle entité
             </UButton>
           </div>
         </div>
@@ -195,6 +251,16 @@ function onSelectRow(row: TableRow<Company>, e?: Event) {
             <tr class="hover:bg-gray-100 dark:hover:bg-gray-900 transition cursor-pointer">
               <td class="px-4 py-2">{{ row.original.raisonSociale.nom }}</td>
               <td class="px-4 py-2">{{ row.original.raisonSociale.siren }}</td>
+              <td class="px-4 py-2">
+                <UBadge :color="row.original.appartenanceGroupe.estGroupe ? 'secondary' : 'neutral'" variant="soft" size="sm">
+                  {{ row.original.appartenanceGroupe.estGroupe ? 'Groupe' : 'Entreprise' }}
+                </UBadge>
+              </td>
+              <td class="px-4 py-2">
+                <UBadge :color="row.original.appartenanceGroupe.maitreLabelisation ? 'success' : 'info'" variant="soft" size="sm">
+                  {{ row.original.appartenanceGroupe.maitreLabelisation ? 'Maître' : 'Suiveur' }}
+                </UBadge>
+              </td>
               <td class="px-4 py-2">{{ row.original.pilote.prenom }} {{ row.original.pilote.nom }}</td>
               <td class="px-4 py-2">
                 <UBadge :color="row.original.workflow.type === 'Initial' ? 'primary' : 'warning'" variant="soft" size="sm">

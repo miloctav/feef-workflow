@@ -41,7 +41,16 @@
     
     <UDashboardPanel>
       <template #header>
-        <UDashboardNavbar />
+        <UDashboardNavbar>
+          <template #right>
+            <UButton
+              icon="i-lucide-repeat"
+              label="Changer d'organisme évaluateur"
+              color="primary"
+              variant="outline"
+            />
+          </template>
+        </UDashboardNavbar>
       </template>
       <slot />
     </UDashboardPanel>

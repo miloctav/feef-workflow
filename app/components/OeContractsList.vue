@@ -13,14 +13,25 @@
             </p>
           </div>
         </div>
-        <UButton
-          v-if="role === 'oe'"
-          color="primary"
-          icon="i-lucide-upload"
-          size="sm"
-        >
-          Mettre en ligne un devis
-        </UButton>
+        <div class="flex items-center gap-2">
+          <UButton
+            v-if="role === 'company'"
+            icon="i-lucide-repeat"
+            color="primary"
+            variant="outline"
+            size="sm"
+          >
+            Changer d'organisme évaluateur
+          </UButton>
+          <UButton
+            v-if="role === 'oe'"
+            color="primary"
+            icon="i-lucide-upload"
+            size="sm"
+          >
+            Mettre en ligne un devis
+          </UButton>
+        </div>
       </div>
     </template>
 
