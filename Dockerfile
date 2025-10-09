@@ -13,14 +13,18 @@ RUN npm ci
 COPY . ./
 
 # Build the application
-RUN npm run build
+RUN npm run build && \
+    echo "=== Build output structure ===" && \
+    ls -la && \
+    echo "=== .output directory ===" && \
+    ls -la .output || echo "No .output directory found"
 
 # Production Stage
 FROM node:20-alpine
 WORKDIR /app
 
 # Copy only the built output
-COPY --from=build /app/.output/ ./
+COPY --from=build /app/.output ./
 
 # Set environment variables
 ENV PORT=3000
