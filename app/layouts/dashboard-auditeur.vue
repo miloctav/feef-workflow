@@ -42,9 +42,6 @@
 
 <script setup lang="ts">
 const items = [
-  { label: 'Dashboard', icon: 'i-lucide-home', to: '/oe' },
-  { label: 'Entités', icon: 'i-lucide-users', to: '/oe/companies' },
-  { label: 'Audits', icon: 'i-lucide-folder', to: '/oe/labeling-cases' },
-  { label: 'Gestion des comptes', icon: 'i-lucide-users-2', to: '/oe/accounts' },
+  { label: 'Mes Audits', icon: 'i-lucide-folder', to: '/auditeur' },
 ]
 </script>

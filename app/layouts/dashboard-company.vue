@@ -23,13 +23,13 @@
 
         <UNavigationMenu
           :collapsed="collapsed"
-          :items="items.slice(0,2)"
+          :items="items.slice(0,4)"
           orientation="vertical"
         />
-        <USeparator label="Dossiers de labellisation" class="my-3" />
+        <USeparator label="Entreprises du groupe" class="my-3" />
         <UNavigationMenu
           :collapsed="collapsed"
-          :items="items.slice(3)"
+          :items="items.slice(5)"
           orientation="vertical"
         />
       </template>
@@ -41,7 +41,16 @@
     
     <UDashboardPanel>
       <template #header>
-        <UDashboardNavbar />
+        <UDashboardNavbar>
+          <template #right>
+            <UButton
+              icon="i-lucide-repeat"
+              label="Changer d'organisme évaluateur"
+              color="primary"
+              variant="outline"
+            />
+          </template>
+        </UDashboardNavbar>
       </template>
       <slot />
     </UDashboardPanel>
@@ -51,15 +60,35 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { COMPANIES } from '../components/../utils/data'
+import { COMPANIES, getCompanyById } from '../components/../utils/data'
 
 const selectedCompanyId = ref(COMPANIES.length > 0 ? COMPANIES[0].id : '')
 
-const items = computed(() => [
-  { label: 'Mon entreprise', icon: 'i-lucide-home', to: `/company/${selectedCompanyId.value}` },
-  { label: 'Notifications', icon: 'i-lucide-bell', to: `/company/notifications` },
-  { type: 'label' as const, label: '' },
-  { label: 'Renouvellement (2025)', icon: 'i-lucide-folder', to: `/company/labeling-cases/${selectedCompanyId.value}` },
-  { label: 'Initial (2024)', icon: 'i-lucide-folder', to: `/company/labeling-cases/${selectedCompanyId.value}` }
-])
+const selectedCompany = computed(() => getCompanyById(selectedCompanyId.value))
+
+const items = computed(() => {
+  const baseItems = [
+    { label: 'Mon dossier', icon: 'i-lucide-home', to: `/company/${selectedCompanyId.value}` },
+    { label: 'Mon espace documentaire', icon: 'i-lucide-folder-open', to: `/company/documents` },
+    { label: 'Mes contrats', icon: 'i-lucide-file-signature', to: `/company/contracts` },
+    { label: 'Mes audits', icon: 'i-lucide-clipboard-list', to: `/company/labeling-cases` }
+  ]
+
+  const company = selectedCompany.value
+
+  // Si l'entreprise est un groupe, afficher les entreprises du groupe
+  if (company?.appartenanceGroupe?.estGroupe && company.appartenanceGroupe.entreprisesGroupe?.length) {
+    const groupCompanies = company.appartenanceGroupe.entreprisesGroupe.map(entrepriseId => {
+      const entreprise = getCompanyById(entrepriseId)
+      return {
+        label: entreprise?.raisonSociale.nom || entrepriseId,
+        icon: 'i-lucide-building-2',
+        to: `/company/${entrepriseId}`
+      }
+    })
+    return [...baseItems, { type: 'label' as const, label: '' }, ...groupCompanies]
+  }
+
+  return baseItems
+})
 </script>

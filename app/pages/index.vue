@@ -24,10 +24,18 @@
         />
         <UButton
           block
-          label="Entreprise"
+          label="Entité"
           to="/company/alpha"
           size="xl"
           color="neutral"
+          icon="i-heroicons-building-office"
+        />
+        <UButton
+          block
+          label="Auditeur"
+          to="/auditeur"
+          size="xl"
+          color="info"
           icon="i-heroicons-building-office"
         />
       </div>

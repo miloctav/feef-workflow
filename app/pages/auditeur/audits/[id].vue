@@ -1,26 +1,26 @@
 <script setup lang="ts">
-import CompanyDetail from '~/components/CompanyDetail.vue';
 import { getCompanyById } from '~/utils/data'
 
 definePageMeta({
-  layout: "dashboard-oe",
+  layout: "dashboard-auditeur",
 });
 
 const route = useRoute()
 const company = getCompanyById(route.params.id as string)
 
 if (!company) {
-  throw createError({ statusCode: 404, statusMessage: 'Entreprise non trouvée' })
+  throw createError({ statusCode: 404, statusMessage: 'Audit non trouvé' })
 }
 </script>
 
 <template>
-  <UDashboardPanel id="companies">
+  <UDashboardPanel id="audit-detail">
     <template #header>
       <NavBar />
     </template>
+
     <template #body>
-      <CompanyTabs :company="company" role="oe" />
+      <LabelingCaseDetail :company="company" role="auditeur" />
     </template>
   </UDashboardPanel>
 </template>

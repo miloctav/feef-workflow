@@ -58,6 +58,10 @@ export interface Company {
   appartenanceGroupe: {
     appartientGroupe: boolean
     nomGroupe?: string
+    estGroupe?: boolean // Indique si l'entreprise est un groupe
+    maitreLabelisation?: boolean // Indique si l'entreprise est maître de la labellisation ou suit celle du groupe
+    groupeParentId?: string // ID du groupe parent si appartient à un groupe
+    entreprisesGroupe?: string[] // IDs des entreprises du groupe si estGroupe=true
     structuresLabellisees?: string[]
     structuresEnCoursLabellisation?: string[]
     wantEngageALLGroupe?: "Oui de suite" | "Oui d'ici quelques années" | "Non"
@@ -227,7 +231,8 @@ export const lebelingCaseType = {
 
 export const accountRole = {
   administrateur: "administrateur",
-  chargeAffaire: "chargé d'affaire"
+  chargeAffaire: "chargé d'affaire",
+  auditeur: "auditeur"
 } as const
 
 export const COMPANIES: Company[] = [
@@ -266,7 +271,8 @@ export const COMPANIES: Company[] = [
       email: "comptabilité@alfa.fr"
     },
     appartenanceGroupe: {
-      appartientGroupe: false
+      appartientGroupe: false,
+      maitreLabelisation: true
     },
     sites: {
       nombreSites: 1
@@ -439,7 +445,8 @@ export const COMPANIES: Company[] = [
       email: "comptabilité@beta.com"
     },
     appartenanceGroupe: {
-      appartientGroupe: false
+      appartientGroupe: false,
+      maitreLabelisation: true
     },
     sites: {
       nombreSites: 6
@@ -616,8 +623,11 @@ export const COMPANIES: Company[] = [
       email: "comptabilité@omega.com"
     },
     appartenanceGroupe: {
-      appartientGroupe: true,
+      appartientGroupe: false,
+      estGroupe: true,
+      maitreLabelisation: true,
       nomGroupe: "Omega",
+      entreprisesGroupe: ["zeta"],
       structuresLabellisees: ["Zeta", "Theta"],
       structuresEnCoursLabellisation: ["Beta"],
       wantEngageALLGroupe: "Oui d'ici quelques années"
@@ -795,7 +805,10 @@ export const COMPANIES: Company[] = [
     },
     appartenanceGroupe: {
       appartientGroupe: true,
-      nomGroupe: "Omega"
+      estGroupe: false,
+      maitreLabelisation: false,
+      nomGroupe: "Omega",
+      groupeParentId: "omega"
     },
     sites: {
       nombreSites: 1
@@ -953,19 +966,33 @@ export interface Documents {
   fileSize?: string
   fileType?: string
   dateLimiteDepot?: string
+  visibleByOE?: boolean
+  requestedNewVersion?: boolean
+  newVersionRequest?: {
+    requestedBy: string
+    requestedDate: string
+    comment: string
+  }
 }
 
 export const DOCUMENTS: Documents[] = [
-  { 
-    id: "doc1", 
-    name: "Charte RSE", 
-    description: "Document décrivant les engagements RSE de l'entreprise", 
+  {
+    id: "doc1",
+    name: "Charte RSE",
+    description: "Document décrivant les engagements RSE de l'entreprise",
     labelingCaseState: labelingCaseState.candidacy,
     isAvailable: true,
     dateUpload: "15/07/2025",
     uploadedBy: "Jean Paul (Directeur Général)",
     fileSize: "2.3 MB",
-    fileType: "PDF"
+    fileType: "PDF",
+    visibleByOE: true,
+    requestedNewVersion: true,
+    newVersionRequest: {
+      requestedBy: "Jean Dupont (FEEF)",
+      requestedDate: "15/09/2025",
+      comment: "Le document actuel ne contient pas les dernières modifications réglementaires. Merci de mettre à jour avec les nouvelles normes ISO 26000:2025."
+    }
   },
   { 
     id: "contrat-labellisation", 
@@ -975,16 +1002,17 @@ export const DOCUMENTS: Documents[] = [
     isAvailable: false,
     dateLimiteDepot: "30/07/2025"
   },
-  { 
-    id: "doc2", 
-    name: "Politique environnementale", 
-    description: "Document détaillant les actions environnementales mises en place", 
+  {
+    id: "doc2",
+    name: "Politique environnementale",
+    description: "Document détaillant les actions environnementales mises en place",
     labelingCaseState: labelingCaseState.candidacy,
     isAvailable: true,
     dateUpload: "18/07/2025",
     uploadedBy: "Lewis Hamilton (Responsable Qualité)",
     fileSize: "1.8 MB",
-    fileType: "PDF"
+    fileType: "PDF",
+    visibleByOE: false
   },
   { 
     id: "doc3", 
@@ -1002,60 +1030,65 @@ export const DOCUMENTS: Documents[] = [
     isAvailable: false,
     dateLimiteDepot: "15/10/2025"
   },
-  { 
-    id: "doc6", 
-    name: "Contrat de labellisation", 
-    description: "Contrat signé entre l'entreprise et l'organisme de labellisation", 
+  {
+    id: "doc6",
+    name: "Contrat de labellisation",
+    description: "Contrat signé entre l'entreprise et l'organisme de labellisation",
     labelingCaseState: labelingCaseState.candidacy,
     isAvailable: true,
     dateUpload: "01/08/2025",
     uploadedBy: "FEEF - Service Labellisation",
     fileSize: "3.2 MB",
-    fileType: "PDF"
+    fileType: "PDF",
+    visibleByOE: true
   },
-  { 
-    id: "plan-audit", 
-    name: "Plan d'audit", 
-    description: "Plan d'audit établi par l'Organisme Évaluateur incluant programme et méthologie", 
+  {
+    id: "plan-audit",
+    name: "Plan d'audit",
+    description: "Plan d'audit établi par l'Organisme Évaluateur incluant programme et méthologie",
     labelingCaseState: labelingCaseState.audit,
     isAvailable: true,
     dateUpload: "25/08/2025",
     uploadedBy: "Organisme Évaluateur - Auditeur principal",
     fileSize: "2.8 MB",
-    fileType: "PDF"
+    fileType: "PDF",
+    visibleByOE: true
   },
-  { 
-    id: "rapport-audit-simplifie", 
-    name: "Rapport d'audit", 
-    description: "Synthèse des résultats d'audit avec les principales conclusions", 
+  {
+    id: "rapport-audit-simplifie",
+    name: "Rapport d'audit",
+    description: "Synthèse des résultats d'audit avec les principales conclusions",
     labelingCaseState: labelingCaseState.decision,
     isAvailable: true,
     dateUpload: "15/09/2025",
     uploadedBy: "Organisme Évaluateur - Auditeur principal",
     fileSize: "1.5 MB",
-    fileType: "PDF"
+    fileType: "PDF",
+    visibleByOE: true
   },
-  { 
-    id: "plan-action", 
-    name: "Plan d'action corrective", 
-    description: "Plan d'action détaillant les mesures correctives suite au rapport d'audit", 
+  {
+    id: "plan-action",
+    name: "Plan d'action corrective",
+    description: "Plan d'action détaillant les mesures correctives suite au rapport d'audit",
     labelingCaseState: labelingCaseState.decision,
     isAvailable: true,
     dateUpload: "10/02/2025",
     uploadedBy: "Entreprise - Direction Générale",
     fileSize: "2.1 MB",
-    fileType: "PDF"
+    fileType: "PDF",
+    visibleByOE: false
   },
-  { 
-    id: "attestation-labellisation", 
-    name: "Attestation de labellisation", 
-    description: "Attestation officielle de labellisation FEEF avec signatures", 
+  {
+    id: "attestation-labellisation",
+    name: "Attestation de labellisation",
+    description: "Attestation officielle de labellisation FEEF avec signatures",
     labelingCaseState: labelingCaseState.decision,
     isAvailable: true,
     dateUpload: "8/4/2025",
     uploadedBy: "FEEF - Service Labellisation",
     fileSize: "1.9 MB",
-    fileType: "PDF"
+    fileType: "PDF",
+    visibleByOE: true
   }
 ]
 
@@ -1081,6 +1114,12 @@ export const ORGANISMES_EVALUATEURS: OE[] = [
         nom: 'BERNARD',
         email: 'marie.bernard@sgs.com',
         role: accountRole.chargeAffaire
+      },
+      {
+        prenom: 'Jean',
+        nom: 'MRX',
+        email: 'jean.mrx@sgs.com',
+        role: accountRole.auditeur
       }
     ]
   },
@@ -1111,6 +1150,18 @@ export const ORGANISMES_EVALUATEURS: OE[] = [
         nom: 'MOREAU',
         email: 'anne.moreau@ecocert.com',
         role: accountRole.chargeAffaire
+      },
+      {
+        prenom: 'Paul',
+        nom: 'MRZ',
+        email: 'paul.mrz@ecocert.com',
+        role: accountRole.auditeur
+      },
+      {
+        prenom: 'Françoise',
+        nom: 'MMEJ',
+        email: 'francoise.mmej@ecocert.com',
+        role: accountRole.auditeur
       }
     ]
   }
