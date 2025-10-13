@@ -1,5 +1,6 @@
-import type { EmailConfig, EmailResult, AccountCreationEmailData } from '~~/server/types/mail'
+import type { EmailConfig, EmailResult, AccountCreationEmailData, ForgotPasswordEmailData } from '~~/server/types/mail'
 import { accountCreationTemplate } from './templates/account-creation'
+import { forgotPasswordTemplate } from './templates/forgot-password'
 import { Resend } from 'resend'
 
 /**
@@ -11,7 +12,7 @@ import { Resend } from 'resend'
  * Adresse email par défaut de l'expéditeur
  * Peut être surchargée dans chaque méthode d'envoi
  */
-const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL || 'FEEF Workflow <noreply@feef-workflow.com>'
+const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL || 'asds@resend.dev'
 
 export const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -91,6 +92,33 @@ export async function sendAccountCreationEmail(
 }
 
 /**
+ * Envoie un email de réinitialisation de mot de passe
+ *
+ * @example
+ * ```typescript
+ * const result = await sendForgotPasswordEmail({
+ *   email: 'user@example.com',
+ *   firstName: 'Jean',
+ *   lastName: 'Dupont',
+ *   resetPasswordUrl: 'https://feef-workflow.com/reset-password?token=abc123',
+ *   expiresInHours: 48
+ * })
+ * ```
+ */
+export async function sendForgotPasswordEmail(
+  data: ForgotPasswordEmailData
+): Promise<EmailResult> {
+  const subject = forgotPasswordTemplate.getSubject(data)
+  const html = forgotPasswordTemplate.getHtml(data)
+
+  return sendEmail({
+    to: data.email,
+    subject,
+    html
+  })
+}
+
+/**
  * Fonction générique pour envoyer n'importe quel template d'email
  * Utile pour étendre le système avec de nouveaux types d'emails
  *
@@ -124,6 +152,7 @@ export async function sendTemplatedEmail<T>(
  */
 export const mailService = {
   sendAccountCreationEmail,
+  sendForgotPasswordEmail,
   sendTemplatedEmail,
   sendEmail // Pour des cas d'usage avancés
 }

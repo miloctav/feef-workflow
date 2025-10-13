@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, timestamp, pgEnum, json, integer, date, primaryKey, type AnyPgColumn } from 'drizzle-orm/pg-core'
+import { pgTable, serial, varchar, timestamp, pgEnum, json, integer, date, primaryKey, type AnyPgColumn, boolean } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
 // Define role enum
@@ -104,10 +104,12 @@ export const accounts = pgTable('accounts', {
   firstname: varchar('firstname', { length: 255 }).notNull(),
   lastname: varchar('lastname', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
-  password: varchar('password', { length: 255 }).notNull(),
+  password: varchar('password', { length: 255 }),
   role: roleEnum('role').notNull(),
   evaluatorOrganizationId: integer('evaluator_organization_id').references(() => evaluatorOrganizations.id),
   oeRole: oeRoleEnum('oe_role'),
+  passwordChangedAt: timestamp('password_changed_at'),
+  isActive: boolean('is_active').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
 })

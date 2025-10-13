@@ -44,6 +44,14 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Vérifier si le compte est actif (mot de passe défini)
+  if (!user.isActive || !user.password) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Votre compte n\'est pas encore activé. Veuillez consulter l\'email que vous avez reçu pour créer votre mot de passe.',
+    })
+  }
+
   // Vérification du mot de passe
   const isPasswordValid = await bcrypt.compare(password, user.password)
 
@@ -74,6 +82,8 @@ export default defineEventHandler(async (event) => {
       role: user.role,
       evaluatorOrganizationId: user.evaluatorOrganizationId,
       oeRole: user.oeRole,
+      passwordChangedAt: user.passwordChangedAt,
+      isActive: user.isActive,
     }
   } else if (user.role === Role.ENTITY) {
     // Utilisateur Entity avec ses rôles sur différentes entités
@@ -89,6 +99,8 @@ export default defineEventHandler(async (event) => {
         entityId: ate.entityId,
         role: ate.role,
       })),
+      passwordChangedAt: user.passwordChangedAt,
+      isActive: user.isActive,
     }
   } else {
     // Utilisateur FEEF ou AUDITOR (pas de sous-rôles)
@@ -100,6 +112,8 @@ export default defineEventHandler(async (event) => {
       role: user.role,
       evaluatorOrganizationId: user.evaluatorOrganizationId,
       oeRole: user.oeRole,
+      passwordChangedAt: user.passwordChangedAt,
+      isActive: user.isActive,
     }
   }
 

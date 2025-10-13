@@ -48,6 +48,17 @@ export interface AccountCreationEmailData {
 }
 
 /**
+ * Données pour l'email de mot de passe oublié
+ */
+export interface ForgotPasswordEmailData {
+  email: string
+  firstName: string
+  lastName: string
+  resetPasswordUrl: string
+  expiresInHours: number
+}
+
+/**
  * Template d'email générique
  */
 export interface EmailTemplate<T = any> {

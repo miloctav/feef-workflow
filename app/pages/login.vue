@@ -79,6 +79,17 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
             />
           </template>
         </UAuthForm>
+
+        <template #footer>
+          <div class="text-center">
+            <NuxtLink
+              to="/forgot-password"
+              class="text-sm text-primary hover:text-primary-600 dark:hover:text-primary-400 font-medium"
+            >
+              Mot de passe oublié ?
+            </NuxtLink>
+          </div>
+        </template>
       </UCard>
 
       <div class="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
