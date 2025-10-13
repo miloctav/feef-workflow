@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
         description: 'Gère l\'ensemble du système',
       },
       {
-        value: Role.EVALUATOR_ORGANIZATION,
+        value: Role.OE,
         label: 'Organisme Évaluateur',
         description: 'Membre d\'un organisme évaluateur (admin ou chargé d\'affaire)',
       },

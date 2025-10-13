@@ -87,7 +87,7 @@ export default defineEventHandler(async (event) => {
 function getRoleName(role: string): string {
   const roleNames: Record<string, string> = {
     'FEEF': 'Administrateur FEEF',
-    'EVALUATOR_ORGANIZATION': 'Organisme Évaluateur',
+    'OE': 'Organisme Évaluateur',
     'AUDITOR': 'Auditeur',
     'ENTITY': 'Entreprise'
   }

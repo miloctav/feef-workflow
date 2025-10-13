@@ -65,9 +65,9 @@ export default defineEventHandler(async (event) => {
   // Préparer les données de session selon le rôle
   let sessionData: SessionUser
 
-  if (user.role === Role.EVALUATOR_ORGANIZATION) {
+  if (user.role === Role.OE) {
     // Utilisateur OE avec son rôle spécifique
-    if (!user.evaluatorOrganizationId || !user.oeRole) {
+    if (!user.oeId || !user.oeRole) {
       throw createError({
         statusCode: 500,
         statusMessage: 'Configuration utilisateur OE invalide',
@@ -80,7 +80,7 @@ export default defineEventHandler(async (event) => {
       lastname: user.lastname,
       email: user.email,
       role: user.role,
-      evaluatorOrganizationId: user.evaluatorOrganizationId,
+      oeId: user.oeId,
       oeRole: user.oeRole,
       passwordChangedAt: user.passwordChangedAt,
       isActive: user.isActive,
@@ -93,7 +93,7 @@ export default defineEventHandler(async (event) => {
       lastname: user.lastname,
       email: user.email,
       role: user.role,
-      evaluatorOrganizationId: user.evaluatorOrganizationId,
+      oeId: user.oeId,
       oeRole: user.oeRole,
       entityRoles: user.accountsToEntities.map((ate: { entityId: any; role: any }) => ({
         entityId: ate.entityId,
@@ -110,7 +110,7 @@ export default defineEventHandler(async (event) => {
       lastname: user.lastname,
       email: user.email,
       role: user.role,
-      evaluatorOrganizationId: user.evaluatorOrganizationId,
+      oeId: user.oeId,
       oeRole: user.oeRole,
       passwordChangedAt: user.passwordChangedAt,
       isActive: user.isActive,

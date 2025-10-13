@@ -9,8 +9,8 @@ interface CreateAccountBody {
   lastname: string
   email: string
   role: string
-  // Pour EVALUATOR_ORGANIZATION
-  evaluatorOrganizationId?: number
+  // Pour OE
+  oeId?: number
   oeRole?: string
   // Pour ENTITY
   entityRoles?: Array<{
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
   // Récupérer les données du corps de la requête
   const body = await readBody<CreateAccountBody>(event)
 
-  const { firstname, lastname, email, role, evaluatorOrganizationId, oeRole, entityRoles } = body
+  const { firstname, lastname, email, role, oeId, oeRole, entityRoles } = body
 
   // Validation de base
   if (!firstname || !lastname || !email || !role) {
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Validation du rôle
-  const validRoles = [Role.FEEF, Role.EVALUATOR_ORGANIZATION, Role.AUDITOR, Role.ENTITY]
+  const validRoles = [Role.FEEF, Role.OE, Role.AUDITOR, Role.ENTITY]
   if (!validRoles.includes(role as any)) {
     throw createError({
       statusCode: 400,
@@ -55,11 +55,11 @@ export default defineEventHandler(async (event) => {
   }
 
   // Validation spécifique selon le rôle
-  if (role === Role.EVALUATOR_ORGANIZATION) {
-    if (!evaluatorOrganizationId || !oeRole) {
+  if (role === Role.OE) {
+    if (!oeId || !oeRole) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'evaluatorOrganizationId et oeRole sont requis pour un compte OE',
+        statusMessage: 'oeId et oeRole sont requis pour un compte OE',
       })
     }
   }
@@ -97,8 +97,8 @@ export default defineEventHandler(async (event) => {
     lastname,
     email,
     role: role as any,
-    evaluatorOrganizationId: role === Role.EVALUATOR_ORGANIZATION ? evaluatorOrganizationId : null,
-    oeRole: role === Role.EVALUATOR_ORGANIZATION ? (oeRole as any) : null,
+    oeId: role === Role.OE ? oeId : null,
+    oeRole: role === Role.OE ? (oeRole as any) : null,
     passwordChangedAt: null, // Sera mis à jour quand l'utilisateur définira son mot de passe
     isActive: false, // Le compte sera activé quand l'utilisateur définira son mot de passe
   }
@@ -113,7 +113,7 @@ export default defineEventHandler(async (event) => {
       lastname: accounts.lastname,
       email: accounts.email,
       role: accounts.role,
-      evaluatorOrganizationId: accounts.evaluatorOrganizationId,
+      oeId: accounts.oeId,
       oeRole: accounts.oeRole,
     })
 
@@ -164,7 +164,7 @@ export default defineEventHandler(async (event) => {
 function getRoleName(role: string): string {
   const roleNames: Record<string, string> = {
     'FEEF': 'Administrateur FEEF',
-    'EVALUATOR_ORGANIZATION': 'Organisme Évaluateur',
+    'OE': 'Organisme Évaluateur',
     'AUDITOR': 'Auditeur',
     'ENTITY': 'Entreprise'
   }

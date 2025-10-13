@@ -2,7 +2,7 @@ import 'dotenv/config'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import bcrypt from 'bcrypt'
-import { accounts, evaluatorOrganizations, Role } from './schema'
+import { accounts, oe, Role } from './schema'
 import { eq } from 'drizzle-orm'
 
 async function seed() {
@@ -22,14 +22,14 @@ async function seed() {
     // Vérifier si Ecocert existe déjà
     const [existingEcocert] = await db
       .select()
-      .from(evaluatorOrganizations)
-      .where(eq(evaluatorOrganizations.name, 'Ecocert'))
+      .from(oe)
+      .where(eq(oe.name, 'Ecocert'))
       .limit(1)
 
     if (existingEcocert) {
       console.log('✅ Ecocert existe déjà')
     } else {
-      await db.insert(evaluatorOrganizations).values({
+      await db.insert(oe).values({
         name: 'Ecocert',
       })
       console.log('✅ Organisme évaluateur Ecocert créé')
@@ -38,14 +38,14 @@ async function seed() {
     // Vérifier si SGS existe déjà
     const [existingSGS] = await db
       .select()
-      .from(evaluatorOrganizations)
-      .where(eq(evaluatorOrganizations.name, 'SGS'))
+      .from(oe)
+      .where(eq(oe.name, 'SGS'))
       .limit(1)
 
     if (existingSGS) {
       console.log('✅ SGS existe déjà')
     } else {
-      await db.insert(evaluatorOrganizations).values({
+      await db.insert(oe).values({
         name: 'SGS',
       })
       console.log('✅ Organisme évaluateur SGS créé')
@@ -71,7 +71,7 @@ async function seed() {
         email: 'maxime@miloctav.fr',
         password: hashedPassword,
         role: Role.FEEF,
-        evaluatorOrganizationId: null,
+        oeId: null,
         oeRole: null,
       })
 

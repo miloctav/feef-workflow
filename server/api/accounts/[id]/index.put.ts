@@ -101,7 +101,7 @@ export default defineEventHandler(async (event) => {
       lastname: accounts.lastname,
       email: accounts.email,
       role: accounts.role,
-      evaluatorOrganizationId: accounts.evaluatorOrganizationId,
+      oeId: accounts.oeId,
       oeRole: accounts.oeRole,
       isActive: accounts.isActive,
       createdAt: accounts.createdAt,

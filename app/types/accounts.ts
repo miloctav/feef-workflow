@@ -14,8 +14,8 @@ export interface CreateAccountData {
   email: string
   password: string
   role: typeof Role[keyof typeof Role]
-  // Pour EVALUATOR_ORGANIZATION
-  evaluatorOrganizationId?: number
+  // Pour OE
+  oeId?: number
   oeRole?: typeof OERole[keyof typeof OERole]
   // Pour ENTITY
   entityRoles?: Array<{
@@ -31,7 +31,7 @@ export interface UpdateAccountData {
   email?: string
   password?: string
   // Autres champs selon le rôle
-  evaluatorOrganizationId?: number
+  oeId?: number
   oeRole?: typeof OERole[keyof typeof OERole]
   entityRoles?: Array<{
     entityId: number
@@ -41,7 +41,7 @@ export interface UpdateAccountData {
 
 // Compte avec relations (retourné par l'API)
 export interface AccountWithRelations extends AccountPublic {
-  evaluatorOrganization?: {
+  oe?: {
     id: number
     name: string
   }

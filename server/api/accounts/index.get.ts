@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
       password: false, // Exclure le mot de passe
     },
     with: {
-      evaluatorOrganization: {
+      oe: {
         columns: {
           id: true,
           name: true,
