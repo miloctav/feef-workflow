@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await db.delete(entities).where(eq(entities.id, parseInt(entityId || '0')))
+  await softDelete(entities, eq(entities.id, parseInt(entityId || '0')))
 
   return {
     success: true

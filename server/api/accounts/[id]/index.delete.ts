@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await db.delete(accounts).where(eq(accounts.id, parseInt(accountId || '0')))
+  await softDelete(accounts, eq(accounts.id, parseInt(accountId || '0')))
 
   return {
     success: true

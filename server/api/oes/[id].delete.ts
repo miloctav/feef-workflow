@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm"
 import { db } from "~~/server/database"
 import { oes, Role } from "~~/server/database/schema"
+import { softDelete } from "~~/server/utils/softDelete"
 
 export default defineEventHandler(async (event) => {
   
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await db.delete(oes).where(eq(oes.id, parseInt(oeId || '0')))
+  await softDelete(oes, eq(oes.id, parseInt(oeId || '0')))
 
   return {
     success: true
