@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
   // 3. Construire la clause ORDER BY
   const orderByClause = buildOrderBy(params.sort, config)
 
-  // 4. Exécuter la requête avec les relations
+  // 4. Exécuter la requête avec tous les champs et les relations
   const data = await db.query.entities.findMany({
     where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
     with: {

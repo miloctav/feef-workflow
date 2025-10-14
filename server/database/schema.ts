@@ -74,8 +74,8 @@ export const oes = pgTable('oes', {
 export const entities = pgTable('entities', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
-  siren: varchar('siren', { length: 9 }).notNull().unique(),
-  siret: varchar('siret', { length: 14 }).notNull().unique(),
+  siren: varchar('siren', { length: 9 }).unique(),
+  siret: varchar('siret', { length: 14 }).unique(),
   type: entityTypeEnum('type').notNull(),
   mode: entityModeEnum('mode').notNull(),
   parentGroupId: integer('parent_group_id').references((): AnyPgColumn => entities.id),
