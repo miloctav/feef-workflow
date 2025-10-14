@@ -43,6 +43,6 @@ export default defineEventHandler(async (event) => {
   })
 
   return {
-    accounts,
+    data: accounts,
   }
 })

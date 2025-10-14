@@ -64,7 +64,7 @@ export type EntityTypeType = typeof EntityType[keyof typeof EntityType]
 export type EntityModeType = typeof EntityMode[keyof typeof EntityMode]
 export type AuditTypeType = typeof AuditType[keyof typeof AuditType]
 
-export const oe = pgTable('oe', {
+export const oes = pgTable('oes', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -79,7 +79,7 @@ export const entities = pgTable('entities', {
   type: entityTypeEnum('type').notNull(),
   mode: entityModeEnum('mode').notNull(),
   parentGroupId: integer('parent_group_id').references((): AnyPgColumn => entities.id),
-  oeId: integer('oe_id').references(() => oe.id),
+  oeId: integer('oe_id').references(() => oes.id),
   accountManagerId: integer('account_manager_id').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
@@ -88,7 +88,7 @@ export const entities = pgTable('entities', {
 export const audits = pgTable('audits', {
   id: serial('id').primaryKey(),
   entityId: integer('entity_id').notNull().references(() => entities.id),
-  oeId: integer('oe_id').notNull().references(() => oe.id),
+  oeId: integer('oe_id').notNull().references(() => oes.id),
   auditorId: integer('auditor_id').notNull().references(() => accounts.id),
   type: auditTypeEnum('type').notNull(),
   plannedDate: date('planned_date'),
@@ -106,7 +106,7 @@ export const accounts = pgTable('accounts', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   password: varchar('password', { length: 255 }),
   role: roleEnum('role').notNull(),
-  oeId: integer('oe_id').references(() => oe.id),
+  oeId: integer('oe_id').references(() => oes.id),
   oeRole: oeRoleEnum('oe_role'),
   passwordChangedAt: timestamp('password_changed_at'),
   isActive: boolean('is_active').notNull().default(false),
@@ -127,7 +127,7 @@ export const accountsToEntities = pgTable('accounts_to_entities', {
 // Junction table for many-to-many relationship between auditors and oe
 export const auditorsToOE = pgTable('auditors_to_oe', {
   auditorId: integer('auditor_id').notNull().references(() => accounts.id),
-  oeId: integer('oe_id').notNull().references(() => oe.id),
+  oeId: integer('oe_id').notNull().references(() => oes.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
@@ -146,8 +146,8 @@ export type Entity = typeof entities.$inferSelect
 export type NewEntity = typeof entities.$inferInsert
 
 // Type pour OE (Organisme Évaluateur)
-export type OE = typeof oe.$inferSelect
-export type NewOE = typeof oe.$inferInsert
+export type OE = typeof oes.$inferSelect
+export type NewOE = typeof oes.$inferInsert
 
 // Type pour Audit
 export type Audit = typeof audits.$inferSelect
@@ -166,16 +166,16 @@ export type NewAuditorToOE = typeof auditorsToOE.$inferInsert
 // ========================================
 
 export const accountsRelations = relations(accounts, ({ one, many }) => ({
-  oe: one(oe, {
+  oe: one(oes, {
     fields: [accounts.oeId],
-    references: [oe.id],
+    references: [oes.id],
   }),
   accountsToEntities: many(accountsToEntities),
   audits: many(audits),
   auditorsToOE: many(auditorsToOE),
 }))
 
-export const oeRelations = relations(oe, ({ many }) => ({
+export const oeRelations = relations(oes, ({ many }) => ({
   accounts: many(accounts),
   entities: many(entities),
   audits: many(audits),
@@ -191,9 +191,9 @@ export const entitiesRelations = relations(entities, ({ one, many }) => ({
   childEntities: many(entities, {
     relationName: 'parentGroup',
   }),
-  oe: one(oe, {
+  oe: one(oes, {
     fields: [entities.oeId],
-    references: [oe.id],
+    references: [oes.id],
   }),
   accountManager: one(accounts, {
     fields: [entities.accountManagerId],
@@ -208,9 +208,9 @@ export const auditsRelations = relations(audits, ({ one }) => ({
     fields: [audits.entityId],
     references: [entities.id],
   }),
-  oe: one(oe, {
+  oe: one(oes, {
     fields: [audits.oeId],
-    references: [oe.id],
+    references: [oes.id],
   }),
   auditor: one(accounts, {
     fields: [audits.auditorId],
@@ -234,8 +234,8 @@ export const auditorsToOERelations = relations(auditorsToOE, ({ one }) => ({
     fields: [auditorsToOE.auditorId],
     references: [accounts.id],
   }),
-  oe: one(oe, {
+  oe: one(oes, {
     fields: [auditorsToOE.oeId],
-    references: [oe.id],
+    references: [oes.id],
   }),
 }))

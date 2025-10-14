@@ -17,6 +17,14 @@ npm install              # Install dependencies
 npm run dev              # Start development server (http://localhost:3000)
 npm run build            # Build for production
 npm run preview          # Preview production build locally
+npm run db:seed          # Seed database with initial data
+```
+
+### Database commands
+```bash
+npx drizzle-kit generate     # Generate migrations from schema changes
+npx drizzle-kit migrate      # Apply pending migrations
+npx drizzle-kit studio       # Open Drizzle Studio (database GUI)
 ```
 
 ### Docker deployment
@@ -100,6 +108,55 @@ Components follow a **domain-driven structure**:
 - Nuxt UI v4 (alpha) for component library
 - Custom color scheme configured in `app/app.config.ts` (primary: blue, secondary: zinc)
 
+### Database & ORM
+
+The application uses **Drizzle ORM** with PostgreSQL for data persistence:
+
+- **Schema definition**: `server/database/schema.ts` defines all tables, enums, relations, and types
+- **Database connection**: `server/database/index.ts` initializes Drizzle with pg Pool
+- **Database config**: `drizzle.config.ts` configures Drizzle Kit for migrations
+
+**Key tables**:
+- `accounts` - User accounts with role-based access (FEEF, OE, AUDITOR, ENTITY)
+- `oes` - Evaluation organizations (Organismes Évaluateurs)
+- `entities` - Companies and groups applying for certification
+- `audits` - Audit records linking entities, OEs, and auditors
+- `accounts_to_entities` - Many-to-many junction table for account-entity relationships
+- `auditors_to_oe` - Many-to-many junction table for auditor-OE relationships
+
+**Type safety**: Schema exports inferred TypeScript types (`Account`, `Entity`, `OE`, `Audit`) and enum constants (`Role`, `EntityType`, `AuditType`, `OERole`, `EntityRole`) for type-safe database operations.
+
+### API Architecture
+
+The application provides a **RESTful API** using Nuxt server routes in `server/api/`:
+
+**Authentication endpoints** (`server/api/auth/`):
+- `POST /api/auth/login` - User authentication
+- `POST /api/auth/logout` - Session termination
+- `POST /api/auth/forgot-password` - Password reset request
+- `POST /api/auth/reset-password` - Password reset completion
+
+**Account management** (`server/api/accounts/`):
+- `GET /api/accounts` - List all accounts (FEEF role only)
+- `POST /api/accounts` - Create new account
+- `PUT /api/accounts/[id]` - Update account
+- `DELETE /api/accounts/[id]` - Soft delete account
+- `POST /api/accounts/[id]/resend-email` - Resend activation email
+
+**OE management** (`server/api/oes/`):
+- `GET /api/oes` - List evaluation organizations
+- `POST /api/oes` - Create new OE
+- `GET /api/oes/[id]` - Get OE details
+- `DELETE /api/oes/[id]` - Soft delete OE
+
+**API patterns**:
+- Uses `requireUserSession()` from nuxt-auth-utils for authentication
+- Role-based authorization (e.g., FEEF role required for account management)
+- **Always use Drizzle query API** (`db.query.*`) for data fetching - maximize use of relational queries
+- **Always wrap responses** in a `{ data: ... }` object, never return data directly
+- Excludes sensitive fields (passwords) from API responses
+- Soft deletes using `deletedAt` timestamp
+
 ### Docker deployment stack
 
 The application deploys with 5 services defined in `docker-compose.yml`:
@@ -114,7 +171,10 @@ All services communicate on the `feef-network` bridge network. The app waits for
 ## Key implementation patterns
 
 - **Auto-imported components**: Components in `app/components/` are auto-imported by Nuxt (configured in `nuxt.config.ts` with `pathPrefix: false`)
-- **Static data**: Currently using mock data from `app/utils/data.ts` - no backend API yet
+- **Database persistence**: Using Drizzle ORM with PostgreSQL for all data storage
+- **API integration**: Frontend consumes RESTful API endpoints in `server/api/`
+- **Authentication**: Session-based auth via nuxt-auth-utils with role-based access control
+- **Type-safe queries**: Drizzle provides full TypeScript type safety from database to API
 - **Role-based access**: Each role sees only their authorized pages via layout-based routing
 - **Document workflow**: Documents are associated with specific workflow states and shown/hidden accordingly
 - **Alert system**: Alerts are contextual to company workflow state and provide actionable information
@@ -122,6 +182,8 @@ All services communicate on the `feef-network` bridge network. The app waits for
 ## Important notes
 
 - Application is in French
-- Currently prototype with mock data (no database integration yet despite docker-compose postgres service)
+- Database integrated with Drizzle ORM; `app/utils/data.ts` contains legacy mock data structure for workflow states
+- Authentication system implemented with password hashing (bcrypt) and email verification (Resend)
+- Soft delete pattern used throughout (records marked with `deletedAt` instead of hard deletion)
 - Environment variables are configured via `.env` file (see `.env.example`)
-- Module versions: Nuxt 4.1.1, Nuxt UI v4 (alpha), NuxtHub core
+- Module versions: Nuxt 4.1.1, Nuxt UI v4 (alpha), nuxt-auth-utils, Drizzle ORM

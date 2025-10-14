@@ -111,6 +111,6 @@ export default defineEventHandler(async (event) => {
 
   // Retourner le compte mis à jour
   return {
-    account: updatedAccount,
+    data: updatedAccount,
   }
 })
