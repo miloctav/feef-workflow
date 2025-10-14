@@ -10,7 +10,7 @@ const route = useRoute()
 const company = getCompanyById(route.params.id as string)
 
 if (!company) {
-  throw createError({ statusCode: 404, statusMessage: 'Dossier de labellisation non trouvé' })
+  throw createError({ statusCode: 404, message: 'Dossier de labellisation non trouvé' })
 }
 </script>
 

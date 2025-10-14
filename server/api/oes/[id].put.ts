@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   if (currentUser.role !== Role.FEEF) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Seul un administrateur FEEF peut modifier des oes',
+      message: 'Seul un administrateur FEEF peut modifier des oes',
     })
   }
 
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   if (!oeId) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'ID de l\'OE manquant',
+      message: 'ID de l\'OE manquant',
     })
   }
 
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   if (isNaN(oeIdInt)) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'ID de l\'OE invalide',
+      message: 'ID de l\'OE invalide',
     })
   }
 
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   if (!existingOE) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'OE non trouvé',
+      message: 'OE non trouvé',
     })
   }
 
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
   if (!name) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Au moins un champ doit être fourni pour la modification',
+      message: 'Au moins un champ doit être fourni pour la modification',
     })
   }
 

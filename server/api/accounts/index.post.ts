@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   if (currentUser.role !== Role.FEEF) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Seul un administrateur FEEF peut créer des comptes',
+      message: 'Seul un administrateur FEEF peut créer des comptes',
     })
   }
 
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
   if (!firstname || !lastname || !email || !role) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Tous les champs obligatoires doivent être renseignés',
+      message: 'Tous les champs obligatoires doivent être renseignés',
     })
   }
 
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
   if (!validRoles.includes(role as any)) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Rôle invalide',
+      message: 'Rôle invalide',
     })
   }
 
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
     if (!oeId || !oeRole) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'oeId et oeRole sont requis pour un compte OE',
+        message: 'oeId et oeRole sont requis pour un compte OE',
       })
     }
   }
@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
     if (!entityRoles || entityRoles.length === 0) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'entityRoles est requis pour un compte Entity (au moins une entité)',
+        message: 'entityRoles est requis pour un compte Entity (au moins une entité)',
       })
     }
   }
@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
   if (existingUser) {
     throw createError({
       statusCode: 409,
-      statusMessage: 'Un compte avec cet email existe déjà',
+      message: 'Un compte avec cet email existe déjà',
     })
   }
 

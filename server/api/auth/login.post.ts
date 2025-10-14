@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   if (!email || !password) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Email et mot de passe requis',
+      message: 'Email et mot de passe requis',
     })
   }
 
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   if (!user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Email ou mot de passe incorrect',
+      message: 'Email ou mot de passe incorrect',
     })
   }
 
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
   if (user.deletedAt) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Ce compte a été désactivé',
+      message: 'Ce compte a été désactivé',
     })
   }
 
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
   if (!user.isActive || !user.password) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Votre compte n\'est pas encore activé. Veuillez consulter l\'email que vous avez reçu pour créer votre mot de passe.',
+      message: 'Votre compte n\'est pas encore activé. Veuillez consulter l\'email que vous avez reçu pour créer votre mot de passe.',
     })
   }
 
@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
   if (!isPasswordValid) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Email ou mot de passe incorrect',
+      message: 'Email ou mot de passe incorrect',
     })
   }
 
@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
     if (!user.oeId || !user.oeRole) {
       throw createError({
         statusCode: 500,
-        statusMessage: 'Configuration utilisateur OE invalide',
+        message: 'Configuration utilisateur OE invalide',
       })
     }
 

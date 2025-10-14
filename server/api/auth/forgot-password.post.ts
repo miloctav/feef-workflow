@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   if (!email) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'L\'email est requis',
+      message: 'L\'email est requis',
     })
   }
 
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   if (!emailRegex.test(email)) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Format d\'email invalide',
+      message: 'Format d\'email invalide',
     })
   }
 
@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
     console.error('[Forgot Password API] Erreur lors de l\'envoi de l\'email:', emailResult.error)
     throw createError({
       statusCode: 500,
-      statusMessage: 'Une erreur est survenue lors de l\'envoi de l\'email. Veuillez réessayer plus tard.',
+      message: 'Une erreur est survenue lors de l\'envoi de l\'email. Veuillez réessayer plus tard.',
     })
   }
 

@@ -10,7 +10,7 @@ const route = useRoute()
 const company = getCompanyById(route.params.id as string)
 
 if (!company) {
-  throw createError({ statusCode: 404, statusMessage: 'Entreprise non trouvée' })
+  throw createError({ statusCode: 404, message: 'Entreprise non trouvée' })
 }
 </script>
 

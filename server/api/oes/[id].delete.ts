@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     if (currentUser.role !== Role.FEEF) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Seul un administrateur FEEF peut supprimer des organismes évaluateurs',
+      message: 'Seul un administrateur FEEF peut supprimer des organismes évaluateurs',
     })
   }
 
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   if (!oe) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Organisme évaluateur non trouvé'
+      message: 'Organisme évaluateur non trouvé'
     })
   }
 

@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   if (currentUser.role !== Role.FEEF) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Seul un administrateur FEEF peut modifier des comptes',
+      message: 'Seul un administrateur FEEF peut modifier des comptes',
     })
   }
 
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   if (!accountId) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'ID du compte manquant',
+      message: 'ID du compte manquant',
     })
   }
 
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   if (isNaN(accountIdInt)) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'ID du compte invalide',
+      message: 'ID du compte invalide',
     })
   }
 
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
   if (!existingAccount) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Compte non trouvé',
+      message: 'Compte non trouvé',
     })
   }
 
@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
   if (!firstname && !lastname && !email) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Au moins un champ doit être fourni pour la modification',
+      message: 'Au moins un champ doit être fourni pour la modification',
     })
   }
 
@@ -76,7 +76,7 @@ export default defineEventHandler(async (event) => {
     if (emailExists) {
       throw createError({
         statusCode: 409,
-        statusMessage: 'Un compte avec cet email existe déjà',
+        message: 'Un compte avec cet email existe déjà',
       })
     }
   }

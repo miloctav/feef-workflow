@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   if (currentUser.role !== Role.FEEF) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Seul un administrateur FEEF peut renvoyer des emails'
+      message: 'Seul un administrateur FEEF peut renvoyer des emails'
     })
   }
 

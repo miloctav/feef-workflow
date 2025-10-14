@@ -1,6 +1,6 @@
 import { and } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { accounts as accountsTable, Role } from '~~/server/database/schema'
+import { entities as entitiesTable } from '~~/server/database/schema'
 import {
   parsePaginationParams,
   buildWhereConditions,
@@ -10,47 +10,43 @@ import {
 } from '~~/server/utils/pagination'
 
 /**
- * GET /api/accounts
+ * GET /api/entities
  *
- * Liste paginée des comptes utilisateurs (FEEF uniquement)
+ * Liste paginée des entités (entreprises et groupes)
  *
  * Query params:
  * - page: numéro de page (défaut: 1)
  * - limit: items par page (défaut: 25, max: 100)
- * - search: recherche globale sur firstname, lastname, email
- * - sort: tri (ex: createdAt:desc, firstname:asc, oe.name:asc)
- * - role: filtre par rôle (ex: OE, AUDITOR, ENTITY) - support multiple: role=OE,AUDITOR
+ * - search: recherche globale sur name, siren, siret
+ * - sort: tri (ex: createdAt:desc, name:asc, oe.name:asc, accountManager.lastname:asc)
+ * - type: filtre par type (COMPANY, GROUP) - support multiple: type=COMPANY,GROUP
+ * - mode: filtre par mode (MASTER, FOLLOWER)
  * - oeId: filtre par OE (support multiple: oeId=1,2,3)
- * - isActive: filtre par statut actif (true/false)
+ * - accountManagerId: filtre par chargé de compte
+ * - parentGroupId: filtre par groupe parent
  *
  * Exemples:
- * - GET /api/accounts?page=1&limit=50
- * - GET /api/accounts?search=john&role=OE
- * - GET /api/accounts?sort=firstname:asc&isActive=true
- * - GET /api/accounts?oeId=1,2&role=AUDITOR
- * - GET /api/accounts?sort=oe.name:asc
+ * - GET /api/entities?page=1&limit=50
+ * - GET /api/entities?search=entreprise&type=COMPANY
+ * - GET /api/entities?sort=name:asc&oeId=1
+ * - GET /api/entities?type=COMPANY,GROUP&mode=MASTER
+ * - GET /api/entities?sort=oe.name:asc&search=ABC
+ * - GET /api/entities?sort=accountManager.lastname:asc
  */
 export default defineEventHandler(async (event) => {
-  // Vérifier que l'utilisateur connecté est FEEF
+  // Authentification requise
   const { user } = await requireUserSession(event)
-
-  if (user.role !== Role.FEEF) {
-    throw createError({
-      statusCode: 403,
-      message: 'Seul un administrateur FEEF peut accéder à la liste des comptes',
-    })
-  }
 
   // Configuration de la pagination
   const config = {
-    table: accountsTable,
-    searchFields: ['firstname', 'lastname', 'email'],
+    table: entitiesTable,
+    searchFields: ['name', 'siren', 'siret'],
     allowedFilters: {
-      local: ['role', 'oeId', 'isActive'],
+      local: ['type', 'mode', 'oeId', 'accountManagerId', 'parentGroupId'],
     },
     allowedSorts: {
-      local: ['createdAt', 'firstname', 'lastname', 'email'],
-      relations: ['oe.name'],
+      local: ['createdAt', 'name', 'type', 'mode'],
+      relations: ['oe.name', 'accountManager.lastname', 'accountManager.firstname'],
     },
     defaultSort: 'createdAt:desc',
   }
@@ -65,11 +61,8 @@ export default defineEventHandler(async (event) => {
   const orderByClause = buildOrderBy(params.sort, config)
 
   // 4. Exécuter la requête avec les relations
-  const data = await db.query.accounts.findMany({
+  const data = await db.query.entities.findMany({
     where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
-    columns: {
-      password: false, // Toujours exclure le mot de passe
-    },
     with: {
       oe: {
         columns: {
@@ -77,18 +70,18 @@ export default defineEventHandler(async (event) => {
           name: true,
         },
       },
-      accountsToEntities: {
+      accountManager: {
         columns: {
-          entityId: true,
-          role: true,
+          id: true,
+          firstname: true,
+          lastname: true,
+          email: true,
         },
-        with: {
-          entity: {
-            columns: {
-              id: true,
-              name: true,
-            },
-          },
+      },
+      parentGroup: {
+        columns: {
+          id: true,
+          name: true,
         },
       },
     },

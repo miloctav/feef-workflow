@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   if (currentUser.role !== 'FEEF') {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Accès refusé. Seul le role FEEF peut créer des OE.'
+      message: 'Accès refusé. Seul le role FEEF peut créer des OE.'
     })
   }
 
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if (!name ) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Le name est requis.'
+      message: 'Le name est requis.'
     })
   }
 

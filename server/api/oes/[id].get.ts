@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'ID de l\'OE requis'
+      message: 'ID de l\'OE requis'
     })
   }
 
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
     if (!oe) {
       throw createError({
         statusCode: 404,
-        statusMessage: 'OE non trouvé'
+        message: 'OE non trouvé'
       })
     }
 

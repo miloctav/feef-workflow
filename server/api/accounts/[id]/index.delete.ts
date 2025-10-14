@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     if (currentUser.role !== Role.FEEF) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Seul un administrateur FEEF peut supprimer des comptes',
+      message: 'Seul un administrateur FEEF peut supprimer des comptes',
     })
   }
 
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   if (!account) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Compte non trouvé'
+      message: 'Compte non trouvé'
     })
   }
 

@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (user.role !== Role.FEEF) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Seul un administrateur FEEF peut accéder à la liste des rôles',
+      message: 'Seul un administrateur FEEF peut accéder à la liste des rôles',
     })
   }
 
