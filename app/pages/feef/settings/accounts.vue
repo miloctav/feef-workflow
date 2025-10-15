@@ -19,8 +19,7 @@
       >
         <!-- Filtre par rôle personnalisé -->
         <template #filters>
-          <span class="text-sm text-gray-600">Filtrer par rôle :</span>
-          <USelect
+          <FilterSelect
             v-model="selectedRole"
             :items="roleFilterOptions"
             value-key="value"

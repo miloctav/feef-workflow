@@ -101,15 +101,6 @@ const handleCreate = async (close: () => void) => {
   }
 }
 
-// Formatter la date
-const formatDate = (date: Date | string) => {
-  return new Date(date).toLocaleDateString('fr-FR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
-
 // Colonnes du tableau (sans la colonne actions qui est ajoutée automatiquement)
 const columns: TableColumn<OEWithRelations>[] = [
   {

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EntitiesTable from '~/components/tables/EntitiesTable.vue';
+
 
 definePageMeta({
   layout: "dashboard-oe",
@@ -12,7 +14,7 @@ definePageMeta({
     <template #header>
       <NavBar />
     </template> <template #body>
-      <CompaniesTable role="oe" />
+      <EntitiesTable role="oe" />
     </template>
   </UDashboardPanel>
 </template>
