@@ -1,4 +1,5 @@
-import type { Account, Role, OERole, EntityRole } from '~~/server/database/schema'
+import type { Account } from '~~/server/database/schema'
+import { Role, OERole, EntityRole } from '#shared/types/roles'
 
 /**
  * Types pour les comptes utilisateurs

@@ -20,49 +20,14 @@ export const oeRoleEnum = pgEnum('oe_role', ['ADMIN', 'ACCOUNT_MANAGER'])
 export const accountEntityRoleEnum = pgEnum('account_entity_role', ['SIGNATORY', 'PROCESS_MANAGER'])
 
 // ========================================
-// Export enum values as constants
+// Import enum values and types from shared
 // ========================================
 
-export const Role = {
-  FEEF: 'FEEF',
-  OE: 'OE',
-  AUDITOR: 'AUDITOR',
-  ENTITY: 'ENTITY',
-} as const
+export { Role, OERole, EntityRole } from '#shared/types/roles'
+export type { RoleType, OERoleType, EntityRoleType } from '#shared/types/roles'
 
-export const OERole = {
-  ADMIN: 'ADMIN',
-  ACCOUNT_MANAGER: 'ACCOUNT_MANAGER',
-} as const
-
-export const EntityRole = {
-  SIGNATORY: 'SIGNATORY',
-  PROCESS_MANAGER: 'PROCESS_MANAGER',
-} as const
-
-export const EntityType = {
-  COMPANY: 'COMPANY',
-  GROUP: 'GROUP',
-} as const
-
-export const EntityMode = {
-  MASTER: 'MASTER',
-  FOLLOWER: 'FOLLOWER',
-} as const
-
-export const AuditType = {
-  INITIAL: 'INITIAL',
-  RENEWAL: 'RENEWAL',
-  MONITORING: 'MONITORING',
-} as const
-
-// Types pour les enums (pour TypeScript)
-export type RoleType = typeof Role[keyof typeof Role]
-export type OERoleType = typeof OERole[keyof typeof OERole]
-export type EntityRoleType = typeof EntityRole[keyof typeof EntityRole]
-export type EntityTypeType = typeof EntityType[keyof typeof EntityType]
-export type EntityModeType = typeof EntityMode[keyof typeof EntityMode]
-export type AuditTypeType = typeof AuditType[keyof typeof AuditType]
+export { EntityType, EntityMode, AuditType } from '#shared/types/enums'
+export type { EntityTypeType, EntityModeType, AuditTypeType } from '#shared/types/enums'
 
 export const oes = pgTable('oes', {
   id: serial('id').primaryKey(),

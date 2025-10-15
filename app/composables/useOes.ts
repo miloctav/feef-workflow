@@ -1,16 +1,16 @@
 import type {
-  AccountWithRelations,
-  CreateAccountData,
-  UpdateAccountData,
-} from '~~/app/types/accounts'
+  OEWithRelations,
+  CreateOEData,
+  UpdateOEData,
+} from '~~/app/types/oes'
 import type { PaginationParams } from '~~/app/types/pagination'
 
-export const useAccounts = () => {
+export const useOes = () => {
   const toast = useToast()
 
-  // Utiliser le composable de pagination pour la liste des comptes
+  // Utiliser le composable de pagination pour la liste des OEs
   const {
-    data: accounts,
+    data: oes,
     pagination,
     status: fetchStatus,
     error: fetchError,
@@ -24,19 +24,19 @@ export const useAccounts = () => {
     setFilters,
     setLimit,
     reset: resetPagination,
-  } = usePaginatedFetch<AccountWithRelations>('/api/accounts', {
-    key: 'accounts',
+  } = usePaginatedFetch<OEWithRelations>('/api/oes', {
+    key: 'oes',
     defaultLimit: 25,
     immediate: true,
   })
 
-  // State pour un compte individuel
-  const currentAccount = useState<AccountWithRelations | null>('accounts:current', () => null)
+  // State pour un OE individuel
+  const currentOE = useState<OEWithRelations | null>('oes:current', () => null)
 
   // États de chargement pour les opérations CRUD
-  const createLoading = useState('accounts:createLoading', () => false)
-  const updateLoading = useState('accounts:updateLoading', () => false)
-  const deleteLoading = useState('accounts:deleteLoading', () => false)
+  const createLoading = useState('oes:createLoading', () => false)
+  const updateLoading = useState('oes:updateLoading', () => false)
+  const deleteLoading = useState('oes:deleteLoading', () => false)
 
   // Loading state dérivé de fetchStatus
   const fetchLoading = computed(() => fetchStatus.value === 'pending')
@@ -44,14 +44,14 @@ export const useAccounts = () => {
   // Error message dérivé de fetchError
   const fetchErrorMessage = computed(() => {
     if (!fetchError.value) return null
-    return fetchError.value.data?.message || fetchError.value.message || 'Erreur lors de la récupération des comptes'
+    return fetchError.value.data?.message || fetchError.value.message || 'Erreur lors de la récupération des organismes évaluateurs'
   })
 
   /**
-   * Récupérer la liste des comptes avec pagination
+   * Récupérer la liste des OEs avec pagination
    * Note: Le fetch est automatique via usePaginatedFetch, cette méthode est gardée pour compatibilité
    */
-  const fetchAccounts = async (requestParams: PaginationParams = {}) => {
+  const fetchOes = async (requestParams: PaginationParams = {}) => {
     try {
       // Appliquer les paramètres de pagination
       if (requestParams.page) goToPage(requestParams.page)
@@ -68,9 +68,9 @@ export const useAccounts = () => {
       // Si les paramètres n'ont pas changé, forcer un refresh
       await refresh()
 
-      return { success: true, data: accounts.value }
+      return { success: true, data: oes.value }
     } catch (e: any) {
-      const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération des comptes'
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération des organismes évaluateurs'
 
       toast.add({
         title: 'Erreur',
@@ -83,17 +83,17 @@ export const useAccounts = () => {
   }
 
   /**
-   * Récupérer un compte par ID
+   * Récupérer un OE par ID
    */
-  const fetchAccount = async (id: number) => {
+  const fetchOE = async (id: number) => {
     try {
-      const response = await $fetch<{ account: AccountWithRelations }>(`/api/accounts/${id}`)
+      const response = await $fetch<{ data: OEWithRelations }>(`/api/oes/${id}`)
 
-      currentAccount.value = response.account
+      currentOE.value = response.data
 
-      return { success: true, data: response.account }
+      return { success: true, data: response.data }
     } catch (e: any) {
-      const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération du compte'
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération de l\'organisme évaluateur'
 
       toast.add({
         title: 'Erreur',
@@ -106,29 +106,29 @@ export const useAccounts = () => {
   }
 
   /**
-   * Créer un nouveau compte
+   * Créer un nouvel OE
    */
-  const createAccount = async (data: CreateAccountData) => {
+  const createOE = async (data: CreateOEData) => {
     createLoading.value = true
 
     try {
-      const response = await $fetch<{ account: AccountWithRelations }>('/api/accounts', {
+      const response = await $fetch<{ data: OEWithRelations }>('/api/oes', {
         method: 'POST',
         body: data,
       })
 
-      // Rafraîchir la liste paginée pour inclure le nouveau compte
+      // Rafraîchir la liste paginée pour inclure le nouvel OE
       await refresh()
 
       toast.add({
         title: 'Succès',
-        description: 'Compte créé avec succès',
+        description: 'Organisme évaluateur créé avec succès',
         color: 'success',
       })
 
-      return { success: true, data: response.account }
+      return { success: true, data: response.data }
     } catch (e: any) {
-      const errorMessage = e.data?.message || e.message || 'Erreur lors de la création du compte'
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la création de l\'organisme évaluateur'
 
       toast.add({
         title: 'Erreur',
@@ -143,34 +143,34 @@ export const useAccounts = () => {
   }
 
   /**
-   * Mettre à jour un compte
+   * Mettre à jour un OE
    */
-  const updateAccount = async (id: number, data: UpdateAccountData) => {
+  const updateOE = async (id: number, data: UpdateOEData) => {
     updateLoading.value = true
 
     try {
-      const response = await $fetch<{ account: AccountWithRelations }>(`/api/accounts/${id}`, {
-        method: 'PATCH',
+      const response = await $fetch<{ data: OEWithRelations }>(`/api/oes/${id}`, {
+        method: 'PUT',
         body: data,
       })
 
       // Rafraîchir la liste paginée pour refléter les changements
       await refresh()
 
-      // Mettre à jour le compte courant si c'est celui-ci
-      if (currentAccount.value?.id === id) {
-        currentAccount.value = response.account
+      // Mettre à jour l'OE courant si c'est celui-ci
+      if (currentOE.value?.id === id) {
+        currentOE.value = response.data
       }
 
       toast.add({
         title: 'Succès',
-        description: 'Compte mis à jour avec succès',
+        description: 'Organisme évaluateur mis à jour avec succès',
         color: 'success',
       })
 
-      return { success: true, data: response.account }
+      return { success: true, data: response.data }
     } catch (e: any) {
-      const errorMessage = e.data?.message || e.message || 'Erreur lors de la mise à jour du compte'
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la mise à jour de l\'organisme évaluateur'
 
       toast.add({
         title: 'Erreur',
@@ -185,33 +185,33 @@ export const useAccounts = () => {
   }
 
   /**
-   * Supprimer un compte (soft delete)
+   * Supprimer un OE (soft delete)
    */
-  const deleteAccount = async (id: number) => {
+  const deleteOE = async (id: number) => {
     deleteLoading.value = true
 
     try {
-      await $fetch(`/api/accounts/${id}`, {
+      await $fetch(`/api/oes/${id}`, {
         method: 'DELETE',
       })
 
       // Rafraîchir la liste paginée
       await refresh()
 
-      // Nettoyer le compte courant si c'est celui-ci
-      if (currentAccount.value?.id === id) {
-        currentAccount.value = null
+      // Nettoyer l'OE courant si c'est celui-ci
+      if (currentOE.value?.id === id) {
+        currentOE.value = null
       }
 
       toast.add({
         title: 'Succès',
-        description: 'Compte supprimé avec succès',
+        description: 'Organisme évaluateur supprimé avec succès',
         color: 'success',
       })
 
       return { success: true }
     } catch (e: any) {
-      const errorMessage = e.data?.message || e.message || 'Erreur lors de la suppression du compte'
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la suppression de l\'organisme évaluateur'
 
       toast.add({
         title: 'Erreur',
@@ -230,12 +230,12 @@ export const useAccounts = () => {
    */
   const reset = () => {
     resetPagination()
-    currentAccount.value = null
+    currentOE.value = null
   }
 
   return {
-    // Liste des comptes (readonly)
-    accounts: readonly(accounts),
+    // Liste des OEs (readonly)
+    oes: readonly(oes),
 
     // Pagination consolidée
     pagination,
@@ -243,8 +243,8 @@ export const useAccounts = () => {
     // Paramètres de pagination (readonly)
     params,
 
-    // Compte individuel
-    currentAccount: readonly(currentAccount),
+    // OE individuel
+    currentOE: readonly(currentOE),
 
     // États de chargement
     fetchLoading: readonly(fetchLoading),
@@ -263,11 +263,11 @@ export const useAccounts = () => {
     setLimit,
 
     // Actions CRUD
-    fetchAccounts,
-    fetchAccount,
-    createAccount,
-    updateAccount,
-    deleteAccount,
+    fetchOes,
+    fetchOE,
+    createOE,
+    updateOE,
+    deleteOE,
     refresh,
     reset,
   }
