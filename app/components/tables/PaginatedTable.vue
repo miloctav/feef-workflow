@@ -76,11 +76,7 @@
     </template>
 
     <!-- Modal de confirmation de suppression -->
-    <UModal
-      v-model:open="isDeleteModalOpen"
-      title="Confirmer la suppression"
-      :ui="{ footer: 'justify-end' }"
-    >
+    <UModal v-model:open="isDeleteModalOpen" title="Confirmer la suppression" :ui="{ footer: 'justify-end' }">
       <template #header>
         <div class="flex items-center gap-2">
           <UIcon name="i-lucide-alert-triangle" class="text-red-600 text-xl" />

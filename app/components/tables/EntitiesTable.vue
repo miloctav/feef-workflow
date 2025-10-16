@@ -347,7 +347,7 @@ const columns: TableColumn<EntityWithRelations>[] = [
 
 // Navigation vers le détail d'une entité au clic sur une ligne
 const handleRowClick = (entity: EntityWithRelations) => {
-  navigateTo(`/${props.role}/companies/${entity.id}`)
+  navigateTo(`/${props.role}/entities/${entity.id}`)
 }
 
 // Supprimer une entité
