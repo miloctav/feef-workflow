@@ -132,3 +132,11 @@ export function getEntityModeLabel(mode: EntityModeType): string {
 export function getAuditTypeLabel(type: AuditTypeType): string {
   return AuditTypeLabels[type] || type
 }
+
+
+export const DocumentCategory = {
+  LEGAL: 'LEGAL',
+  FINANCIAL: 'FINANCIAL',
+  TECHNICAL: 'TECHNICAL',
+  OTHER: 'OTHER',
+} as const

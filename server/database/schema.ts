@@ -19,15 +19,14 @@ export const oeRoleEnum = pgEnum('oe_role', ['ADMIN', 'ACCOUNT_MANAGER'])
 // Define account-entity role enum
 export const accountEntityRoleEnum = pgEnum('account_entity_role', ['SIGNATORY', 'PROCESS_MANAGER'])
 
+export const documentCategoryEnum = pgEnum('document_category', ['LEGAL', 'FINANCIAL', 'TECHNICAL', 'OTHER'])
+
 // ========================================
 // Import enum values and types from shared
 // ========================================
 
-export { Role, OERole, EntityRole } from '#shared/types/roles'
-export type { RoleType, OERoleType, EntityRoleType } from '#shared/types/roles'
-
-export { EntityType, EntityMode, AuditType } from '#shared/types/enums'
-export type { EntityTypeType, EntityModeType, AuditTypeType } from '#shared/types/enums'
+export { Role, OERole, EntityRole, EntityType, EntityMode, AuditType } from '../../shared/types'
+export type { RoleType, OERoleType, EntityRoleType, EntityTypeType, EntityModeType, AuditTypeType } from '../../shared/types'
 
 export const oes = pgTable('oes', {
   id: serial('id').primaryKey(),
@@ -79,6 +78,16 @@ export const accounts = pgTable('accounts', {
   deletedAt: timestamp('deleted_at'),
 })
 
+export const documentsType = pgTable('documents_type', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: varchar('description', { length: 1024 }),
+  category: documentCategoryEnum('category').notNull(),
+  autoAsk: boolean('auto_ask').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
+
 // Junction table for many-to-many relationship between accounts and entities
 export const accountsToEntities = pgTable('accounts_to_entities', {
   accountId: integer('account_id').notNull().references(() => accounts.id),
@@ -125,6 +134,10 @@ export type NewAccountToEntity = typeof accountsToEntities.$inferInsert
 // Type pour AuditorToOE
 export type AuditorToOE = typeof auditorsToOE.$inferSelect
 export type NewAuditorToOE = typeof auditorsToOE.$inferInsert
+
+// Type pour DocumentType
+export type DocumentType = typeof documentsType.$inferSelect
+export type NewDocumentType = typeof documentsType.$inferInsert
 
 // ========================================
 // Relations Drizzle pour les queries relationnelles
