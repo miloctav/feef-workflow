@@ -1,17 +1,24 @@
 <script setup lang="ts">
-import CompanyTabs from '~/components/CompanyTabs.vue'
-import { getCompanyById } from '~/utils/data'
+import EntityPage from '~/components/pages/EntityPage.vue'
 
 definePageMeta({
   layout: "dashboard-feef",
-});
+})
 
 const route = useRoute()
-const company = getCompanyById(route.params.id as string)
+const { currentEntity, fetchEntity, fetchLoading, fetchError } = useEntities()
 
-if (!company) {
-  throw createError({ statusCode: 404, message: 'Entreprise non trouvée' })
-}
+// Récupérer l'ID depuis la route
+const entityId = computed(() => Number(route.params.id))
+
+// Récupérer l'entité au montage du composant
+onMounted(async () => {
+  const result = await fetchEntity(entityId.value)
+
+  if (!result.success) {
+    throw createError({ statusCode: 404, message: 'Entité non trouvée' })
+  }
+})
 </script>
 
 <template>
@@ -20,7 +27,14 @@ if (!company) {
       <NavBar />
     </template>
     <template #body>
-      <CompanyTabs :company="company" role="feef" />
+      <div v-if="fetchLoading" class="flex items-center justify-center p-8">
+        <UIcon name="i-heroicons-arrow-path" class="animate-spin text-primary" />
+        <span class="ml-2">Chargement...</span>
+      </div>
+      <div v-else-if="fetchError" class="flex items-center justify-center p-8">
+        <p class="text-error">{{ fetchError }}</p>
+      </div>
+      <EntityPage v-else-if="currentEntity" role="feef" />
     </template>
   </UDashboardPanel>
 </template>

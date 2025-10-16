@@ -16,7 +16,7 @@ import {
  *
  * Query params:
  * - page: numéro de page (défaut: 1)
- * - limit: items par page (défaut: 25, max: 100)
+ * - limit: items par page (défaut: 25, max: 100, -1 = tous)
  * - search: recherche globale sur title et description
  * - sort: tri (ex: createdAt:desc, title:asc)
  *
@@ -26,6 +26,7 @@ import {
  * - GET /api/documents-type?page=1&limit=50
  * - GET /api/documents-type?search=attestation&sort=title:asc
  * - GET /api/documents-type?sort=createdAt:desc
+ * - GET /api/documents-type?limit=-1 (tous les documents types, sans pagination)
  */
 export default defineEventHandler(async (event) => {
   // Authentification requise
@@ -38,6 +39,10 @@ export default defineEventHandler(async (event) => {
       message: 'Accès refusé. Seuls les roles FEEF et OE peuvent accéder aux documents types.'
     })
   }
+
+  // Vérifier si limit=-1 (mode "tous les résultats")
+  const query = getQuery(event)
+  const isUnlimited = query.limit === '-1'
 
   // Configuration de la pagination
   const config = {
@@ -61,6 +66,23 @@ export default defineEventHandler(async (event) => {
   // 3. Construire la clause ORDER BY
   const orderByClause = buildOrderBy(params.sort, config)
 
+  // Cas spécial : limit=-1 (tous les résultats)
+  if (isUnlimited) {
+    const data = await db.query.documentsType.findMany({
+      where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
+      columns: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+      },
+      ...(orderByClause && { orderBy: orderByClause }),
+    })
+
+    return { data }
+  }
+
+  // Cas normal : pagination
   // 4. Exécuter la requête avec les colonnes sélectionnées
   const data = await db.query.documentsType.findMany({
     where: whereConditions.length > 0 ? and(...whereConditions) : undefined,

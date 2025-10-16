@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import DocumentsList from '~/components/DocumentsList.vue'
+import DocumentsList from '~/components/tabs/DocumentaryReviewTab.vue'
 import { COMPANIES } from '~/utils/data'
 
 definePageMeta({

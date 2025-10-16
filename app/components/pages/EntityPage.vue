@@ -1,13 +1,13 @@
 <template>
-  <div class="space-y-6">
+  <div v-if="currentEntity" class="space-y-6">
     <!-- En-tête avec le nom de l'entreprise -->
     <div class="bg-white border-b">
       <div class="px-6 py-4">
         <div class="flex items-center gap-4">
           <UIcon name="i-lucide-building-2" class="w-10 h-10 text-primary" />
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">{{ company.raisonSociale.nom }}</h1>
-            <p class="text-sm text-gray-600">SIREN: {{ company.raisonSociale.siren }}</p>
+            <h1 class="text-2xl font-bold text-gray-900">{{ currentEntity.name }}</h1>
+            <p class="text-sm text-gray-600">SIREN: {{ currentEntity.siren }}</p>
           </div>
         </div>
       </div>
@@ -19,20 +19,20 @@
         <!-- Tab Dossier -->
         <template #dossier>
           <div class="py-6">
-            <CompanyDetail :company="company" :role="role" />
+            <!-- <CompanyDetail :company="company" :role="role" /> -->
           </div>
         </template>
 
         <!-- Tab Espace documentaire -->
         <template #espacedoc>
           <div class="py-6">
-            <DocumentsList :company="company" :role="role" />
+            <DocumentaryReviewTab :role="role" />
           </div>
         </template>
 
         <!-- Tab Comptes -->
         <template #comptes>
-          <div class="py-6">
+          <!-- <div class="py-6">
             <UCard>
               <template #header>
                 <div class="flex items-center justify-between">
@@ -56,23 +56,23 @@
                 <p>Tableau de gestion des comptes à venir</p>
               </div>
             </UCard>
-          </div>
+          </div> -->
         </template>
 
         <!-- Tab Contrats -->
         <template #contrats>
           <div class="py-6 space-y-6">
             <!-- Affiche les contrats FEEF si le role est feef -->
-            <FeefContractsList v-if="role === 'feef'" :role="role" />
+            <!-- <FeefContractsList v-if="role === 'feef'" :role="role" /> -->
 
             <!-- Affiche les contrats OE si le role est oe -->
-            <OeContractsList v-if="role === 'oe'" :role="role" />
+            <!-- <OeContractsList v-if="role === 'oe'" :role="role" /> -->
           </div>
         </template>
 
         <!-- Tab Audits -->
         <template #audits>
-          <div class="py-6">
+          <!-- <div class="py-6">
             <UCard>
               <template #header>
                 <div class="flex items-center justify-between">
@@ -92,9 +92,9 @@
                 </div>
               </template>
 
-              <LabelingCasesTable :company-id="company.id" :role="role" :with-filters="false"/>
+              <LabelingCasesTable :company-id="entity.id" :role="role" :with-filters="false"/>
             </UCard>
-          </div>
+          </div> -->
         </template>
       </UTabs>
     </div>
@@ -103,20 +103,23 @@
 
 <script setup lang="ts">
 import CompanyDetail from '~/components/CompanyDetail.vue'
-import DocumentsList from '~/components/DocumentsList.vue'
+import DocumentsList from '~/components/tabs/DocumentaryReviewTab.vue'
 import LabelingCasesTable from '~/components/LabelingCasesTable.vue'
 import FeefContractsList from '~/components/FeefContractsList.vue'
 import OeContractsList from '~/components/OeContractsList.vue'
 import { ro } from '@nuxt/ui/runtime/locale/index.js'
+import DocumentaryReviewTab from '~/components/tabs/DocumentaryReviewTab.vue'
 
 interface Props {
-  company: any
   role?: 'feef' | 'oe' | 'company'
 }
 
 const props = withDefaults(defineProps<Props>(), {
   role: 'feef'
 })
+
+// Récupérer l'entité courante depuis le composable
+const { currentEntity } = useEntities()
 
 const selectedTab = ref('dossier')
 

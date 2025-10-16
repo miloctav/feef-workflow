@@ -111,6 +111,7 @@ const {
   setFilters,
   deleteEntity,
   createEntity,
+  fetchEntities,
 } = useEntities()
 
 // États des filtres locaux (avant application)
@@ -159,6 +160,9 @@ const loadAccountManagers = async () => {
 
 // Charger les données au montage du composant
 onMounted(() => {
+  // Charger la liste des entités
+  fetchEntities()
+
   if (props.role === 'feef') {
     loadOEs()
     loadAccountManagers()

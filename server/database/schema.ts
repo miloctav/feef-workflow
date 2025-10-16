@@ -88,6 +88,19 @@ export const documentsType = pgTable('documents_type', {
   deletedAt: timestamp('deleted_at'),
 })
 
+export const documentaryReviews = pgTable('documentary_reviews', {
+  id: serial('id').primaryKey(),
+  entityId: integer('entity_id').notNull().references(() => entities.id),
+  documentTypeId: integer('document_type_id').references(() => documentsType.id),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: varchar('description', { length: 1024 }),
+  category: documentCategoryEnum('category').notNull(),
+  createdBy: integer('created_by').notNull().references(() => accounts.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at'),
+  deletedAt: timestamp('deleted_at'),
+})
+
 // Junction table for many-to-many relationship between accounts and entities
 export const accountsToEntities = pgTable('accounts_to_entities', {
   accountId: integer('account_id').notNull().references(() => accounts.id),
@@ -139,6 +152,10 @@ export type NewAuditorToOE = typeof auditorsToOE.$inferInsert
 export type DocumentType = typeof documentsType.$inferSelect
 export type NewDocumentType = typeof documentsType.$inferInsert
 
+// Type pour DocumentaryReview
+export type DocumentaryReview = typeof documentaryReviews.$inferSelect
+export type NewDocumentaryReview = typeof documentaryReviews.$inferInsert
+
 // ========================================
 // Relations Drizzle pour les queries relationnelles
 // ========================================
@@ -151,6 +168,7 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
   accountsToEntities: many(accountsToEntities),
   audits: many(audits),
   auditorsToOE: many(auditorsToOE),
+  documentaryReviews: many(documentaryReviews),
 }))
 
 export const oeRelations = relations(oes, ({ many }) => ({
@@ -179,6 +197,7 @@ export const entitiesRelations = relations(entities, ({ one, many }) => ({
   }),
   accountsToEntities: many(accountsToEntities),
   audits: many(audits),
+  documentaryReviews: many(documentaryReviews),
 }))
 
 export const auditsRelations = relations(audits, ({ one }) => ({
@@ -216,4 +235,23 @@ export const auditorsToOERelations = relations(auditorsToOE, ({ one }) => ({
     fields: [auditorsToOE.oeId],
     references: [oes.id],
   }),
+}))
+
+export const documentaryReviewsRelations = relations(documentaryReviews, ({ one }) => ({
+  entity: one(entities, {
+    fields: [documentaryReviews.entityId],
+    references: [entities.id],
+  }),
+  documentType: one(documentsType, {
+    fields: [documentaryReviews.documentTypeId],
+    references: [documentsType.id],
+  }),
+  createdByAccount: one(accounts, {
+    fields: [documentaryReviews.createdBy],
+    references: [accounts.id],
+  }),
+}))
+
+export const documentsTypeRelations = relations(documentsType, ({ many }) => ({
+  documentaryReviews: many(documentaryReviews),
 }))

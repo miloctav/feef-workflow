@@ -37,10 +37,39 @@
           <UBadge :color="item.badgeColor" variant="soft" size="sm">
             {{ item.documents.length }} document{{ item.documents.length > 1 ? 's' : '' }}
           </UBadge>
-          <span class="flex items-center gap-2">
-            <UButton v-if="(item.title === 'Phase de candidature' || item.title === 'Phase d\'audit') && role === 'company'" icon="i-lucide-plus" size="xs" >Document libre</UButton>
-          </span>
         </div>
+      </template>
+
+      <template #trailing="{ item }">
+        <UModal
+          v-if="(item.title === 'Phase de candidature' || item.title === 'Phase d\'audit') && role === 'company'"
+          title="Ajouter un document libre"
+          description="Vous pouvez ajouter un document libre à cette phase de labellisation."
+        >
+          <UButton
+            icon="i-lucide-plus"
+            size="xs"
+            @click.stop
+          >
+            Document libre
+          </UButton>
+
+          <template #footer="{ close }">
+            <div class="flex justify-end gap-3">
+              <UButton
+                color="neutral"
+                variant="outline"
+                label="Annuler"
+                @click="close"
+              />
+              <UButton
+                color="primary"
+                label="Ajouter"
+                @click="handleAddDocument(close)"
+              />
+            </div>
+          </template>
+        </UModal>
       </template>
       
       <template #content="{ item }">
@@ -125,11 +154,10 @@
     </UAccordion>
 
     <!-- Document Viewer Slide Over -->
-    <DocumentViewer 
-      v-model:open="isViewerOpen" 
-      :document="selectedDocument" 
+    <DocumentViewer
+      v-model:open="isViewerOpen"
+      :document="selectedDocument"
     />
-    
   </div>
 </template>
 
@@ -349,5 +377,11 @@ function uploadDocument(document: any) {
   console.log('Mise en ligne du document:', document.name)
   // TODO: Implémenter la logique de mise en ligne du document
   // Ici on pourrait ouvrir un modal de téléchargement ou déclencher un processus de mise en ligne
+}
+
+function handleAddDocument(close: () => void) {
+  console.log('Ajout d\'un document libre')
+  // TODO: Implémenter la logique d'ajout de document libre
+  close()
 }
 </script>

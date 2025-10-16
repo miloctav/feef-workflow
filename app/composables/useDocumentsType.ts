@@ -203,6 +203,37 @@ export const useDocumentsType = () => {
   }
 
   /**
+   * Récupérer tous les documents types (sans pagination)
+   * Utile pour les select / dropdowns
+   */
+  const fetchAllDocumentsType = async (filters?: { category?: string }) => {
+    try {
+      const query: Record<string, string> = { limit: '-1' }
+
+      // Ajouter les filtres si fournis
+      if (filters?.category) {
+        query.category = filters.category
+      }
+
+      const response = await $fetch<{ data: Array<{ id: number, title: string, description: string | null, category: string }> }>('/api/documents-type', {
+        query,
+      })
+
+      return { success: true, data: response.data }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération des documents types'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage, data: [] }
+    }
+  }
+
+  /**
    * Réinitialiser le state
    */
   const reset = () => {
@@ -241,6 +272,7 @@ export const useDocumentsType = () => {
 
     // Actions CRUD
     fetchDocumentsType,
+    fetchAllDocumentsType,
     createDocumentType,
     updateDocumentType,
     deleteDocumentType,
