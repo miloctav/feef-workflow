@@ -57,7 +57,8 @@
                 <div
                   v-for="document in item.documents"
                   :key="document.id"
-                  class="p-4 rounded-lg border-2 transition-all duration-200 group border-gray-200 hover:border-blue-400 hover:shadow-lg bg-white"
+                  class="p-4 rounded-lg border-2 transition-all duration-200 group border-gray-200 hover:border-blue-400 hover:shadow-lg bg-white cursor-pointer"
+                  @click="openDocumentViewer(document)"
                 >
                   <div class="flex items-start gap-4">
                     <!-- Icône du document -->
@@ -74,9 +75,12 @@
                     <div class="flex-1 min-w-0">
                       <div class="flex items-start justify-between gap-4">
                         <div class="flex-1 min-w-0">
-                          <h4 class="font-semibold text-base text-gray-900 group-hover:text-blue-900">
-                            {{ document.title }}
-                          </h4>
+                          <div class="flex items-center gap-2">
+                            <h4 class="font-semibold text-base text-gray-900 group-hover:text-blue-900">
+                              {{ document.title }}
+                            </h4>
+                            <UIcon name="i-lucide-eye" class="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
+                          </div>
                           <p v-if="document.description" class="text-sm text-gray-600 mt-1.5">
                             {{ document.description }}
                           </p>
@@ -118,6 +122,11 @@
       </UCard>
     </div>
 
+    <!-- Document Viewer -->
+    <DocumentViewer
+      v-model:open="isViewerOpen"
+      :documentary-review="selectedDocument"
+    />
   </div>
 </template>
 
@@ -219,5 +228,14 @@ async function handleDelete(document: DocumentaryReview) {
   if (confirmed) {
     await deleteDocumentaryReview(document.id)
   }
+}
+
+// Gestion du DocumentViewer
+const isViewerOpen = ref(false)
+const selectedDocument = ref<DocumentaryReview | null>(null)
+
+function openDocumentViewer(document: DocumentaryReview) {
+  selectedDocument.value = document
+  isViewerOpen.value = true
 }
 </script>
