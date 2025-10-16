@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { entities, Role, EntityType, EntityMode } from '~~/server/database/schema'
+import { entities } from '~~/server/database/schema'
 
 interface UpdateEntityBody {
   name?: string

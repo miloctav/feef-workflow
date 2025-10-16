@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { oes, Role } from '~~/server/database/schema'
+import { oes } from '~~/server/database/schema'
 
 interface UpdateOEBody {
   name?: string

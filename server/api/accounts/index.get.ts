@@ -1,6 +1,6 @@
 import { and } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { accounts as accountsTable, Role } from '~~/server/database/schema'
+import { accounts as accountsTable } from '~~/server/database/schema'
 import {
   parsePaginationParams,
   buildWhereConditions,

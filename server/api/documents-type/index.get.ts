@@ -1,6 +1,6 @@
 import { and } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { documentsType, Role } from '~~/server/database/schema'
+import { documentsType } from '~~/server/database/schema'
 import {
   parsePaginationParams,
   buildWhereConditions,

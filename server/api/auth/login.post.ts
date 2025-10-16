@@ -1,6 +1,5 @@
 import bcrypt from 'bcrypt'
 import { db } from '~~/server/database'
-import { Role } from '~~/server/database/schema'
 import { SessionUser } from '~~/server/types/session'
 
 export default defineEventHandler(async (event) => {

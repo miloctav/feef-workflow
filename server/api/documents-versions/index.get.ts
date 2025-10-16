@@ -1,7 +1,6 @@
 import { db } from '~~/server/database'
 import { documentaryReviews, documentVersions, accountsToEntities } from '~~/server/database/schema'
 import { eq, and, isNull, desc } from 'drizzle-orm'
-import { Role } from '~~/shared/types'
 
 export default defineEventHandler(async (event) => {
   // Authentification

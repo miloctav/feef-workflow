@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { documentsType, Role } from '~~/server/database/schema'
+import { documentsType } from '~~/server/database/schema'
 
 interface UpdateDocumentTypeBody {
   title?: string

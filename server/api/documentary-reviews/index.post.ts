@@ -1,7 +1,6 @@
 import { db } from '~~/server/database'
 import { documentaryReviews, documentsType, entities } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { Role } from '~~/shared/types'
 
 export default defineEventHandler(async (event) => {
   // Authentification et vérification du rôle FEEF

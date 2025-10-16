@@ -25,9 +25,6 @@ export const documentCategoryEnum = pgEnum('document_category', ['LEGAL', 'FINAN
 // Import enum values and types from shared
 // ========================================
 
-export { Role, OERole, EntityRole, EntityType, EntityMode, AuditType } from '../../shared/types'
-export type { RoleType, OERoleType, EntityRoleType, EntityTypeType, EntityModeType, AuditTypeType } from '../../shared/types'
-
 export const oes = pgTable('oes', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),

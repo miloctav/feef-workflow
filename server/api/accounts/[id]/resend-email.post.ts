@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { accounts, Role } from '~~/server/database/schema'
+import { accounts } from '~~/server/database/schema'
 import { db } from '~~/server/database'
 import { generatePasswordResetToken } from '~~/server/utils/jwt'
 import { sendAccountCreationEmail } from '~~/server/services/mail'
