@@ -1,5 +1,6 @@
 import { db } from "~~/server/database"
 import { documentsType } from "~~/server/database/schema"
+import { forInsert } from "~~/server/utils/tracking"
 
 interface CreateDocumentTypeBody {
   title: string
@@ -54,12 +55,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const [newDocumentType] = await db.insert(documentsType).values({
+  const [newDocumentType] = await db.insert(documentsType).values(forInsert(event, {
     title,
     description: description || null,
     category,
     autoAsk: autoAsk ?? false,
-  }).returning()
+  })).returning()
 
   return {
     data: newDocumentType

@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await softDelete(accounts, eq(accounts.id, parseInt(accountId || '0')))
+  await softDelete(event, accounts, eq(accounts.id, parseInt(accountId || '0')))
 
   return {
     success: true

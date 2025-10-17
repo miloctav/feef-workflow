@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm"
 import { db } from "~~/server/database"
 import { entities } from "~~/server/database/schema"
+import { forInsert } from "~~/server/utils/tracking"
 
 interface CreateEntityBody {
   name: string
@@ -111,7 +112,7 @@ export default defineEventHandler(async (event) => {
   if (oeId !== undefined) insertData.oeId = oeId
   if (accountManagerId !== undefined) insertData.accountManagerId = accountManagerId
 
-  const [newEntity] = await db.insert(entities).values(insertData).returning()
+  const [newEntity] = await db.insert(entities).values(forInsert(event, insertData)).returning()
 
   return {
     data: newEntity

@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await softDelete(documentsType, eq(documentsType.id, parseInt(documentTypeId || '0')))
+  await softDelete(event, documentsType, eq(documentsType.id, parseInt(documentTypeId || '0')))
 
   return {
     success: true

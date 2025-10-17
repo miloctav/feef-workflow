@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await softDelete(oes, eq(oes.id, parseInt(oeId || '0')))
+  await softDelete(event, oes, eq(oes.id, parseInt(oeId || '0')))
 
   return {
     success: true

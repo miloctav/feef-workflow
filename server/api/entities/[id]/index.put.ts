@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { entities } from '~~/server/database/schema'
+import { forUpdate } from '~~/server/utils/tracking'
 
 interface UpdateEntityBody {
   name?: string
@@ -177,7 +178,7 @@ export default defineEventHandler(async (event) => {
   // Mettre à jour l'entité
   const [updatedEntity] = await db
     .update(entities)
-    .set(updateData)
+    .set(forUpdate(event, updateData))
     .where(eq(entities.id, entityIdInt))
     .returning()
 

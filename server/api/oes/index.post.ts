@@ -1,5 +1,6 @@
 import { db } from "~~/server/database"
 import { oes } from "~~/server/database/schema"
+import { forInsert } from "~~/server/utils/tracking"
 
 interface CreateOEBody {
   name: string
@@ -28,7 +29,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const [newOE] = await db.insert(oes).values({ name }).returning()
+  const [newOE] = await db.insert(oes).values(forInsert(event, { name })).returning()
 
   return {
     data: newOE

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { documentsType } from '~~/server/database/schema'
+import { forUpdate } from '~~/server/utils/tracking'
 
 interface UpdateDocumentTypeBody {
   title?: string
@@ -97,7 +98,7 @@ export default defineEventHandler(async (event) => {
   // Mettre à jour le document type
   const [updatedDocumentType] = await db
     .update(documentsType)
-    .set(updateData)
+    .set(forUpdate(event, updateData))
     .where(eq(documentsType.id, documentTypeIdInt))
     .returning({
       id: documentsType.id,

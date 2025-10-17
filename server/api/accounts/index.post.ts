@@ -3,6 +3,7 @@ import { accounts, accountsToEntities, NewAccount } from '~~/server/database/sch
 import { db } from '~~/server/database'
 import { generatePasswordResetUrlAndToken } from '~~/server/utils/password-reset'
 import { sendAccountCreationEmail } from '~~/server/services/mail'
+import { forInsert } from '~~/server/utils/tracking'
 
 interface CreateAccountBody {
   firstname: string
@@ -106,7 +107,7 @@ export default defineEventHandler(async (event) => {
   // Créer le compte
   const [newAccount] = await db
     .insert(accounts)
-    .values(newAccountData)
+    .values(forInsert(event, newAccountData))
     .returning({
       id: accounts.id,
       firstname: accounts.firstname,

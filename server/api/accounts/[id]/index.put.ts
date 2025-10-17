@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { accounts } from '~~/server/database/schema'
+import { forUpdate } from '~~/server/utils/tracking'
 
 interface UpdateAccountBody {
   firstname?: string
@@ -93,7 +94,7 @@ export default defineEventHandler(async (event) => {
   // Mettre à jour le compte
   const [updatedAccount] = await db
     .update(accounts)
-    .set(updateData)
+    .set(forUpdate(event, updateData))
     .where(eq(accounts.id, accountIdInt))
     .returning({
       id: accounts.id,

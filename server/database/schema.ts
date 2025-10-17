@@ -28,7 +28,10 @@ export const documentCategoryEnum = pgEnum('document_category', ['LEGAL', 'FINAN
 export const oes = pgTable('oes', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
+  createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedBy: integer('updated_by').references(() => accounts.id),
+  updatedAt: timestamp('updated_at'),
   deletedAt: timestamp('deleted_at'),
 })
 
@@ -42,7 +45,10 @@ export const entities = pgTable('entities', {
   parentGroupId: integer('parent_group_id').references((): AnyPgColumn => entities.id),
   oeId: integer('oe_id').references(() => oes.id),
   accountManagerId: integer('account_manager_id').references(() => accounts.id),
+  createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedBy: integer('updated_by').references(() => accounts.id),
+  updatedAt: timestamp('updated_at'),
   deletedAt: timestamp('deleted_at'),
 })
 
@@ -56,7 +62,10 @@ export const audits = pgTable('audits', {
   actualDate: date('actual_date'),
   score: integer('score'),
   labelingOpinion: json('labeling_opinion'),
+  createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedBy: integer('updated_by').references(() => accounts.id),
+  updatedAt: timestamp('updated_at'),
   deletedAt: timestamp('deleted_at'),
 })
 
@@ -71,7 +80,10 @@ export const accounts = pgTable('accounts', {
   oeRole: oeRoleEnum('oe_role'),
   passwordChangedAt: timestamp('password_changed_at'),
   isActive: boolean('is_active').notNull().default(false),
+  createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedBy: integer('updated_by').references(() => accounts.id),
+  updatedAt: timestamp('updated_at'),
   deletedAt: timestamp('deleted_at'),
 })
 
@@ -81,7 +93,10 @@ export const documentsType = pgTable('documents_type', {
   description: varchar('description', { length: 1024 }),
   category: documentCategoryEnum('category').notNull(),
   autoAsk: boolean('auto_ask').notNull().default(false),
+  createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedBy: integer('updated_by').references(() => accounts.id),
+  updatedAt: timestamp('updated_at'),
   deletedAt: timestamp('deleted_at'),
 })
 
@@ -94,6 +109,7 @@ export const documentaryReviews = pgTable('documentary_reviews', {
   category: documentCategoryEnum('category').notNull(),
   createdBy: integer('created_by').notNull().references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedBy: integer('updated_by').references(() => accounts.id),
   updatedAt: timestamp('updated_at'),
   deletedAt: timestamp('deleted_at'),
 })
@@ -105,6 +121,8 @@ export const documentVersions = pgTable('document_versions', {
   minioKey: varchar('minio_key', { length: 512 }),
   mimeType: varchar('mime_type', { length: 255 }),
   uploadBy: integer('upload_by').notNull().references(() => accounts.id),
+  updatedBy: integer('updated_by').references(() => accounts.id),
+  updatedAt: timestamp('updated_at'),
 })
 
 // Junction table for many-to-many relationship between accounts and entities

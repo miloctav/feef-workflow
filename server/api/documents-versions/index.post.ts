@@ -103,12 +103,12 @@ export default defineEventHandler(async (event) => {
   const mimeType = getMimeTypeFromFilename(fileData.filename)
 
   // Créer la nouvelle version (sans minioKey pour l'instant)
-  const [newVersion] = await db.insert(documentVersions).values({
+  const [newVersion] = await db.insert(documentVersions).values(forInsert(event, {
     documentaryReviewId,
     uploadBy: user.id,
     minioKey: null,
     mimeType,
-  }).returning()
+  })).returning()
 
   // Uploader le fichier vers MinIO
   let uploadedMinioKey: string | null = null

@@ -1,6 +1,7 @@
 import { db } from '~~/server/database'
 import { documentaryReviews, documentsType, entities } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
+import { forInsert } from '~~/server/utils/tracking'
 
 export default defineEventHandler(async (event) => {
   // Authentification et vérification du rôle FEEF
@@ -103,17 +104,13 @@ export default defineEventHandler(async (event) => {
   }
 
   // Créer le documentary review
-  const now = new Date()
-  const [documentaryReview] = await db.insert(documentaryReviews).values({
+  const [documentaryReview] = await db.insert(documentaryReviews).values(forInsert(event, {
     entityId: body.entityId,
     documentTypeId: body.documentTypeId || null,
     title: documentData.title,
     description: documentData.description,
     category: documentData.category,
-    createdBy: user.id,
-    createdAt: now,
-    updatedAt: now,
-  }).returning()
+  })).returning()
 
   return {
     data: documentaryReview,

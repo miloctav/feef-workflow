@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { oes } from '~~/server/database/schema'
+import { forUpdate } from '~~/server/utils/tracking'
 
 interface UpdateOEBody {
   name?: string
@@ -73,7 +74,7 @@ export default defineEventHandler(async (event) => {
   // Mettre à jour l'OE
   const [updatedOe] = await db
     .update(oes)
-    .set(updateData)
+    .set(forUpdate(event, updateData))
     .where(eq(oes.id, oeIdInt))
     .returning({
       id: oes.id,

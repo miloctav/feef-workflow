@@ -1,6 +1,7 @@
 import { db } from '~~/server/database'
 import { documentaryReviews, entities, accountsToEntities } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
+import { forUpdate } from '~~/server/utils/tracking'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -97,10 +98,7 @@ export default defineEventHandler(async (event) => {
     title?: string
     description?: string | null
     category?: 'LEGAL' | 'FINANCIAL' | 'TECHNICAL' | 'OTHER'
-    updatedAt: Date
-  } = {
-    updatedAt: new Date(),
-  }
+  } = {}
 
   // Validation et ajout du title si fourni
   if (body.title !== undefined) {
@@ -130,8 +128,8 @@ export default defineEventHandler(async (event) => {
     updateData.category = body.category
   }
 
-  // Vérifier qu'il y a au moins un champ à mettre à jour (en plus de updatedAt)
-  if (Object.keys(updateData).length === 1) {
+  // Vérifier qu'il y a au moins un champ à mettre à jour
+  if (Object.keys(updateData).length === 0) {
     throw createError({
       statusCode: 400,
       message: 'Aucun champ à mettre à jour',
@@ -141,7 +139,7 @@ export default defineEventHandler(async (event) => {
   // Mettre à jour le documentary review
   const [updatedReview] = await db
     .update(documentaryReviews)
-    .set(updateData)
+    .set(forUpdate(event, updateData))
     .where(eq(documentaryReviews.id, documentId))
     .returning()
 

@@ -1,6 +1,7 @@
 import { db } from '~~/server/database'
 import { documentaryReviews, entities, accountsToEntities } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
+import { forDelete } from '~~/server/utils/tracking'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -80,10 +81,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Soft delete : mettre à jour le champ deletedAt
+  // Soft delete : mettre à jour le champ deletedAt avec tracking
   const [deletedReview] = await db
     .update(documentaryReviews)
-    .set({ deletedAt: new Date() })
+    .set(forDelete(event))
     .where(eq(documentaryReviews.id, documentId))
     .returning()
 
