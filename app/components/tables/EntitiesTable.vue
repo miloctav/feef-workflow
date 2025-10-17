@@ -8,14 +8,14 @@
       </div>
       <div class="space-y-4">
         <div
-          :class="role === 'feef' ? 'grid grid-cols-1 md:grid-cols-4 gap-4' : 'grid grid-cols-1 md:grid-cols-3 gap-4'">
+          :class="user?.role === Role.FEEF ? 'grid grid-cols-1 md:grid-cols-4 gap-4' : 'grid grid-cols-1 md:grid-cols-3 gap-4'">
           <FilterSelect label="Type d'entité" v-model="filters.type" :items="entityTypeItems"
             placeholder="Type d'entité" @update:model-value="handleFilterChange" />
           <FilterSelect label="Mode de labellisation" v-model="filters.mode" :items="entityModeItems" placeholder="Mode"
             @update:model-value="handleFilterChange" />
-          <FilterSelect v-if="role === 'feef'" label="Organisme Évaluateur" v-model="filters.oeId" :items="oeItems"
+          <FilterSelect v-if="user?.role === Role.FEEF" label="Organisme Évaluateur" v-model="filters.oeId" :items="oeItems"
             placeholder="OE" @update:model-value="handleFilterChange" />
-          <FilterSelect v-if="role === 'feef'" label="Chargé de compte" v-model="filters.accountManagerId"
+          <FilterSelect v-if="user?.role === Role.FEEF" label="Chargé de compte" v-model="filters.accountManagerId"
             :items="accountManagerItems" placeholder="Chargé de compte" @update:model-value="handleFilterChange" />
         </div>
         <div class="flex items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
@@ -42,10 +42,10 @@
     <!-- Table paginée -->
     <PaginatedTable :data="entities" :pagination="pagination" :loading="fetchLoading" :error="fetchError"
       :columns="columns" :on-page-change="goToPage" :on-search="setSearch"
-      :add-button-text="role === 'feef' ? 'Créer une nouvelle entité' : undefined"
+      :add-button-text="user?.role === Role.FEEF ? 'Créer une nouvelle entité' : undefined"
       search-placeholder="Rechercher par nom, SIREN, SIRET..." :on-row-click="handleRowClick"
-      :on-delete="role === 'feef' ? handleDelete : undefined" :get-item-name="(entity) => entity.name">
-      <template v-if="role === 'feef'" #create-form>
+      :on-delete="user?.role === Role.FEEF ? handleDelete : undefined" :get-item-name="(entity) => entity.name">
+      <template v-if="user?.role === Role.FEEF" #create-form>
         <UForm ref="form" :schema="schema" :state="state" class="space-y-4">
           <UFormField label="Nom de l'entité" name="name" required>
             <UInput v-model="state.name" placeholder="Ex: Entreprise ABC" icon="i-lucide-building" />
@@ -69,7 +69,7 @@
         </UForm>
       </template>
 
-      <template v-if="role === 'feef'" #create-footer="{ close }">
+      <template v-if="user?.role === Role.FEEF" #create-footer="{ close }">
         <UButton label="Annuler" color="neutral" variant="outline" @click="close" />
         <UButton label="Créer" color="primary" :loading="createLoading" @click="handleCreate(close)" />
       </template>
@@ -92,13 +92,7 @@ import {
 } from '#shared/types/enums'
 import { z } from 'zod'
 
-interface Props {
-  role?: 'oe' | 'feef' | 'company'
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  role: 'feef'
-})
+const { user } = useAuth()
 
 // Composable pour gérer les entités
 const {
@@ -163,7 +157,7 @@ onMounted(() => {
   // Charger la liste des entités
   fetchEntities()
 
-  if (props.role === 'feef') {
+  if (user.value?.role === Role.FEEF) {
     loadOEs()
     loadAccountManagers()
   }
@@ -351,7 +345,7 @@ const columns: TableColumn<EntityWithRelations>[] = [
 
 // Navigation vers le détail d'une entité au clic sur une ligne
 const handleRowClick = (entity: EntityWithRelations) => {
-  navigateTo(`/${props.role}/entities/${entity.id}`)
+  navigateTo(`/${user.value?.role.toLowerCase()}/entities/${entity.id}`)
 }
 
 // Supprimer une entité

@@ -40,7 +40,7 @@
 
           <template #trailing>
             <AddDocumentaryReviewModal
-              v-if="props.role === 'feef' && currentEntity"
+              v-if="user?.role === Role.FEEF && currentEntity"
               :entity-id="currentEntity.id"
             />
           </template>
@@ -99,7 +99,7 @@
                         </div>
 
                         <!-- Actions -->
-                        <div v-if="props.role === 'feef'" class="flex-shrink-0 flex gap-2">
+                        <div v-if="user?.role === Role.FEEF" class="flex-shrink-0 flex gap-2">
                           <UButton
                             color="error"
                             size="sm"
@@ -134,15 +134,8 @@
 import type { DocumentaryReview, DocumentCategoryType } from '~~/app/types/documentaryReviews'
 import { DocumentCategoryLabels, DocumentCategoryIcons, DocumentCategoryColors } from '~~/app/types/documentaryReviews'
 import AddDocumentaryReviewModal from '~/components/modals/AddDocumentaryReviewModal.vue'
-import { en } from '@nuxt/ui/runtime/locale/index.js';
 
-interface Props {
-  role?: 'feef' | 'oe' | 'company'
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  role: 'feef'
-})
+const { user } = useAuth()
 
 // Récupérer l'entité courante depuis le composable
 const { currentEntity } = useEntities()

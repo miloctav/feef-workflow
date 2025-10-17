@@ -34,7 +34,7 @@ onMounted(async () => {
       <div v-else-if="fetchError" class="flex items-center justify-center p-8">
         <p class="text-error">{{ fetchError }}</p>
       </div>
-      <EntityPage v-else-if="currentEntity" role="feef" />
+      <EntityPage v-else-if="currentEntity"/>
     </template>
   </UDashboardPanel>
 </template>

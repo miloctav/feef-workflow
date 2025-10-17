@@ -12,7 +12,7 @@ definePageMeta({
     <template #header>
       <NavBar />
     </template> <template #body>
-      <EntitiesTable role="feef" />
+      <EntitiesTable />
     </template>
   </UDashboardPanel>
 </template>

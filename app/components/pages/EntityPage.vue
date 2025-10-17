@@ -26,7 +26,7 @@
         <!-- Tab Espace documentaire -->
         <template #espacedoc>
           <div class="py-6">
-            <DocumentaryReviewTab :role="role" />
+            <DocumentaryReviewTab/>
           </div>
         </template>
 
@@ -104,13 +104,7 @@
 <script setup lang="ts">
 import DocumentaryReviewTab from '~/components/tabs/DocumentaryReviewTab.vue'
 
-interface Props {
-  role?: 'feef' | 'oe' | 'company'
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  role: 'feef'
-})
+const { user } = useAuth()
 
 // Récupérer l'entité courante depuis le composable
 const { currentEntity } = useEntities()
@@ -134,7 +128,7 @@ const tabs = computed(() => {
   ]
 
   // Ajouter l'onglet Comptes uniquement pour le rôle FEEF
-  if (props.role === 'feef') {
+  if (user.value?.role === Role.FEEF) {
     baseTabs.push({
       slot: 'comptes',
       value: "comptes",

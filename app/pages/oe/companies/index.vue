@@ -14,7 +14,7 @@ definePageMeta({
     <template #header>
       <NavBar />
     </template> <template #body>
-      <EntitiesTable role="oe" />
+      <EntitiesTable/>
     </template>
   </UDashboardPanel>
 </template>
