@@ -17,67 +17,36 @@ import {
  * Query params:
  * - page: numéro de page (défaut: 1)
  * - limit: items par page (défaut: 25, max: 100)
- * - search: recherche globale sur entity.name, oe.name, auditor.firstname, auditor.lastname
- * - sort: tri (ex: createdAt:desc, plannedDate:asc, entity.name:asc, oe.name:asc, auditor.lastname:asc)
+ * - sort: tri (ex: createdAt:desc, plannedDate:asc, actualDate:desc)
  *
- * Filtres locaux:
+ * Filtres:
  * - type: filtre par type d'audit (INITIAL, RENEWAL, MONITORING) - support multiple
  * - entityId: filtre par entité
  * - oeId: filtre par OE
  * - auditorId: filtre par auditeur
  *
- * Filtres relationnels (avec alias courts):
- * - entityType: filtre par type d'entité (COMPANY, GROUP)
- * - entity.type: filtre par type d'entité (syntaxe dot notation)
- * - entityName: recherche dans le nom de l'entité
- * - entity.name: recherche dans le nom de l'entité (syntaxe dot notation)
- * - oeName: recherche dans le nom de l'OE
- * - oe.name: recherche dans le nom de l'OE (syntaxe dot notation)
+ * Note: La recherche globale n'est pas supportée car Drizzle ne permet pas de rechercher
+ * sur les champs relationnels avec db.query.*. Utilisez les filtres à la place.
  *
  * Exemples:
  * - GET /api/audits?page=1&limit=50
- * - GET /api/audits?search=entreprise&type=INITIAL
- * - GET /api/audits?sort=plannedDate:asc&entityType=COMPANY
- * - GET /api/audits?type=INITIAL,RENEWAL&oeId=1
- * - GET /api/audits?sort=entity.name:asc&entityType=COMPANY
- * - GET /api/audits?oeName=Bureau&sort=auditor.lastname:asc
- * - GET /api/audits?entityName=ABC&type=INITIAL
+ * - GET /api/audits?type=INITIAL&oeId=1
+ * - GET /api/audits?sort=plannedDate:asc&type=INITIAL
+ * - GET /api/audits?type=INITIAL,RENEWAL&auditorId=5
  */
 export default defineEventHandler(async (event) => {
   // Authentification requise
   const { user } = await requireUserSession(event)
 
   // Configuration de la pagination
+  // Note: searchFields n'est pas défini car Drizzle ne supporte pas la recherche sur les champs relationnels
   const config = {
     table: auditsTable,
-    searchFields: [
-      'entity.name',
-      'oe.name',
-      'auditor.firstname',
-      'auditor.lastname',
-    ],
     allowedFilters: {
       local: ['type', 'entityId', 'oeId', 'auditorId'],
-      relations: {
-        // Alias courts (plus lisibles dans l'URL)
-        'entityType': 'entity.type',
-        'entityName': 'entity.name',
-        'oeName': 'oe.name',
-        // Dot notation directe (syntaxe alternative)
-        'entity.type': 'entity.type',
-        'entity.name': 'entity.name',
-        'oe.name': 'oe.name',
-      },
     },
     allowedSorts: {
       local: ['createdAt', 'plannedDate', 'actualDate', 'score', 'type'],
-      relations: [
-        'entity.name',
-        'entity.type',
-        'oe.name',
-        'auditor.lastname',
-        'auditor.firstname',
-      ],
     },
     defaultSort: 'createdAt:desc',
   }

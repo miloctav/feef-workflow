@@ -61,7 +61,7 @@
 const items = [
   { label: 'Dashboard', icon: 'i-lucide-home', to: '/feef' },
   { label: 'Entités', icon: 'i-lucide-users', to: '/feef/entities' },
-  { label: 'Audits', icon: 'i-lucide-folder', to: '/feef/labeling-cases' },
+  { label: 'Audits', icon: 'i-lucide-folder', to: '/feef/audits' },
   { label: 'Organismes Évaluateurs', icon: 'i-lucide-shield-check', to: '/feef/oe' },
   {
     label: 'Paramètres',

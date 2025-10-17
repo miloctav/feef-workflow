@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import AuditsTable from '~/components/tables/AuditsTable.vue';
+
+
 
 
 definePageMeta({
@@ -14,7 +17,7 @@ definePageMeta({
       <NavBar />
     </template>
     <template #body>
-      <LabelingCasesTable />
+      <AuditsTable />
     </template>
   </UDashboardPanel>
 </template>

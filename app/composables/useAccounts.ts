@@ -226,6 +226,44 @@ export const useAccounts = () => {
   }
 
   /**
+   * Récupérer les auditeurs pour les filtres et sélecteurs
+   */
+  const fetchAuditors = async (options: { includeAll?: boolean } = {}) => {
+    const { includeAll = true } = options
+
+    try {
+      const response = await $fetch<{ data: Array<{ id: number; firstname: string; lastname: string }> }>(
+        '/api/accounts?role=AUDITOR&limit=-1'
+      )
+
+      const auditorsList = response.data.map(auditor => ({
+        label: `${auditor.firstname} ${auditor.lastname}`,
+        value: auditor.id
+      }))
+
+      // Si includeAll est true, ajouter l'option "Tous les auditeurs" au début
+      if (includeAll) {
+        return [
+          { label: 'Tous les auditeurs', value: null },
+          ...auditorsList
+        ]
+      }
+
+      return auditorsList
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération des auditeurs'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return includeAll ? [{ label: 'Tous les auditeurs', value: null }] : []
+    }
+  }
+
+  /**
    * Réinitialiser le state
    */
   const reset = () => {
@@ -265,6 +303,7 @@ export const useAccounts = () => {
     // Actions CRUD
     fetchAccounts,
     fetchAccount,
+    fetchAuditors,
     createAccount,
     updateAccount,
     deleteAccount,

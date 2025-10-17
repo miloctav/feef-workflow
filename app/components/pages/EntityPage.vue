@@ -26,7 +26,7 @@
         <!-- Tab Espace documentaire -->
         <template #espacedoc>
           <div class="py-6">
-            <DocumentaryReviewTab/>
+            <DocumentaryReviewTab />
           </div>
         </template>
 
@@ -51,12 +51,12 @@
                 </div>
               </template>
 
-              <div class="text-gray-600 text-center py-8">
-                <UIcon name="i-lucide-users" class="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                <p>Tableau de gestion des comptes à venir</p>
-              </div>
-            </UCard>
-          </div> -->
+<div class="text-gray-600 text-center py-8">
+  <UIcon name="i-lucide-users" class="w-16 h-16 mx-auto mb-4 text-gray-300" />
+  <p>Tableau de gestion des comptes à venir</p>
+</div>
+</UCard>
+</div> -->
         </template>
 
         <!-- Tab Contrats -->
@@ -72,29 +72,9 @@
 
         <!-- Tab Audits -->
         <template #audits>
-          <!-- <div class="py-6">
-            <UCard>
-              <template #header>
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <UIcon name="i-lucide-clipboard-list" class="w-6 h-6 text-primary" />
-                    <h2 class="font-bold text-xl text-gray-900">Audit</h2>
-                  </div>
-                  <UButton
-                    v-if="role === 'feef'"
-                    icon="i-lucide-plus"
-                    size="sm"
-                    color="primary"
-                    @click="addLabelingCase"
-                  >
-                    Nouvel Audit
-                  </UButton>
-                </div>
-              </template>
-
-              <LabelingCasesTable :company-id="entity.id" :role="role" :with-filters="false"/>
-            </UCard>
-          </div> -->
+          <div class="py-6">
+            <AuditsTable v-if="currentEntity" :has-filters="false" :entity-id="currentEntity.id" />
+          </div>
         </template>
       </UTabs>
     </div>
@@ -103,6 +83,7 @@
 
 <script setup lang="ts">
 import DocumentaryReviewTab from '~/components/tabs/DocumentaryReviewTab.vue'
+import AuditsTable from '../tables/AuditsTable.vue'
 
 const { user } = useAuth()
 

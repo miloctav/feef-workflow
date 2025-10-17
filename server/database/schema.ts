@@ -55,8 +55,8 @@ export const entities = pgTable('entities', {
 export const audits = pgTable('audits', {
   id: serial('id').primaryKey(),
   entityId: integer('entity_id').notNull().references(() => entities.id),
-  oeId: integer('oe_id').notNull().references(() => oes.id),
-  auditorId: integer('auditor_id').notNull().references(() => accounts.id),
+  oeId: integer('oe_id').references(() => oes.id),
+  auditorId: integer('auditor_id').references(() => accounts.id),
   type: auditTypeEnum('type').notNull(),
   plannedDate: date('planned_date'),
   actualDate: date('actual_date'),

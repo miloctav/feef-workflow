@@ -17,7 +17,7 @@
         </div>
 
         <!-- Modal de création -->
-        <UModal :title="addButtonText" :ui="{ footer: 'justify-end' }">
+        <UModal v-if="hasAddButton" :title="addButtonText" :ui="{ footer: 'justify-end' }">
           <UButton color="primary" :icon="addButtonIcon" size="sm">
             {{ addButtonText }}
           </UButton>
@@ -119,6 +119,7 @@ const props = withDefaults(defineProps<{
   loading?: boolean
   error?: string | null
   columns: TableColumn<T>[]
+  hasAddButton?: boolean
   addButtonText?: string
   addButtonIcon?: string
   searchPlaceholder?: string
@@ -133,6 +134,7 @@ const props = withDefaults(defineProps<{
   addButtonText: 'Ajouter',
   addButtonIcon: 'i-lucide-plus',
   searchPlaceholder: 'Rechercher...',
+  hasAddButton: true,
   getItemName: (item: T) => String(item.name || item.id || 'cet élément')
 })
 

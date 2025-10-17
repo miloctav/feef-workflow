@@ -16,7 +16,7 @@ import {
  *
  * Query params:
  * - page: numéro de page (défaut: 1)
- * - limit: items par page (défaut: 25, max: 100)
+ * - limit: items par page (défaut: 25, max: 100, -1 = tous)
  * - search: recherche globale sur firstname, lastname, email
  * - sort: tri (ex: createdAt:desc, firstname:asc, oe.name:asc)
  * - role: filtre par rôle (ex: OE, AUDITOR, ENTITY) - support multiple: role=OE,AUDITOR
@@ -29,6 +29,7 @@ import {
  * - GET /api/accounts?sort=firstname:asc&isActive=true
  * - GET /api/accounts?oeId=1,2&role=AUDITOR
  * - GET /api/accounts?sort=oe.name:asc
+ * - GET /api/accounts?role=AUDITOR&limit=-1 (tous les auditeurs, sans pagination)
  */
 export default defineEventHandler(async (event) => {
   // Vérifier que l'utilisateur connecté est FEEF
@@ -40,6 +41,10 @@ export default defineEventHandler(async (event) => {
       message: 'Seul un administrateur FEEF peut accéder à la liste des comptes',
     })
   }
+
+  // Vérifier si limit=-1 (mode "tous les résultats")
+  const query = getQuery(event)
+  const isUnlimited = query.limit === '-1'
 
   // Configuration de la pagination
   const config = {
@@ -64,6 +69,23 @@ export default defineEventHandler(async (event) => {
   // 3. Construire la clause ORDER BY
   const orderByClause = buildOrderBy(params.sort, config)
 
+  // Cas spécial : limit=-1 (tous les résultats)
+  if (isUnlimited) {
+    const data = await db.query.accounts.findMany({
+      where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
+      columns: {
+        id: true,
+        firstname: true,
+        lastname: true,
+        password: false,
+      },
+      ...(orderByClause && { orderBy: orderByClause }),
+    })
+
+    return { data }
+  }
+
+  // Cas normal : pagination
   // 4. Exécuter la requête avec les relations
   const data = await db.query.accounts.findMany({
     where: whereConditions.length > 0 ? and(...whereConditions) : undefined,

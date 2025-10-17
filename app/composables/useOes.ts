@@ -226,6 +226,44 @@ export const useOes = () => {
   }
 
   /**
+   * Récupérer les OEs pour les filtres et sélecteurs
+   */
+  const fetchOesForSelect = async (options: { includeAll?: boolean } = {}) => {
+    const { includeAll = true } = options
+
+    try {
+      const response = await $fetch<{ data: Array<{ id: number; name: string }> }>(
+        '/api/oes?limit=-1'
+      )
+
+      const oesList = response.data.map(oe => ({
+        label: oe.name,
+        value: oe.id
+      }))
+
+      // Si includeAll est true, ajouter l'option "Tous les OE" au début
+      if (includeAll) {
+        return [
+          { label: 'Tous les OE', value: null },
+          ...oesList
+        ]
+      }
+
+      return oesList
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération des organismes évaluateurs'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return includeAll ? [{ label: 'Tous les OE', value: null }] : []
+    }
+  }
+
+  /**
    * Réinitialiser le state
    */
   const reset = () => {
@@ -265,6 +303,7 @@ export const useOes = () => {
     // Actions CRUD
     fetchOes,
     fetchOE,
+    fetchOesForSelect,
     createOE,
     updateOE,
     deleteOE,

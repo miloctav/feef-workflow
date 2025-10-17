@@ -16,7 +16,7 @@ import {
  *
  * Query params:
  * - page: numéro de page (défaut: 1)
- * - limit: items par page (défaut: 25, max: 100)
+ * - limit: items par page (défaut: 25, max: 100, -1 = tous)
  * - search: recherche globale sur name
  * - sort: tri (ex: createdAt:desc, name:asc)
  *
@@ -24,10 +24,15 @@ import {
  * - GET /api/oes?page=1&limit=50
  * - GET /api/oes?search=bureau&sort=name:asc
  * - GET /api/oes?sort=createdAt:desc
+ * - GET /api/oes?limit=-1 (tous les OEs, sans pagination)
  */
 export default defineEventHandler(async (event) => {
   // Authentification requise
   const { user } = await requireUserSession(event)
+
+  // Vérifier si limit=-1 (mode "tous les résultats")
+  const query = getQuery(event)
+  const isUnlimited = query.limit === '-1'
 
   // Configuration de la pagination
   const config = {
@@ -48,6 +53,21 @@ export default defineEventHandler(async (event) => {
   // 3. Construire la clause ORDER BY
   const orderByClause = buildOrderBy(params.sort, config)
 
+  // Cas spécial : limit=-1 (tous les résultats)
+  if (isUnlimited) {
+    const data = await db.query.oes.findMany({
+      where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
+      columns: {
+        id: true,
+        name: true,
+      },
+      ...(orderByClause && { orderBy: orderByClause }),
+    })
+
+    return { data }
+  }
+
+  // Cas normal : pagination
   // 4. Exécuter la requête avec les colonnes sélectionnées
   const data = await db.query.oes.findMany({
     where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
