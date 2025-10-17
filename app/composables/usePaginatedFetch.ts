@@ -37,7 +37,7 @@ export function usePaginatedFetch<T>(
     key = url,
     defaultLimit = 25,
     initialParams = {},
-    immediate = true,
+    immediate = false, // Désactivé par défaut pour éviter les fetch inutiles et race conditions
     watch: enableWatch = true,
   } = options
 

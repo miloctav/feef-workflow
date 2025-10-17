@@ -102,7 +102,8 @@ export const documentVersions = pgTable('document_versions', {
   id: serial('id').primaryKey(),
   documentaryReviewId: integer('documentary_review_id').notNull().references(() => documentaryReviews.id),
   uploadAt: timestamp('upload_at').notNull().defaultNow(),
-  key: varchar('key', { length: 512 }),
+  minioKey: varchar('minio_key', { length: 512 }),
+  mimeType: varchar('mime_type', { length: 255 }),
   uploadBy: integer('upload_by').notNull().references(() => accounts.id),
 })
 

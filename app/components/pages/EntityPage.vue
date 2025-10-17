@@ -102,12 +102,6 @@
 </template>
 
 <script setup lang="ts">
-import CompanyDetail from '~/components/CompanyDetail.vue'
-import DocumentsList from '~/components/tabs/DocumentaryReviewTab.vue'
-import LabelingCasesTable from '~/components/LabelingCasesTable.vue'
-import FeefContractsList from '~/components/FeefContractsList.vue'
-import OeContractsList from '~/components/OeContractsList.vue'
-import { ro } from '@nuxt/ui/runtime/locale/index.js'
 import DocumentaryReviewTab from '~/components/tabs/DocumentaryReviewTab.vue'
 
 interface Props {

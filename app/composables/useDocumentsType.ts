@@ -27,7 +27,6 @@ export const useDocumentsType = () => {
   } = usePaginatedFetch<DocumentTypeWithRelations>('/api/documents-type', {
     key: 'documents-type',
     defaultLimit: 25,
-    immediate: true,
   })
 
   // State pour un document type individuel

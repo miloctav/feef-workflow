@@ -10,7 +10,8 @@ export interface DocumentVersion {
   id: number
   documentaryReviewId: number
   uploadAt: string
-  key: string | null
+  minioKey: string | null
+  mimeType: string | null
   uploadBy: number
   uploadByAccount: UploadByAccount
 }

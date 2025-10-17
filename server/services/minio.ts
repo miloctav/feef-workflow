@@ -5,8 +5,8 @@ const config = {
   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
   port: parseInt(process.env.MINIO_PORT || '9000'),
   useSSL: process.env.MINIO_USE_SSL === 'true',
-  accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
-  secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+  accessKey: process.env.MINIO_ROOT_USER || 'minioadmin',
+  secretKey: process.env.MINIO_ROOT_PASSWORD || 'minioadmin',
 }
 
 const bucketName = process.env.MINIO_BUCKET || 'feef-storage'
@@ -49,6 +49,7 @@ export async function initializeBucket(): Promise<void> {
  * Uploader un fichier vers MinIO
  * @param buffer - Buffer du fichier
  * @param filename - Nom du fichier original
+ * @param mimeType - Type MIME du fichier
  * @param entityId - ID de l'entité
  * @param documentaryReviewId - ID du documentary review
  * @param versionId - ID de la version
@@ -57,6 +58,7 @@ export async function initializeBucket(): Promise<void> {
 export async function uploadFile(
   buffer: Buffer,
   filename: string,
+  mimeType: string,
   entityId: number,
   documentaryReviewId: number,
   versionId: number
@@ -67,8 +69,10 @@ export async function uploadFile(
   const key = `documents/${entityId}/${documentaryReviewId}/${versionId}-${filename}`
 
   try {
-    await client.putObject(bucketName, key, buffer, buffer.length)
-    console.log(`✅ Fichier uploadé: ${key}`)
+    await client.putObject(bucketName, key, buffer, buffer.length, {
+      'Content-Type': mimeType,
+    })
+    console.log(`✅ Fichier uploadé: ${key} (${mimeType})`)
     return key
   } catch (error) {
     console.error('❌ Erreur lors de l\'upload du fichier:', error)
@@ -86,7 +90,15 @@ export async function getSignedUrl(key: string): Promise<string> {
 
   try {
     // URL valide pendant 1 heure (3600 secondes)
-    const url = await client.presignedGetObject(bucketName, key, 3600)
+    // Avec header response-content-disposition: inline pour forcer l'affichage dans le navigateur
+    const url = await client.presignedGetObject(
+      bucketName,
+      key,
+      3600,
+      {
+        'response-content-disposition': 'inline',
+      }
+    )
     return url
   } catch (error) {
     console.error('❌ Erreur lors de la génération de l\'URL signée:', error)

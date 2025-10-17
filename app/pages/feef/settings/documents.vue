@@ -122,11 +122,16 @@ const {
   setFilters,
   deleteDocumentType,
   createDocumentType,
+  fetchDocumentsType,
 } = useDocumentsType()
 
 // State pour les filtres
 const selectedCategory = ref<string | undefined>(undefined)
 const selectedAutoAsk = ref<string | undefined>(undefined)
+
+onMounted(() => {
+  fetchDocumentsType()
+})
 
 // Options de catégories avec labels en français
 const categoryOptions = [

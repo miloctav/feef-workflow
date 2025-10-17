@@ -27,7 +27,6 @@ export const useEntities = () => {
   } = usePaginatedFetch<EntityWithRelations>('/api/entities', {
     key: 'entities',
     defaultLimit: 25,
-    immediate: false, // Désactivé pour éviter les fetch inutiles sur les pages individuelles
   })
 
   // State pour une entité individuelle
