@@ -4,6 +4,7 @@ import type {
   UpdateEntityData,
 } from '~~/app/types/entities'
 import type { PaginationParams } from '~~/app/types/pagination'
+import type { EntityModeType } from '#shared/types/enums'
 
 export const useEntities = () => {
   const toast = useToast()
@@ -225,6 +226,50 @@ export const useEntities = () => {
   }
 
   /**
+   * Récupérer les entités pour les filtres et sélecteurs
+   */
+  const fetchEntitiesForSelect = async (options: { includeAll?: boolean; mode?: EntityModeType } = {}) => {
+    const { includeAll = true, mode } = options
+
+    try {
+      // Construire l'URL avec le filtre mode si fourni
+      const queryParams = new URLSearchParams({ limit: '-1' })
+      if (mode) {
+        queryParams.append('mode', mode)
+      }
+
+      const response = await $fetch<{ data: Array<{ id: number; name: string }> }>(
+        `/api/entities?${queryParams.toString()}`
+      )
+
+      const entitiesList = response.data.map(entity => ({
+        label: entity.name,
+        value: entity.id
+      }))
+
+      // Si includeAll est true, ajouter l'option "Toutes les entités" au début
+      if (includeAll) {
+        return [
+          { label: 'Toutes les entités', value: null },
+          ...entitiesList
+        ]
+      }
+
+      return entitiesList
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération des entités'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return includeAll ? [{ label: 'Toutes les entités', value: null }] : []
+    }
+  }
+
+  /**
    * Réinitialiser le state
    */
   const reset = () => {
@@ -264,6 +309,7 @@ export const useEntities = () => {
     // Actions CRUD
     fetchEntities,
     fetchEntity,
+    fetchEntitiesForSelect,
     createEntity,
     updateEntity,
     deleteEntity,

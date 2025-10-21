@@ -6,7 +6,7 @@ import {
   buildWhereConditions,
   buildOrderBy,
   buildCountQuery,
-  formatPaginatedResponse,
+  formatResponse,
 } from '~~/server/utils/pagination'
 
 /**
@@ -30,10 +30,6 @@ export default defineEventHandler(async (event) => {
   // Authentification requise
   const { user } = await requireUserSession(event)
 
-  // Vérifier si limit=-1 (mode "tous les résultats")
-  const query = getQuery(event)
-  const isUnlimited = query.limit === '-1'
-
   // Configuration de la pagination
   const config = {
     table: oesTable,
@@ -45,16 +41,16 @@ export default defineEventHandler(async (event) => {
   }
 
   // 1. Parser les paramètres de pagination
-  const params = parsePaginationParams(event, config)
+  const params = parsePaginationParams(getQuery(event), config)
 
   // 2. Construire les conditions WHERE
-  const whereConditions = buildWhereConditions(params, config)
+  const whereConditions = await buildWhereConditions(params, config)
 
   // 3. Construire la clause ORDER BY
   const orderByClause = buildOrderBy(params.sort, config)
 
-  // Cas spécial : limit=-1 (tous les résultats)
-  if (isUnlimited) {
+  // 4. Mode unlimited: retourner toutes les données avec colonnes minimales
+  if (params.isUnlimited) {
     const data = await db.query.oes.findMany({
       where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
       columns: {
@@ -64,11 +60,10 @@ export default defineEventHandler(async (event) => {
       ...(orderByClause && { orderBy: orderByClause }),
     })
 
-    return { data }
+    return formatResponse(params.isUnlimited, data)
   }
 
-  // Cas normal : pagination
-  // 4. Exécuter la requête avec les colonnes sélectionnées
+  // 5. Mode paginé: exécuter la requête avec toutes les colonnes
   const data = await db.query.oes.findMany({
     where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
     columns: {
@@ -81,9 +76,9 @@ export default defineEventHandler(async (event) => {
     offset: params.offset,
   })
 
-  // 5. Compter le total
+  // 6. Compter le total
   const total = await buildCountQuery(whereConditions, config)
 
-  // 6. Retourner la réponse paginée
-  return formatPaginatedResponse(data, params, total)
+  // 7. Retourner la réponse paginée
+  return formatResponse(params.isUnlimited, data, params, total)
 })

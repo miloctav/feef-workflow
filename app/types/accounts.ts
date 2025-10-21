@@ -13,7 +13,7 @@ export interface CreateAccountData {
   firstname: string
   lastname: string
   email: string
-  password: string
+  password?: string
   role: typeof Role[keyof typeof Role]
   // Pour OE
   oeId?: number

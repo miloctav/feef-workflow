@@ -38,7 +38,7 @@ export default defineNuxtRouteMiddleware((to) => {
         case Role.AUDITOR:
           return navigateTo('/auditeur')
         case Role.ENTITY:
-          return navigateTo('/company')
+          return navigateTo('/entity')
         default:
           return navigateTo('/login')
       }

@@ -6,7 +6,7 @@ import {
   buildWhereConditions,
   buildOrderBy,
   buildCountQuery,
-  formatPaginatedResponse,
+  formatResponse,
 } from '~~/server/utils/pagination'
 
 /**
@@ -16,7 +16,7 @@ import {
  *
  * Query params:
  * - page: numéro de page (défaut: 1)
- * - limit: items par page (défaut: 25, max: 100)
+ * - limit: items par page (défaut: 25, max: 100, -1 = tous)
  * - search: recherche globale sur name, siren, siret
  * - sort: tri (ex: createdAt:desc, name:asc, oe.name:asc, accountManager.lastname:asc)
  * - type: filtre par type (COMPANY, GROUP) - support multiple: type=COMPANY,GROUP
@@ -32,6 +32,7 @@ import {
  * - GET /api/entities?type=COMPANY,GROUP&mode=MASTER
  * - GET /api/entities?sort=oe.name:asc&search=ABC
  * - GET /api/entities?sort=accountManager.lastname:asc
+ * - GET /api/entities?limit=-1 (tous les résultats, sans pagination)
  */
 export default defineEventHandler(async (event) => {
   // Authentification requise
@@ -52,15 +53,29 @@ export default defineEventHandler(async (event) => {
   }
 
   // 1. Parser les paramètres de pagination
-  const params = parsePaginationParams(event, config)
+  const params = parsePaginationParams(getQuery(event), config)
 
   // 2. Construire les conditions WHERE
-  const whereConditions = buildWhereConditions(params, config)
+  const whereConditions = await buildWhereConditions(params, config)
 
   // 3. Construire la clause ORDER BY
   const orderByClause = buildOrderBy(params.sort, config)
 
-  // 4. Exécuter la requête avec tous les champs et les relations
+  // 4. Mode unlimited: retourner toutes les données avec colonnes minimales
+  if (params.isUnlimited) {
+    const data = await db.query.entities.findMany({
+      where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
+      columns: {
+        id: true,
+        name: true,
+      },
+      ...(orderByClause && { orderBy: orderByClause }),
+    })
+
+    return formatResponse(params.isUnlimited, data)
+  }
+
+  // 5. Mode paginé: exécuter la requête avec tous les champs et relations
   const data = await db.query.entities.findMany({
     where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
     with: {
@@ -90,9 +105,9 @@ export default defineEventHandler(async (event) => {
     offset: params.offset,
   })
 
-  // 5. Compter le total
+  // 6. Compter le total
   const total = await buildCountQuery(whereConditions, config)
 
-  // 6. Retourner la réponse paginée
-  return formatPaginatedResponse(data, params, total)
+  // 7. Retourner la réponse paginée
+  return formatResponse(params.isUnlimited, data, params, total)
 })

@@ -3,6 +3,8 @@
 definePageMeta({
   layout: "dashboard-oe",
 });
+
+const { user } = useAuth()
 </script>
 
 <template>
@@ -12,9 +14,7 @@ definePageMeta({
     </template>
 
     <template #body>
-      <div class="w-full space-y-4 pb-4">
-        <OeAccountTable />
-      </div>
+        <AccountsTable v-if="user?.oeId" :oe-id="user?.oeId" />
     </template>
   </UDashboardPanel>
 </template>

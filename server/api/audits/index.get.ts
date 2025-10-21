@@ -38,6 +38,8 @@ export default defineEventHandler(async (event) => {
   // Authentification requise
   const { user } = await requireUserSession(event)
 
+  const query = getQuery(event)
+
   // Configuration de la pagination
   // Note: searchFields n'est pas défini car Drizzle ne supporte pas la recherche sur les champs relationnels
   const config = {
@@ -52,10 +54,10 @@ export default defineEventHandler(async (event) => {
   }
 
   // 1. Parser les paramètres de pagination
-  const params = parsePaginationParams(event, config)
+  const params = parsePaginationParams(query, config)
 
   // 2. Construire les conditions WHERE
-  const whereConditions = buildWhereConditions(params, config)
+  const whereConditions = await buildWhereConditions(params, config)
 
   // 3. Construire la clause ORDER BY
   const orderByClause = buildOrderBy(params.sort, config)

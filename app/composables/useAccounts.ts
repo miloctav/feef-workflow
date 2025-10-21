@@ -264,6 +264,46 @@ export const useAccounts = () => {
   }
 
   /**
+   * Supprimer l'association entre un compte et une entité
+   */
+  const removeAccountFromEntity = async (accountId: number, entityId: number) => {
+    deleteLoading.value = true
+
+    try {
+      await $fetch('/api/accounts-to-entities', {
+        method: 'DELETE',
+        query: {
+          accountId,
+          entityId,
+        },
+      })
+
+      // Rafraîchir la liste paginée
+      await refresh()
+
+      toast.add({
+        title: 'Succès',
+        description: 'Association compte-entité supprimée avec succès',
+        color: 'success',
+      })
+
+      return { success: true }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la suppression de l\'association'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    } finally {
+      deleteLoading.value = false
+    }
+  }
+
+  /**
    * Réinitialiser le state
    */
   const reset = () => {
@@ -307,6 +347,7 @@ export const useAccounts = () => {
     createAccount,
     updateAccount,
     deleteAccount,
+    removeAccountFromEntity,
     refresh,
     reset,
   }

@@ -4,6 +4,37 @@ import { db } from '~~/server/database'
 import type { PgTable } from 'drizzle-orm/pg-core'
 
 /**
+ * Configuration pour un filtre via table de jonction (many-to-many)
+ *
+ * Exemple pour filtrer les comptes par entité via accountsToEntities:
+ * {
+ *   junctionTable: accountsToEntities,
+ *   localIdColumn: accountsToEntities.accountId,
+ *   targetIdColumn: accountsToEntities.entityId,
+ *   roleColumn: accountsToEntities.role
+ * }
+ */
+export interface JunctionFilterConfig {
+  /** Table de jonction (ex: accountsToEntities) */
+  junctionTable: PgTable
+
+  /** Colonne qui référence la table principale (ex: accountsToEntities.accountId) */
+  localIdColumn: any
+
+  /** Colonne qui référence l'entité à filtrer (ex: accountsToEntities.entityId) */
+  targetIdColumn: any
+
+  /** Colonne optionnelle pour filtrer par rôle dans la jonction (ex: accountsToEntities.role) */
+  roleColumn?: any
+
+  /**
+   * Nom optionnel du paramètre de rôle associé (défaut: '{filterName}Role')
+   * Ex: si filterName='entity', roleParam='entityRole'
+   */
+  roleParam?: string
+}
+
+/**
  * Configuration pour la pagination d'une table
  */
 export interface PaginationConfig<TTable extends PgTable> {
@@ -42,6 +73,22 @@ export interface PaginationConfig<TTable extends PgTable> {
     relations?: string[]
   }
 
+  /**
+   * Configuration des filtres via tables de jonction (many-to-many)
+   *
+   * Exemple:
+   * {
+   *   entityId: {
+   *     junctionTable: accountsToEntities,
+   *     localIdColumn: accountsToEntities.accountId,
+   *     targetIdColumn: accountsToEntities.entityId,
+   *     roleColumn: accountsToEntities.role,
+   *     roleParam: 'entityRole'
+   *   }
+   * }
+   */
+  junctionFilters?: Record<string, JunctionFilterConfig>
+
   /** Inclure les enregistrements soft deleted (défaut: false) */
   includeSoftDeleted?: boolean
 
@@ -65,6 +112,8 @@ export interface ParsedPaginationParams {
   search?: string
   sort?: { field: string; order: 'asc' | 'desc' }
   filters: Record<string, string | string[]>
+  /** Mode unlimited activé (limit=-1) */
+  isUnlimited: boolean
 }
 
 /**
@@ -90,26 +139,34 @@ export interface PaginatedResult<T> {
  *   maxLimit: 200,
  *   defaultSort: 'createdAt:desc'
  * })
- * // params = { page: 1, limit: 50, offset: 0, search: '...', sort: {...}, filters: {...} }
+ * // params = { page: 1, limit: 50, offset: 0, search: '...', sort: {...}, filters: {...}, isUnlimited: false }
  * ```
  */
 export function parsePaginationParams(
-  event: H3Event,
+  query: Record<string, any>,
   config: Pick<PaginationConfig<any>, 'defaultLimit' | 'maxLimit' | 'defaultSort'> = {}
 ): ParsedPaginationParams {
-  const query = getQuery(event)
   const defaultLimit = config.defaultLimit || 25
   const maxLimit = config.maxLimit || 100
+
+  // Détecter le mode unlimited (limit=-1)
+  const isUnlimited = query.limit === '-1'
 
   // Parse page
   const page = Math.max(1, parseInt(query.page as string) || 1)
 
   // Parse limit avec validation
-  let limit = parseInt(query.limit as string) || defaultLimit
-  limit = Math.min(Math.max(1, limit), maxLimit)
+  let limit: number
+  if (isUnlimited) {
+    // Mode unlimited: garder -1 tel quel
+    limit = -1
+  } else {
+    limit = parseInt(query.limit as string) || defaultLimit
+    limit = Math.min(Math.max(1, limit), maxLimit)
+  }
 
   // Calculer l'offset
-  const offset = (page - 1) * limit
+  const offset = isUnlimited ? 0 : (page - 1) * limit
 
   // Parse search
   const search = query.search as string | undefined
@@ -141,7 +198,7 @@ export function parsePaginationParams(
     }
   }
 
-  return { page, limit, offset, search, sort, filters }
+  return { page, limit, offset, search, sort, filters, isUnlimited }
 }
 
 /**
@@ -234,6 +291,59 @@ function buildFilterConditions(
 }
 
 /**
+ * Construit une condition de filtrage via table de jonction
+ * Récupère les IDs de la table principale via une requête sur la table de jonction
+ *
+ * @example
+ * ```typescript
+ * const ids = await buildJunctionFilterCondition('entityId', '5', {
+ *   junctionTable: accountsToEntities,
+ *   localIdColumn: accountsToEntities.accountId,
+ *   targetIdColumn: accountsToEntities.entityId,
+ *   roleColumn: accountsToEntities.role
+ * }, params)
+ * // ids = [1, 2, 3] (les IDs des comptes liés à l'entité 5)
+ * ```
+ *
+ * @returns Tableau des IDs trouvés (peut être vide)
+ */
+async function buildJunctionFilterCondition(
+  filterName: string,
+  filterValue: string | string[],
+  junctionConfig: JunctionFilterConfig,
+  params: ParsedPaginationParams
+): Promise<number[]> {
+  const conditions: SQL[] = []
+
+  // Filtre sur la colonne cible (ex: entityId)
+  if (Array.isArray(filterValue)) {
+    conditions.push(inArray(junctionConfig.targetIdColumn, filterValue.map(Number)))
+  } else {
+    conditions.push(sql`${junctionConfig.targetIdColumn} = ${Number(filterValue)}`)
+  }
+
+  // Filtre optionnel sur le rôle dans la jonction
+  const roleParam = junctionConfig.roleParam || `${filterName}Role`
+  const roleValue = params.filters[roleParam]
+  if (roleValue && junctionConfig.roleColumn) {
+    if (Array.isArray(roleValue)) {
+      conditions.push(inArray(junctionConfig.roleColumn, roleValue))
+    } else {
+      conditions.push(sql`${junctionConfig.roleColumn} = ${roleValue}`)
+    }
+  }
+
+  // Requête sur la table de jonction
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+  const results = await db
+    .select({ localId: junctionConfig.localIdColumn })
+    .from(junctionConfig.junctionTable)
+    .where(whereClause)
+
+  return results.map((r) => r.localId)
+}
+
+/**
  * Construit les conditions WHERE complètes (soft delete + recherche + filtres)
  *
  * @example
@@ -254,10 +364,10 @@ function buildFilterConditions(
  * })
  * ```
  */
-export function buildWhereConditions(
+export async function buildWhereConditions(
   params: ParsedPaginationParams,
   config: PaginationConfig<any>
-): SQL[] {
+): Promise<SQL[]> {
   const conditions: SQL[] = []
 
   // Soft delete automatique
@@ -280,7 +390,27 @@ export function buildWhereConditions(
     }
   }
 
-  // Filtres
+  // Filtres via tables de jonction (many-to-many)
+  if (config.junctionFilters) {
+    for (const [filterName, junctionConfig] of Object.entries(config.junctionFilters)) {
+      const filterValue = params.filters[filterName]
+      if (filterValue) {
+        // Récupérer les IDs via la table de jonction
+        const ids = await buildJunctionFilterCondition(filterName, filterValue, junctionConfig, params)
+
+        // Si aucun ID trouvé, ajouter une condition impossible pour forcer un résultat vide
+        if (ids.length === 0) {
+          conditions.push(sql`1 = 0`)
+        } else {
+          // Ajouter la condition inArray
+          const idColumn = (config.table as any).id
+          conditions.push(inArray(idColumn, ids))
+        }
+      }
+    }
+  }
+
+  // Filtres classiques (local et relations)
   if (Object.keys(params.filters).length > 0) {
     const filterConditions = buildFilterConditions(params.filters, config)
     conditions.push(...filterConditions)
@@ -391,31 +521,36 @@ export function formatPaginatedResponse<T>(
 }
 
 /**
- * Helper pour créer une réponse paginée complète
+ * Formate la réponse selon le mode (unlimited ou paginé)
  *
  * @example
  * ```typescript
- * export default defineEventHandler(async (event) => {
- *   const config = {
- *     table: accounts,
- *     searchFields: ['firstname', 'lastname'],
- *     allowedFilters: { local: ['role'] },
- *     allowedSorts: { local: ['createdAt'] }
- *   }
+ * // Mode unlimited
+ * const data = await db.query.entities.findMany({ ... })
+ * return formatResponse(true, data)
+ * // Retourne: { data: [...] }
  *
- *   const params = parsePaginationParams(event, config)
- *   const whereConditions = buildWhereConditions(params, config)
- *   const orderByClause = buildOrderBy(params.sort, config)
- *
- *   const data = await db.query.accounts.findMany({
- *     where: and(...whereConditions),
- *     orderBy: orderByClause,
- *     limit: params.limit,
- *     offset: params.offset
- *   })
- *
- *   const total = await buildCountQuery(whereConditions, config)
- *   return formatPaginatedResponse(data, params, total)
- * })
+ * // Mode paginé
+ * const data = await db.query.entities.findMany({ ... })
+ * const total = await buildCountQuery(whereConditions, config)
+ * return formatResponse(false, data, params, total)
+ * // Retourne: { data: [...], meta: { page, limit, total, totalPages } }
  * ```
  */
+export function formatResponse<T>(
+  isUnlimited: boolean,
+  data: T[],
+  params?: ParsedPaginationParams,
+  total?: number
+): { data: T[] } | PaginatedResult<T> {
+  if (isUnlimited) {
+    return { data }
+  }
+
+  if (!params || total === undefined) {
+    throw new Error('formatResponse: params and total are required for paginated mode')
+  }
+
+  return formatPaginatedResponse(data, params, total)
+}
+

@@ -24,43 +24,19 @@
         </template>
 
         <!-- Tab Espace documentaire -->
-        <template #espacedoc>
+        <template v-if="currentEntity.mode === EntityMode.MASTER" #espacedoc>
           <div class="py-6">
             <DocumentaryReviewTab />
           </div>
         </template>
 
         <!-- Tab Comptes -->
-        <template #comptes>
-          <!-- <div class="py-6">
-            <UCard>
-              <template #header>
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <UIcon name="i-lucide-users" class="w-6 h-6 text-primary" />
-                    <h2 class="font-bold text-xl text-gray-900">Gestion des comptes</h2>
-                  </div>
-                  <UButton
-                    icon="i-lucide-user-plus"
-                    size="sm"
-                    color="primary"
-                    @click="addAccount"
-                  >
-                    Ajouter un compte
-                  </UButton>
-                </div>
-              </template>
-
-<div class="text-gray-600 text-center py-8">
-  <UIcon name="i-lucide-users" class="w-16 h-16 mx-auto mb-4 text-gray-300" />
-  <p>Tableau de gestion des comptes à venir</p>
-</div>
-</UCard>
-</div> -->
+        <template v-if="currentEntity.mode === EntityMode.MASTER" #comptes>
+          <AccountsTable :entity-id="currentEntity.id" />
         </template>
 
         <!-- Tab Contrats -->
-        <template #contrats>
+        <template v-if="currentEntity.mode === EntityMode.MASTER" #contrats>
           <div class="py-6 space-y-6">
             <!-- Affiche les contrats FEEF si le role est feef -->
             <!-- <FeefContractsList v-if="role === 'feef'" :role="role" /> -->
@@ -71,7 +47,7 @@
         </template>
 
         <!-- Tab Audits -->
-        <template #audits>
+        <template v-if="currentEntity.mode === EntityMode.MASTER" #audits>
           <div class="py-6">
             <AuditsTable v-if="currentEntity" :has-filters="false" :entity-id="currentEntity.id" />
           </div>
@@ -99,17 +75,20 @@ const tabs = computed(() => {
       value: "dossier",
       label: 'Dossier',
       icon: 'i-lucide-folder'
-    },
-    {
+    }
+  ]
+
+  if (currentEntity.value?.mode === EntityMode.MASTER) {
+    baseTabs.push({
       slot: 'espacedoc',
       value: "espacedoc",
       label: 'Espace documentaire',
       icon: 'i-lucide-files'
-    }
-  ]
+    })
+  }
 
   // Ajouter l'onglet Comptes uniquement pour le rôle FEEF
-  if (user.value?.role === Role.FEEF) {
+  if (user.value?.role === Role.FEEF && currentEntity.value?.mode === EntityMode.MASTER) {
     baseTabs.push({
       slot: 'comptes',
       value: "comptes",
@@ -118,20 +97,22 @@ const tabs = computed(() => {
     })
   }
 
-  baseTabs.push(
-    {
-      slot: 'contrats',
-      value: "contrats",
-      label: 'Contrats',
-      icon: 'i-lucide-file-text'
-    },
-    {
-      slot: 'audits',
-      value: "audits",
-      label: 'Audits',
-      icon: 'i-lucide-clipboard-list'
-    }
-  )
+  if (currentEntity.value?.mode === EntityMode.MASTER) {
+    baseTabs.push(
+      {
+        slot: 'contrats',
+        value: "contrats",
+        label: 'Contrats',
+        icon: 'i-lucide-file-text'
+      },
+      {
+        slot: 'audits',
+        value: "audits",
+        label: 'Audits',
+        icon: 'i-lucide-clipboard-list'
+      }
+    )
+  }
 
   return baseTabs
 })

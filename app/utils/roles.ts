@@ -8,7 +8,7 @@ export const roleLabels: Record<RoleType, string> = {
   [Role.FEEF]: 'Administrateur FEEF',
   [Role.OE]: 'Organisme Évaluateur',
   [Role.AUDITOR]: 'Auditeur',
-  [Role.ENTITY]: 'Entreprise',
+  [Role.ENTITY]: 'Entité',
 }
 
 /**

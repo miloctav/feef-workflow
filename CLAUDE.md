@@ -121,10 +121,13 @@ The application uses **Drizzle ORM** with PostgreSQL for data persistence:
 - `oes` - Evaluation organizations (Organismes Évaluateurs)
 - `entities` - Companies and groups applying for certification
 - `audits` - Audit records linking entities, OEs, and auditors
+- `documents_type` - Document type definitions with categories (LEGAL, FINANCIAL, TECHNICAL, OTHER)
+- `documentary_reviews` - Document instances associated with entities
+- `document_versions` - Version history for documents with MinIO file references
 - `accounts_to_entities` - Many-to-many junction table for account-entity relationships
 - `auditors_to_oe` - Many-to-many junction table for auditor-OE relationships
 
-**Type safety**: Schema exports inferred TypeScript types (`Account`, `Entity`, `OE`, `Audit`) and enum constants (`Role`, `EntityType`, `AuditType`, `OERole`, `EntityRole`) for type-safe database operations.
+**Type safety**: Schema exports inferred TypeScript types (`Account`, `Entity`, `OE`, `Audit`, `DocumentType`, `DocumentaryReview`, `DocumentVersion`) and enum constants (`Role`, `EntityType`, `AuditType`, `OERole`, `EntityRole`, `DocumentCategory`) for type-safe database operations.
 
 ### API Architecture
 
@@ -147,13 +150,40 @@ The application provides a **RESTful API** using Nuxt server routes in `server/a
 - `GET /api/oes` - List evaluation organizations
 - `POST /api/oes` - Create new OE
 - `GET /api/oes/[id]` - Get OE details
+- `PUT /api/oes/[id]` - Update OE
 - `DELETE /api/oes/[id]` - Soft delete OE
+
+**Entity management** (`server/api/entities/`):
+- `GET /api/entities` - List entities (companies/groups) with pagination
+- `POST /api/entities` - Create new entity
+- `GET /api/entities/[id]` - Get entity details with relations
+- `PUT /api/entities/[id]` - Update entity
+- `DELETE /api/entities/[id]` - Soft delete entity
+
+**Audit management** (`server/api/audits/`):
+- `GET /api/audits` - List audits with pagination and filters
+- `POST /api/audits` - Create new audit
+- `GET /api/audits/[id]` - Get audit details
+- `PUT /api/audits/[id]` - Update audit
+- `DELETE /api/audits/[id]` - Soft delete audit
+
+**Document management** (`server/api/documents-type/`, `server/api/documentary-reviews/`, `server/api/documents-versions/`):
+- `GET /api/documents-type` - List document types
+- `POST /api/documents-type` - Create document type
+- `GET /api/documentary-reviews` - List documentary reviews with pagination
+- `POST /api/documentary-reviews` - Create documentary review
+- `POST /api/documents-versions` - Upload new document version (multipart/form-data)
+- `GET /api/documents-versions/[id]/download` - Download document with signed URL
 
 **API patterns**:
 - Uses `requireUserSession()` from nuxt-auth-utils for authentication
 - Role-based authorization (e.g., FEEF role required for account management)
 - **Always use Drizzle query API** (`db.query.*`) for data fetching - maximize use of relational queries
 - **Always wrap responses** in a `{ data: ... }` object, never return data directly
+- **Pagination utility** (`server/utils/pagination.ts`) provides consistent pagination across all list endpoints:
+  - Supports `page`, `limit`, `search`, `sort`, and custom filters via query params
+  - Use `parsePaginationParams()`, `buildWhereConditions()`, `buildOrderBy()`, and `formatPaginatedResponse()`
+  - Returns `{ data: [...], meta: { page, limit, total, totalPages } }`
 - Excludes sensitive fields (passwords) from API responses
 - Soft deletes using `deletedAt` timestamp
 
@@ -168,6 +198,20 @@ The application deploys with 5 services defined in `docker-compose.yml`:
 
 All services communicate on the `feef-network` bridge network. The app waits for postgres and minio health checks before starting.
 
+### Document Storage (MinIO)
+
+The application uses **MinIO** (S3-compatible object storage) for document file management:
+
+- **Service**: `server/services/minio.ts` provides singleton client and storage operations
+- **Bucket**: `feef-storage` (auto-created on initialization)
+- **File organization**: `documents/{entityId}/{documentaryReviewId}/{versionId}-{filename}`
+- **Operations**:
+  - `uploadFile()` - Upload document with automatic key generation
+  - `getSignedUrl()` - Generate presigned URL (1 hour expiry) for secure downloads
+  - `deleteFile()` - Remove file from storage
+  - `initializeBucket()` - Ensure bucket exists (called on app startup)
+- **Integration**: Document versions store `minioKey` reference; downloads use signed URLs
+
 ## Key implementation patterns
 
 - **Auto-imported components**: Components in `app/components/` are auto-imported by Nuxt (configured in `nuxt.config.ts` with `pathPrefix: false`)
@@ -178,6 +222,9 @@ All services communicate on the `feef-network` bridge network. The app waits for
 - **Role-based access**: Each role sees only their authorized pages via layout-based routing
 - **Document workflow**: Documents are associated with specific workflow states and shown/hidden accordingly
 - **Alert system**: Alerts are contextual to company workflow state and provide actionable information
+- **Pagination pattern**: All list endpoints use `server/utils/pagination.ts` for consistent behavior
+- **File uploads**: Use MinIO service for document storage with versioning support
+- **Audit trail**: All tables track `createdBy`, `createdAt`, `updatedBy`, `updatedAt` for full audit history
 
 ## Important notes
 
