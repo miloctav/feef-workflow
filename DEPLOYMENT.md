@@ -274,6 +274,7 @@ docker compose down -v
 
 - **Application** : https://votre-domaine.com
 - **MinIO Console** : http://IP-du-VPS:9001 (accessible uniquement en local ou via tunnel SSH pour sécurité)
+- **pgAdmin** : http://IP-du-VPS:5050 (interface de gestion de la base de données)
 
 ### Connexion MinIO
 
@@ -285,6 +286,88 @@ ssh -L 9001:localhost:9001 user@IP-du-VPS
 ```
 
 Puis accédez à `http://localhost:9001` avec les identifiants configurés dans `.env`.
+
+### Connexion pgAdmin
+
+**Accès initial :**
+
+1. Ouvrez votre navigateur : `http://IP-du-VPS:5050`
+2. Connectez-vous avec les identifiants configurés dans `.env` :
+   - **Email** : Valeur de `PGADMIN_EMAIL`
+   - **Mot de passe** : Valeur de `PGADMIN_PASSWORD`
+
+**Configuration du serveur PostgreSQL (première connexion) :**
+
+Une fois connecté à pgAdmin :
+
+1. Cliquez sur **"Add New Server"**
+2. **Onglet General** :
+   - Name: `FEEF PostgreSQL`
+3. **Onglet Connection** :
+   - Host name/address: `postgres` (nom du conteneur Docker)
+   - Port: `5432`
+   - Maintenance database: `feef_db`
+   - Username: Valeur de `POSTGRES_USER` (généralement `feef_user`)
+   - Password: Valeur de `POSTGRES_PASSWORD` (depuis votre `.env`)
+   - ✅ Cocher "Save password"
+4. Cliquez sur **Save**
+
+Vous pouvez maintenant gérer votre base de données via l'interface graphique !
+
+**Seed initial de la base de données :**
+
+Pour créer les données initiales (organismes évaluateurs et compte admin) :
+
+1. Dans pgAdmin, ouvrez **Tools → Query Tool**
+2. Exécutez le SQL suivant :
+
+```sql
+-- Créer les organismes évaluateurs
+INSERT INTO oes (id, name, created_at, updated_at)
+VALUES
+  (gen_random_uuid(), 'Ecocert', NOW(), NOW()),
+  (gen_random_uuid(), 'SGS', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+
+-- Créer le compte FEEF admin
+-- Mot de passe: 'admin' (hashé avec bcrypt)
+INSERT INTO accounts (
+  id, firstname, lastname, email, password, role,
+  is_active, oe_id, oe_role, created_at, updated_at
+)
+VALUES (
+  gen_random_uuid(),
+  'Admin',
+  'FEEF',
+  'admin@feef.com',
+  '$2b$10$rKJ5VhZ7qZ7yQZ7qZ7qZ7uO7qZ7qZ7qZ7qZ7qZ7qZ7qZ7qZ7qZ7qZ',
+  'FEEF',
+  true,
+  NULL,
+  NULL,
+  NOW(),
+  NOW()
+)
+ON CONFLICT (email) DO NOTHING;
+```
+
+3. Vous pouvez maintenant vous connecter avec :
+   - **Email** : `admin@feef.com`
+   - **Mot de passe** : `admin`
+
+⚠️ **Sécurité importante** :
+
+- **Changez le mot de passe admin** après la première connexion
+- **Restreignez l'accès au port 5050** via le pare-feu :
+  ```bash
+  # N'autoriser que votre IP
+  sudo ufw allow from VOTRE_IP to any port 5050
+  ```
+- **Ou désactivez pgAdmin** après la configuration initiale :
+  ```bash
+  # Commentez le service pgadmin dans docker-compose.yml
+  docker compose up -d
+  ```
 
 ## Gestion des variables d'environnement
 
