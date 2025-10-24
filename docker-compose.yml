@@ -62,6 +62,12 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change_me_in_production}
       MINIO_USE_SSL: "false"
       MINIO_BUCKET: ${MINIO_BUCKET:-feef-storage}
+      # Session and authentication
+      NUXT_SESSION_PASSWORD: ${NUXT_SESSION_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+      DEV_MODE: ${DEV_MODE:-false}
     depends_on:
       postgres:
         condition: service_healthy
