@@ -49,19 +49,29 @@ export const useAuth = () => {
    */
   const logout = async () => {
     try {
+      // Appel API pour nettoyer la session serveur
       await $fetch('/api/auth/logout', {
         method: 'POST',
       })
 
-      // Nettoyer la session côté client
+      // Nettoyer la session côté client (cookies, session)
       await clear()
 
+      // Vider tous les états globaux des composables
+      clearNuxtState()
+
       // Rediriger vers la page de login
-      await navigateTo('/login')
+      await navigateTo('/login', { replace: true })
 
       return { success: true }
     } catch (e: any) {
       console.error('Erreur lors de la déconnexion:', e)
+
+      // Même en cas d'erreur, nettoyer le client
+      await clear()
+      clearNuxtState()
+      await navigateTo('/login', { replace: true })
+
       return {
         success: false,
         error: e.message || 'Erreur lors de la déconnexion',

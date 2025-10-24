@@ -5,22 +5,25 @@ defineProps<{
     collapsed?: boolean
 }>()
 
-const user = ref({
-    name: 'Benjamin Canac',
+const { user, logout } = useAuth()
+
+const userItem = ref({
+    name: user.value?.firstname + ' ' + user.value?.lastname,
     icon : 'i-lucide-user-circle',
 })
 
 const items = computed<DropdownMenuItem[][]>(() => ([[{
     type: 'label',
-    label: user.value.name,
-    icon: user.value.icon,
+    label: userItem.value.name,
+    icon: userItem.value.icon,
 }], [{
     label: 'Profile',
     icon: 'i-lucide-user'
 },
 {
     label: 'Déconnexion',
-    icon: 'i-lucide-log-out'
+    icon: 'i-lucide-log-out',
+    onSelect: () => logout()
 }],]))
 </script>
 
@@ -29,7 +32,7 @@ const items = computed<DropdownMenuItem[][]>(() => ([[{
         :ui="{ content: collapsed ? 'w-48' : 'w-(--reka-dropdown-menu-trigger-width)' }">
         <UButton v-bind="{
             ...user,
-            label: collapsed ? undefined : user?.name,
+            label: collapsed ? undefined : userItem?.name,
             trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down'
         }" color="neutral" variant="ghost" block :square="collapsed" class="data-[state=open]:bg-elevated" :ui="{
         trailingIcon: 'text-dimmed'
