@@ -17,7 +17,15 @@ RUN npm run build && \
     echo "=== Build output structure ===" && \
     ls -la && \
     echo "=== .output directory ===" && \
-    ls -la .output || echo "No .output directory found"
+    ls -la .output || echo "No .output directory found" && \
+    echo "=== Checking for server entry point ===" && \
+    if [ ! -f ".output/server/index.mjs" ]; then \
+        echo "ERROR: Build failed - .output/server/index.mjs not found" && \
+        echo "This usually means the Nuxt build process failed." && \
+        echo "Check the build logs above for errors." && \
+        exit 1; \
+    fi && \
+    echo "✓ Build successful - server entry point found"
 
 # Production Stage
 FROM node:20-alpine
@@ -25,6 +33,14 @@ WORKDIR /app
 
 # Copy only the built output
 COPY --from=build /app/.output ./
+
+# Verify the copy succeeded
+RUN if [ ! -f "server/index.mjs" ]; then \
+        echo "ERROR: server/index.mjs not found after copy" && \
+        echo "Build output may be incomplete" && \
+        exit 1; \
+    fi && \
+    echo "✓ Application files copied successfully"
 
 # Set environment variables
 ENV PORT=3000

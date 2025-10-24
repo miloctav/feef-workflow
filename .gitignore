@@ -19,6 +19,15 @@ logs
 .idea
 
 # Local env files
+# Ignore actual .env file (contains secrets)
 .env
-.env.*
+# Ignore production .env (contains secrets)
+.env.production
+# Ignore any .env.local variants
+.env.local
+.env.*.local
+
+# But keep template and development files (versioned)
 !.env.example
+!.env.development
+!.env.production.example

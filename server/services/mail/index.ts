@@ -12,7 +12,7 @@ import { Resend } from 'resend'
  * Adresse email par défaut de l'expéditeur
  * Peut être surchargée dans chaque méthode d'envoi
  */
-const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL || 'asds@resend.dev'
+const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL || 'feef@resend.dev'
 
 export const resend = new Resend(process.env.RESEND_API_KEY)
 

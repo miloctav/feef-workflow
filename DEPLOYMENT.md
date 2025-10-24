@@ -27,8 +27,30 @@ cd /apps/feef-workflow
 
 ### 1.2 Configurer les variables d'environnement
 
+L'application utilise un **script d'initialisation interactif** qui génère automatiquement les secrets de sécurité et guide la configuration.
+
+#### Option 1 : Configuration automatique (recommandée)
+
 ```bash
-cp .env.example .env
+./scripts/setup-env.sh production
+```
+
+Le script vous demandera :
+- Nom de la base de données et utilisateur PostgreSQL
+- Mot de passe PostgreSQL (utilisez un mot de passe fort !)
+- Nom d'utilisateur et mot de passe MinIO (utilisez un mot de passe fort !)
+- Votre nom de domaine (ex: feef-workflow.com)
+- Votre email pour les notifications SSL
+- Clé API Resend (optionnel, pour les emails)
+
+Les secrets (`NUXT_SESSION_PASSWORD` et `JWT_SECRET`) seront **générés automatiquement** de manière sécurisée.
+
+#### Option 2 : Configuration manuelle
+
+Si vous préférez configurer manuellement :
+
+```bash
+cp .env.production.example .env
 nano .env
 ```
 
@@ -47,6 +69,16 @@ MINIO_BUCKET=feef-storage
 # Configuration domaine
 DOMAIN=votre-domaine.com
 EMAIL=votre-email@example.com
+
+# Secrets - IMPORTANT : Générez des valeurs aléatoires !
+# Utilisez : openssl rand -base64 32
+NUXT_SESSION_PASSWORD=votre-secret-32-caracteres-minimum
+JWT_SECRET=votre-secret-32-caracteres-minimum
+```
+
+⚠️ **Important** : Si vous configurez manuellement, vous DEVEZ générer des secrets forts pour `NUXT_SESSION_PASSWORD` et `JWT_SECRET` avec la commande :
+```bash
+openssl rand -base64 32
 ```
 
 ## Étape 2 : Premier déploiement (sans SSL)
@@ -200,13 +232,29 @@ docker compose restart app
 ### Mettre à jour l'application
 
 ```bash
-# Utiliser le script de mise à jour automatique
+# Utiliser le script de mise à jour automatique (recommandé)
 cd /apps
 ./update.sh
+```
 
-# Ou manuellement:
+Le script `update.sh` effectue automatiquement :
+1. Sauvegarde de la base de données, MinIO et du fichier .env
+2. Récupération des dernières modifications (git pull)
+3. **Détection automatique des nouvelles variables d'environnement**
+4. Demande interactive des valeurs pour les nouvelles variables
+5. Reconstruction et redémarrage de l'application
+
+⚠️ **Important** : Le script détecte automatiquement si de nouvelles variables d'environnement sont nécessaires et vous demande de les configurer. Ne sautez jamais cette étape !
+
+#### Mise à jour manuelle (non recommandé)
+
+Si vous préférez mettre à jour manuellement :
+
+```bash
 cd /apps/feef-workflow
 git pull
+# Vérifiez .env.production.example pour de nouvelles variables
+# Ajoutez-les manuellement à .env si nécessaire
 docker compose up -d --build app
 ```
 
@@ -237,6 +285,84 @@ ssh -L 9001:localhost:9001 user@IP-du-VPS
 ```
 
 Puis accédez à `http://localhost:9001` avec les identifiants configurés dans `.env`.
+
+## Gestion des variables d'environnement
+
+### Ajouter une nouvelle variable d'environnement
+
+Lorsque vous développez une nouvelle fonctionnalité nécessitant une variable d'environnement, suivez ce processus :
+
+#### 1. En développement local
+
+```bash
+# Ajoutez la variable dans .env.development (fichier versionné)
+echo "NOUVELLE_VARIABLE=valeur_de_dev" >> .env.development
+
+# Copiez-la dans votre .env local
+echo "NOUVELLE_VARIABLE=valeur_de_dev" >> .env
+```
+
+#### 2. Préparer pour la production
+
+Ajoutez la variable dans `.env.production.example` avec un placeholder :
+
+```bash
+# Ouvrez le fichier
+nano .env.production.example
+
+# Ajoutez la nouvelle variable avec commentaire
+# Nouvelle fonctionnalité X
+NOUVELLE_VARIABLE=CHANGE_ME_YOUR_VALUE_HERE
+```
+
+#### 3. Documenter dans .env.example
+
+Ajoutez une documentation complète :
+
+```bash
+nano .env.example
+
+# Ajoutez une section expliquant :
+# - À quoi sert la variable
+# - Format attendu
+# - Si elle est [REQUIRED] ou [OPTIONAL]
+# - Exemple de valeur
+```
+
+#### 4. Mettre à jour docker-compose.yml (si nécessaire)
+
+Si la variable doit être explicitement passée au conteneur, ajoutez-la dans la section `environment:` du service `app`.
+
+Sinon, elle sera automatiquement chargée via `env_file: .env`.
+
+#### 5. Déploiement en production
+
+Lors du prochain `./update.sh`, le script :
+1. Détectera automatiquement la nouvelle variable
+2. Vous demandera sa valeur de manière interactive
+3. L'ajoutera automatiquement à `.env`
+
+**Aucune intervention manuelle n'est requise** sur le serveur !
+
+### Lister toutes les variables d'environnement
+
+Pour voir toutes les variables disponibles et leur documentation :
+
+```bash
+cat .env.example
+```
+
+### Vérifier les variables manquantes
+
+Pour vérifier si votre `.env` contient toutes les variables requises :
+
+```bash
+# Comparer avec le template production
+comm -23 <(grep -E '^[A-Z_]+=' .env.production.example | cut -d'=' -f1 | sort) \
+         <(grep -E '^[A-Z_]+=' .env | cut -d'=' -f1 | sort)
+```
+
+Si des variables sont affichées, elles sont manquantes dans votre `.env`.
 
 ## Sauvegardes
 

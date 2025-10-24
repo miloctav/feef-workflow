@@ -11,6 +11,18 @@ FEEF Workflow is a Nuxt 4 application for managing the labeling certification wo
 
 ## Development Commands
 
+### Environment setup (first time)
+```bash
+# Copy development environment template
+cp .env.development .env
+
+# Or use the interactive setup script
+./scripts/setup-env.sh development
+
+# Install dependencies
+npm install
+```
+
 ### Basic commands
 ```bash
 npm install              # Install dependencies
@@ -29,11 +41,18 @@ npx drizzle-kit studio       # Open Drizzle Studio (database GUI)
 
 ### Docker deployment
 ```bash
+# Initial setup (production)
+./scripts/setup-env.sh production      # Configure environment variables
+
+# Deployment commands
 docker compose up -d                    # Start all services
 docker compose down                     # Stop all services
 docker compose logs -f app              # View application logs
 docker compose restart app              # Restart application
 docker compose up -d --build app        # Rebuild and restart application
+
+# Update script (production only)
+./scripts/update.sh                     # Automated update with backups
 ```
 
 See `DEPLOYMENT.md` for comprehensive deployment instructions including SSL configuration.
@@ -212,6 +231,56 @@ The application uses **MinIO** (S3-compatible object storage) for document file 
   - `initializeBucket()` - Ensure bucket exists (called on app startup)
 - **Integration**: Document versions store `minioKey` reference; downloads use signed URLs
 
+### Environment Variables Management
+
+The application uses a **multi-environment variable system** with automated deployment support:
+
+**File structure**:
+- `.env.development` - Development defaults (versioned) with safe values for local dev
+- `.env.production.example` - Production template (versioned) with placeholders
+- `.env.example` - Complete documentation of all variables
+- `.env` - Active environment file (NOT versioned, created from templates)
+
+**Scripts**:
+- `scripts/setup-env.sh` - Interactive environment setup with auto-generated secrets
+- `scripts/update.sh` - Production update with automatic detection of new variables
+
+**Adding a new environment variable - Complete workflow**:
+
+1. **Development**: Add to `.env.development` with dev-friendly value
+   ```bash
+   # In .env.development
+   NEW_API_KEY=dev_test_key_12345
+   ```
+
+2. **Production template**: Add to `.env.production.example` with placeholder
+   ```bash
+   # In .env.production.example
+   NEW_API_KEY=CHANGE_ME_YOUR_API_KEY_HERE
+   ```
+
+3. **Documentation**: Add to `.env.example` with full description
+   ```bash
+   # In .env.example
+   # [REQUIRED] API key for XYZ service
+   # Get your key from https://xyz.com/api-keys
+   NEW_API_KEY=re_your_api_key_here
+   ```
+
+4. **Docker Compose** (if needed): Variables are auto-loaded via `env_file: .env`
+   - Only add to `environment:` section if value needs to be overridden for Docker context
+
+5. **Production deployment**: When `./scripts/update.sh` runs:
+   - Automatically detects the new variable
+   - Prompts for the value interactively
+   - Adds to production `.env` with backup
+
+**Key patterns**:
+- Secrets (`NUXT_SESSION_PASSWORD`, `JWT_SECRET`) are **auto-generated** by setup script
+- Development uses simple/safe values, production uses strong secrets
+- Template files are versioned for documentation, actual `.env` is gitignored
+- Update script ensures zero-downtime deployment with automatic variable migration
+
 ## Key implementation patterns
 
 - **Auto-imported components**: Components in `app/components/` are auto-imported by Nuxt (configured in `nuxt.config.ts` with `pathPrefix: false`)
@@ -225,6 +294,7 @@ The application uses **MinIO** (S3-compatible object storage) for document file 
 - **Pagination pattern**: All list endpoints use `server/utils/pagination.ts` for consistent behavior
 - **File uploads**: Use MinIO service for document storage with versioning support
 - **Audit trail**: All tables track `createdBy`, `createdAt`, `updatedBy`, `updatedAt` for full audit history
+- **Environment variables**: Multi-environment system with automated deployment and migration (see above)
 
 ## Important notes
 

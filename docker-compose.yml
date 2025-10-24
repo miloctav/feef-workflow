@@ -51,21 +51,20 @@ services:
       dockerfile: Dockerfile
     container_name: feef-app
     restart: unless-stopped
+    # Load environment variables from .env file
+    env_file:
+      - .env
     environment:
+      # Override/force specific values for Docker environment
       NODE_ENV: production
+      # Database URL (constructed from .env variables)
       DATABASE_URL: postgresql://${POSTGRES_USER:-feef_user}:${POSTGRES_PASSWORD:-change_me_in_production}@postgres:5432/${POSTGRES_DB:-feef_db}
+      # MinIO endpoint (use container name for internal network)
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change_me_in_production}
       MINIO_USE_SSL: "false"
-      MINIO_BUCKET: ${MINIO_BUCKET:-feef-storage}
-      # Session and authentication
-      NUXT_SESSION_PASSWORD: ${NUXT_SESSION_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
-      DEV_MODE: ${DEV_MODE:-false}
+      # All other variables (POSTGRES_*, MINIO_*, NUXT_SESSION_PASSWORD, JWT_SECRET,
+      # RESEND_*, DEV_MODE) are loaded from .env file via env_file directive
     depends_on:
       postgres:
         condition: service_healthy
