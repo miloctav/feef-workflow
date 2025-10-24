@@ -16,7 +16,7 @@ echo "=========================================="
 echo ""
 echo "📦 Étape 1/2 : Application des migrations de la base de données"
 echo "------------------------------------------"
-NODE_PATH=/app/node_modules npx tsx server/database/migrate.ts
+npx drizzle-kit migrate
 if [ $? -eq 0 ]; then
   echo "✅ Migrations appliquées avec succès"
 else

@@ -41,8 +41,7 @@ COPY --from=build /app/.output ./
 # Copy migration files (needed for runtime execution)
 COPY --from=build /app/server/database/migrations ./server/database/migrations
 
-# Copy TypeScript source files needed for migration scripts
-COPY --from=build /app/server/database/migrate.ts ./server/database/migrate.ts
+# Copy TypeScript source files needed for initialization scripts
 COPY --from=build /app/server/database/init-storage.ts ./server/database/init-storage.ts
 COPY --from=build /app/server/database/schema.ts ./server/database/schema.ts
 COPY --from=build /app/server/database/index.ts ./server/database/index.ts
