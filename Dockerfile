@@ -49,6 +49,9 @@ COPY --from=build /app/server/database/index.ts ./server/database/index.ts
 COPY --from=build /app/server/services/minio.ts ./server/services/minio.ts
 COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
 
+# Create symlink so tsx can resolve modules from server directory
+RUN ln -s /app/node_modules /app/server/node_modules
+
 # Copy entrypoint script
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
