@@ -34,10 +34,23 @@ npm run db:seed          # Seed database with initial data
 
 ### Database commands
 ```bash
-npx drizzle-kit generate     # Generate migrations from schema changes
-npx drizzle-kit migrate      # Apply pending migrations
-npx drizzle-kit studio       # Open Drizzle Studio (database GUI)
+# Development workflow (recommended)
+npm run db:generate          # Generate migrations from schema changes
+npm run db:migrate           # Apply pending migrations to database
+npm run db:studio            # Open Drizzle Studio (database GUI)
+npm run db:push              # Quick push schema directly (dev only, no migrations)
+
+# Production workflow
+# Migrations are automatically applied on Docker container startup
+# via the docker-entrypoint.sh script
 ```
+
+**Migration workflow:**
+1. Modify the database schema in `server/database/schema.ts`
+2. Run `npm run db:generate` to create migration SQL files
+3. Review the generated migration in `server/database/migrations/`
+4. Commit the migration files to git
+5. Deploy: migrations will be applied automatically on startup
 
 ### Docker deployment
 ```bash
@@ -217,6 +230,13 @@ The application deploys with 5 services defined in `docker-compose.yml`:
 
 All services communicate on the `feef-network` bridge network. The app waits for postgres and minio health checks before starting.
 
+**Automatic initialization on startup** (`docker-entrypoint.sh`):
+1. Applies database migrations from `server/database/migrations/`
+2. Initializes MinIO bucket if it doesn't exist
+3. Starts the Nuxt application
+
+This ensures that the database schema is always up-to-date with zero manual intervention.
+
 ### Document Storage (MinIO)
 
 The application uses **MinIO** (S3-compatible object storage) for document file management:
@@ -285,6 +305,7 @@ The application uses a **multi-environment variable system** with automated depl
 
 - **Auto-imported components**: Components in `app/components/` are auto-imported by Nuxt (configured in `nuxt.config.ts` with `pathPrefix: false`)
 - **Database persistence**: Using Drizzle ORM with PostgreSQL for all data storage
+- **Database migrations**: Production uses versioned migrations (generated with `npm run db:generate`) applied automatically on startup; development can use `npm run db:push` for rapid prototyping
 - **API integration**: Frontend consumes RESTful API endpoints in `server/api/`
 - **Authentication**: Session-based auth via nuxt-auth-utils with role-based access control
 - **Type-safe queries**: Drizzle provides full TypeScript type safety from database to API

@@ -34,6 +34,15 @@ WORKDIR /app
 # Copy only the built output
 COPY --from=build /app/.output ./
 
+# Copy migration files (needed for runtime execution)
+COPY --from=build /app/server/database/migrations ./server/database/migrations
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+
+# Make entrypoint script executable
+RUN chmod +x /docker-entrypoint.sh
+
 # Verify the copy succeeded
 RUN if [ ! -f "server/index.mjs" ]; then \
         echo "ERROR: server/index.mjs not found after copy" && \
@@ -50,5 +59,5 @@ ENV NODE_ENV=production
 # Expose port
 EXPOSE 3000
 
-# Start the application
-CMD ["node", "/app/server/index.mjs"]
+# Use entrypoint script to run migrations and start the application
+ENTRYPOINT ["/docker-entrypoint.sh"]
