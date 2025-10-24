@@ -57,8 +57,11 @@ services:
     environment:
       # Override/force specific values for Docker environment
       NODE_ENV: production
-      # Database URL (constructed from .env variables)
-      DATABASE_URL: postgresql://${POSTGRES_USER:-feef_user}:${POSTGRES_PASSWORD:-change_me_in_production}@postgres:5432/${POSTGRES_DB:-feef_db}
+      # Database connection variables for Docker network
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      # Database URL (constructed from .env variables) - override dev value
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       # MinIO endpoint (use container name for internal network)
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000

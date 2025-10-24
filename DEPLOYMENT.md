@@ -29,6 +29,8 @@ cd /apps/feef-workflow
 
 L'application utilise un **script d'initialisation interactif** qui génère automatiquement les secrets de sécurité et guide la configuration.
 
+**⚠️ Important - DATABASE_URL** : Le fichier `.env` contient une `DATABASE_URL` configurée pour le développement local (`localhost:54320`). En production Docker, cette valeur est **automatiquement surchargée** par `docker-compose.yml` pour utiliser `postgres:5432` (le nom du service Docker). Vous n'avez PAS besoin de modifier cette variable manuellement - assurez-vous simplement que `POSTGRES_USER`, `POSTGRES_PASSWORD` et `POSTGRES_DB` sont correctement configurés.
+
 #### Option 1 : Configuration automatique (recommandée)
 
 ```bash
@@ -532,9 +534,28 @@ docker compose exec minio ls -la /data
 
 ### Erreur de connexion à la base de données
 
-Vérifiez que :
+**Symptôme** : Erreur `password authentication failed for user "feef_user"` lors des migrations
+
+**Causes possibles** :
+1. Le mot de passe PostgreSQL dans `.env` est incorrect ou utilise encore `change_me_in_production`
+2. Les variables `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` ne correspondent pas
+
+**Solution** :
+```bash
+# Vérifier les variables dans votre .env
+cat .env | grep POSTGRES
+
+# Reconfigurer si nécessaire
+./scripts/setup-env.sh production
+
+# Redémarrer les services
+docker compose down
+docker compose up -d
+```
+
+Vérifiez également que :
 1. Le service PostgreSQL est démarré : `docker compose ps postgres`
-2. Les variables d'environnement dans `.env` sont correctes
+2. Les variables d'environnement dans `.env` sont correctes (pas de valeurs par défaut)
 3. L'application attend que PostgreSQL soit prêt (healthcheck configuré)
 
 ## Support
