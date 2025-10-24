@@ -258,11 +258,20 @@ echo ""
 # === Écriture du fichier .env ===
 echo -e "${YELLOW}[$([[ "$ENVIRONMENT" = "production" ]] && echo "6" || echo "6")/8] Écriture du fichier .env...${NC}"
 
+# Fonction pour échapper les caractères spéciaux pour sed
+escape_for_sed() {
+    echo "$1" | sed 's/[&/\]/\\&/g'
+}
+
+# Échapper les valeurs contenant des caractères spéciaux
+ESCAPED_DATABASE_URL=$(escape_for_sed "$DATABASE_URL")
+ESCAPED_RESEND_FROM_EMAIL=$(escape_for_sed "$RESEND_FROM_EMAIL")
+
 # Remplacer les valeurs dans le fichier .env
 sed -i "s|POSTGRES_DB=.*|POSTGRES_DB=$POSTGRES_DB|g" "$ENV_FILE"
 sed -i "s|POSTGRES_USER=.*|POSTGRES_USER=$POSTGRES_USER|g" "$ENV_FILE"
 sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$POSTGRES_PASSWORD|g" "$ENV_FILE"
-sed -i "s|DATABASE_URL=.*|DATABASE_URL=$DATABASE_URL|g" "$ENV_FILE"
+sed -i "s|DATABASE_URL=.*|DATABASE_URL=$ESCAPED_DATABASE_URL|g" "$ENV_FILE"
 
 sed -i "s|MINIO_ROOT_USER=.*|MINIO_ROOT_USER=$MINIO_ROOT_USER|g" "$ENV_FILE"
 sed -i "s|MINIO_ROOT_PASSWORD=.*|MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD|g" "$ENV_FILE"
@@ -279,7 +288,7 @@ fi
 
 if [ -n "$RESEND_API_KEY" ]; then
     sed -i "s|RESEND_API_KEY=.*|RESEND_API_KEY=$RESEND_API_KEY|g" "$ENV_FILE"
-    sed -i "s|RESEND_FROM_EMAIL=.*|RESEND_FROM_EMAIL=$RESEND_FROM_EMAIL|g" "$ENV_FILE"
+    sed -i "s|RESEND_FROM_EMAIL=.*|RESEND_FROM_EMAIL=$ESCAPED_RESEND_FROM_EMAIL|g" "$ENV_FILE"
 else
     # Commenter les lignes Resend si pas configuré
     sed -i "s|RESEND_API_KEY=.*|# RESEND_API_KEY=|g" "$ENV_FILE"
