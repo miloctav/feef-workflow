@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -51,6 +49,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NUXT_SESSION_PASSWORD=${NUXT_SESSION_PASSWORD}
+        - JWT_SECRET=${JWT_SECRET}
     container_name: feef-app
     restart: unless-stopped
     environment:
