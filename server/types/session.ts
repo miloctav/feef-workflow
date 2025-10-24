@@ -11,10 +11,12 @@ export type EntityRoleData = {
 }
 
 // Interface de base pour la session utilisateur
-export interface SessionUser extends Omit<BaseSessionUser, 'oeId' | 'oeRole'> {
+export interface SessionUser extends Omit<BaseSessionUser, 'oeId' | 'oeRole' | 'currentEntityId'> {
   role: RoleType
   oeId: number | null
   oeRole: OERoleType | null
+  currentEntityId?: number
+  currentEntityRole?: EntityRoleType
   entityRoles?: EntityRoleData[]
 }
 

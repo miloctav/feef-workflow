@@ -78,6 +78,7 @@ export const accounts = pgTable('accounts', {
   role: roleEnum('role').notNull(),
   oeId: integer('oe_id').references(() => oes.id),
   oeRole: oeRoleEnum('oe_role'),
+  currentEntityId: integer('current_entity_id').references((): AnyPgColumn => entities.id),
   passwordChangedAt: timestamp('password_changed_at'),
   isActive: boolean('is_active').notNull().default(false),
   createdBy: integer('created_by').references(() => accounts.id),
@@ -192,6 +193,10 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
   oe: one(oes, {
     fields: [accounts.oeId],
     references: [oes.id],
+  }),
+  currentEntity: one(entities, {
+    fields: [accounts.currentEntityId],
+    references: [entities.id],
   }),
   accountsToEntities: many(accountsToEntities),
   audits: many(audits),

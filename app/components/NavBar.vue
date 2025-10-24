@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Role } from '#shared/types/roles'
+
 // Interface pour les éléments du breadcrumb
 interface BreadcrumbItem {
   label: string
@@ -18,6 +20,9 @@ const props = withDefaults(defineProps<Props>(), {
 const route = useRoute()
 
 const { isNotificationsSlideoverOpen } = useDashboard()
+
+// Récupérer la session pour vérifier le rôle
+const { data: session } = await useFetch('/api/auth/session')
 
 const defaultBreadcrumbItems = computed<BreadcrumbItem[]>(() => {
   if (props.breadcrumbItems.length > 0) {

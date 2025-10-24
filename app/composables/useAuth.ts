@@ -76,6 +76,34 @@ export const useAuth = () => {
     loginError.value = null
   }
 
+  /**
+   * Changer l'entité courante pour un compte ENTITY
+   */
+  const switchEntity = async (entityId: number) => {
+    try {
+      await $fetch('/api/auth/switch-entity', {
+        method: 'POST',
+        body: { entityId }
+      })
+
+      // Rafraîchir la session
+      await refreshSession()
+
+      // Recharger la page pour appliquer le nouveau contexte
+      window.location.reload()
+
+      return { success: true }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors du changement d\'entité'
+      console.error('Erreur lors du changement d\'entité:', e)
+
+      return {
+        success: false,
+        error: errorMessage,
+      }
+    }
+  }
+
   return {
     // Session state (depuis nuxt-auth-utils)
     loggedIn,
@@ -90,5 +118,6 @@ export const useAuth = () => {
     logout,
     refreshSession,
     clearLoginError,
+    switchEntity,
   }
 }

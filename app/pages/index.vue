@@ -25,7 +25,7 @@
         <UButton
           block
           label="Entité"
-          to="/company/alpha"
+          to="/entity"
           size="xl"
           color="neutral"
           icon="i-heroicons-building-office"

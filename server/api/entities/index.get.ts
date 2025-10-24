@@ -1,6 +1,6 @@
 import { and } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { entities as entitiesTable } from '~~/server/database/schema'
+import { entities as entitiesTable, accountsToEntities } from '~~/server/database/schema'
 import {
   parsePaginationParams,
   buildWhereConditions,
@@ -8,6 +8,7 @@ import {
   buildCountQuery,
   formatResponse,
 } from '~~/server/utils/pagination'
+import { Role } from '#shared/types/roles'
 
 /**
  * GET /api/entities
@@ -24,6 +25,11 @@ import {
  * - oeId: filtre par OE (support multiple: oeId=1,2,3)
  * - accountManagerId: filtre par chargé de compte
  * - parentGroupId: filtre par groupe parent
+ * - accountId: filtre par compte ayant accès (via accounts_to_entities) - auto-ajouté pour les comptes ENTITY
+ * - accountIdRole: filtre par rôle du compte sur l'entité (SIGNATORY, PROCESS_MANAGER) - utilisé avec accountId
+ *
+ * Note: Pour les utilisateurs avec role=ENTITY, le filtre accountId est automatiquement appliqué
+ * pour ne retourner que les entités auxquelles ils ont accès.
  *
  * Exemples:
  * - GET /api/entities?page=1&limit=50
@@ -32,11 +38,19 @@ import {
  * - GET /api/entities?type=COMPANY,GROUP&mode=MASTER
  * - GET /api/entities?sort=oe.name:asc&search=ABC
  * - GET /api/entities?sort=accountManager.lastname:asc
+ * - GET /api/entities?accountId=5&accountIdRole=SIGNATORY (pour FEEF/OE)
  * - GET /api/entities?limit=-1 (tous les résultats, sans pagination)
  */
 export default defineEventHandler(async (event) => {
   // Authentification requise
   const { user } = await requireUserSession(event)
+
+  const query = getQuery(event)
+
+  // Si compte ENTITY, filtrer uniquement les entités auxquelles il a accès
+  if (user.role === Role.ENTITY) {
+    query.accountId = String(user.id)
+  }
 
   // Configuration de la pagination
   const config = {
@@ -49,11 +63,21 @@ export default defineEventHandler(async (event) => {
       local: ['createdAt', 'name', 'type', 'mode'],
       relations: ['oe.name', 'accountManager.lastname', 'accountManager.firstname'],
     },
+    // Filtre via table de jonction pour les comptes ENTITY
+    junctionFilters: {
+      accountId: {
+        junctionTable: accountsToEntities,
+        localIdColumn: accountsToEntities.entityId,    // On veut récupérer les entityId
+        targetIdColumn: accountsToEntities.accountId,  // Filtrés par accountId
+        roleColumn: accountsToEntities.role,           // Support du filtre par rôle (optionnel)
+        roleParam: 'accountIdRole',                    // Nom du paramètre pour filtrer par rôle
+      },
+    },
     defaultSort: 'createdAt:desc',
   }
 
   // 1. Parser les paramètres de pagination
-  const params = parsePaginationParams(getQuery(event), config)
+  const params = parsePaginationParams(query, config)
 
   // 2. Construire les conditions WHERE
   const whereConditions = await buildWhereConditions(params, config)

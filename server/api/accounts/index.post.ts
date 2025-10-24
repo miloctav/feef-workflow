@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   const { firstname, lastname, email, role, oeId, oeRole, entityRoles } = body
 
 
-  if (currentUser.role !== Role.FEEF) {
+  if (currentUser.role === Role.FEEF) {
 
   } else if (currentUser.role === Role.OE && currentUser.oeRole === OERole.ADMIN) {
     if(currentUser.oeId !== oeId) {

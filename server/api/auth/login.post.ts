@@ -1,6 +1,9 @@
 import bcrypt from 'bcrypt'
+import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
+import { accounts } from '~~/server/database/schema'
 import { SessionUser } from '~~/server/types/session'
+import { getEntityContext } from '~~/server/utils/entity-context'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -86,6 +89,27 @@ export default defineEventHandler(async (event) => {
     }
   } else if (user.role === Role.ENTITY) {
     // Utilisateur Entity avec ses rôles sur différentes entités
+    let currentEntityId = user.currentEntityId
+    let currentEntityRole = null
+
+    // Si pas de currentEntityId défini, prendre la première entité
+    if (!currentEntityId && user.accountsToEntities.length > 0) {
+      currentEntityId = user.accountsToEntities[0].entityId
+
+      // Mettre à jour currentEntityId en DB
+      await db.update(accounts)
+        .set({ currentEntityId })
+        .where(eq(accounts.id, user.id))
+    }
+
+    // Récupérer le rôle sur l'entité courante
+    if (currentEntityId) {
+      const entityContext = await getEntityContext(user.id, currentEntityId)
+      if (entityContext) {
+        currentEntityRole = entityContext.role
+      }
+    }
+
     sessionData = {
       id: user.id,
       firstname: user.firstname,
@@ -94,6 +118,8 @@ export default defineEventHandler(async (event) => {
       role: user.role,
       oeId: user.oeId,
       oeRole: user.oeRole,
+      currentEntityId,
+      currentEntityRole,
       entityRoles: user.accountsToEntities.map((ate: { entityId: any; role: any }) => ({
         entityId: ate.entityId,
         role: ate.role,
