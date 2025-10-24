@@ -171,6 +171,13 @@ The application provides a **RESTful API** using Nuxt server routes in `server/a
 - `POST /api/auth/forgot-password` - Password reset request
 - `POST /api/auth/reset-password` - Password reset completion
 
+**Database seeding** (`server/api/`):
+- `POST /api/seed` - Secure endpoint to seed database with admin account
+  - Requires `SEED_TOKEN` in header (`x-seed-token`) or query param (`token`)
+  - Creates admin FEEF account (email: maxime@miloctav.fr, password: admin)
+  - Returns 409 Conflict if account already exists
+  - Usage: `curl -X POST http://your-domain/api/seed -H "x-seed-token: your_token"`
+
 **Account management** (`server/api/accounts/`):
 - `GET /api/accounts` - List all accounts (FEEF role only)
 - `POST /api/accounts` - Create new account

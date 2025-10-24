@@ -27,13 +27,13 @@
     "nuxt-auth-utils": "^0.5.25",
     "pg": "^8.16.3",
     "resend": "^6.1.2",
+    "tsx": "^4.20.6",
     "vue": "^3.5.21",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@iconify-json/lucide": "^1.2.66",
     "@types/pg": "^8.15.5",
-    "drizzle-kit": "^0.31.5",
-    "tsx": "^4.20.6"
+    "drizzle-kit": "^0.31.5"
   }
 }

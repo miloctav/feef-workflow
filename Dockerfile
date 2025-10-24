@@ -31,11 +31,23 @@ RUN npm run build && \
 FROM node:20-alpine
 WORKDIR /app
 
+# Copy package files and install production dependencies (including tsx)
+COPY --from=build /app/package.json /app/package-lock.json* ./
+RUN npm ci --omit=dev
+
 # Copy only the built output
 COPY --from=build /app/.output ./
 
 # Copy migration files (needed for runtime execution)
 COPY --from=build /app/server/database/migrations ./server/database/migrations
+
+# Copy TypeScript source files needed for migration scripts
+COPY --from=build /app/server/database/migrate.ts ./server/database/migrate.ts
+COPY --from=build /app/server/database/init-storage.ts ./server/database/init-storage.ts
+COPY --from=build /app/server/database/schema.ts ./server/database/schema.ts
+COPY --from=build /app/server/database/index.ts ./server/database/index.ts
+COPY --from=build /app/server/services/minio.ts ./server/services/minio.ts
+COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh /docker-entrypoint.sh

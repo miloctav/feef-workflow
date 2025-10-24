@@ -13,7 +13,7 @@ echo "=========================================="
 echo ""
 echo "📦 Étape 1/2 : Application des migrations de la base de données"
 echo "------------------------------------------"
-node /app/server/database/migrate.mjs
+npx tsx /app/server/database/migrate.ts
 if [ $? -eq 0 ]; then
   echo "✅ Migrations appliquées avec succès"
 else
@@ -25,7 +25,7 @@ fi
 echo ""
 echo "💾 Étape 2/2 : Initialisation du stockage MinIO"
 echo "------------------------------------------"
-node /app/server/database/init-storage.mjs
+npx tsx /app/server/database/init-storage.ts
 if [ $? -eq 0 ]; then
   echo "✅ Stockage initialisé avec succès"
 else
