@@ -48,59 +48,50 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 </script>
 
 <template>
-  <ClientOnly>
-    <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <div class="w-full max-w-md">
-        <div class="text-center mb-8">
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            FEEF Workflow
-          </h1>
-          <p class="text-gray-600 dark:text-gray-400">
-            Connectez-vous à votre compte
-          </p>
-        </div>
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+    <div class="w-full max-w-md">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          FEEF Workflow
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400">
+          Connectez-vous à votre compte
+        </p>
+      </div>
 
-        <UCard>
-          <UAuthForm
-            :schema="schema"
-            :fields="fields"
-            :loading="loginLoading"
-            title="Connexion"
-            submit-label="Se connecter"
-            icon="i-lucide-user"
-            @submit="onSubmit"
-          >
-            <template #validation>
-              <UAlert
-                v-if="loginError"
-                color="error"
-                variant="subtle"
-                :title="loginError"
-                :close-button="{ icon: 'i-lucide-x', color: 'red', variant: 'link' }"
-                @close="clearLoginError"
-              />
-            </template>
-          </UAuthForm>
-
-          <template #footer>
-            <div class="text-center">
-              <NuxtLink
-                to="/forgot-password"
-                class="text-sm text-primary hover:text-primary-600 dark:hover:text-primary-400 font-medium"
-              >
-                Mot de passe oublié ?
-              </NuxtLink>
-            </div>
+      <UCard>
+        <UAuthForm
+          :schema="schema"
+          :fields="fields"
+          :loading="loginLoading"
+          title="Connexion"
+          submit-label="Se connecter"
+          icon="i-lucide-user"
+          @submit="onSubmit"
+        >
+          <template #validation>
+            <UAlert
+              v-if="loginError"
+              color="error"
+              variant="subtle"
+              :title="loginError"
+              :close-button="{ icon: 'i-lucide-x', color: 'red', variant: 'link' }"
+              @close="clearLoginError"
+            />
           </template>
-        </UCard>
-      </div>
+        </UAuthForm>
+
+        <template #footer>
+          <div class="text-center">
+            <NuxtLink
+              to="/forgot-password"
+              class="text-sm text-primary hover:text-primary-600 dark:hover:text-primary-400 font-medium"
+            >
+              Mot de passe oublié ?
+            </NuxtLink>
+          </div>
+        </template>
+      </UCard>
     </div>
-    <template #fallback>
-      <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div class="text-center">
-          <p class="text-gray-600 dark:text-gray-400">Chargement...</p>
-        </div>
-      </div>
-    </template>
-  </ClientOnly>
+  </div>
 </template>
