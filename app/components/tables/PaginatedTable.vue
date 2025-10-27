@@ -1,8 +1,34 @@
 <template>
   <div>
-    <!-- Filtres et actions -->
+    <!-- Carte de filtres -->
+    <UCard v-if="hasFilters" class="mb-4 shadow-md rounded-xl p-6 bg-white dark:bg-gray-900">
+      <div class="flex items-center gap-2 mb-6">
+        <UIcon name="i-heroicons-funnel" class="w-6 h-6 text-primary" />
+        <h3 class="text-xl font-bold text-primary">{{ filtersTitle }}</h3>
+      </div>
+      <div class="space-y-4">
+        <!-- Slot pour les filtres personnalisés -->
+        <slot name="filters" :filters="filters" :update-filter="updateFilter" :has-active-filters="hasActiveFilters" />
+
+        <!-- Footer avec bouton réinitialiser et compteur -->
+        <div class="flex items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <UButton @click="resetFilters" color="neutral" variant="outline" size="sm" icon="i-heroicons-x-mark">
+            Réinitialiser
+          </UButton>
+          <div class="ml-auto text-sm text-gray-600 dark:text-gray-400">
+            <span class="font-bold">{{ pagination.total }}</span> résultat{{ pagination.total > 1 ? 's' : '' }} trouvé{{ pagination.total > 1 ? 's' : '' }}
+          </div>
+        </div>
+
+        <!-- Slot pour les badges de filtres actifs -->
+        <div v-if="hasActiveFilters" class="flex flex-wrap gap-2 mt-2">
+          <slot name="filter-badges" :filters="filters" />
+        </div>
+      </div>
+    </UCard>
+
+    <!-- Barre de recherche et bouton d'ajout -->
     <div class="mb-4 flex flex-col gap-4">
-      <!-- Barre de recherche, filtres personnalisés et bouton -->
       <div class="flex justify-between gap-4">
         <div class="flex gap-4 items-center">
           <UInput v-model="searchQuery" :placeholder="searchPlaceholder" icon="i-lucide-search" class="w-80"
@@ -12,8 +38,6 @@
                 aria-label="Effacer la recherche" @click="clearSearch" />
             </template>
           </UInput>
-          <!-- Slot pour filtres personnalisés -->
-          <slot name="filters" />
         </div>
 
         <!-- Modal de création -->
@@ -123,10 +147,13 @@ const props = withDefaults(defineProps<{
   addButtonText?: string
   addButtonIcon?: string
   searchPlaceholder?: string
+  hasFilters?: boolean
+  filtersTitle?: string
   onRowClick?: (row: T) => void
   onDelete?: (item: T) => Promise<{ success: boolean }>
   onPageChange: (page: number) => void
   onSearch: (search: string) => void
+  onFiltersChange?: (filters: Record<string, any>) => void
   getItemName?: (item: T) => string
 }>(), {
   loading: false,
@@ -135,6 +162,8 @@ const props = withDefaults(defineProps<{
   addButtonIcon: 'i-lucide-plus',
   searchPlaceholder: 'Rechercher...',
   hasAddButton: true,
+  hasFilters: false,
+  filtersTitle: 'Filtres',
   getItemName: (item: T) => String(item.name || item.id || 'cet élément')
 })
 
@@ -145,6 +174,30 @@ const setSearch = props.onSearch
 
 // State pour la recherche
 const searchQuery = ref('')
+
+// État des filtres
+const filters = ref<Record<string, any>>({})
+
+// Computed pour vérifier s'il y a des filtres actifs
+const hasActiveFilters = computed(() => {
+  return Object.values(filters.value).some(value => value !== null && value !== undefined && value !== '')
+})
+
+// Fonction pour mettre à jour un filtre
+const updateFilter = (name: string, value: any) => {
+  filters.value[name] = value
+  if (props.onFiltersChange) {
+    props.onFiltersChange({ ...filters.value })
+  }
+}
+
+// Fonction pour réinitialiser les filtres
+const resetFilters = () => {
+  filters.value = {}
+  if (props.onFiltersChange) {
+    props.onFiltersChange({})
+  }
+}
 
 // State pour le modal de suppression
 const isDeleteModalOpen = ref(false)

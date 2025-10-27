@@ -1,66 +1,10 @@
 <template>
   <div class="w-full space-y-4">
-    <!-- Filtres personnalisés -->
-    <UCard v-if="hasFilters && showFiltersCard" class="shadow-md rounded-xl p-6 bg-white dark:bg-gray-900">
-      <div class="flex items-center gap-2 mb-6">
-        <UIcon name="i-heroicons-funnel" class="w-6 h-6 text-primary" />
-        <h3 class="text-xl font-bold text-primary">Filtres comptes</h3>
-      </div>
-      <div class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Filtre par rôle dans l'entité (mode entityId) -->
-          <FilterSelect
-            v-if="entityId"
-            label="Rôle dans l'entité"
-            v-model="filters.entityRole"
-            :items="entityRoleItems"
-            placeholder="Tous les rôles"
-            @update:model-value="handleFilterChange"
-          />
-          <!-- Filtre par rôle dans l'OE (mode oeId) -->
-          <FilterSelect
-            v-else-if="oeId"
-            label="Rôle dans l'OE"
-            v-model="filters.oeRole"
-            :items="oeRoleItems"
-            placeholder="Tous les rôles"
-            @update:model-value="handleFilterChange"
-          />
-          <!-- Filtre par rôle global (mode sans entityId ni oeId) -->
-          <FilterSelect
-            v-else
-            label="Rôle global"
-            v-model="filters.role"
-            :items="roleFilterItems"
-            placeholder="Tous les rôles"
-            @update:model-value="handleFilterChange"
-          />
-        </div>
-        <div class="flex items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <UButton @click="resetFilters" color="neutral" variant="outline" size="sm" icon="i-heroicons-x-mark">
-            Réinitialiser
-          </UButton>
-          <div class="ml-auto text-sm text-gray-600 dark:text-gray-400">
-            <span class="font-bold">{{ pagination.total }}</span> compte{{ pagination.total > 1 ? 's' : '' }} trouvé{{
-              pagination.total > 1 ? 's' : '' }}
-          </div>
-        </div>
-        <div v-if="hasActiveFilters" class="flex flex-wrap gap-2 mt-2">
-          <UBadge v-if="filters.entityRole !== null" variant="subtle" color="primary" size="sm">
-            Rôle entité: {{ getFilterLabel('entityRole', filters.entityRole) }}
-          </UBadge>
-          <UBadge v-if="filters.oeRole !== null" variant="subtle" color="primary" size="sm">
-            Rôle OE: {{ getFilterLabel('oeRole', filters.oeRole) }}
-          </UBadge>
-          <UBadge v-if="filters.role !== null" variant="subtle" color="primary" size="sm">
-            Rôle: {{ getFilterLabel('role', filters.role) }}
-          </UBadge>
-        </div>
-      </div>
-    </UCard>
-
     <!-- Table paginée -->
     <PaginatedTable
+      :has-filters="hasFilters && showFiltersCard"
+      filters-title="Filtres comptes"
+      :on-filters-change="handleFiltersChange"
       :data="accounts"
       :pagination="pagination"
       :loading="fetchLoading"
@@ -74,6 +18,50 @@
       :on-delete="allowDelete ? handleDelete : undefined"
       :get-item-name="(account) => `${account.firstname} ${account.lastname}`"
     >
+      <template #filters="{ filters, updateFilter }">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Filtre par rôle dans l'entité (mode entityId) -->
+          <FilterSelect
+            v-if="entityId"
+            label="Rôle dans l'entité"
+            :model-value="filters.entityRole"
+            @update:model-value="updateFilter('entityRole', $event)"
+            :items="entityRoleItems"
+            placeholder="Tous les rôles"
+          />
+          <!-- Filtre par rôle dans l'OE (mode oeId) -->
+          <FilterSelect
+            v-else-if="oeId"
+            label="Rôle dans l'OE"
+            :model-value="filters.oeRole"
+            @update:model-value="updateFilter('oeRole', $event)"
+            :items="oeRoleItems"
+            placeholder="Tous les rôles"
+          />
+          <!-- Filtre par rôle global (mode sans entityId ni oeId) -->
+          <FilterSelect
+            v-else
+            label="Rôle global"
+            :model-value="filters.role"
+            @update:model-value="updateFilter('role', $event)"
+            :items="roleFilterItems"
+            placeholder="Tous les rôles"
+          />
+        </div>
+      </template>
+
+      <template #filter-badges="{ filters }">
+        <UBadge v-if="filters.entityRole !== null" variant="subtle" color="primary" size="sm">
+          Rôle entité: {{ getFilterLabel('entityRole', filters.entityRole) }}
+        </UBadge>
+        <UBadge v-if="filters.oeRole !== null" variant="subtle" color="primary" size="sm">
+          Rôle OE: {{ getFilterLabel('oeRole', filters.oeRole) }}
+        </UBadge>
+        <UBadge v-if="filters.role !== null" variant="subtle" color="primary" size="sm">
+          Rôle: {{ getFilterLabel('role', filters.role) }}
+        </UBadge>
+      </template>
+
       <template #create-form>
         <UForm ref="form" :schema="schema" :state="state" class="space-y-4">
           <UFormField label="Prénom" name="firstname" required>
@@ -254,13 +242,6 @@ const { fetchEntitiesForSelect } = useEntities()
 const oesList = ref<Array<{ label: string; value: number | null }>>([])
 const entitiesList = ref<Array<{ label: string; value: number | null }>>([])
 
-// États des filtres locaux (avant application)
-const filters = ref({
-  entityRole: null as EntityRoleType | null,
-  oeRole: null as OERoleType | null,
-  role: null as RoleType | null,
-})
-
 // Items pour les filtres avec labels en français
 const entityRoleItems = ref<Array<{ label: string; value: EntityRoleType | null }>>([
   { label: 'Tous les rôles', value: null },
@@ -308,14 +289,9 @@ onMounted(async () => {
   fetchAccounts()
 })
 
-// Computed pour vérifier s'il y a des filtres actifs
-const hasActiveFilters = computed(() => {
-  return filters.value.entityRole !== null || filters.value.oeRole !== null || filters.value.role !== null
-})
-
-// Appliquer les filtres (fonction utilitaire interne)
-const handleFilterChange = () => {
-  const activeFilters: Record<string, any> = {}
+// Gérer les changements de filtres depuis PaginatedTable
+const handleFiltersChange = (newFilters: Record<string, any>) => {
+  const activeFilters: Record<string, any> = { ...newFilters }
 
   // Préserver le filtre entityId si fourni en props
   if (props.entityId) {
@@ -325,18 +301,6 @@ const handleFilterChange = () => {
   // Préserver le filtre oeId si fourni en props
   if (props.oeId) {
     activeFilters.oeId = props.oeId
-  }
-
-  if (filters.value.entityRole !== null) {
-    activeFilters.entityRole = filters.value.entityRole
-  }
-
-  if (filters.value.oeRole !== null) {
-    activeFilters.oeRole = filters.value.oeRole
-  }
-
-  if (filters.value.role !== null) {
-    activeFilters.role = filters.value.role
   }
 
   setFilters(activeFilters)
@@ -356,26 +320,6 @@ const getFilterLabel = (filterName: string, filterValue: EntityRoleType | OERole
     return getRoleLabel(filterValue as RoleType)
   }
   return String(filterValue)
-}
-
-// Réinitialiser les filtres
-const resetFilters = () => {
-  filters.value = {
-    entityRole: null,
-    oeRole: null,
-    role: null,
-  }
-
-  // Préserver le filtre entityId ou oeId si fourni en props
-  const baseFilters: Record<string, any> = {}
-  if (props.entityId) {
-    baseFilters.entityId = props.entityId
-  }
-  if (props.oeId) {
-    baseFilters.oeId = props.oeId
-  }
-
-  setFilters(baseFilters)
 }
 
 // Placeholder de recherche dynamique

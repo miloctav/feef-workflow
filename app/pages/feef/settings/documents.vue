@@ -15,6 +15,9 @@
 
         <!-- Tableau paginé -->
         <PaginatedTable
+          has-filters
+          filters-title="Filtres documents"
+          :on-filters-change="handleFiltersChange"
           :data="documentsType"
           :pagination="pagination"
           :loading="fetchLoading"
@@ -28,25 +31,32 @@
           :get-item-name="(doc) => doc.title"
         >
           <!-- Filtres personnalisés -->
-          <template #filters>
-            <FilterSelect
-              v-model="selectedCategory"
-              :items="categoryOptions"
-              value-key="value"
-              placeholder="Toutes les catégories"
-              class="w-64"
-              clearable
-              @update:model-value="handleCategoryFilter"
-            />
-            <FilterSelect
-              v-model="selectedAutoAsk"
-              :items="autoAskOptions"
-              value-key="value"
-              placeholder="Demande auto"
-              class="w-48"
-              clearable
-              @update:model-value="handleAutoAskFilter"
-            />
+          <template #filters="{ filters, updateFilter }">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FilterSelect
+                label="Catégorie"
+                :model-value="filters.category"
+                @update:model-value="updateFilter('category', $event)"
+                :items="categoryFilterOptions"
+                placeholder="Toutes les catégories"
+              />
+              <FilterSelect
+                label="Demande automatique"
+                :model-value="filters.autoAsk"
+                @update:model-value="updateFilter('autoAsk', $event)"
+                :items="autoAskFilterOptions"
+                placeholder="Tous"
+              />
+            </div>
+          </template>
+
+          <template #filter-badges="{ filters }">
+            <UBadge v-if="filters.category !== null" variant="subtle" color="primary" size="sm">
+              Catégorie: {{ getCategoryLabel(filters.category) }}
+            </UBadge>
+            <UBadge v-if="filters.autoAsk !== null" variant="subtle" color="success" size="sm">
+              Demande auto: {{ filters.autoAsk === 'true' ? 'Oui' : 'Non' }}
+            </UBadge>
           </template>
           <template #create-form>
             <UForm ref="form" :schema="schema" :state="state" class="space-y-4">
@@ -125,15 +135,11 @@ const {
   fetchDocumentsType,
 } = useDocumentsType()
 
-// State pour les filtres
-const selectedCategory = ref<string | undefined>(undefined)
-const selectedAutoAsk = ref<string | undefined>(undefined)
-
 onMounted(() => {
   fetchDocumentsType()
 })
 
-// Options de catégories avec labels en français
+// Options de catégories pour le formulaire de création
 const categoryOptions = [
   { value: 'LEGAL', label: 'Légal' },
   { value: 'FINANCIAL', label: 'Financier' },
@@ -141,8 +147,15 @@ const categoryOptions = [
   { value: 'OTHER', label: 'Autre' },
 ]
 
+// Options de catégories pour les filtres (avec option "Tous")
+const categoryFilterOptions = [
+  { value: null, label: 'Toutes les catégories' },
+  ...categoryOptions,
+]
+
 // Options pour le filtre demande automatique
-const autoAskOptions = [
+const autoAskFilterOptions = [
+  { value: null, label: 'Tous' },
   { value: 'true', label: 'Oui' },
   { value: 'false', label: 'Non' },
 ]
@@ -255,35 +268,14 @@ const handleDelete = async (doc: DocumentTypeWithRelations) => {
   return await deleteDocumentType(doc.id)
 }
 
-// Gérer le filtre par catégorie
-const handleCategoryFilter = (value: string | undefined) => {
-  const filters: Record<string, string> = {}
-
-  if (value) {
-    filters.category = value
-  }
-
-  // Conserver le filtre autoAsk s'il est actif
-  if (selectedAutoAsk.value) {
-    filters.autoAsk = selectedAutoAsk.value
-  }
-
-  setFilters(filters)
+// Gérer les changements de filtres depuis PaginatedTable
+const handleFiltersChange = (newFilters: Record<string, any>) => {
+  setFilters(newFilters)
 }
 
-// Gérer le filtre par demande automatique
-const handleAutoAskFilter = (value: string | undefined) => {
-  const filters: Record<string, string> = {}
-
-  // Conserver le filtre category s'il est actif
-  if (selectedCategory.value) {
-    filters.category = selectedCategory.value
-  }
-
-  if (value) {
-    filters.autoAsk = value
-  }
-
-  setFilters(filters)
+// Obtenir le label d'une catégorie pour l'affichage
+const getCategoryLabel = (category: string | null): string => {
+  if (!category) return ''
+  return categoryLabels[category] || category
 }
 </script>

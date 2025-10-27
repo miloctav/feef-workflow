@@ -1,50 +1,73 @@
 <template>
   <div class="w-full space-y-4">
-    <!-- Filtres personnalisés -->
-    <UCard class="shadow-md rounded-xl p-6 bg-white dark:bg-gray-900">
-      <div class="flex items-center gap-2 mb-6">
-        <UIcon name="i-heroicons-funnel" class="w-6 h-6 text-primary" />
-        <h3 class="text-xl font-bold text-primary">Filtres entités</h3>
-      </div>
-      <div class="space-y-4">
-        <div
-          :class="user?.role === Role.FEEF ? 'grid grid-cols-1 md:grid-cols-4 gap-4' : 'grid grid-cols-1 md:grid-cols-3 gap-4'">
-          <FilterSelect label="Type d'entité" v-model="filters.type" :items="entityTypeItems"
-            placeholder="Type d'entité" @update:model-value="handleFilterChange" />
-          <FilterSelect label="Mode de labellisation" v-model="filters.mode" :items="entityModeItems" placeholder="Mode"
-            @update:model-value="handleFilterChange" />
-          <FilterSelect v-if="user?.role === Role.FEEF" label="Organisme Évaluateur" v-model="filters.oeId" :items="oeItems"
-            placeholder="OE" @update:model-value="handleFilterChange" />
-          <FilterSelect v-if="user?.role === Role.FEEF" label="Chargé de compte" v-model="filters.accountManagerId"
-            :items="accountManagerItems" placeholder="Chargé de compte" @update:model-value="handleFilterChange" />
-        </div>
-        <div class="flex items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <UButton @click="resetFilters" color="neutral" variant="outline" size="sm" icon="i-heroicons-x-mark">
-            Réinitialiser</UButton>
-          <div class="ml-auto text-sm text-gray-600 dark:text-gray-400">
-            <span class="font-bold">{{ pagination.total }}</span> entité{{ pagination.total > 1 ? 's' : '' }} trouvée{{
-              pagination.total > 1 ? 's' : '' }}
-          </div>
-        </div>
-        <div v-if="hasActiveFilters" class="flex flex-wrap gap-2 mt-2">
-          <UBadge v-if="filters.type !== null" variant="subtle" color="primary" size="sm">Type: {{
-            getFilterLabel('type', filters.type) }}</UBadge>
-          <UBadge v-if="filters.mode !== null" variant="subtle" color="secondary" size="sm">Mode: {{
-            getFilterLabel('mode', filters.mode) }}</UBadge>
-          <UBadge v-if="filters.oeId !== null" variant="subtle" color="info" size="sm">OE: {{ getFilterLabel('oeId',
-            filters.oeId) }}</UBadge>
-          <UBadge v-if="filters.accountManagerId !== null" variant="subtle" color="success" size="sm">Chargé: {{
-            getFilterLabel('accountManagerId', filters.accountManagerId) }}</UBadge>
-        </div>
-      </div>
-    </UCard>
-
     <!-- Table paginée -->
-    <PaginatedTable :data="entities" :pagination="pagination" :loading="fetchLoading" :error="fetchError"
-      :columns="columns" :on-page-change="goToPage" :on-search="setSearch"
+    <PaginatedTable
+      has-filters
+      filters-title="Filtres entités"
+      :on-filters-change="handleFiltersChange"
+      :data="entities"
+      :pagination="pagination"
+      :loading="fetchLoading"
+      :error="fetchError"
+      :columns="columns"
+      :on-page-change="goToPage"
+      :on-search="setSearch"
       :add-button-text="user?.role === Role.FEEF ? 'Créer une nouvelle entité' : undefined"
-      search-placeholder="Rechercher par nom, SIREN, SIRET..." :on-row-click="handleRowClick"
-      :on-delete="user?.role === Role.FEEF ? handleDelete : undefined" :get-item-name="(entity) => entity.name">
+      search-placeholder="Rechercher par nom, SIREN, SIRET..."
+      :on-row-click="handleRowClick"
+      :on-delete="user?.role === Role.FEEF ? handleDelete : undefined"
+      :get-item-name="(entity) => entity.name"
+    >
+      <template #filters="{ filters, updateFilter }">
+        <div :class="user?.role === Role.FEEF ? 'grid grid-cols-1 md:grid-cols-4 gap-4' : 'grid grid-cols-1 md:grid-cols-3 gap-4'">
+          <FilterSelect
+            label="Type d'entité"
+            :model-value="filters.type"
+            @update:model-value="updateFilter('type', $event)"
+            :items="entityTypeItems"
+            placeholder="Type d'entité"
+          />
+          <FilterSelect
+            label="Mode de labellisation"
+            :model-value="filters.mode"
+            @update:model-value="updateFilter('mode', $event)"
+            :items="entityModeItems"
+            placeholder="Mode"
+          />
+          <FilterSelect
+            v-if="user?.role === Role.FEEF"
+            label="Organisme Évaluateur"
+            :model-value="filters.oeId"
+            @update:model-value="updateFilter('oeId', $event)"
+            :items="oeItems"
+            placeholder="OE"
+          />
+          <FilterSelect
+            v-if="user?.role === Role.FEEF"
+            label="Chargé de compte"
+            :model-value="filters.accountManagerId"
+            @update:model-value="updateFilter('accountManagerId', $event)"
+            :items="accountManagerItems"
+            placeholder="Chargé de compte"
+          />
+        </div>
+      </template>
+
+      <template #filter-badges="{ filters }">
+        <UBadge v-if="filters.type !== null" variant="subtle" color="primary" size="sm">
+          Type: {{ getFilterLabel('type', filters.type) }}
+        </UBadge>
+        <UBadge v-if="filters.mode !== null" variant="subtle" color="secondary" size="sm">
+          Mode: {{ getFilterLabel('mode', filters.mode) }}
+        </UBadge>
+        <UBadge v-if="filters.oeId !== null" variant="subtle" color="info" size="sm">
+          OE: {{ getFilterLabel('oeId', filters.oeId) }}
+        </UBadge>
+        <UBadge v-if="filters.accountManagerId !== null" variant="subtle" color="success" size="sm">
+          Chargé: {{ getFilterLabel('accountManagerId', filters.accountManagerId) }}
+        </UBadge>
+      </template>
+
       <template v-if="user?.role === Role.FEEF" #create-form>
         <UForm ref="form" :schema="schema" :state="state" class="space-y-4">
           <UFormField label="Nom de l'entité" name="name" required>
@@ -108,14 +131,6 @@ const {
   fetchEntities,
 } = useEntities()
 
-// États des filtres locaux (avant application)
-const filters = ref({
-  type: null as EntityTypeType | null,
-  mode: null as EntityModeType | null,
-  oeId: null as number | null,
-  accountManagerId: null as number | null,
-})
-
 // Items pour les filtres avec labels en français
 const entityTypeItems = getEntityTypeItems(true) // true = inclure "Tous les types"
 const entityModeItems = getEntityModeItems(true) // true = inclure "Tous les modes"
@@ -167,32 +182,9 @@ onMounted(() => {
 const createEntityTypeItems = getEntityTypeItems(false) // false = sans "Tous les types"
 const createEntityModeItems = getEntityModeItems(false) // false = sans "Tous les modes"
 
-// Computed pour vérifier s'il y a des filtres actifs
-const hasActiveFilters = computed(() => {
-  return filters.value.type !== null ||
-    filters.value.mode !== null ||
-    filters.value.oeId !== null ||
-    filters.value.accountManagerId !== null
-})
-
-// Appliquer les filtres (fonction utilitaire interne)
-const handleFilterChange = () => {
-  const activeFilters: Record<string, any> = {}
-
-  if (filters.value.type !== null) {
-    activeFilters.type = filters.value.type
-  }
-  if (filters.value.mode !== null) {
-    activeFilters.mode = filters.value.mode
-  }
-  if (filters.value.oeId !== null) {
-    activeFilters.oeId = filters.value.oeId
-  }
-  if (filters.value.accountManagerId !== null) {
-    activeFilters.accountManagerId = filters.value.accountManagerId
-  }
-
-  setFilters(activeFilters)
+// Gérer les changements de filtres depuis PaginatedTable
+const handleFiltersChange = (newFilters: Record<string, any>) => {
+  setFilters(newFilters)
 }
 
 // Obtenir le label d'un filtre pour l'affichage
@@ -214,17 +206,6 @@ const getFilterLabel = (filterName: string, filterValue: EntityTypeType | Entity
     return manager?.label || String(filterValue)
   }
   return String(filterValue)
-}
-
-// Réinitialiser les filtres
-const resetFilters = () => {
-  filters.value = {
-    type: null,
-    mode: null,
-    oeId: null,
-    accountManagerId: null,
-  }
-  setFilters({})
 }
 
 // Schéma de validation pour le formulaire
