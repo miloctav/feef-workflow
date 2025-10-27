@@ -107,28 +107,6 @@ services:
       - certbot_www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
-  # pgAdmin - Database Management Tool
-  # Access via http://your-ip:5050
-  # Login with PGADMIN_EMAIL and PGADMIN_PASSWORD from .env
-  # IMPORTANT: Restrict access or disable this service after initial setup in production
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: feef-pgadmin
-    restart: unless-stopped
-    ports:
-      - "5050:80"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@feef.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-changeme}
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - feef-network
-    depends_on:
-      - postgres
-
 volumes:
   postgres_data:
     driver: local
@@ -137,8 +115,6 @@ volumes:
   certbot_certs:
     driver: local
   certbot_www:
-    driver: local
-  pgadmin_data:
     driver: local
 
 networks:
