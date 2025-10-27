@@ -91,10 +91,6 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
           </div>
         </template>
       </UCard>
-
-      <div class="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-        <p>Compte de test : maxime@miloctav.fr / admin</p>
-      </div>
     </div>
   </div>
 </template>

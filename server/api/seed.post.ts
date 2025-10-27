@@ -57,13 +57,14 @@ export default defineEventHandler(async (event) => {
     }
 
     // Hasher le mot de passe
-    const hashedPassword = await bcrypt.hash('admin', 10)
+    const hashedPassword = await bcrypt.hash('password', 10)
 
     // Créer le compte FEEF admin
     const [newAccount] = await db.insert(accounts).values({
       firstname: 'Maxime',
       lastname: 'Admin',
       email: 'maxime@miloctav.fr',
+      isActive: true,
       password: hashedPassword,
       role: 'FEEF',
       oeId: null,
