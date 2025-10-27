@@ -37,14 +37,6 @@ fi
 
 cd "$APP_DIR"
 
-# Charger les variables d'environnement depuis .env
-# Nécessaire pour les commandes pg_dump et autres qui ont besoin des credentials
-if [ -f "$APP_DIR/.env" ]; then
-    set -a  # Automatically export all variables
-    source "$APP_DIR/.env"
-    set +a  # Stop auto-export
-fi
-
 # Vérifier que Docker est disponible
 if ! command -v docker &> /dev/null; then
     echo -e "${RED}Erreur: Docker n'est pas installé ou accessible${NC}"
