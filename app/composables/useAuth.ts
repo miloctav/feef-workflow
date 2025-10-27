@@ -6,8 +6,15 @@ interface LoginCredentials {
 }
 
 export const useAuth = () => {
-  // State partagé avec nuxt-auth-utils
-  const { loggedIn, user, fetch: refreshSession, clear } = useUserSession()
+  // State partagé avec nuxt-auth-utils - protégé pour SSR
+  const session = process.client ? useUserSession() : {
+    loggedIn: ref(false),
+    user: ref(null),
+    fetch: async () => {},
+    clear: async () => {},
+  }
+
+  const { loggedIn, user, fetch: refreshSession, clear } = session
 
   // États de chargement
   const loginLoading = useState('auth:loginLoading', () => false)
