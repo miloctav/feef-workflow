@@ -258,6 +258,32 @@ The application uses **MinIO** (S3-compatible object storage) for document file 
   - `initializeBucket()` - Ensure bucket exists (called on app startup)
 - **Integration**: Document versions store `minioKey` reference; downloads use signed URLs
 
+### Authentication & Session Cookies (HTTP vs HTTPS)
+
+The application uses **nuxt-auth-utils** for session management with secure encrypted cookies:
+
+**Cookie Security Behavior:**
+- By default, `nuxt-auth-utils` sets the `Secure` flag on session cookies in production
+- Cookies with `Secure` flag are **only sent over HTTPS**, never over HTTP
+- This causes authentication to fail on HTTP-only deployments (users get redirected to login after successful login)
+
+**Solution for HTTP deployments:**
+
+The application includes `server/plugins/session-cookie.ts` which removes the `Secure` flag from session cookies, allowing authentication to work on HTTP.
+
+**IMPORTANT - HTTPS Migration:**
+When migrating to HTTPS (recommended for production):
+1. Configure SSL certificates (see `DEPLOYMENT.md`)
+2. **Delete** or disable `server/plugins/session-cookie.ts` to restore the `Secure` flag
+3. Restart the application
+
+**Why this matters:**
+- **HTTP**: Session cookies without `Secure` flag = works, but less secure (traffic not encrypted)
+- **HTTPS**: Session cookies with `Secure` flag = works, fully secure (traffic encrypted)
+- **Mixed**: Trying to use `Secure` cookies on HTTP = authentication broken (cookies never sent)
+
+**Production recommendation:** Use HTTPS with Let's Encrypt (free SSL certificates). See `DEPLOYMENT.md` for setup instructions.
+
 ### Environment Variables Management
 
 The application uses a **multi-environment variable system** with automated deployment support:
