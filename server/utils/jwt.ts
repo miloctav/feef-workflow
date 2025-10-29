@@ -6,12 +6,13 @@ import * as jose from 'jose'
  */
 
 /**
- * Récupère la clé secrète pour signer les JWT depuis les variables d'environnement
+ * Récupère la clé secrète pour signer les JWT depuis le runtimeConfig
  */
 function getJWTSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET
+  const config = useRuntimeConfig()
+  const secret = config.jwtSecret
   if (!secret) {
-    throw new Error('JWT_SECRET n\'est pas défini dans les variables d\'environnement')
+    throw new Error('JWT_SECRET n\'est pas défini dans le runtimeConfig')
   }
   return new TextEncoder().encode(secret)
 }

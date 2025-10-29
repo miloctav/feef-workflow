@@ -8,27 +8,39 @@ import {
 } from '@aws-sdk/client-s3'
 import { getSignedUrl as getS3SignedUrl } from '@aws-sdk/s3-request-presigner'
 
-// Configuration Garage depuis les variables d'environnement
-const config = {
-  endpoint: process.env.GARAGE_ENDPOINT || 'http://54.38.183.70:3900',
-  region: process.env.GARAGE_REGION || 'garage',
-  credentials: {
-    accessKeyId: process.env.GARAGE_ACCESS_KEY || '',
-    secretAccessKey: process.env.GARAGE_SECRET_KEY || '',
-  },
-  forcePathStyle: true, // Important pour Garage
-}
-
-const bucketName = process.env.GARAGE_BUCKET || 'feef-storage'
-
 // Singleton du client S3
 let s3Client: S3Client | null = null
+
+/**
+ * Obtenir la configuration Garage depuis le runtimeConfig
+ */
+function getGarageConfig() {
+  const config = useRuntimeConfig()
+  return {
+    endpoint: config.garage.endpoint,
+    region: config.garage.region,
+    credentials: {
+      accessKeyId: config.garage.accessKey,
+      secretAccessKey: config.garage.secretKey,
+    },
+    forcePathStyle: true, // Important pour Garage
+  }
+}
+
+/**
+ * Obtenir le nom du bucket depuis le runtimeConfig
+ */
+function getBucketName(): string {
+  const config = useRuntimeConfig()
+  return config.garage.bucket
+}
 
 /**
  * Obtenir ou créer le client S3 (Garage)
  */
 export function getGarageClient(): S3Client {
   if (!s3Client) {
+    const config = getGarageConfig()
     s3Client = new S3Client(config)
   }
   return s3Client
@@ -41,6 +53,7 @@ export function getGarageClient(): S3Client {
  */
 export async function initializeBucket(): Promise<void> {
   const client = getGarageClient()
+  const bucketName = getBucketName()
 
   try {
     // Vérifier si le bucket existe
@@ -86,6 +99,7 @@ export async function uploadFile(
   versionId: number
 ): Promise<string> {
   const client = getGarageClient()
+  const bucketName = getBucketName()
 
   // Générer la clé avec la structure: documents/{entityId}/{documentaryReviewId}/{versionId}-{filename}
   const key = `documents/${entityId}/${documentaryReviewId}/${versionId}-${filename}`
@@ -115,6 +129,7 @@ export async function uploadFile(
  */
 export async function getSignedUrl(key: string): Promise<string> {
   const client = getGarageClient()
+  const bucketName = getBucketName()
 
   try {
     // Créer la commande GetObject
@@ -139,6 +154,7 @@ export async function getSignedUrl(key: string): Promise<string> {
  */
 export async function deleteFile(key: string): Promise<void> {
   const client = getGarageClient()
+  const bucketName = getBucketName()
 
   try {
     await client.send(

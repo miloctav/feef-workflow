@@ -24,12 +24,13 @@ export default defineEventHandler(async (event) => {
     const tokenFromQuery = getQuery(event).token as string | undefined
     const providedToken = tokenFromHeader || tokenFromQuery
 
-    const expectedToken = process.env.SEED_TOKEN
+    const config = useRuntimeConfig(event)
+    const expectedToken = config.seedToken
 
     if (!expectedToken) {
       throw createError({
         statusCode: 500,
-        statusMessage: 'SEED_TOKEN is not configured in environment variables',
+        statusMessage: 'SEED_TOKEN is not configured in runtimeConfig',
       })
     }
 

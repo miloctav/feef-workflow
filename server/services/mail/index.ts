@@ -8,31 +8,54 @@ import { Resend } from 'resend'
  * Fournit des méthodes haut niveau pour envoyer des emails typés
  */
 
-/**
- * Adresse email par défaut de l'expéditeur
- * Peut être surchargée dans chaque méthode d'envoi
- */
-const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL || 'feef@resend.dev'
+// Singleton du client Resend
+let _resendClient: Resend | null = null
 
-export const resend = new Resend(process.env.RESEND_API_KEY)
+/**
+ * Obtenir le client Resend (lazy initialization)
+ */
+function getResendClient(): Resend {
+  if (!_resendClient) {
+    const config = useRuntimeConfig()
+    _resendClient = new Resend(config.resend.apiKey)
+  }
+  return _resendClient
+}
+
+/**
+ * Obtenir l'adresse email par défaut de l'expéditeur depuis le runtimeConfig
+ */
+function getDefaultFrom(): string {
+  const config = useRuntimeConfig()
+  return config.resend.fromEmail
+}
+
+export const resend = getResendClient()
 
 /**
  * Fonction générique pour envoyer un email via Resend
  */
 async function sendEmail(config: EmailConfig): Promise<EmailResult> {
   try {
+    // Obtenir la configuration Resend depuis le runtimeConfig
+    const runtimeConfig = useRuntimeConfig()
+
     // Vérifier que la clé API Resend est configurée
-    if (!process.env.RESEND_API_KEY) {
-      console.error('[Mail Service] RESEND_API_KEY n\'est pas configurée')
+    if (!runtimeConfig.resend.apiKey) {
+      console.error('[Mail Service] RESEND_API_KEY n\'est pas configurée dans le runtimeConfig')
       return {
         success: false,
         error: 'Configuration Resend manquante'
       }
     }
 
+    // Obtenir le client Resend et l'email par défaut
+    const resendClient = getResendClient()
+    const defaultFrom = getDefaultFrom()
+
     // Envoyer l'email via Resend
-    const { data, error } = await resend.emails.send({
-      from: config.from || DEFAULT_FROM,
+    const { data, error } = await resendClient.emails.send({
+      from: config.from || defaultFrom,
       to: config.to,
       subject: config.subject,
       html: config.html,

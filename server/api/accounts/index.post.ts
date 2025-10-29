@@ -157,8 +157,9 @@ export default defineEventHandler(async (event) => {
 
   console.log('[Accounts API] Insertion en base du nouveau compte')
 
-  // Vérifier si on est en mode DEV
-  const isDevMode = process.env.NODE_ENV === 'development' || process.env.DEV_MODE === 'true'
+  // Vérifier si on est en mode DEV via le runtimeConfig
+  const config = useRuntimeConfig(event)
+  const isDevMode = config.devMode
 
   // Préparer les données du compte
   const newAccountData: NewAccount = {
