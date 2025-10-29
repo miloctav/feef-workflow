@@ -31,7 +31,7 @@
     <div class="mb-4 flex flex-col gap-4">
       <div class="flex justify-between gap-4">
         <div class="flex gap-4 items-center">
-          <UInput v-model="searchQuery" :placeholder="searchPlaceholder" icon="i-lucide-search" class="w-80"
+          <UInput v-if="hasSearch" v-model="searchQuery" :placeholder="searchPlaceholder" icon="i-lucide-search" class="w-80"
             :ui="{ trailing: 'pe-1' }" @input="handleSearchInput">
             <template v-if="searchQuery?.length" #trailing>
               <UButton color="neutral" variant="link" size="sm" icon="i-lucide-circle-x"
@@ -120,7 +120,7 @@
 
       <template #footer="{ close }">
         <UButton label="Annuler" color="neutral" variant="outline" @click="close" />
-        <UButton label="Supprimer" color="red" :loading="deleteLoading" @click="confirmDelete" />
+        <UButton label="Supprimer" color="error" :loading="deleteLoading" @click="confirmDelete" />
       </template>
     </UModal>
   </div>
@@ -144,6 +144,7 @@ const props = withDefaults(defineProps<{
   error?: string | null
   columns: TableColumn<T>[]
   hasAddButton?: boolean
+  hasSearch?: boolean
   addButtonText?: string
   addButtonIcon?: string
   searchPlaceholder?: string
@@ -152,7 +153,7 @@ const props = withDefaults(defineProps<{
   onRowClick?: (row: T) => void
   onDelete?: (item: T) => Promise<{ success: boolean }>
   onPageChange: (page: number) => void
-  onSearch: (search: string) => void
+  onSearch?: (search: string) => void
   onFiltersChange?: (filters: Record<string, any>) => void
   getItemName?: (item: T) => string
 }>(), {
@@ -163,6 +164,7 @@ const props = withDefaults(defineProps<{
   searchPlaceholder: 'Rechercher...',
   hasAddButton: true,
   hasFilters: false,
+  hasSearch: true,
   filtersTitle: 'Filtres',
   getItemName: (item: T) => String(item.name || item.id || 'cet élément')
 })
@@ -214,6 +216,7 @@ const currentPage = computed({
 let searchTimeout: NodeJS.Timeout | null = null
 
 const handleSearchInput = (event: Event) => {
+  if(!setSearch) return
   const value = (event.target as HTMLInputElement).value
 
   if (searchTimeout) {
@@ -227,6 +230,7 @@ const handleSearchInput = (event: Event) => {
 
 // Réinitialiser la recherche
 const clearSearch = () => {
+  if(!setSearch) return
   searchQuery.value = ''
   setSearch('')
 }

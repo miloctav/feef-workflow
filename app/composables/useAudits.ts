@@ -30,6 +30,8 @@ export const useAudits = (options?: { entityId?: number }) => {
   } = usePaginatedFetch<AuditWithRelations>('/api/audits', {
     key: cacheKey,
     defaultLimit: 25,
+    // Passer entityId comme paramètre structurel initial (pas un filtre utilisateur)
+    initialParams: options?.entityId ? { entityId: options.entityId } : {},
   })
 
   // State pour un audit individuel

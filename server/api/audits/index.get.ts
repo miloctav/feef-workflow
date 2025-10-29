@@ -38,7 +38,11 @@ export default defineEventHandler(async (event) => {
   // Authentification requise
   const { user } = await requireUserSession(event)
 
+  console.log(`📋 ${user.email} is fetching audits list with pagination`)
+
   const query = getQuery(event)
+
+  console.log('Query params:', query)
 
   // Configuration de la pagination
   // Note: searchFields n'est pas défini car Drizzle ne supporte pas la recherche sur les champs relationnels
@@ -56,11 +60,15 @@ export default defineEventHandler(async (event) => {
   // 1. Parser les paramètres de pagination
   const params = parsePaginationParams(query, config)
 
+  console.log('Parsed pagination params:', params)
+
   // 2. Construire les conditions WHERE
   const whereConditions = await buildWhereConditions(params, config)
 
   // 3. Construire la clause ORDER BY
   const orderByClause = buildOrderBy(params.sort, config)
+
+  console.log('Where conditions:', whereConditions)
 
   // 4. Exécuter la requête avec les relations imbriquées
   const data = await db.query.audits.findMany({
@@ -121,8 +129,12 @@ export default defineEventHandler(async (event) => {
     offset: params.offset,
   })
 
+  console.log(`Fetched ${data.length} audits from database`)
+
   // 5. Compter le total
   const total = await buildCountQuery(whereConditions, config)
+
+  console.log(`Total audits matching criteria: ${total}`)
 
   // 6. Retourner la réponse paginée
   return formatPaginatedResponse(data, params, total)

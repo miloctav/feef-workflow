@@ -42,6 +42,8 @@ export const entities = pgTable('entities', {
   siret: varchar('siret', { length: 14 }).unique(),
   type: entityTypeEnum('type').notNull(),
   mode: entityModeEnum('mode').notNull(),
+  // caseSubmittedAt: timestamp('case_submitted_at'),
+  // caseApprovedAt: timestamp('case_approved_at'),
   parentGroupId: integer('parent_group_id').references((): AnyPgColumn => entities.id),
   oeId: integer('oe_id').references(() => oes.id),
   accountManagerId: integer('account_manager_id').references(() => accounts.id),

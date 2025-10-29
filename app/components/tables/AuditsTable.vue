@@ -11,6 +11,7 @@
       :error="fetchError"
       :columns="columns"
       :has-add-button="false"
+      :has-search="false"
       :on-page-change="goToPage"
       :on-row-click="handleRowClick"
       :on-delete="canDeleteAudit ? handleDelete : undefined"
@@ -112,12 +113,8 @@ const loadAuditors = async () => {
 
 // Charger les données au montage du composant
 onMounted(() => {
-  // Appliquer le filtre entityId si fourni en props
-  if (props.entityId) {
-    setFilters({ entityId: props.entityId })
-  }
-
   // Charger la liste des audits
+  // Note: Si entityId est fourni en props, il est déjà dans initialParams et sera utilisé automatiquement
   fetchAudits()
 
   // Charger les données pour les filtres
