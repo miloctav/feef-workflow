@@ -18,6 +18,18 @@
 
     <!-- Documents organisés par catégorie -->
     <div v-else class="space-y-4">
+      <!-- Header avec bouton d'ajout global -->
+      <div class="flex items-center justify-between pb-2">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">Revue documentaire</h2>
+          <p class="text-sm text-gray-600 mt-1">Gérez les documents de l'entité</p>
+        </div>
+        <AddDocumentaryReviewModal
+          v-if="user?.role === Role.FEEF && currentEntity"
+          :entity-id="currentEntity.id"
+        />
+      </div>
+
       <UCard v-for="category in accordionItems" :key="category.value" class="overflow-hidden">
         <UAccordion
           type="single"
@@ -38,10 +50,11 @@
             </div>
           </template>
 
-          <template #trailing>
+          <template #trailing="{ item }">
             <AddDocumentaryReviewModal
               v-if="user?.role === Role.FEEF && currentEntity"
               :entity-id="currentEntity.id"
+              :category="item.value"
             />
           </template>
 

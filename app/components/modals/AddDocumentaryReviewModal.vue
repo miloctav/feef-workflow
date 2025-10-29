@@ -40,7 +40,7 @@
           </UFormField>
 
           <UFormField label="Catégorie" required>
-            <USelect v-model="form.category" :items="categoryOptions" placeholder="Sélectionner une catégorie" />
+            <USelect v-model="form.category" :items="categoryOptions" placeholder="Sélectionner une catégorie" :disabled="!!props.category" />
           </UFormField>
         </div>
 
@@ -85,6 +85,7 @@ import { DocumentCategoryLabels, DocumentCategoryIcons, DocumentCategoryColors }
 
 interface Props {
   entityId: number
+  category?: 'LEGAL' | 'FINANCIAL' | 'TECHNICAL' | 'OTHER'
 }
 
 const props = defineProps<Props>()
@@ -104,7 +105,7 @@ const form = reactive<{
 }>({
   title: '',
   description: '',
-  category: '',
+  category: props.category || '',
   documentTypeId: null,
 })
 
@@ -135,7 +136,9 @@ const selectedDocumentType = computed(() => {
 // Charger les document types au montage
 onMounted(async () => {
   documentTypesLoading.value = true
-  const result = await fetchAllDocumentsType()
+  // Filtrer par catégorie si une catégorie est imposée
+  const filters = props.category ? { category: props.category } : undefined
+  const result = await fetchAllDocumentsType(filters)
   if (result.success) {
     documentTypes.value = result.data
   }
@@ -183,7 +186,7 @@ const handleSubmit = async (close: () => void) => {
 const resetForm = () => {
   form.title = ''
   form.description = ''
-  form.category = ''
+  form.category = props.category || ''
   form.documentTypeId = null
   creationMode.value = 'manual'
 }
