@@ -10,7 +10,7 @@ import { getSignedUrl as getS3SignedUrl } from '@aws-sdk/s3-request-presigner'
 
 // Configuration Garage depuis les variables d'environnement
 const config = {
-  endpoint: process.env.GARAGE_ENDPOINT || 'http://localhost:3900',
+  endpoint: process.env.GARAGE_ENDPOINT || 'http://54.38.183.70:3900',
   region: process.env.GARAGE_REGION || 'garage',
   credentials: {
     accessKeyId: process.env.GARAGE_ACCESS_KEY || '',

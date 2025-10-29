@@ -60,9 +60,6 @@ services:
       POSTGRES_PORT: 5432
       # Database URL (constructed from .env variables) - override dev value
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      # Garage endpoint (use container name for internal network)
-      GARAGE_ENDPOINT: http://garage:3900
-      GARAGE_REGION: garage
       # All other variables (POSTGRES_*, GARAGE_*, NUXT_SESSION_PASSWORD, JWT_SECRET,
       # RESEND_*, DEV_MODE) are loaded from .env file via env_file directive
     depends_on:
