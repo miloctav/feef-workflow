@@ -41,15 +41,12 @@ COPY --from=build /app/.output ./
 # Copy migration files (needed for runtime execution)
 COPY --from=build /app/server/database/migrations ./server/database/migrations
 
-# Copy TypeScript source files needed for initialization scripts
-COPY --from=build /app/server/database/init-storage.ts ./server/database/init-storage.ts
+# Copy TypeScript source files needed for database config
 COPY --from=build /app/server/database/schema.ts ./server/database/schema.ts
 COPY --from=build /app/server/database/index.ts ./server/database/index.ts
-COPY --from=build /app/server/services/minio.ts ./server/services/minio.ts
 COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
 
-# Create symlink so tsx can resolve modules from server directory
-RUN ln -s /app/node_modules /app/server/node_modules
+# Note: Garage storage initialization is handled by the garage-init service in docker-compose.yml
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh /docker-entrypoint.sh

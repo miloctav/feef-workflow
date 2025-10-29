@@ -14,35 +14,39 @@ services:
       - feef-network
     # Ports exposés seulement pour le développement/debug
     # En production, supprimez ces lignes pour plus de sécurité
-    # ports:
-    #   - "54320:5432"
+    ports:
+      - "54320:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-feef_user} -d ${POSTGRES_DB:-feef_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # MinIO Object Storage
-  minio:
-    image: minio/minio:latest
-    container_name: feef-minio
+  # Garage Object Storage (S3-compatible)
+  garage:
+    image: dxflrs/garage:v2.1.0
+    container_name: feef-garage
     restart: unless-stopped
-    command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change_me_in_production}
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:-change_me_in_production}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:-change_me_in_production}
+      GARAGE_METRICS_TOKEN: ${GARAGE_METRICS_TOKEN:-change_me_in_production}
     volumes:
-      - minio_data:/data
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+      - ./garage.toml:/etc/garage.toml:ro
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "3900:3900"  # S3 API
+      - "3901:3901"  # RPC (internal)
+      - "3903:3903"  # Admin API
     networks:
       - feef-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "garage", "-c", "/etc/garage.toml", "status"]
       interval: 30s
       timeout: 20s
-      retries: 3
+      retries: 5
+      start_period: 10s
 
   # Nuxt Application
   app:
@@ -62,16 +66,15 @@ services:
       POSTGRES_PORT: 5432
       # Database URL (constructed from .env variables) - override dev value
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      # MinIO endpoint (use container name for internal network)
-      MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
-      MINIO_USE_SSL: "false"
-      # All other variables (POSTGRES_*, MINIO_*, NUXT_SESSION_PASSWORD, JWT_SECRET,
+      # Garage endpoint (use container name for internal network)
+      GARAGE_ENDPOINT: http://garage:3900
+      GARAGE_REGION: garage
+      # All other variables (POSTGRES_*, GARAGE_*, NUXT_SESSION_PASSWORD, JWT_SECRET,
       # RESEND_*, DEV_MODE) are loaded from .env file via env_file directive
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
+      garage:
         condition: service_healthy
     networks:
       - feef-network
@@ -110,7 +113,9 @@ services:
 volumes:
   postgres_data:
     driver: local
-  minio_data:
+  garage_meta:
+    driver: local
+  garage_data:
     driver: local
   certbot_certs:
     driver: local

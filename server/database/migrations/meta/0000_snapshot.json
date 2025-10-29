@@ -1,5 +1,5 @@
 {
-  "id": "8f234c3d-d5fa-4300-bb6b-de7312777faa",
+  "id": "16024197-9880-4f71-8f25-b49d095f183b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -499,8 +499,8 @@
           "notNull": true,
           "default": "now()"
         },
-        "minio_key": {
-          "name": "minio_key",
+        "s3_key": {
+          "name": "s3_key",
           "type": "varchar(512)",
           "primaryKey": false,
           "notNull": false

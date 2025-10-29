@@ -2,7 +2,7 @@ import 'dotenv/config'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import bcrypt from 'bcrypt'
-import { accounts, oe, Role } from './schema'
+import { accounts, oes } from './schema'
 import { eq } from 'drizzle-orm'
 
 async function seed() {
@@ -22,14 +22,14 @@ async function seed() {
     // Vérifier si Ecocert existe déjà
     const [existingEcocert] = await db
       .select()
-      .from(oe)
-      .where(eq(oe.name, 'Ecocert'))
+      .from(oes)
+      .where(eq(oes.name, 'Ecocert'))
       .limit(1)
 
     if (existingEcocert) {
       console.log('✅ Ecocert existe déjà')
     } else {
-      await db.insert(oe).values({
+      await db.insert(oes).values({
         name: 'Ecocert',
       })
       console.log('✅ Organisme évaluateur Ecocert créé')
@@ -38,14 +38,14 @@ async function seed() {
     // Vérifier si SGS existe déjà
     const [existingSGS] = await db
       .select()
-      .from(oe)
-      .where(eq(oe.name, 'SGS'))
+      .from(oes)
+      .where(eq(oes.name, 'SGS'))
       .limit(1)
 
     if (existingSGS) {
       console.log('✅ SGS existe déjà')
     } else {
-      await db.insert(oe).values({
+      await db.insert(oes).values({
         name: 'SGS',
       })
       console.log('✅ Organisme évaluateur SGS créé')
@@ -69,8 +69,9 @@ async function seed() {
         firstname: 'Maxime',
         lastname: 'Admin',
         email: 'maxime@miloctav.fr',
+        isActive: true,
         password: hashedPassword,
-        role: Role.FEEF,
+        role: "FEEF",
         oeId: null,
         oeRole: null,
       })

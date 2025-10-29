@@ -49,7 +49,7 @@
                 :disabled="createLoading"
               />
               <UButton
-                v-if="selectedVersionData?.minioKey && currentSignedUrl"
+                v-if="selectedVersionData?.s3Key && currentSignedUrl"
                 @click="handleDownload"
                 color="secondary"
                 variant="solid"
@@ -58,7 +58,7 @@
                 size="sm"
               />
               <UButton
-                v-if="selectedVersionData?.minioKey && currentSignedUrl"
+                v-if="selectedVersionData?.s3Key && currentSignedUrl"
                 :href="currentSignedUrl"
                 target="_blank"
                 color="primary"
@@ -96,7 +96,7 @@
         </div>
 
         <!-- Document avec versions disponibles -->
-        <div v-else-if="hasVersions && selectedVersionData?.minioKey && currentSignedUrl" class="flex-1 bg-gray-100 rounded-lg overflow-hidden relative">
+        <div v-else-if="hasVersions && selectedVersionData?.s3Key && currentSignedUrl" class="flex-1 bg-gray-100 rounded-lg overflow-hidden relative">
           <!-- Barre d'outils PDF -->
           <div class="absolute top-0 left-0 right-0 bg-gray-800 text-white p-2 flex justify-between items-center z-10 text-sm">
             <div class="flex items-center gap-2">
@@ -292,7 +292,7 @@ watch(selectedVersionId, async (newVersionId) => {
     return
   }
 
-  if (newVersionId && selectedVersionData.value?.minioKey) {
+  if (newVersionId && selectedVersionData.value?.s3Key) {
     // Créer un nouveau AbortController pour cette requête
     urlFetchController = new AbortController()
 

@@ -1,7 +1,7 @@
 import { db } from '~~/server/database'
 import { documentVersions, documentaryReviews, accountsToEntities } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { getSignedUrl } from '~~/server/services/minio'
+import { getSignedUrl } from '~~/server/services/garage'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (!version.minioKey) {
+  if (!version.s3Key) {
     throw createError({
       statusCode: 404,
       message: 'Fichier non disponible',
@@ -96,7 +96,7 @@ export default defineEventHandler(async (event) => {
 
   // Générer l'URL signée (valide 1 heure)
   try {
-    const signedUrl = await getSignedUrl(version.minioKey)
+    const signedUrl = await getSignedUrl(version.s3Key)
 
     return {
       data: {

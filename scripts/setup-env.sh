@@ -144,38 +144,35 @@ fi
 
 echo ""
 
-# === MinIO Configuration ===
-echo -e "${YELLOW}[2/8] MinIO Configuration${NC}"
+# === Garage Configuration ===
+echo -e "${YELLOW}[2/8] Garage Configuration (S3-compatible storage)${NC}"
+echo -e "${BLUE}Note: Les credentials Garage seront générés lors de l'initialisation manuelle${NC}"
+echo -e "${BLUE}      Voir la section 'Manual Garage Initialization' dans CLAUDE.md${NC}"
+
+read -p "Nom du bucket Garage [feef-storage]: " GARAGE_BUCKET
+GARAGE_BUCKET=${GARAGE_BUCKET:-feef-storage}
+
+read -p "Nom de la clé API Garage [feef-app-key]: " GARAGE_KEY_NAME
+GARAGE_KEY_NAME=${GARAGE_KEY_NAME:-feef-app-key}
 
 if [ "$ENVIRONMENT" = "production" ]; then
-    read -p "Nom d'utilisateur MinIO: " MINIO_ROOT_USER
-    if [ -z "$MINIO_ROOT_USER" ]; then
-        echo -e "${RED}Le nom d'utilisateur ne peut pas être vide${NC}"
-        exit 1
-    fi
-
-    echo -e "${RED}⚠ IMPORTANT: Utilisez un mot de passe fort${NC}"
-    read -sp "Mot de passe MinIO: " MINIO_ROOT_PASSWORD
-    echo
-    if [ -z "$MINIO_ROOT_PASSWORD" ]; then
-        echo -e "${RED}Le mot de passe ne peut pas être vide${NC}"
-        exit 1
-    fi
-
-    MINIO_ENDPOINT="minio"
+    GARAGE_ENDPOINT="http://garage:3900"
 else
-    read -p "Nom d'utilisateur MinIO [minioadmin]: " MINIO_ROOT_USER
-    MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
-
-    read -sp "Mot de passe MinIO [minioadmin123]: " MINIO_ROOT_PASSWORD
-    echo
-    MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin123}
-
-    MINIO_ENDPOINT="localhost"
+    GARAGE_ENDPOINT="http://localhost:3900"
 fi
 
-read -p "Nom du bucket MinIO [feef-storage]: " MINIO_BUCKET
-MINIO_BUCKET=${MINIO_BUCKET:-feef-storage}
+GARAGE_REGION="garage"
+
+# Générer les secrets Garage pour docker-compose
+echo "Génération des secrets Garage (RPC, Admin, Metrics)..."
+GARAGE_RPC_SECRET=$(openssl rand -hex 32)
+GARAGE_ADMIN_TOKEN=$(openssl rand -base64 32)
+GARAGE_METRICS_TOKEN=$(openssl rand -base64 32)
+echo -e "${GREEN}✓ Secrets Garage générés${NC}"
+
+# Les credentials d'accès (ACCESS_KEY et SECRET_KEY) seront générés manuellement
+GARAGE_ACCESS_KEY="to_be_generated_by_manual_init"
+GARAGE_SECRET_KEY="to_be_generated_by_manual_init"
 
 echo ""
 
@@ -274,13 +271,18 @@ POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 # Database URL for application
 DATABASE_URL=$DATABASE_URL
 
-# MinIO Configuration
-MINIO_ROOT_USER=$MINIO_ROOT_USER
-MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD
-MINIO_ENDPOINT=$MINIO_ENDPOINT
-MINIO_PORT=9000
-MINIO_USE_SSL=false
-MINIO_BUCKET=$MINIO_BUCKET
+# Garage Configuration (S3-compatible object storage)
+GARAGE_ENDPOINT=$GARAGE_ENDPOINT
+GARAGE_REGION=$GARAGE_REGION
+GARAGE_ACCESS_KEY=$GARAGE_ACCESS_KEY
+GARAGE_SECRET_KEY=$GARAGE_SECRET_KEY
+GARAGE_BUCKET=$GARAGE_BUCKET
+GARAGE_KEY_NAME=$GARAGE_KEY_NAME
+
+# Garage secrets for Docker (only needed for docker-compose)
+GARAGE_RPC_SECRET=$GARAGE_RPC_SECRET
+GARAGE_ADMIN_TOKEN=$GARAGE_ADMIN_TOKEN
+GARAGE_METRICS_TOKEN=$GARAGE_METRICS_TOKEN
 
 # Domain Configuration
 DOMAIN=$DOMAIN
@@ -329,13 +331,18 @@ POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 # Database URL for application
 DATABASE_URL=$DATABASE_URL
 
-# MinIO Configuration
-MINIO_ROOT_USER=$MINIO_ROOT_USER
-MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD
-MINIO_ENDPOINT=$MINIO_ENDPOINT
-MINIO_PORT=9000
-MINIO_USE_SSL=false
-MINIO_BUCKET=$MINIO_BUCKET
+# Garage Configuration (S3-compatible object storage)
+GARAGE_ENDPOINT=$GARAGE_ENDPOINT
+GARAGE_REGION=$GARAGE_REGION
+GARAGE_ACCESS_KEY=$GARAGE_ACCESS_KEY
+GARAGE_SECRET_KEY=$GARAGE_SECRET_KEY
+GARAGE_BUCKET=$GARAGE_BUCKET
+GARAGE_KEY_NAME=$GARAGE_KEY_NAME
+
+# Garage secrets for Docker (only needed for docker-compose)
+GARAGE_RPC_SECRET=$GARAGE_RPC_SECRET
+GARAGE_ADMIN_TOKEN=$GARAGE_ADMIN_TOKEN
+GARAGE_METRICS_TOKEN=$GARAGE_METRICS_TOKEN
 
 # Session Configuration (nuxt-auth-utils)
 NUXT_SESSION_PASSWORD=$NUXT_SESSION_PASSWORD
@@ -378,7 +385,8 @@ echo ""
 echo "Environnement: $ENVIRONMENT"
 echo "Base de données: $POSTGRES_DB"
 echo "Utilisateur DB: $POSTGRES_USER"
-echo "Bucket MinIO: $MINIO_BUCKET"
+echo "Bucket Garage: $GARAGE_BUCKET"
+echo "Clé API Garage: $GARAGE_KEY_NAME"
 if [ "$ENVIRONMENT" = "production" ]; then
     echo "Domaine: $DOMAIN"
     echo "Email: $EMAIL"
@@ -396,6 +404,7 @@ echo ""
 echo -e "${YELLOW}⚠ IMPORTANT :${NC}"
 echo "- Ne commitez JAMAIS le fichier .env dans Git"
 echo "- Conservez une copie sécurisée de vos secrets"
+echo "- ${RED}Les credentials Garage (ACCESS_KEY et SECRET_KEY) doivent être générés manuellement${NC}"
 if [ "$ENVIRONMENT" = "production" ]; then
     echo "- Configurez votre pare-feu et SSL avant de déployer"
 fi
@@ -403,10 +412,15 @@ echo ""
 echo -e "${BLUE}Prochaines étapes :${NC}"
 if [ "$ENVIRONMENT" = "development" ]; then
     echo "  1. Vérifiez le fichier .env si nécessaire"
-    echo "  2. Lancez l'application: ${GREEN}npm run dev${NC}"
+    echo "  2. ${YELLOW}Initialisez Garage manuellement (voir CLAUDE.md section 'Manual Garage Initialization')${NC}"
+    echo "  3. Mettez à jour GARAGE_ACCESS_KEY et GARAGE_SECRET_KEY dans .env"
+    echo "  4. Lancez l'application: ${GREEN}npm run dev${NC}"
 else
     echo "  1. Vérifiez le fichier .env si nécessaire"
     echo "  2. Déployez avec: ${GREEN}docker compose up -d${NC}"
-    echo "  3. Configurez SSL: voir DEPLOYMENT.md"
+    echo "  3. ${YELLOW}Initialisez Garage manuellement (voir CLAUDE.md section 'Manual Garage Initialization')${NC}"
+    echo "  4. Mettez à jour GARAGE_ACCESS_KEY et GARAGE_SECRET_KEY dans .env"
+    echo "  5. Redémarrez l'app: ${GREEN}docker compose restart app${NC}"
+    echo "  6. Configurez SSL: voir DEPLOYMENT.md"
 fi
 echo ""

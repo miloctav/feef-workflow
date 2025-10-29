@@ -60,7 +60,7 @@ CREATE TABLE "document_versions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"documentary_review_id" integer NOT NULL,
 	"upload_at" timestamp DEFAULT now() NOT NULL,
-	"minio_key" varchar(512),
+	"s3_key" varchar(512),
 	"mime_type" varchar(255),
 	"upload_by" integer NOT NULL,
 	"updated_by" integer,

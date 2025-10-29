@@ -1,0 +1,24 @@
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "garage:3901"
+rpc_secret = "feb03b1122ffaeae04fa631e237e1d963ba01c6e3e956063d50a605fd36f65a0"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+root_domain = ".s3.garage.localhost"
+
+# Configuration CORS pour permettre l'accès depuis le frontend
+# En développement : autoriser localhost:3000
+# En production : remplacer par votre domaine
+cors_allow_origins = ["http://localhost:3000", "http://127.0.0.1:3000", "http://54.38.183.70"]
+
+[admin]
+api_bind_addr = "[::]:3903"
+admin_token = "CvBhKGSNPDrRyBl1dmiDe/klejcfFWpF6hHBkq6zMNo="
+metrics_token = "S2hJ+vpwPwCR277p4ixOSTemknSVGMHCOgj6YdJySH8="

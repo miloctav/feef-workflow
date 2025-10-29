@@ -155,7 +155,7 @@ The application uses **Drizzle ORM** with PostgreSQL for data persistence:
 - `audits` - Audit records linking entities, OEs, and auditors
 - `documents_type` - Document type definitions with categories (LEGAL, FINANCIAL, TECHNICAL, OTHER)
 - `documentary_reviews` - Document instances associated with entities
-- `document_versions` - Version history for documents with MinIO file references
+- `document_versions` - Version history for documents with Garage (S3) file references
 - `accounts_to_entities` - Many-to-many junction table for account-entity relationships
 - `auditors_to_oe` - Many-to-many junction table for auditor-OE relationships
 
@@ -230,33 +230,215 @@ The application provides a **RESTful API** using Nuxt server routes in `server/a
 
 The application deploys with 5 services defined in `docker-compose.yml`:
 1. **postgres** - PostgreSQL 16 database (port 5432)
-2. **minio** - S3-compatible object storage (ports 9000, 9001)
+2. **garage** - Garage S3-compatible object storage (ports 3900, 3901, 3903)
 3. **app** - Nuxt application (port 3000, not exposed)
 4. **nginx** - Reverse proxy and SSL termination (ports 80, 443)
 5. **certbot** - Automatic SSL certificate renewal
 
-All services communicate on the `feef-network` bridge network. The app waits for postgres and minio health checks before starting.
+All services communicate on the `feef-network` bridge network. The app waits for postgres and garage health checks before starting.
 
-**Automatic initialization on startup** (`docker-entrypoint.sh`):
-1. Applies database migrations from `server/database/migrations/`
-2. Initializes MinIO bucket if it doesn't exist
-3. Starts the Nuxt application
+**Important**: Garage must be initialized manually before first use (see Manual Garage Initialization section below).
 
-This ensures that the database schema is always up-to-date with zero manual intervention.
+**Startup sequence**:
+1. **postgres** and **garage** services start and become healthy
+2. **app container**: Applies database migrations from `server/database/migrations/` then starts the Nuxt application
+3. **app plugin**: Checks bucket exists (creates if missing, fallback for dev)
 
-### Document Storage (MinIO)
+### Document Storage (Garage)
 
-The application uses **MinIO** (S3-compatible object storage) for document file management:
+The application uses **Garage** (S3-compatible distributed object storage) for document file management:
 
-- **Service**: `server/services/minio.ts` provides singleton client and storage operations
-- **Bucket**: `feef-storage` (auto-created on initialization)
+- **Service**: `server/services/garage.ts` provides S3 client and storage operations using AWS SDK
+- **Bucket**: `feef-storage` (must be created manually via Garage CLI)
 - **File organization**: `documents/{entityId}/{documentaryReviewId}/{versionId}-{filename}`
 - **Operations**:
-  - `uploadFile()` - Upload document with automatic key generation
-  - `getSignedUrl()` - Generate presigned URL (1 hour expiry) for secure downloads
-  - `deleteFile()` - Remove file from storage
-  - `initializeBucket()` - Ensure bucket exists (called on app startup)
-- **Integration**: Document versions store `minioKey` reference; downloads use signed URLs
+  - `uploadFile()` - Upload document with automatic key generation (uses S3 PutObjectCommand)
+  - `getSignedUrl()` - Generate presigned URL (1 hour expiry) for secure downloads (uses @aws-sdk/s3-request-presigner)
+  - `deleteFile()` - Remove file from storage (uses S3 DeleteObjectCommand)
+  - `initializeBucket()` - Ensure bucket exists (fallback for local dev if bucket not created manually)
+- **Integration**: Document versions store `minioKey` reference (field name preserved for DB compatibility); downloads use signed URLs
+- **Configuration**: Single-node mode (replication_factor=1), SQLite backend, exposes S3 API on port 3900
+
+### Manual Garage Initialization
+
+Garage must be initialized manually before the application can store documents. This is a one-time setup process.
+
+**Prerequisites**: Garage container must be running (`docker compose up -d garage`)
+
+#### 1. Access Garage CLI
+
+Create an alias/function for easier command execution:
+
+**Linux/macOS (Bash/Zsh):**
+```bash
+alias garage="docker exec -ti feef-garage /garage"
+```
+
+**Windows PowerShell:**
+```powershell
+function garage { docker exec -ti feef-garage /garage $args }
+```
+
+**Windows CMD:**
+```cmd
+doskey garage=docker exec -ti feef-garage /garage $*
+```
+
+**Alternative (all platforms):** You can also prefix all commands with `docker exec -ti feef-garage /garage` without creating an alias/function.
+
+#### 2. Get Node ID
+
+Check the Garage container logs to find the Node ID:
+
+**Linux/macOS:**
+```bash
+docker compose logs garage | grep "Node ID"
+# Output: Node ID of this node: 7638d95cb5b27467 (example)
+```
+
+**Windows PowerShell:**
+```powershell
+docker compose logs garage | Select-String "Node ID"
+# Output: Node ID of this node: 7638d95cb5b27467 (example)
+```
+
+Or check the cluster status:
+
+```bash
+garage status
+```
+
+The Node ID is displayed in the first column (16-character hexadecimal string).
+
+#### 3. Create Cluster Layout
+
+Assign storage capacity and zone to your node:
+
+```bash
+# Replace <node-id> with your actual Node ID
+garage layout assign -z dc1 -c 100G <node-id>
+
+# For example:
+# garage layout assign -z dc1 -c 100G 7638d95cb5b27467
+```
+
+**Parameters**:
+- `-z dc1`: Zone name (datacenter identifier)
+- `-c 100G`: Capacity allocated to this node (adjust based on your disk space)
+- `<node-id>`: Your 16-character Node ID (you can use just a prefix like `7638`)
+
+#### 4. Apply Layout
+
+Apply the layout configuration to the cluster:
+
+```bash
+garage layout show    # Preview changes
+garage layout apply --version 1
+```
+
+Wait a few seconds for the layout to be fully applied.
+
+#### 5. Create API Key
+
+Create an API key for the application:
+
+```bash
+garage key create feef-app-key
+```
+
+This will output credentials like:
+
+```
+Key name: feef-app-key
+Key ID: GK3515373e4c851ebaad366558
+Secret key: 7d37d093435a41f2aab8f13c19ba067d9776c90215f56614adad6ece597dbb34
+```
+
+**Important**: Save these credentials - you'll need them in the next step.
+
+#### 6. Create Bucket
+
+Create the storage bucket:
+
+```bash
+garage bucket create feef-storage
+```
+
+Verify the bucket was created:
+
+```bash
+garage bucket list
+garage bucket info feef-storage
+```
+
+#### 7. Grant Permissions
+
+Give the API key full permissions on the bucket:
+
+```bash
+garage bucket allow \
+  --read \
+  --write \
+  --owner \
+  feef-storage \
+  --key feef-app-key
+```
+
+Verify permissions:
+
+```bash
+garage bucket info feef-storage
+```
+
+#### 8. Update Environment Variables
+
+Add the generated credentials to your `.env` file:
+
+```bash
+# Update these values with your actual credentials from step 5
+GARAGE_ACCESS_KEY=GK3515373e4c851ebaad366558
+GARAGE_SECRET_KEY=7d37d093435a41f2aab8f13c19ba067d9776c90215f56614adad6ece597dbb34
+```
+
+**For development** (`.env` file):
+- Copy the credentials directly to your local `.env`
+
+**For production** (Docker deployment):
+- Update the `.env` file on the server
+- Restart the app container: `docker compose restart app`
+
+#### 9. Verify Setup
+
+Test that the application can access Garage:
+
+```bash
+# Restart the app to load new credentials
+docker compose restart app
+
+# Check app logs for successful Garage connection
+docker compose logs -f app
+# Look for: "✅ Bucket Garage existe déjà: feef-storage"
+```
+
+#### Troubleshooting
+
+**"Node not found" or RPC errors:**
+- Ensure the Node ID is correct (check `garage status`)
+- Verify `garage.toml` has matching `rpc_secret` across all services
+
+**"Bucket not found" errors in app:**
+- Check bucket was created: `garage bucket list`
+- Verify credentials in `.env` match the key info: `garage key info feef-app-key`
+- Ensure app was restarted after updating `.env`
+
+**Permission denied errors:**
+- Verify permissions: `garage bucket info feef-storage`
+- Re-apply permissions with the `garage bucket allow` command
+
+**"Connection refused" to Garage:**
+- Ensure Garage container is running: `docker compose ps garage`
+- Check Garage logs: `docker compose logs garage`
+- Verify port 3900 is accessible from the app container
 
 ### Authentication & Session Cookies (HTTP vs HTTPS)
 
@@ -346,7 +528,7 @@ The application uses a **multi-environment variable system** with automated depl
 - **Document workflow**: Documents are associated with specific workflow states and shown/hidden accordingly
 - **Alert system**: Alerts are contextual to company workflow state and provide actionable information
 - **Pagination pattern**: All list endpoints use `server/utils/pagination.ts` for consistent behavior
-- **File uploads**: Use MinIO service for document storage with versioning support
+- **File uploads**: Use Garage service for S3-compatible document storage with versioning support
 - **Audit trail**: All tables track `createdBy`, `createdAt`, `updatedBy`, `updatedAt` for full audit history
 - **Environment variables**: Multi-environment system with automated deployment and migration (see above)
 

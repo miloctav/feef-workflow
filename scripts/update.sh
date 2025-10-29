@@ -138,21 +138,25 @@ else
     echo -e "${YELLOW}[2/9] Sauvegarde ignorée (--skip-backup)${NC}"
 fi
 
-# Étape 3: Backup des volumes MinIO (optionnel)
-echo -e "${YELLOW}[3/9] Sauvegarde des fichiers MinIO...${NC}"
-if docker compose ps minio | grep -q "Up"; then
-    MINIO_BACKUP="$BACKUP_DIR/minio_backup_$DATE.tar.gz"
-    docker run --rm -v feef-workflow_minio_data:/data -v "$BACKUP_DIR":/backup alpine tar czf /backup/minio_backup_$DATE.tar.gz /data 2>/dev/null || true
+# Étape 3: Backup des volumes Garage (optionnel)
+echo -e "${YELLOW}[3/9] Sauvegarde des fichiers Garage...${NC}"
+if docker compose ps garage | grep -q "Up"; then
+    GARAGE_BACKUP="$BACKUP_DIR/garage_backup_$DATE.tar.gz"
+    docker run --rm \
+        -v feef-workflow_garage_meta:/garage_meta \
+        -v feef-workflow_garage_data:/garage_data \
+        -v "$BACKUP_DIR":/backup \
+        alpine tar czf /backup/garage_backup_$DATE.tar.gz /garage_meta /garage_data 2>/dev/null || true
 
-    if [ -f "$MINIO_BACKUP" ]; then
-        echo -e "${GREEN}✓ Backup MinIO sauvegardé: $MINIO_BACKUP${NC}"
-        # Garder seulement les 5 derniers backups MinIO
-        ls -t "$BACKUP_DIR"/minio_backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm
+    if [ -f "$GARAGE_BACKUP" ]; then
+        echo -e "${GREEN}✓ Backup Garage sauvegardé: $GARAGE_BACKUP${NC}"
+        # Garder seulement les 5 derniers backups Garage
+        ls -t "$BACKUP_DIR"/garage_backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm
     else
-        echo -e "${YELLOW}⚠ Backup MinIO ignoré${NC}"
+        echo -e "${YELLOW}⚠ Backup Garage ignoré${NC}"
     fi
 else
-    echo -e "${YELLOW}⚠ MinIO n'est pas en cours d'exécution, backup ignoré${NC}"
+    echo -e "${YELLOW}⚠ Garage n'est pas en cours d'exécution, backup ignoré${NC}"
 fi
 
 # Étape 4: Backup du .env actuel
@@ -288,7 +292,7 @@ echo -e "${GREEN}===========================================${NC}"
 echo ""
 echo -e "Informations:"
 echo -e "  - Backup DB: ${BACKUP_FILE:-N/A}.gz"
-echo -e "  - Backup MinIO: ${MINIO_BACKUP:-N/A}"
+echo -e "  - Backup Garage: ${GARAGE_BACKUP:-N/A}"
 echo -e "  - Backup .env: ${ENV_BACKUP}"
 echo -e "  - Commit actuel: $(git rev-parse --short HEAD)"
 echo ""

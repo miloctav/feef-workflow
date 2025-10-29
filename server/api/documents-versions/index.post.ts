@@ -1,7 +1,7 @@
 import { db } from '~~/server/database'
 import { documentaryReviews, documentVersions, entities, accountsToEntities } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { uploadFile } from '~~/server/services/minio'
+import { uploadFile } from '~~/server/services/garage'
 import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
 
 export default defineEventHandler(async (event) => {
@@ -102,18 +102,18 @@ export default defineEventHandler(async (event) => {
   // Déterminer le type MIME du fichier
   const mimeType = getMimeTypeFromFilename(fileData.filename)
 
-  // Créer la nouvelle version (sans minioKey pour l'instant)
+  // Créer la nouvelle version (sans s3Key pour l'instant)
   const [newVersion] = await db.insert(documentVersions).values(forInsert(event, {
     documentaryReviewId,
     uploadBy: user.id,
-    minioKey: null,
+    s3Key: null,
     mimeType,
   })).returning()
 
-  // Uploader le fichier vers MinIO
-  let uploadedMinioKey: string | null = null
+  // Uploader le fichier vers Garage
+  let uploadedS3Key: string | null = null
   try {
-    uploadedMinioKey = await uploadFile(
+    uploadedS3Key = await uploadFile(
       fileData.data,
       fileData.filename,
       mimeType,
@@ -131,9 +131,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Mettre à jour la version avec la clé MinIO
+  // Mettre à jour la version avec la clé de stockage
   await db.update(documentVersions)
-    .set({ minioKey: uploadedMinioKey })
+    .set({ s3Key: uploadedS3Key })
     .where(eq(documentVersions.id, newVersion.id))
 
   // Récupérer la version créée avec les infos de l'uploader et la clé
