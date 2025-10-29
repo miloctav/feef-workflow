@@ -41,12 +41,6 @@ services:
       - "3903:3903"  # Admin API
     networks:
       - feef-network
-    healthcheck:
-      test: ["CMD", "garage", "-c", "/etc/garage.toml", "status"]
-      interval: 30s
-      timeout: 20s
-      retries: 5
-      start_period: 60s
 
   # Nuxt Application
   app:
