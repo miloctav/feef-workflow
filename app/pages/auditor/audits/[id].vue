@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 definePageMeta({
-  layout: "dashboard-oe",
+  layout: "dashboard-auditor",
 });
 
 const route = useRoute()

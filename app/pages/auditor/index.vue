@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({
-    layout: 'dashboard-auditeur'
+    layout: 'dashboard-auditor'
 })
 
 </script>

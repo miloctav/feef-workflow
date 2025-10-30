@@ -1,0 +1,1 @@
+ALTER TABLE "auditors_to_oe" ADD CONSTRAINT "auditors_to_oe_auditor_id_oe_id_pk" PRIMARY KEY("auditor_id","oe_id");

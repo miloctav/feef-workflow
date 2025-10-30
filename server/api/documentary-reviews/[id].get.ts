@@ -1,6 +1,7 @@
 import { db } from '~~/server/database'
-import { documentaryReviews, entities, accountsToEntities } from '~~/server/database/schema'
+import { documentaryReviews } from '~~/server/database/schema'
 import { eq, and, isNull, desc } from 'drizzle-orm'
+import { requireEntityAccess } from '~~/server/utils/authorization'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -57,46 +58,14 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Vérifier que l'entité n'est pas soft-deleted
-  if (documentaryReview.entity.deletedAt) {
-    throw createError({
-      statusCode: 404,
-      message: 'Entité non trouvée',
-    })
-  }
-
-  // Autorisation basée sur le rôle
-  if (user.role === Role.FEEF) {
-    // FEEF a accès à tout
-  } else if (user.role === Role.OE) {
-    // OE doit être assigné à l'entité
-    if (documentaryReview.entity.oeId !== user.oeId) {
-      throw createError({
-        statusCode: 403,
-        message: 'Vous n\'avez pas accès à ce document',
-      })
-    }
-  } else if (user.role === Role.ENTITY || user.role === Role.AUDITOR) {
-    // Utilisateur doit être lié à l'entité via accountsToEntities
-    const accountToEntity = await db.query.accountsToEntities.findFirst({
-      where: and(
-        eq(accountsToEntities.accountId, user.id),
-        eq(accountsToEntities.entityId, documentaryReview.entityId)
-      ),
-    })
-
-    if (!accountToEntity) {
-      throw createError({
-        statusCode: 403,
-        message: 'Vous n\'avez pas accès à ce document',
-      })
-    }
-  } else {
-    throw createError({
-      statusCode: 403,
-      message: 'Rôle non autorisé',
-    })
-  }
+  // Vérifier l'accès à l'entité du document
+  await requireEntityAccess(
+    user.id,
+    user.role,
+    documentaryReview.entityId,
+    user.oeId,
+    'Vous n\'avez pas accès à ce document'
+  )
 
   return {
     data: documentaryReview,

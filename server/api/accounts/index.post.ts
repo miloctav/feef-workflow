@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt'
 import { eq, and, isNull, inArray } from 'drizzle-orm'
-import { accounts, accountsToEntities, entities, oes, NewAccount } from '~~/server/database/schema'
+import { accounts, accountsToEntities, entities, oes, auditorsToOE, NewAccount } from '~~/server/database/schema'
 import { db } from '~~/server/database'
 import { generatePasswordResetUrlAndToken } from '~~/server/utils/password-reset'
 import { sendAccountCreationEmail } from '~~/server/services/mail'
@@ -14,6 +14,8 @@ interface CreateAccountBody {
   // Pour OE
   oeId?: number
   oeRole?: string
+  // Pour AUDITOR
+  oeIds?: number[]
   // Pour ENTITY
   entityRoles?: Array<{
     entityId: number
@@ -29,7 +31,7 @@ export default defineEventHandler(async (event) => {
   // Récupérer les données du corps de la requête
   const body = await readBody<CreateAccountBody>(event)
 
-  const { firstname, lastname, email, role, oeId, oeRole, entityRoles } = body
+  const { firstname, lastname, email, role, oeId, oeRole, oeIds, entityRoles } = body
 
 
   if (currentUser.role === Role.FEEF) {
@@ -139,6 +141,57 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  if (role === Role.AUDITOR) {
+    // Déterminer les oeIds à utiliser
+    let finalOeIds = oeIds || []
+
+    // Si création depuis un OE ADMIN et aucun oeIds fourni, utiliser l'OE du créateur
+    if (currentUser.role === Role.OE && currentUser.oeRole === OERole.ADMIN && (!oeIds || oeIds.length === 0)) {
+      if (currentUser.oeId) {
+        finalOeIds = [currentUser.oeId]
+      }
+    }
+
+    // Vérifier qu'au moins un OE est spécifié
+    if (!finalOeIds || finalOeIds.length === 0) {
+      throw createError({
+        statusCode: 400,
+        message: 'oeIds est requis pour un compte Auditeur (au moins un OE)',
+      })
+    }
+
+    // Vérifier qu'il n'y a pas de doublons dans oeIds
+    const uniqueOeIds = [...new Set(finalOeIds)]
+    if (finalOeIds.length !== uniqueOeIds.length) {
+      throw createError({
+        statusCode: 400,
+        message: 'Le tableau oeIds contient des doublons. Chaque OE ne peut être associé qu\'une seule fois.',
+      })
+    }
+
+    // Vérifier que tous les OEs existent et ne sont pas supprimés
+    const oesData = await db
+      .select({
+        id: oes.id,
+        name: oes.name
+      })
+      .from(oes)
+      .where(and(inArray(oes.id, finalOeIds), isNull(oes.deletedAt)))
+
+    // Vérifier que tous les OEs demandés ont été trouvés
+    if (oesData.length !== finalOeIds.length) {
+      const foundIds = oesData.map(e => e.id)
+      const missingIds = finalOeIds.filter(id => !foundIds.includes(id))
+      throw createError({
+        statusCode: 400,
+        message: `Les OEs suivants n'existent pas ou ont été supprimés : ${missingIds.join(', ')}`,
+      })
+    }
+
+    // Stocker les oeIds finaux pour utilisation plus tard
+    body.oeIds = finalOeIds
+  }
+
   console.log('[Accounts API] Création du compte pour', email, 'avec le rôle', role)
 
   // Vérifier si l'email existe déjà
@@ -148,6 +201,53 @@ export default defineEventHandler(async (event) => {
     .where(eq(accounts.email, email))
     .limit(1)
 
+  // Cas spécial: si on tente de créer un auditeur et qu'un auditeur avec cet email existe déjà
+  if (existingUser && role === Role.AUDITOR && existingUser.role === Role.AUDITOR) {
+    console.log('[Accounts API] Auditeur existant détecté. Ajout du lien avec les OEs:', body.oeIds)
+
+    // Vérifier que l'auditeur n'est pas supprimé
+    if (existingUser.deletedAt) {
+      throw createError({
+        statusCode: 400,
+        message: 'Ce compte auditeur a été supprimé et ne peut pas être réactivé de cette manière',
+      })
+    }
+
+    // Créer les nouvelles relations auditeur-OE (ignorer les doublons grâce à la contrainte PK)
+    const newRelations = body.oeIds!.map(oeId => ({
+      auditorId: existingUser.id,
+      oeId: oeId,
+    }))
+
+    try {
+      // Utiliser INSERT ... ON CONFLICT DO NOTHING pour ignorer les doublons
+      await db.insert(auditorsToOE)
+        .values(newRelations)
+        .onConflictDoNothing()
+
+      console.log('[Accounts API] Relations auditeur-OE ajoutées avec succès')
+
+      return {
+        account: {
+          id: existingUser.id,
+          firstname: existingUser.firstname,
+          lastname: existingUser.lastname,
+          email: existingUser.email,
+          role: existingUser.role,
+        },
+        linkedToExistingAuditor: true,
+        oeIds: body.oeIds,
+      }
+    } catch (error) {
+      console.error('[Accounts API] Erreur lors de l\'ajout des relations auditeur-OE:', error)
+      throw createError({
+        statusCode: 500,
+        message: 'Erreur lors de l\'ajout des relations auditeur-OE',
+      })
+    }
+  }
+
+  // Si l'email existe pour un autre type de compte ou si on crée un autre type que AUDITOR
   if (existingUser) {
     throw createError({
       statusCode: 409,
@@ -199,6 +299,16 @@ export default defineEventHandler(async (event) => {
     )
   }
 
+  // Si c'est un compte Auditeur, créer les liaisons avec les OEs
+  if (role === Role.AUDITOR && body.oeIds && body.oeIds.length > 0) {
+    await db.insert(auditorsToOE).values(
+      body.oeIds.map(oeId => ({
+        auditorId: newAccount.id,
+        oeId: oeId,
+      }))
+    )
+  }
+
   console.log('[Accounts API] Nouveau compte créé avec ID', newAccount.id)
 
   // En mode DEV, on ne génère pas de token et on n'envoie pas d'email
@@ -233,6 +343,7 @@ export default defineEventHandler(async (event) => {
     emailSent: emailResult.success,
     ...(isDevMode && { devMode: true, defaultPassword: 'password' }),
     ...(role === Role.ENTITY && { entityRoles }),
+    ...(role === Role.AUDITOR && { oeIds: body.oeIds }),
   }
 })
 

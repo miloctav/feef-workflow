@@ -1,6 +1,7 @@
 import { db } from '~~/server/database'
-import { documentaryReviews, entities, accountsToEntities } from '~~/server/database/schema'
+import { documentaryReviews } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
+import { requireEntityAccess } from '~~/server/utils/authorization'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -17,53 +18,14 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Vérifier que l'entité existe et n'est pas soft-deleted
-  const entity = await db.query.entities.findFirst({
-    where: and(
-      eq(entities.id, entityId),
-      isNull(entities.deletedAt)
-    ),
-  })
-
-  if (!entity) {
-    throw createError({
-      statusCode: 404,
-      message: 'Entité non trouvée',
-    })
-  }
-
-  // Autorisation basée sur le rôle
-  if (user.role === Role.FEEF) {
-    // FEEF a accès à tout
-  } else if (user.role === Role.OE) {
-    // OE doit être assigné à l'entité
-    if (entity.oeId !== user.oeId) {
-      throw createError({
-        statusCode: 403,
-        message: 'Vous n\'avez pas accès aux documents de cette entité',
-      })
-    }
-  } else if (user.role === Role.ENTITY || user.role === Role.AUDITOR) {
-    // Utilisateur doit être lié à l'entité via accountsToEntities
-    const accountToEntity = await db.query.accountsToEntities.findFirst({
-      where: and(
-        eq(accountsToEntities.accountId, user.id),
-        eq(accountsToEntities.entityId, entityId)
-      ),
-    })
-
-    if (!accountToEntity) {
-      throw createError({
-        statusCode: 403,
-        message: 'Vous n\'avez pas accès aux documents de cette entité',
-      })
-    }
-  } else {
-    throw createError({
-      statusCode: 403,
-      message: 'Rôle non autorisé',
-    })
-  }
+  // Vérifier l'accès à l'entité
+  await requireEntityAccess(
+    user.id,
+    user.role,
+    entityId,
+    user.oeId,
+    'Vous n\'avez pas accès aux documents de cette entité'
+  )
 
   // Récupérer les documentary reviews de l'entité (excluant les soft-deleted)
   const reviews = await db.query.documentaryReviews.findMany({

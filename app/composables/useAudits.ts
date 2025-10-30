@@ -99,6 +99,8 @@ export const useAudits = (options?: { entityId?: number }) => {
     } catch (e: any) {
       const errorMessage = e.data?.message || e.message || 'Erreur lors de la r�cup�ration de l\'audit'
 
+      currentAudit.value = null
+
       toast.add({
         title: 'Erreur',
         description: errorMessage,
@@ -230,6 +232,48 @@ export const useAudits = (options?: { entityId?: number }) => {
   }
 
   /**
+   * Affecter un auditeur � un audit
+   */
+  const assignAuditor = async (id: number, auditorId: number) => {
+    updateLoading.value = true
+
+    try {
+      const response = await $fetch<{ data: AuditWithRelations }>(`/api/audits/${id}/assign-auditor`, {
+        method: 'POST',
+        body: { auditorId },
+      })
+
+      // Rafra�chir la liste pagin�e pour refl�ter les changements
+      await refresh()
+
+      // Mettre � jour l'audit courant si c'est celui-ci
+      if (currentAudit.value?.id === id) {
+        currentAudit.value = response.data
+      }
+
+      toast.add({
+        title: 'Succ�s',
+        description: 'Auditeur affect� avec succ�s',
+        color: 'success',
+      })
+
+      return { success: true, data: response.data }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de l\'affectation de l\'auditeur'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    } finally {
+      updateLoading.value = false
+    }
+  }
+
+  /**
    * R�initialiser le state
    */
   const reset = () => {
@@ -272,6 +316,7 @@ export const useAudits = (options?: { entityId?: number }) => {
     createAudit,
     updateAudit,
     deleteAudit,
+    assignAuditor,
     refresh,
     reset,
   }

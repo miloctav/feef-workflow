@@ -18,6 +18,8 @@ export interface CreateAccountData {
   // Pour OE
   oeId?: number
   oeRole?: typeof OERole[keyof typeof OERole]
+  // Pour AUDITOR
+  oeIds?: number[]
   // Pour ENTITY
   entityRoles?: Array<{
     entityId: number
@@ -50,6 +52,13 @@ export interface AccountWithRelations extends AccountPublic {
     entityId: number
     role: typeof EntityRole[keyof typeof EntityRole]
     entity: {
+      id: number
+      name: string
+    }
+  }>
+  auditorsToOE?: Array<{
+    oeId: number
+    oe?: {
       id: number
       name: string
     }

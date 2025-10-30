@@ -1,7 +1,8 @@
 import { db } from '~~/server/database'
-import { documentVersions, documentaryReviews, accountsToEntities } from '~~/server/database/schema'
+import { documentVersions } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { getSignedUrl } from '~~/server/services/garage'
+import { requireEntityAccess } from '~~/server/utils/authorization'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -53,46 +54,14 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Vérifier que l'entité n'est pas soft-deleted
-  if (version.documentaryReview.entity.deletedAt) {
-    throw createError({
-      statusCode: 404,
-      message: 'Entité non trouvée',
-    })
-  }
-
-  // Autorisation basée sur le rôle
-  if (user.role === Role.FEEF) {
-    // FEEF a accès à tout
-  } else if (user.role === Role.OE) {
-    // OE doit être assigné à l'entité
-    if (version.documentaryReview.entity.oeId !== user.oeId) {
-      throw createError({
-        statusCode: 403,
-        message: 'Vous n\'avez pas accès à ce fichier',
-      })
-    }
-  } else if (user.role === Role.ENTITY || user.role === Role.AUDITOR) {
-    // Utilisateur doit être lié à l'entité via accountsToEntities
-    const accountToEntity = await db.query.accountsToEntities.findFirst({
-      where: and(
-        eq(accountsToEntities.accountId, user.id),
-        eq(accountsToEntities.entityId, version.documentaryReview.entityId)
-      ),
-    })
-
-    if (!accountToEntity) {
-      throw createError({
-        statusCode: 403,
-        message: 'Vous n\'avez pas accès à ce fichier',
-      })
-    }
-  } else {
-    throw createError({
-      statusCode: 403,
-      message: 'Rôle non autorisé',
-    })
-  }
+  // Vérifier l'accès à l'entité du document
+  await requireEntityAccess(
+    user.id,
+    user.role,
+    version.documentaryReview.entityId,
+    user.oeId,
+    'Vous n\'avez pas accès à ce fichier'
+  )
 
   // Générer l'URL signée (valide 1 heure)
   try {

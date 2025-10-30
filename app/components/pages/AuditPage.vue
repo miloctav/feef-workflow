@@ -181,16 +181,14 @@ const auditTypeBadgeColor = computed(() => {
                   <span class="text-gray-500 italic">Non assigné</span>
                 </div>
 
-                <UButton
-                  v-if="user?.role === Role.OE"
-                  color="primary"
-                  variant="outline"
-                  size="sm"
-                  icon="i-lucide-user-cog"
+                <AssignAuditorModal
+                  v-if="user?.role === Role.OE && currentAudit.oeId"
+                  :audit-id="currentAudit.id"
+                  :current-auditor-id="currentAudit.auditorId"
+                  :current-auditor-name="currentAudit.auditor ? `${currentAudit.auditor.firstname} ${currentAudit.auditor.lastname}` : null"
+                  :oe-id="currentAudit.oeId"
                   class="mt-3"
-                >
-                  Modifier l'auditeur affecté
-                </UButton>
+                />
               </div>
             </div>
           </div>

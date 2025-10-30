@@ -7,7 +7,7 @@ if (user.value) {
     FEEF: '/feef',
     OE: '/oe',
     ENTITY: '/entity',
-    AUDITOR: '/auditeur'
+    AUDITOR: '/auditor',
   }
 
   const targetRoute = roleRoutes[user.value.role]

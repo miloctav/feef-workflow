@@ -57,6 +57,10 @@ export default defineEventHandler(async (event) => {
     defaultSort: 'createdAt:desc',
   }
 
+  if(user.role === Role.AUDITOR) {
+    query.auditorId = String(user.id)
+  }
+
   // 1. Parser les paramètres de pagination
   const params = parsePaginationParams(query, config)
 

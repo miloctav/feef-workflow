@@ -176,6 +176,20 @@
               </div>
             </div>
           </template>
+
+          <!-- Champs spécifiques au rôle AUDITOR -->
+          <template v-if="state.role === 'AUDITOR'">
+            <UFormField label="Organismes Évaluateurs" name="oeIds" required>
+              <USelectMenu
+                v-model="state.oeIds"
+                :items="oesList"
+                value-key="value"
+                multiple
+                placeholder="Sélectionner un ou plusieurs OEs"
+                :disabled="!!oeId"
+              />
+            </UFormField>
+          </template>
         </UForm>
       </template>
 
@@ -398,7 +412,7 @@ const columns = computed(() => {
     // Mode général : afficher le sous-rôle selon le rôle global
     allColumns.push({
       accessorKey: 'subRole',
-      header: 'Sous-rôle',
+      header: 'Sous-rôle / Organisation',
       cell: ({ row }) => {
         const account = row.original
 
@@ -415,6 +429,16 @@ const columns = computed(() => {
           return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'soft', size: 'sm' }, () => text)
         }
 
+        // Si le compte est un AUDITOR, afficher les OEs associés
+        if (account.role === Role.AUDITOR && account.auditorsToOE) {
+          const count = account.auditorsToOE.length
+          if (count === 0) {
+            return h(resolveComponent('UBadge'), { color: 'gray', variant: 'soft', size: 'sm' }, () => 'Aucun OE')
+          }
+          const text = count === 1 ? '1 OE' : `${count} OEs`
+          return h(resolveComponent('UBadge'), { color: 'blue', variant: 'soft', size: 'sm' }, () => text)
+        }
+
         return '-'
       },
     })
@@ -425,7 +449,18 @@ const columns = computed(() => {
     {
       accessorKey: 'oe',
       header: 'Organisation',
-      cell: ({ row }) => row.original.oe?.name || '-',
+      cell: ({ row }) => {
+        const account = row.original
+
+        // Pour les auditeurs, afficher les OEs associés
+        if (account.role === Role.AUDITOR && account.auditorsToOE && account.auditorsToOE.length > 0) {
+          const oeNames = account.auditorsToOE.map(rel => rel.oe?.name).filter(Boolean).join(', ')
+          return oeNames || '-'
+        }
+
+        // Pour les autres rôles, afficher l'OE directement lié
+        return account.oe?.name || '-'
+      },
     },
     {
       accessorKey: 'isActive',
@@ -485,6 +520,14 @@ const schema = computed(() => {
     })
   }
 
+  // Si le rôle est AUDITOR
+  if (selectedRole === Role.AUDITOR) {
+    return z.object({
+      ...baseSchema,
+      oeIds: z.array(z.number().positive('L\'OE doit être valide')).min(1, 'Au moins un OE doit être sélectionné')
+    })
+  }
+
   return z.object(baseSchema)
 })
 
@@ -495,6 +538,7 @@ type Schema = {
   role: string
   oeId?: number | null
   oeRole?: string
+  oeIds?: number[]
   entityRoles?: Array<{
     entityId: number | null
     role: string
@@ -509,6 +553,7 @@ const state = reactive<Schema>({
   role: forcedRole.value || '',
   oeId: props.oeId,
   oeRole: '',
+  oeIds: props.oeId ? [props.oeId] : [],
   entityRoles: props.entityId ? [{ entityId: props.entityId, role: '' }] : []
 })
 
@@ -535,6 +580,11 @@ watch(() => state.role, (newRole, oldRole) => {
     state.entityRoles = []
   }
 
+  // Réinitialiser les champs AUDITOR si on ne sélectionne plus AUDITOR
+  if (oldRole === Role.AUDITOR && newRole !== Role.AUDITOR) {
+    state.oeIds = []
+  }
+
   // Initialiser les champs selon le nouveau rôle
   if (newRole === Role.ENTITY && (!state.entityRoles || state.entityRoles.length === 0)) {
     state.entityRoles = props.entityId
@@ -544,6 +594,10 @@ watch(() => state.role, (newRole, oldRole) => {
 
   if (newRole === Role.OE && !state.oeId) {
     state.oeId = props.oeId
+  }
+
+  if (newRole === Role.AUDITOR && (!state.oeIds || state.oeIds.length === 0)) {
+    state.oeIds = props.oeId ? [props.oeId] : []
   }
 })
 
@@ -599,6 +653,11 @@ const handleCreate = async (close: () => void) => {
     accountData.oeRole = state.oeRole
   }
 
+  // Si le rôle est AUDITOR, ajouter oeIds
+  if (state.role === Role.AUDITOR && state.oeIds && state.oeIds.length > 0) {
+    accountData.oeIds = state.oeIds
+  }
+
   const result = await createAccount(accountData)
   createLoading.value = false
 
@@ -610,6 +669,7 @@ const handleCreate = async (close: () => void) => {
     state.role = forcedRole.value || ''
     state.oeId = props.oeId
     state.oeRole = ''
+    state.oeIds = props.oeId ? [props.oeId] : []
     state.entityRoles = props.entityId ? [{ entityId: props.entityId, role: '' }] : []
     close()
   }

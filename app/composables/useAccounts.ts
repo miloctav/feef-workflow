@@ -27,7 +27,7 @@ export const useAccounts = () => {
   } = usePaginatedFetch<AccountWithRelations>('/api/accounts', {
     key: 'accounts',
     defaultLimit: 25,
-    immediate: true,
+    immediate: false,
   })
 
   // State pour un compte individuel
@@ -264,6 +264,32 @@ export const useAccounts = () => {
   }
 
   /**
+   * Récupérer les auditeurs d'un OE pour les sélecteurs
+   */
+  const fetchAuditorsByOe = async (oeId: number) => {
+    try {
+      const response = await $fetch<{ data: Array<{ id: number; firstname: string; lastname: string }> }>(
+        `/api/accounts?role=AUDITOR&auditorOeId=${oeId}&limit=-1`
+      )
+
+      return response.data.map(auditor => ({
+        label: `${auditor.firstname} ${auditor.lastname}`,
+        value: auditor.id
+      }))
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération des auditeurs'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return []
+    }
+  }
+
+  /**
    * Supprimer l'association entre un compte et une entité
    */
   const removeAccountFromEntity = async (accountId: number, entityId: number) => {
@@ -344,6 +370,7 @@ export const useAccounts = () => {
     fetchAccounts,
     fetchAccount,
     fetchAuditors,
+    fetchAuditorsByOe,
     createAccount,
     updateAccount,
     deleteAccount,

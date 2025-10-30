@@ -145,7 +145,9 @@ export const auditorsToOE = pgTable('auditors_to_oe', {
   auditorId: integer('auditor_id').notNull().references(() => accounts.id),
   oeId: integer('oe_id').notNull().references(() => oes.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-})
+}, (table) => ({
+  pk: primaryKey({ columns: [table.auditorId, table.oeId] })
+}))
 
 // ========================================
 // Types inférés depuis le schéma Drizzle

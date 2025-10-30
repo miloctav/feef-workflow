@@ -34,6 +34,7 @@
             placeholder="OE"
           />
           <FilterSelect
+            v-if="user?.role !== Role.AUDITOR"
             label="Auditeur"
             :model-value="filters.auditorId"
             @update:model-value="updateFilter('auditorId', $event)"
@@ -50,7 +51,7 @@
         <UBadge v-if="filters.oeId !== null" variant="subtle" color="info" size="sm">
           OE: {{ getFilterLabel('oeId', filters.oeId) }}
         </UBadge>
-        <UBadge v-if="filters.auditorId !== null" variant="subtle" color="success" size="sm">
+        <UBadge v-if="filters.auditorId !== null && user?.role !== Role.AUDITOR" variant="subtle" color="success" size="sm">
           Auditeur: {{ getFilterLabel('auditorId', filters.auditorId) }}
         </UBadge>
       </template>
@@ -119,7 +120,11 @@ onMounted(() => {
 
   if( props.hasFilters ){
     loadOEs()
-    loadAuditors()
+    // Ne charger les auditeurs que si l'utilisateur n'est pas un AUDITOR
+    if (user.value?.role !== Role.AUDITOR) {
+      console.log('Loading auditors for filter')
+      loadAuditors()
+    }
   }
 })
 

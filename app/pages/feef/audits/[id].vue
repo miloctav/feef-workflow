@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { getCompanyById } from '~/utils/data'
 
 definePageMeta({
   layout: "dashboard-feef",

@@ -1,22 +1,24 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { audits } from '~~/server/database/schema'
 
 /**
  * GET /api/audits/:id
  *
- * Récupère un audit par son ID avec toutes ses relations
+ * Rï¿½cupï¿½re un audit par son ID avec toutes ses relations
  *
  * Relations incluses:
- * - entity: l'entité auditée (avec oe, accountManager, parentGroup)
- * - oe: l'organisme évaluateur
+ * - entity: l'entitï¿½ auditï¿½e (avec oe, accountManager, parentGroup)
+ * - oe: l'organisme ï¿½valuateur
  * - auditor: l'auditeur (avec son oe)
  */
 export default defineEventHandler(async (event) => {
   // Authentification requise
-  await requireUserSession(event)
+  const {user} = await requireUserSession(event)
 
-  // Récupérer l'ID depuis l'URL
+  console.log(`ðŸ“‹ ${user.email} is fetching audit by ID`)
+
+  // Rï¿½cupï¿½rer l'ID depuis l'URL
   const id = getRouterParam(event, 'id')
 
   if (!id) {
@@ -35,9 +37,20 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Récupérer l'audit par son ID avec toutes les relations
+  // RÃ©cupÃ©rer l'audit par son ID avec toutes les relations
+  const whereClause = (fields: any) => {
+    if (user.role === Role.AUDITOR) {
+      return and(eq(fields.id, auditId), eq(fields.auditorId, Number(user.id)))
+    } else if(user.role === Role.OE) {
+      console.log(`OE user ${user.email} accessing audit ${auditId} oeId ${user.oeId}`)
+      return and(eq(fields.id, auditId), eq(fields.oeId, Number(user.oeId)))     
+    } else {
+      return eq(fields.id, auditId)
+    }
+  }
+
   const audit = await db.query.audits.findFirst({
-    where: eq(audits.id, auditId),
+    where: whereClause,
     with: {
       entity: {
         with: {
@@ -93,7 +106,17 @@ export default defineEventHandler(async (event) => {
   if (!audit) {
     throw createError({
       statusCode: 404,
-      message: 'Audit non trouvé',
+      message: 'Audit non trouvï¿½',
+    })
+  }
+
+  // Normalize entity to handle possible array returned by the ORM
+  const entity = Array.isArray(audit.entity) ? audit.entity[0] : audit.entity
+
+  if (user.role === Role.OE && user.oeRole === OERole.ACCOUNT_MANAGER && entity?.accountManagerId !== user.id) {
+    throw createError({
+      statusCode: 403,
+      message: 'AccÃ©s refusÃ© Ã  cet audit',
     })
   }
 
