@@ -23,7 +23,6 @@
             <UFormField label="Nom de l'organisme évaluateur" name="name" required>
               <UInput
                 v-model="state.name"
-                placeholder="Ex: Bureau Veritas"
                 icon="i-lucide-building"
               />
             </UFormField>
