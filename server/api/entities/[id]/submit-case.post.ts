@@ -62,6 +62,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  if(entity.mode === EntityMode.FOLLOWER){
+    throw createError({
+      statusCode: 403,
+      message: 'Les entités en mode "Suiveur" ne peuvent pas soumettre de dossier',
+    })
+  }
+
   if (entity.deletedAt) {
     throw createError({
       statusCode: 400,
