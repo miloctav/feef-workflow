@@ -1,16 +1,18 @@
 <script setup lang="ts">
+import EntityCase from '~/components/entity/EntityCase.vue';
+
 
 definePageMeta({
   layout: "dashboard-entity",
 });
 
-const { currentEntity, fetchEntity, fetchLoading, fetchError } = useEntities()
+const { currentEntity, fetchEntity, fetchLoading, fetchError, submitCase, submitCaseLoading } = useEntities()
 const { user } = useAuth()
 
 const entityId = user.value?.currentEntityId
 
 onMounted(async () => {
-  if(!entityId) {
+  if (!entityId) {
     throw createError({ statusCode: 404, message: 'Entité non trouvée' })
   }
   const result = await fetchEntity(entityId)
@@ -28,10 +30,7 @@ onMounted(async () => {
       <NavBar />
     </template>
     <template #body>
-      <!-- Container principal avec 80% de largeur -->
-      <div class="w-4/5 mx-auto">
-        <EntityPage />
-      </div>
+      <EntityCase v-if="!fetchLoading && currentEntity" />
     </template>
   </UDashboardPanel>
 </template>

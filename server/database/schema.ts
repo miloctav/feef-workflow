@@ -42,8 +42,10 @@ export const entities = pgTable('entities', {
   siret: varchar('siret', { length: 14 }).unique(),
   type: entityTypeEnum('type').notNull(),
   mode: entityModeEnum('mode').notNull(),
-  // caseSubmittedAt: timestamp('case_submitted_at'),
-  // caseApprovedAt: timestamp('case_approved_at'),
+  caseSubmittedAt: timestamp('case_submitted_at'),
+  caseSubmittedBy: integer('case_submitted_by').references(() => accounts.id),
+  caseApprovedAt: timestamp('case_approved_at'),
+  caseApprovedBy: integer('case_approved_by').references(() => accounts.id),
   parentGroupId: integer('parent_group_id').references((): AnyPgColumn => entities.id),
   oeId: integer('oe_id').references(() => oes.id),
   accountManagerId: integer('account_manager_id').references(() => accounts.id),
@@ -229,6 +231,14 @@ export const entitiesRelations = relations(entities, ({ one, many }) => ({
   }),
   accountManager: one(accounts, {
     fields: [entities.accountManagerId],
+    references: [accounts.id],
+  }),
+  caseSubmittedByAccount: one(accounts, {
+    fields: [entities.caseSubmittedBy],
+    references: [accounts.id],
+  }),
+  caseApprovedByAccount: one(accounts, {
+    fields: [entities.caseApprovedBy],
     references: [accounts.id],
   }),
   accountsToEntities: many(accountsToEntities),

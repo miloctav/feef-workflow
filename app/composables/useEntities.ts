@@ -37,6 +37,8 @@ export const useEntities = () => {
   const createLoading = useState('entities:createLoading', () => false)
   const updateLoading = useState('entities:updateLoading', () => false)
   const deleteLoading = useState('entities:deleteLoading', () => false)
+  const submitCaseLoading = useState('entities:submitCaseLoading', () => false)
+  const approveCaseLoading = useState('entities:approveCaseLoading', () => false)
 
   // Loading state dérivé de fetchStatus
   const fetchLoading = computed(() => fetchStatus.value === 'pending')
@@ -226,6 +228,88 @@ export const useEntities = () => {
   }
 
   /**
+   * Soumettre le dossier d'une entité
+   */
+  const submitCase = async (id: number) => {
+    submitCaseLoading.value = true
+
+    try {
+      const response = await $fetch<{ data: EntityWithRelations }>(`/api/entities/${id}/submit-case`, {
+        method: 'POST',
+      })
+
+      // Rafraîchir la liste paginée pour refléter les changements
+      await refresh()
+
+      // Mettre à jour l'entité courante si c'est celle-ci
+      if (currentEntity.value?.id === id) {
+        currentEntity.value = response.data
+      }
+
+      toast.add({
+        title: 'Succès',
+        description: 'Dossier soumis avec succès',
+        color: 'success',
+      })
+
+      return { success: true, data: response.data }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la soumission du dossier'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    } finally {
+      submitCaseLoading.value = false
+    }
+  }
+
+  /**
+   * Approuver le dossier d'une entité
+   */
+  const approveCase = async (id: number) => {
+    approveCaseLoading.value = true
+
+    try {
+      const response = await $fetch<{ data: EntityWithRelations }>(`/api/entities/${id}/approve-case`, {
+        method: 'POST',
+      })
+
+      // Rafraîchir la liste paginée pour refléter les changements
+      await refresh()
+
+      // Mettre à jour l'entité courante si c'est celle-ci
+      if (currentEntity.value?.id === id) {
+        currentEntity.value = response.data
+      }
+
+      toast.add({
+        title: 'Succès',
+        description: 'Dossier approuvé avec succès',
+        color: 'success',
+      })
+
+      return { success: true, data: response.data }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de l\'approbation du dossier'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    } finally {
+      approveCaseLoading.value = false
+    }
+  }
+
+  /**
    * Récupérer les entités pour les filtres et sélecteurs
    */
   const fetchEntitiesForSelect = async (options: { includeAll?: boolean; mode?: EntityModeType } = {}) => {
@@ -296,6 +380,8 @@ export const useEntities = () => {
     createLoading: readonly(createLoading),
     updateLoading: readonly(updateLoading),
     deleteLoading: readonly(deleteLoading),
+    submitCaseLoading: readonly(submitCaseLoading),
+    approveCaseLoading: readonly(approveCaseLoading),
 
     // Actions de pagination
     nextPage,
@@ -313,6 +399,8 @@ export const useEntities = () => {
     createEntity,
     updateEntity,
     deleteEntity,
+    submitCase,
+    approveCase,
     refresh,
     reset,
   }

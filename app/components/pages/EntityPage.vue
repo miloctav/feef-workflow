@@ -19,7 +19,7 @@
         <!-- Tab Dossier -->
         <template #dossier>
           <div class="py-6">
-            <!-- <CompanyDetail :company="company" :role="role" /> -->
+            <EntityCase />
           </div>
         </template>
 

@@ -49,10 +49,19 @@ export interface EntityParentGroup {
   name: string
 }
 
+export interface EntityAccount {
+  id: number
+  firstname: string
+  lastname: string
+  email: string
+}
+
 // Entity avec relations complètes
 export interface EntityWithRelations extends EntityPublic {
   oe?: EntityOE | null
   accountManager?: EntityAccountManager | null
   parentGroup?: EntityParentGroup | null
   childEntities?: EntityWithRelations[]
+  caseSubmittedByAccount?: EntityAccount | null
+  caseApprovedByAccount?: EntityAccount | null
 }

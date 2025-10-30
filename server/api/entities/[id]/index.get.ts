@@ -33,6 +33,22 @@ export default defineEventHandler(async (event) => {
           email: true,
         }
       },
+      caseSubmittedByAccount: {
+        columns: {
+          id: true,
+          firstname: true,
+          lastname: true,
+          email: true,
+        }
+      },
+      caseApprovedByAccount: {
+        columns: {
+          id: true,
+          firstname: true,
+          lastname: true,
+          email: true,
+        }
+      },
       parentGroup: true, // Si c'est une COMPANY, récupérer tous les détails du groupe parent
       childEntities: {    // Si c'est un GROUP, récupérer toutes les entreprises enfants
         with: {
