@@ -117,9 +117,10 @@ onMounted(() => {
   // Note: Si entityId est fourni en props, il est déjà dans initialParams et sera utilisé automatiquement
   fetchAudits()
 
-  // Charger les données pour les filtres
-  loadOEs()
-  loadAuditors()
+  if( props.hasFilters ){
+    loadOEs()
+    loadAuditors()
+  }
 })
 
 // Gérer les changements de filtres depuis PaginatedTable
