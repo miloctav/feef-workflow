@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { accounts } from '~~/server/database/schema'
+import { accounts, auditorsToOE } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
 
 interface UpdateAccountBody {
@@ -12,15 +12,8 @@ interface UpdateAccountBody {
 export default defineEventHandler(async (event) => {
   console.log('[Accounts API] Modification de compte')
 
-  // Vérifier que l'utilisateur connecté est FEEF
+  // Vérifier que l'utilisateur est authentifié
   const { user: currentUser } = await requireUserSession(event)
-
-  if (currentUser.role !== Role.FEEF) {
-    throw createError({
-      statusCode: 403,
-      message: 'Seul un administrateur FEEF peut modifier des comptes',
-    })
-  }
 
   // Récupérer l'ID du compte à modifier
   const accountId = getRouterParam(event, 'id')
@@ -50,6 +43,40 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 404,
       message: 'Compte non trouvé',
+    })
+  }
+
+  // Vérifier les permissions
+  if (currentUser.role === Role.FEEF) {
+    // FEEF peut modifier tous les comptes
+  } else if (currentUser.role === Role.OE && currentUser.oeRole === OERole.ADMIN) {
+    // OE ADMIN peut modifier les comptes de son propre OE
+
+    // Vérifier si c'est un compte OE de son organisation
+    const isOwnOeAccount = existingAccount.role === Role.OE && existingAccount.oeId === currentUser.oeId
+
+    // Vérifier si c'est un auditeur lié à son OE
+    let isOwnAuditor = false
+    if (existingAccount.role === Role.AUDITOR) {
+      const auditorLink = await db.query.auditorsToOE.findFirst({
+        where: and(
+          eq(auditorsToOE.auditorId, accountIdInt),
+          eq(auditorsToOE.oeId, currentUser.oeId!)
+        ),
+      })
+      isOwnAuditor = !!auditorLink
+    }
+
+    if (!isOwnOeAccount && !isOwnAuditor) {
+      throw createError({
+        statusCode: 403,
+        message: 'Vous ne pouvez modifier que les comptes de votre propre OE',
+      })
+    }
+  } else {
+    throw createError({
+      statusCode: 403,
+      message: 'Vous n\'êtes pas autorisé à modifier des comptes',
     })
   }
 

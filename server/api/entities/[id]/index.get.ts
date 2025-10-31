@@ -20,10 +20,8 @@ export default defineEventHandler(async (event) => {
 
   // Vérifier l'accès à l'entité
   await requireEntityAccess({
-    userId: user.id,
-    userRole: user.role,
-    entityId: entityId,
-    userOeId: user.oeId,
+    user,
+    entityId,
     accessType: AccessType.READ
   })
 

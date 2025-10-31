@@ -2,6 +2,7 @@ import { eq, and, isNull, desc } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { accountsToEntities, audits, entities } from '~~/server/database/schema'
 import { Role, OERole } from '#shared/types/roles'
+import type { SessionUser } from '~~/server/types/session'
 
 /**
  * Types d'accès pour les autorisations
@@ -15,10 +16,8 @@ export enum AccessType {
  * Paramètres pour la vérification d'accès à une entité
  */
 export interface EntityAccessParams {
-  userId: number
-  userRole: string
+  user: SessionUser
   entityId: number
-  userOeId?: number | null
   accessType?: AccessType
   errorMessage?: string
 }
@@ -27,12 +26,8 @@ export interface EntityAccessParams {
  * Paramètres pour la vérification d'accès à un audit
  */
 export interface AuditAccessParams {
-  userId: number
-  userRole: string
+  user: SessionUser
   auditId: number
-  userOeId?: number | null
-  userOeRole?: string | null
-  currentEntityId?: number | null
   accessType?: AccessType
   errorMessage?: string
 }
@@ -47,22 +42,18 @@ export interface AuditAccessParams {
  * - ENTITY : accès uniquement aux entités liées via accountsToEntities
  * - AUDITOR : accès uniquement aux entités dont il est l'auditeur de l'audit le plus récent
  *
- * @param userId - ID de l'utilisateur
- * @param userRole - Rôle de l'utilisateur
+ * @param user - Utilisateur connecté (de requireUserSession)
  * @param entityId - ID de l'entité à vérifier
- * @param userOeId - ID de l'OE de l'utilisateur (requis pour rôle OE)
  * @param accessType - Type d'accès demandé (READ ou WRITE, défaut: READ)
  * @returns true si l'accès est autorisé, false sinon
  */
 export async function verifyEntityAccessForUser(
-  userId: number,
-  userRole: string,
+  user: SessionUser,
   entityId: number,
-  userOeId?: number | null,
   accessType: AccessType = AccessType.READ
 ): Promise<boolean> {
   // FEEF a accès à tout
-  if (userRole === Role.FEEF) {
+  if (user.role === Role.FEEF) {
     return true
   }
 
@@ -75,7 +66,7 @@ export async function verifyEntityAccessForUser(
     with: {
       // Pour ENTITY : charger les liens accountsToEntities filtrés par userId
       accountsToEntities: {
-        where: eq(accountsToEntities.accountId, userId)
+        where: eq(accountsToEntities.accountId, user.id)
       },
       // Pour AUDITOR : charger le dernier audit non supprimé
       audits: {
@@ -91,28 +82,33 @@ export async function verifyEntityAccessForUser(
   }
 
   // OE : accès complet si entité assignée, ou lecture seule si candidature approuvée sans OE
-  if (userRole === Role.OE) {
+  if (user.role === Role.OE) {
     // Accès complet (read + write) si l'entité est assignée à l'OE
-    if (entity.oeId === userOeId) {
+    if (entity.oeId === user.oeId) {
+      if(user.oeRole === OERole.ACCOUNT_MANAGER && entity.accountManagerId !== user.id) {
+        return false
+      }
       return true
     }
 
-    // Accès lecture seule si l'entité n'a pas d'OE mais sa candidature est approuvée
-    if (accessType === AccessType.READ && entity.oeId === null && entity.caseApprovedAt !== null) {
-      return true
+    if (entity.oeId === null && entity.caseApprovedAt !== null) {
+      if(user.oeRole === OERole.ACCOUNT_MANAGER) {
+        return false 
+      }
+      return accessType === AccessType.READ
     }
 
     return false
   }
 
   // ENTITY doit être lié via accountsToEntities
-  if (userRole === Role.ENTITY) {
+  if (user.role === Role.ENTITY) {
     return entity.accountsToEntities.length > 0
   }
 
   // AUDITOR doit être l'auditeur de l'audit le plus récent (non supprimé)
-  if (userRole === Role.AUDITOR) {
-    return entity.audits[0]?.auditorId === userId
+  if (user.role === Role.AUDITOR) {
+    return entity.audits[0]?.auditorId === user.id
   }
 
   // Rôle non reconnu
@@ -124,29 +120,23 @@ export async function verifyEntityAccessForUser(
  * Helper pour simplifier les endpoints
  *
  * @param params - Paramètres de vérification d'accès
- * @param params.userId - ID de l'utilisateur
- * @param params.userRole - Rôle de l'utilisateur
+ * @param params.user - Utilisateur connecté (de requireUserSession)
  * @param params.entityId - ID de l'entité à vérifier
- * @param params.userOeId - ID de l'OE de l'utilisateur (requis pour rôle OE)
  * @param params.accessType - Type d'accès demandé (READ ou WRITE, défaut: READ)
  * @param params.errorMessage - Message d'erreur personnalisé
  * @throws createError 403 si l'accès est refusé
  */
 export async function requireEntityAccess(params: EntityAccessParams): Promise<void> {
   const {
-    userId,
-    userRole,
+    user,
     entityId,
-    userOeId,
     accessType = AccessType.READ,
     errorMessage = 'Vous n\'avez pas accès à cette entité'
   } = params
 
   const hasAccess = await verifyEntityAccessForUser(
-    userId,
-    userRole,
+    user,
     entityId,
-    userOeId,
     accessType
   )
 
@@ -169,26 +159,18 @@ export async function requireEntityAccess(params: EntityAccessParams): Promise<v
  * - AUDITOR : accès aux audits dont ils sont l'auditeur (audit.auditorId === userId)
  * - ENTITY : accès aux audits de leur entité courante (audit.entityId === currentEntityId)
  *
- * @param userId - ID de l'utilisateur
- * @param userRole - Rôle de l'utilisateur
+ * @param user - Utilisateur connecté (de requireUserSession)
  * @param auditId - ID de l'audit à vérifier
- * @param userOeId - ID de l'OE de l'utilisateur (requis pour rôle OE)
- * @param userOeRole - Sous-rôle OE (ADMIN ou ACCOUNT_MANAGER)
- * @param currentEntityId - ID de l'entité courante (pour rôle ENTITY)
  * @param accessType - Type d'accès demandé (READ ou WRITE, défaut: READ)
  * @returns true si l'accès est autorisé, false sinon
  */
 export async function verifyAuditAccessForUser(
-  userId: number,
-  userRole: string,
+  user: SessionUser,
   auditId: number,
-  userOeId?: number | null,
-  userOeRole?: string | null,
-  currentEntityId?: number | null,
   accessType: AccessType = AccessType.READ
 ): Promise<boolean> {
   // FEEF a accès à tout
-  if (userRole === Role.FEEF) {
+  if (user.role === Role.FEEF) {
     return true
   }
 
@@ -213,15 +195,17 @@ export async function verifyAuditAccessForUser(
   }
 
   // OE : vérifier l'appartenance à l'OE + restriction ACCOUNT_MANAGER
-  if (userRole === Role.OE) {
+  if (user.role === Role.OE) {
     // 1. L'audit doit appartenir à mon OE
-    if (audit.oeId !== userOeId) {
+    if (audit.oeId !== user.oeId) {
       return false
     }
 
     // 2. Si ACCOUNT_MANAGER, vérifier que je suis responsable de l'entité
-    if (userOeRole === OERole.ACCOUNT_MANAGER) {
-      if (audit.entity?.accountManagerId !== userId) {
+    if (user.oeRole === OERole.ACCOUNT_MANAGER) {
+      // audit.entity est une relation one-to-one, donc c'est un objet (pas un tableau)
+      const entity = audit.entity as { id: number; accountManagerId: number } | undefined
+      if (entity?.accountManagerId !== user.id) {
         return false
       }
     }
@@ -230,13 +214,13 @@ export async function verifyAuditAccessForUser(
   }
 
   // AUDITOR : accès complet si c'est son audit
-  if (userRole === Role.AUDITOR) {
-    return audit.auditorId === userId
+  if (user.role === Role.AUDITOR) {
+    return audit.auditorId === user.id
   }
 
   // ENTITY : accès si l'audit appartient à l'entité courante
-  if (userRole === Role.ENTITY) {
-    return audit.entityId === currentEntityId
+  if (user.role === Role.ENTITY) {
+    return audit.entityId === user.currentEntityId
   }
 
   // Rôle non reconnu
@@ -248,35 +232,23 @@ export async function verifyAuditAccessForUser(
  * Helper pour simplifier les endpoints
  *
  * @param params - Paramètres de vérification d'accès
- * @param params.userId - ID de l'utilisateur
- * @param params.userRole - Rôle de l'utilisateur
+ * @param params.user - Utilisateur connecté (de requireUserSession)
  * @param params.auditId - ID de l'audit à vérifier
- * @param params.userOeId - ID de l'OE de l'utilisateur (requis pour rôle OE)
- * @param params.userOeRole - Sous-rôle OE (ADMIN ou ACCOUNT_MANAGER)
- * @param params.currentEntityId - ID de l'entité courante (pour rôle ENTITY)
  * @param params.accessType - Type d'accès demandé (READ ou WRITE, défaut: READ)
  * @param params.errorMessage - Message d'erreur personnalisé
  * @throws createError 403 si l'accès est refusé
  */
 export async function requireAuditAccess(params: AuditAccessParams): Promise<void> {
   const {
-    userId,
-    userRole,
+    user,
     auditId,
-    userOeId,
-    userOeRole,
-    currentEntityId,
     accessType = AccessType.READ,
     errorMessage = 'Vous n\'avez pas accès à cet audit'
   } = params
 
   const hasAccess = await verifyAuditAccessForUser(
-    userId,
-    userRole,
+    user,
     auditId,
-    userOeId,
-    userOeRole,
-    currentEntityId,
     accessType
   )
 

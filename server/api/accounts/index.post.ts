@@ -33,14 +33,42 @@ export default defineEventHandler(async (event) => {
 
   const { firstname, lastname, email, role, oeId, oeRole, oeIds, entityRoles } = body
 
+  console.log('[Accounts API] Données reçues:', { firstname, lastname, email, role, oeId, oeRole, oeIds, entityRoles })
+  console.log('[Accounts API] Utilisateur connecté:', { role: currentUser.role, oeRole: currentUser.oeRole, oeId: currentUser.oeId })
+
 
   if (currentUser.role === Role.FEEF) {
+    // FEEF peut tout faire
 
   } else if (currentUser.role === Role.OE && currentUser.oeRole === OERole.ADMIN) {
-    if(currentUser.oeId !== oeId) {
+    // OE ADMIN peut créer des comptes pour son propre OE
+
+    // Pour les comptes OE, vérifier que l'oeId correspond
+    if (role === Role.OE && currentUser.oeId !== oeId) {
       throw createError({
         statusCode: 403,
-        message: 'Vous ne pouvez créer des comptes que pour votre propre OE',
+        message: 'Vous ne pouvez créer des comptes OE que pour votre propre organisation',
+      })
+    }
+
+    // Pour les auditeurs, vérifier que tous les oeIds correspondent au OE de l'utilisateur
+    if (role === Role.AUDITOR && oeIds && oeIds.length > 0) {
+      // Vérifier que TOUS les oeIds dans le tableau correspondent à l'OE de l'utilisateur
+      const allOeIdsValid = oeIds.every(id => id === currentUser.oeId)
+
+      if (!allOeIdsValid) {
+        throw createError({
+          statusCode: 403,
+          message: 'Vous ne pouvez créer des auditeurs que pour votre propre OE',
+        })
+      }
+    }
+
+    // Pour les entités, un OE ne peut pas en créer
+    if (role === Role.ENTITY) {
+      throw createError({
+        statusCode: 403,
+        message: 'Vous n\'êtes pas autorisé à créer des comptes entreprise',
       })
     }
 

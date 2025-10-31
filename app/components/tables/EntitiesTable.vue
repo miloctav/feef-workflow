@@ -12,7 +12,8 @@
       :columns="columns"
       :on-page-change="goToPage"
       :on-search="setSearch"
-      :add-button-text="user?.role === Role.FEEF ? 'Créer une nouvelle entité' : undefined"
+      add-button-text='Créer une nouvelle entité'
+      :has-add-button="user?.role === Role.FEEF"
       search-placeholder="Rechercher par nom, SIREN, SIRET..."
       :on-row-click="handleRowClick"
       :on-delete="user?.role === Role.FEEF ? handleDelete : undefined"

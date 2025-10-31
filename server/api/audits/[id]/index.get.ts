@@ -40,12 +40,8 @@ export default defineEventHandler(async (event) => {
 
   // Vérifier l'accès à l'audit
   await requireAuditAccess({
-    userId: user.id,
-    userRole: user.role,
-    auditId: auditId,
-    userOeId: user.oeId,
-    userOeRole: user.oeRole,
-    currentEntityId: user.currentEntityId,
+    user,
+    auditId,
     accessType: AccessType.READ
   })
 

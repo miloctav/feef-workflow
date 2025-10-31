@@ -2,6 +2,7 @@
 
 definePageMeta({
   layout: "dashboard-oe",
+  middleware: ["oe-admin"],
 });
 
 const { user } = useAuth()

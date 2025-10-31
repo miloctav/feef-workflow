@@ -36,12 +36,8 @@ export default defineEventHandler(async (event) => {
 
   // Vérifier l'accès en écriture à l'audit
   await requireAuditAccess({
-    userId: currentUser.id,
-    userRole: currentUser.role,
+    user: currentUser,
     auditId: auditIdInt,
-    userOeId: currentUser.oeId,
-    userOeRole: currentUser.oeRole,
-    currentEntityId: currentUser.currentEntityId,
     accessType: AccessType.WRITE
   })
 

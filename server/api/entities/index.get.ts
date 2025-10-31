@@ -99,6 +99,9 @@ export default defineEventHandler(async (event) => {
         isNotNull(entitiesTable.caseApprovedAt)
       )
     )
+    if( user.oeRole === OERole.ACCOUNT_MANAGER) {
+      whereConditions.push(eq(entitiesTable.accountManagerId, user.id))
+    }
     if (oeCondition) {
       whereConditions.push(oeCondition)
     }

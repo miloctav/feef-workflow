@@ -92,7 +92,7 @@
           <UFormField label="Rôle global" name="role" required>
             <USelect
               v-model="state.role"
-              :items="roleOptions"
+              :items="availableRoleOptions"
               value-key="value"
               placeholder="Sélectionner un rôle"
               :disabled="!!forcedRole"
@@ -179,14 +179,14 @@
 
           <!-- Champs spécifiques au rôle AUDITOR -->
           <template v-if="state.role === 'AUDITOR'">
-            <UFormField label="Organismes Évaluateurs" name="oeIds" required>
+            <!-- En mode OE, l'OE est automatiquement lié (pas besoin de sélection) -->
+            <UFormField v-if="!oeId" label="Organismes Évaluateurs" name="oeIds" required>
               <USelectMenu
                 v-model="state.oeIds"
                 :items="oesList"
                 value-key="value"
                 multiple
                 placeholder="Sélectionner un ou plusieurs OEs"
-                :disabled="!!oeId"
               />
             </UFormField>
           </template>
@@ -276,6 +276,20 @@ const roleFilterItems = ref<Array<{ label: string; value: RoleType | null }>>([
 const entityRoleCreateOptions = getEntityRoleOptions()
 const oeRoleCreateOptions = getOERoleOptions()
 const roleOptions = getRoleOptions()
+
+// Options de rôle filtrées selon le contexte
+const availableRoleOptions = computed(() => {
+  // En mode OE : limiter aux rôles OE et AUDITOR
+  if (props.oeId) {
+    return roleOptions.filter(opt => opt.value === Role.OE || opt.value === Role.AUDITOR)
+  }
+  // En mode Entity : limiter au rôle ENTITY
+  if (props.entityId) {
+    return roleOptions.filter(opt => opt.value === Role.ENTITY)
+  }
+  // Mode général : tous les rôles disponibles
+  return roleOptions
+})
 
 // Afficher la carte de filtres si on a des filtres à afficher
 const showFiltersCard = computed(() => {
@@ -483,8 +497,9 @@ const columns = computed(() => {
 })
 
 // Forcer le rôle selon les props fournis
+// Note: En mode OE (props.oeId), on ne force pas le rôle pour permettre
+// la création de comptes OE et AUDITOR
 const forcedRole = computed(() => {
-  if (props.oeId) return Role.OE
   if (props.entityId) return Role.ENTITY
   return null
 })
@@ -571,7 +586,10 @@ watch(() => state.role, (newRole, oldRole) => {
 
   // Réinitialiser les champs OE si on ne sélectionne plus OE
   if (oldRole === Role.OE && newRole !== Role.OE) {
-    state.oeId = undefined
+    // Ne pas réinitialiser oeId si on est en mode OE (props.oeId fourni)
+    if (!props.oeId) {
+      state.oeId = undefined
+    }
     state.oeRole = ''
   }
 
@@ -582,7 +600,8 @@ watch(() => state.role, (newRole, oldRole) => {
 
   // Réinitialiser les champs AUDITOR si on ne sélectionne plus AUDITOR
   if (oldRole === Role.AUDITOR && newRole !== Role.AUDITOR) {
-    state.oeIds = []
+    // En mode OE, garder props.oeId dans oeIds
+    state.oeIds = props.oeId ? [props.oeId] : []
   }
 
   // Initialiser les champs selon le nouveau rôle

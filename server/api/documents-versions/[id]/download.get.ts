@@ -56,10 +56,8 @@ export default defineEventHandler(async (event) => {
 
   // Vérifier l'accès à l'entité du document
   await requireEntityAccess({
-    userId: user.id,
-    userRole: user.role,
+    user,
     entityId: version.documentaryReview.entityId,
-    userOeId: user.oeId,
     accessType: AccessType.READ,
     errorMessage: 'Vous n\'avez pas accès à ce fichier'
   })
