@@ -25,6 +25,7 @@ export default defineEventHandler(async (event) => {
     const providedToken = tokenFromHeader || tokenFromQuery
 
     const config = useRuntimeConfig(event)
+    console.log('Runtime config :', config)
     const expectedToken = config.seedToken
 
     if (!expectedToken) {
