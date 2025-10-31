@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm'
 async function seed() {
   // Créer la connexion à la base de données
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.NUXT_DATABASE_URL,
   })
 
   const db = drizzle(pool)

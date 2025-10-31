@@ -58,12 +58,11 @@ services:
       # Database connection variables for Docker network
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      # Database URL (constructed from .env variables) - override dev value
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      NUXT_SEED_TOKEN: 8b0bde84fabc16e03fe93b018c495bde
-      JWT_SECRET: ${JWT_SECRET}
-      # All other variables (POSTGRES_*, GARAGE_*, NUXT_SESSION_PASSWORD, JWT_SECRET,
-      # RESEND_*, DEV_MODE) are loaded from .env file via env_file directive
+      # Database URL (constructed from POSTGRES_* variables) - override dev value
+      NUXT_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # All other NUXT_* variables are loaded from .env file via env_file directive
+      # This includes: NUXT_GARAGE_*, NUXT_SESSION_PASSWORD, NUXT_JWT_SECRET,
+      # NUXT_RESEND_*, NUXT_DEV_MODE, NUXT_SEED_TOKEN
     depends_on:
       garage:
         condition: service_started

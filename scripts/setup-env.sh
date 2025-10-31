@@ -135,11 +135,11 @@ else
     POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dev_password_123}
 fi
 
-# Construire DATABASE_URL
+# Construire NUXT_DATABASE_URL
 if [ "$ENVIRONMENT" = "development" ]; then
-    DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:54320/${POSTGRES_DB}"
+    NUXT_DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:54320/${POSTGRES_DB}"
 else
-    DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+    NUXT_DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
 fi
 
 echo ""
@@ -156,12 +156,12 @@ read -p "Nom de la clé API Garage [feef-app-key]: " GARAGE_KEY_NAME
 GARAGE_KEY_NAME=${GARAGE_KEY_NAME:-feef-app-key}
 
 if [ "$ENVIRONMENT" = "production" ]; then
-    GARAGE_ENDPOINT="http://garage:3900"
+    NUXT_GARAGE_ENDPOINT="http://garage:3900"
 else
-    GARAGE_ENDPOINT="http://localhost:3900"
+    NUXT_GARAGE_ENDPOINT="http://localhost:3900"
 fi
 
-GARAGE_REGION="garage"
+NUXT_GARAGE_REGION="garage"
 
 # Générer les secrets Garage pour docker-compose
 echo "Génération des secrets Garage (RPC, Admin, Metrics)..."
@@ -171,8 +171,9 @@ GARAGE_METRICS_TOKEN=$(openssl rand -base64 32)
 echo -e "${GREEN}✓ Secrets Garage générés${NC}"
 
 # Les credentials d'accès (ACCESS_KEY et SECRET_KEY) seront générés manuellement
-GARAGE_ACCESS_KEY="to_be_generated_by_manual_init"
-GARAGE_SECRET_KEY="to_be_generated_by_manual_init"
+NUXT_GARAGE_ACCESS_KEY="to_be_generated_by_manual_init"
+NUXT_GARAGE_SECRET_KEY="to_be_generated_by_manual_init"
+NUXT_GARAGE_BUCKET="$GARAGE_BUCKET"
 
 echo ""
 
@@ -208,9 +209,9 @@ echo "Génération de NUXT_SESSION_PASSWORD..."
 NUXT_SESSION_PASSWORD=$(generate_secret)
 echo -e "${GREEN}✓ NUXT_SESSION_PASSWORD généré (32+ caractères)${NC}"
 
-echo "Génération de JWT_SECRET..."
-JWT_SECRET=$(generate_secret)
-echo -e "${GREEN}✓ JWT_SECRET généré (32+ caractères)${NC}"
+echo "Génération de NUXT_JWT_SECRET..."
+NUXT_JWT_SECRET=$(generate_secret)
+echo -e "${GREEN}✓ NUXT_JWT_SECRET généré (32+ caractères)${NC}"
 
 echo ""
 
@@ -218,19 +219,19 @@ echo ""
 echo -e "${YELLOW}[$([[ "$ENVIRONMENT" = "production" ]] && echo "5" || echo "4")/8] Configuration Email (Resend)${NC}"
 echo "Cette étape est optionnelle. Appuyez sur Entrée pour ignorer."
 
-read -p "Clé API Resend (optionnel): " RESEND_API_KEY
+read -p "Clé API Resend (optionnel): " NUXT_RESEND_API_KEY
 
-if [ -n "$RESEND_API_KEY" ]; then
+if [ -n "$NUXT_RESEND_API_KEY" ]; then
     if [ "$ENVIRONMENT" = "production" ]; then
-        read -p "Email d'envoi (ex: FEEF Workflow <noreply@$DOMAIN>): " RESEND_FROM_EMAIL
-        RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-"FEEF Workflow <noreply@$DOMAIN>"}
+        read -p "Email d'envoi (ex: FEEF Workflow <noreply@$DOMAIN>): " NUXT_RESEND_FROM_EMAIL
+        NUXT_RESEND_FROM_EMAIL=${NUXT_RESEND_FROM_EMAIL:-"FEEF Workflow <noreply@$DOMAIN>"}
     else
-        read -p "Email d'envoi [onboarding@resend.dev]: " RESEND_FROM_EMAIL
-        RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-"onboarding@resend.dev"}
+        read -p "Email d'envoi [onboarding@resend.dev]: " NUXT_RESEND_FROM_EMAIL
+        NUXT_RESEND_FROM_EMAIL=${NUXT_RESEND_FROM_EMAIL:-"onboarding@resend.dev"}
     fi
 else
-    RESEND_API_KEY=""
-    RESEND_FROM_EMAIL=""
+    NUXT_RESEND_API_KEY=""
+    NUXT_RESEND_FROM_EMAIL=""
     echo -e "${YELLOW}⚠ Configuration email ignorée. Les fonctionnalités d'email ne seront pas disponibles.${NC}"
 fi
 
@@ -242,12 +243,12 @@ if [ "$ENVIRONMENT" = "development" ]; then
     read -p "Activer le mode développement (pas d'emails, comptes auto-activés) ? [Y/n] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Nn]$ ]]; then
-        DEV_MODE="false"
+        NUXT_DEV_MODE="false"
     else
-        DEV_MODE="true"
+        NUXT_DEV_MODE="true"
     fi
 else
-    DEV_MODE="false"
+    NUXT_DEV_MODE="false"
 fi
 
 echo ""
@@ -269,14 +270,14 @@ POSTGRES_USER=$POSTGRES_USER
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 
 # Database URL for application
-DATABASE_URL=$DATABASE_URL
+NUXT_DATABASE_URL=$NUXT_DATABASE_URL
 
 # Garage Configuration (S3-compatible object storage)
-GARAGE_ENDPOINT=$GARAGE_ENDPOINT
-GARAGE_REGION=$GARAGE_REGION
-GARAGE_ACCESS_KEY=$GARAGE_ACCESS_KEY
-GARAGE_SECRET_KEY=$GARAGE_SECRET_KEY
-GARAGE_BUCKET=$GARAGE_BUCKET
+NUXT_GARAGE_ENDPOINT=$NUXT_GARAGE_ENDPOINT
+NUXT_GARAGE_REGION=$NUXT_GARAGE_REGION
+NUXT_GARAGE_ACCESS_KEY=$NUXT_GARAGE_ACCESS_KEY
+NUXT_GARAGE_SECRET_KEY=$NUXT_GARAGE_SECRET_KEY
+NUXT_GARAGE_BUCKET=$NUXT_GARAGE_BUCKET
 GARAGE_KEY_NAME=$GARAGE_KEY_NAME
 
 # Garage secrets for Docker (only needed for docker-compose)
@@ -292,27 +293,27 @@ EMAIL=$EMAIL
 NUXT_SESSION_PASSWORD=$NUXT_SESSION_PASSWORD
 
 # JWT Configuration (for password reset tokens)
-JWT_SECRET=$JWT_SECRET
+NUXT_JWT_SECRET=$NUXT_JWT_SECRET
 
 # Resend Configuration (Email service)
 EOF
 
-    if [ -n "$RESEND_API_KEY" ]; then
+    if [ -n "$NUXT_RESEND_API_KEY" ]; then
         cat >> "$ENV_FILE" <<EOF
-RESEND_API_KEY=$RESEND_API_KEY
-RESEND_FROM_EMAIL=$RESEND_FROM_EMAIL
+NUXT_RESEND_API_KEY=$NUXT_RESEND_API_KEY
+NUXT_RESEND_FROM_EMAIL=$NUXT_RESEND_FROM_EMAIL
 EOF
     else
         cat >> "$ENV_FILE" <<EOF
-# RESEND_API_KEY=
-# RESEND_FROM_EMAIL=
+# NUXT_RESEND_API_KEY=
+# NUXT_RESEND_FROM_EMAIL=
 EOF
     fi
 
     cat >> "$ENV_FILE" <<EOF
 
 # Development Mode
-# DEV_MODE=false
+# NUXT_DEV_MODE=false
 EOF
 
 else
@@ -329,14 +330,14 @@ POSTGRES_USER=$POSTGRES_USER
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 
 # Database URL for application
-DATABASE_URL=$DATABASE_URL
+NUXT_DATABASE_URL=$NUXT_DATABASE_URL
 
 # Garage Configuration (S3-compatible object storage)
-GARAGE_ENDPOINT=$GARAGE_ENDPOINT
-GARAGE_REGION=$GARAGE_REGION
-GARAGE_ACCESS_KEY=$GARAGE_ACCESS_KEY
-GARAGE_SECRET_KEY=$GARAGE_SECRET_KEY
-GARAGE_BUCKET=$GARAGE_BUCKET
+NUXT_GARAGE_ENDPOINT=$NUXT_GARAGE_ENDPOINT
+NUXT_GARAGE_REGION=$NUXT_GARAGE_REGION
+NUXT_GARAGE_ACCESS_KEY=$NUXT_GARAGE_ACCESS_KEY
+NUXT_GARAGE_SECRET_KEY=$NUXT_GARAGE_SECRET_KEY
+NUXT_GARAGE_BUCKET=$NUXT_GARAGE_BUCKET
 GARAGE_KEY_NAME=$GARAGE_KEY_NAME
 
 # Garage secrets for Docker (only needed for docker-compose)
@@ -348,27 +349,27 @@ GARAGE_METRICS_TOKEN=$GARAGE_METRICS_TOKEN
 NUXT_SESSION_PASSWORD=$NUXT_SESSION_PASSWORD
 
 # JWT Configuration (for password reset tokens)
-JWT_SECRET=$JWT_SECRET
+NUXT_JWT_SECRET=$NUXT_JWT_SECRET
 
 # Resend Configuration (Email service)
 EOF
 
-    if [ -n "$RESEND_API_KEY" ]; then
+    if [ -n "$NUXT_RESEND_API_KEY" ]; then
         cat >> "$ENV_FILE" <<EOF
-RESEND_API_KEY=$RESEND_API_KEY
-RESEND_FROM_EMAIL=$RESEND_FROM_EMAIL
+NUXT_RESEND_API_KEY=$NUXT_RESEND_API_KEY
+NUXT_RESEND_FROM_EMAIL=$NUXT_RESEND_FROM_EMAIL
 EOF
     else
         cat >> "$ENV_FILE" <<EOF
-# RESEND_API_KEY=
-# RESEND_FROM_EMAIL=
+# NUXT_RESEND_API_KEY=
+# NUXT_RESEND_FROM_EMAIL=
 EOF
     fi
 
     cat >> "$ENV_FILE" <<EOF
 
 # Development Mode
-DEV_MODE=$DEV_MODE
+NUXT_DEV_MODE=$NUXT_DEV_MODE
 EOF
 fi
 
@@ -385,26 +386,26 @@ echo ""
 echo "Environnement: $ENVIRONMENT"
 echo "Base de données: $POSTGRES_DB"
 echo "Utilisateur DB: $POSTGRES_USER"
-echo "Bucket Garage: $GARAGE_BUCKET"
+echo "Bucket Garage: $NUXT_GARAGE_BUCKET"
 echo "Clé API Garage: $GARAGE_KEY_NAME"
 if [ "$ENVIRONMENT" = "production" ]; then
     echo "Domaine: $DOMAIN"
     echo "Email: $EMAIL"
 fi
 echo "Secrets générés: ✓"
-if [ -n "$RESEND_API_KEY" ]; then
+if [ -n "$NUXT_RESEND_API_KEY" ]; then
     echo "Email configuré: ✓"
 else
     echo "Email configuré: ✗ (ignoré)"
 fi
 if [ "$ENVIRONMENT" = "development" ]; then
-    echo "Mode dev: $DEV_MODE"
+    echo "Mode dev: $NUXT_DEV_MODE"
 fi
 echo ""
 echo -e "${YELLOW}⚠ IMPORTANT :${NC}"
 echo "- Ne commitez JAMAIS le fichier .env dans Git"
 echo "- Conservez une copie sécurisée de vos secrets"
-echo "- ${RED}Les credentials Garage (ACCESS_KEY et SECRET_KEY) doivent être générés manuellement${NC}"
+echo "- ${RED}Les credentials Garage (NUXT_GARAGE_ACCESS_KEY et NUXT_GARAGE_SECRET_KEY) doivent être générés manuellement${NC}"
 if [ "$ENVIRONMENT" = "production" ]; then
     echo "- Configurez votre pare-feu et SSL avant de déployer"
 fi
@@ -413,13 +414,13 @@ echo -e "${BLUE}Prochaines étapes :${NC}"
 if [ "$ENVIRONMENT" = "development" ]; then
     echo "  1. Vérifiez le fichier .env si nécessaire"
     echo "  2. ${YELLOW}Initialisez Garage manuellement (voir CLAUDE.md section 'Manual Garage Initialization')${NC}"
-    echo "  3. Mettez à jour GARAGE_ACCESS_KEY et GARAGE_SECRET_KEY dans .env"
+    echo "  3. Mettez à jour NUXT_GARAGE_ACCESS_KEY et NUXT_GARAGE_SECRET_KEY dans .env"
     echo "  4. Lancez l'application: ${GREEN}npm run dev${NC}"
 else
     echo "  1. Vérifiez le fichier .env si nécessaire"
     echo "  2. Déployez avec: ${GREEN}docker compose up -d${NC}"
     echo "  3. ${YELLOW}Initialisez Garage manuellement (voir CLAUDE.md section 'Manual Garage Initialization')${NC}"
-    echo "  4. Mettez à jour GARAGE_ACCESS_KEY et GARAGE_SECRET_KEY dans .env"
+    echo "  4. Mettez à jour NUXT_GARAGE_ACCESS_KEY et NUXT_GARAGE_SECRET_KEY dans .env"
     echo "  5. Redémarrez l'app: ${GREEN}docker compose restart app${NC}"
     echo "  6. Configurez SSL: voir DEPLOYMENT.md"
 fi

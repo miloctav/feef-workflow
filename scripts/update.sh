@@ -209,7 +209,7 @@ if [ "$SKIP_ENV_CHECK" = false ] && [ -f "$APP_DIR/.env.production.example" ]; t
                 echo -e "Valeur template: ${default_value}"
 
                 # Auto-générer les secrets
-                if [[ "$var" == "NUXT_SESSION_PASSWORD" ]] || [[ "$var" == "JWT_SECRET" ]]; then
+                if [[ "$var" == "NUXT_SESSION_PASSWORD" ]] || [[ "$var" == "NUXT_JWT_SECRET" ]]; then
                     new_value=$(generate_secret)
                     echo -e "${GREEN}✓ Secret auto-généré${NC}"
                 else

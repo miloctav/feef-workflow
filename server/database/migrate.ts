@@ -14,7 +14,7 @@ async function runMigrations() {
   console.log('🔄 Démarrage des migrations de la base de données...')
 
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.NUXT_DATABASE_URL,
   })
 
   try {

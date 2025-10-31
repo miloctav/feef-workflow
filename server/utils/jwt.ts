@@ -12,7 +12,7 @@ function getJWTSecret(): Uint8Array {
   const config = useRuntimeConfig()
   const secret = config.jwtSecret
   if (!secret) {
-    throw new Error('JWT_SECRET n\'est pas défini dans le runtimeConfig')
+    throw new Error('NUXT_JWT_SECRET n\'est pas défini dans le runtimeConfig')
   }
   return new TextEncoder().encode(secret)
 }

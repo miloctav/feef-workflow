@@ -173,7 +173,7 @@ The application provides a **RESTful API** using Nuxt server routes in `server/a
 
 **Database seeding** (`server/api/`):
 - `POST /api/seed` - Secure endpoint to seed database with admin account
-  - Requires `SEED_TOKEN` in header (`x-seed-token`) or query param (`token`)
+  - Requires `NUXT_SEED_TOKEN` in header (`x-seed-token`) or query param (`token`)
   - Creates admin FEEF account (email: maxime@miloctav.fr, password: admin)
   - Returns 409 Conflict if account already exists
   - Usage: `curl -X POST http://your-domain/api/seed -H "x-seed-token: your_token"`
@@ -396,8 +396,8 @@ Add the generated credentials to your `.env` file:
 
 ```bash
 # Update these values with your actual credentials from step 5
-GARAGE_ACCESS_KEY=GK3515373e4c851ebaad366558
-GARAGE_SECRET_KEY=7d37d093435a41f2aab8f13c19ba067d9776c90215f56614adad6ece597dbb34
+NUXT_GARAGE_ACCESS_KEY=GK3515373e4c851ebaad366558
+NUXT_GARAGE_SECRET_KEY=7d37d093435a41f2aab8f13c19ba067d9776c90215f56614adad6ece597dbb34
 ```
 
 **For development** (`.env` file):
@@ -511,7 +511,7 @@ The application uses a **multi-environment variable system** with automated depl
    - Adds to production `.env` with backup
 
 **Key patterns**:
-- Secrets (`NUXT_SESSION_PASSWORD`, `JWT_SECRET`) are **auto-generated** by setup script
+- Secrets (`NUXT_SESSION_PASSWORD`, `NUXT_JWT_SECRET`) are **auto-generated** by setup script
 - Development uses simple/safe values, production uses strong secrets
 - Template files are versioned for documentation, actual `.env` is gitignored
 - Update script ensures zero-downtime deployment with automatic variable migration

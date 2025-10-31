@@ -13,31 +13,32 @@ export default defineNuxtConfig({
   ],
   runtimeConfig: {
     // Variables privées (server-side uniquement)
+    // Nuxt récupère automatiquement les variables d'environnement avec le préfixe NUXT_
 
     // Database
-    databaseUrl: process.env.DATABASE_URL || '',
+    databaseUrl: '',
 
     // Garage (S3-compatible object storage)
     garage: {
-      endpoint: process.env.GARAGE_ENDPOINT || '',
-      region: process.env.GARAGE_REGION || '',
-      accessKey: process.env.GARAGE_ACCESS_KEY || '',
-      secretKey: process.env.GARAGE_SECRET_KEY || '',
-      bucket: process.env.GARAGE_BUCKET || '',
+      endpoint: '',
+      region: '',
+      accessKey: '',
+      secretKey: '',
+      bucket: '',
     },
 
     // Security & Authentication
-    jwtSecret: process.env.JWT_SECRET || '',
-    seedToken: process.env.NUXT_SEED_TOKEN || '',
+    jwtSecret: '',
+    seedToken: '',
 
     // Email (Resend)
     resend: {
-      apiKey: process.env.RESEND_API_KEY || '',
-      fromEmail: process.env.RESEND_FROM_EMAIL || '',
+      apiKey: '',
+      fromEmail: '',
     },
 
     // Development mode
-    devMode: process.env.DEV_MODE === 'true',
+    devMode: false,
 
     // Variables publiques (accessibles côté client)
     public: {

@@ -7,7 +7,7 @@ import bcrypt from 'bcrypt'
  * Endpoint sécurisé pour seeder la base de données
  * Crée un compte admin FEEF avec les identifiants par défaut
  *
- * Sécurité : Nécessite un token secret défini dans SEED_TOKEN
+ * Sécurité : Nécessite un token secret défini dans NUXT_SEED_TOKEN
  *
  * Usage:
  * POST /api/seed
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
     if (!expectedToken) {
       throw createError({
         statusCode: 500,
-        statusMessage: 'SEED_TOKEN is not configured in runtimeConfig',
+        statusMessage: 'NUXT_SEED_TOKEN is not configured in runtimeConfig',
       })
     }
 
