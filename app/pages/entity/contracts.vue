@@ -27,6 +27,6 @@
 
 <script setup lang="ts">
 definePageMeta({
-  layout: 'dashboard-company'
+  layout: 'dashboard-entity'
 })
 </script>

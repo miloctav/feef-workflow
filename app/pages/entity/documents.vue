@@ -34,7 +34,7 @@ import DocumentsList from '~/components/tabs/DocumentaryReviewTab.vue'
 import { COMPANIES } from '~/utils/data'
 
 definePageMeta({
-  layout: 'dashboard-company'
+  layout: 'dashboard-entity'
 })
 
 // Mock company data - dans un vrai cas, cela viendrait de l'authentification

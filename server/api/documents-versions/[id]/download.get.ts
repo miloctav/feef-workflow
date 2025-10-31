@@ -2,7 +2,7 @@ import { db } from '~~/server/database'
 import { documentVersions } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { getSignedUrl } from '~~/server/services/garage'
-import { requireEntityAccess } from '~~/server/utils/authorization'
+import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -55,13 +55,14 @@ export default defineEventHandler(async (event) => {
   }
 
   // Vérifier l'accès à l'entité du document
-  await requireEntityAccess(
-    user.id,
-    user.role,
-    version.documentaryReview.entityId,
-    user.oeId,
-    'Vous n\'avez pas accès à ce fichier'
-  )
+  await requireEntityAccess({
+    userId: user.id,
+    userRole: user.role,
+    entityId: version.documentaryReview.entityId,
+    userOeId: user.oeId,
+    accessType: AccessType.READ,
+    errorMessage: 'Vous n\'avez pas accès à ce fichier'
+  })
 
   // Générer l'URL signée (valide 1 heure)
   try {

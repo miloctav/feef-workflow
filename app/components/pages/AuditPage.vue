@@ -7,6 +7,7 @@ const { currentEntity, fetchEntity } = useEntities()
 
 onMounted(async () => {
   if (currentAudit.value) {
+    console.log('Fetching entity for audit:', currentAudit.value)
     await fetchEntity(currentAudit.value.entityId)
   }
 })

@@ -1,6 +1,6 @@
-import { and } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { audits as auditsTable } from '~~/server/database/schema'
+import { audits as auditsTable, entities } from '~~/server/database/schema'
 import {
   parsePaginationParams,
   buildWhereConditions,
@@ -8,6 +8,7 @@ import {
   buildCountQuery,
   formatPaginatedResponse,
 } from '~~/server/utils/pagination'
+import { Role, OERole } from '#shared/types/roles'
 
 /**
  * GET /api/audits
@@ -38,11 +39,9 @@ export default defineEventHandler(async (event) => {
   // Authentification requise
   const { user } = await requireUserSession(event)
 
-  console.log(`📋 ${user.email} is fetching audits list with pagination`)
 
   const query = getQuery(event)
 
-  console.log('Query params:', query)
 
   // Configuration de la pagination
   // Note: searchFields n'est pas défini car Drizzle ne supporte pas la recherche sur les champs relationnels
@@ -64,15 +63,41 @@ export default defineEventHandler(async (event) => {
   // 1. Parser les paramètres de pagination
   const params = parsePaginationParams(query, config)
 
-  console.log('Parsed pagination params:', params)
 
   // 2. Construire les conditions WHERE
   const whereConditions = await buildWhereConditions(params, config)
 
+  // Ajouter les filtres spécifiques par rôle
+  if (user.role === Role.OE) {
+    whereConditions.push(eq(auditsTable.oeId, user.oeId))
+
+    // Si ACCOUNT_MANAGER, filtrer par accountManagerId via les entités
+    if (user.oeRole === OERole.ACCOUNT_MANAGER) {
+      const myEntities = await db.query.entities.findMany({
+        where: eq(entities.accountManagerId, user.id),
+        columns: { id: true }
+      })
+      const entityIds = myEntities.map(e => e.id)
+
+      if (entityIds.length > 0) {
+        whereConditions.push(inArray(auditsTable.entityId, entityIds))
+      } else {
+        whereConditions.push(sql`false`)  // Aucune entité, aucun audit
+      }
+    }
+  }
+
+  if (user.role === Role.ENTITY) {
+    if (user.currentEntityId) {
+      whereConditions.push(eq(auditsTable.entityId, user.currentEntityId))
+    } else {
+      whereConditions.push(sql`false`)  // Pas d'entité courante, aucun audit
+    }
+  }
+
   // 3. Construire la clause ORDER BY
   const orderByClause = buildOrderBy(params.sort, config)
 
-  console.log('Where conditions:', whereConditions)
 
   // 4. Exécuter la requête avec les relations imbriquées
   const data = await db.query.audits.findMany({
@@ -133,12 +158,10 @@ export default defineEventHandler(async (event) => {
     offset: params.offset,
   })
 
-  console.log(`Fetched ${data.length} audits from database`)
 
   // 5. Compter le total
   const total = await buildCountQuery(whereConditions, config)
 
-  console.log(`Total audits matching criteria: ${total}`)
 
   // 6. Retourner la réponse paginée
   return formatPaginatedResponse(data, params, total)

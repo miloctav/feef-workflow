@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { audits, oes, accounts } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
+import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
 
 interface UpdateAuditBody {
   oeId?: number
@@ -15,32 +16,25 @@ interface UpdateAuditBody {
 /**
  * PUT /api/audits/:id
  *
- * Met à jour un audit existant
+ * Met ï¿½ jour un audit existant
  *
- * IMPORTANT: entityId et type NE PEUVENT PAS être modifiés
+ * IMPORTANT: entityId et type NE PEUVENT PAS ï¿½tre modifiï¿½s
  *
  * Champs modifiables:
  * - oeId: ID de l'OE
- * - auditorId: ID de l'auditeur (doit avoir le rôle AUDITOR)
- * - plannedDate: date planifiée de l'audit (format: YYYY-MM-DD)
- * - actualDate: date réelle de l'audit (format: YYYY-MM-DD)
+ * - auditorId: ID de l'auditeur (doit avoir le rï¿½le AUDITOR)
+ * - plannedDate: date planifiï¿½e de l'audit (format: YYYY-MM-DD)
+ * - actualDate: date rï¿½elle de l'audit (format: YYYY-MM-DD)
  * - score: score de l'audit
  * - labelingOpinion: avis de labellisation (JSON)
  *
  * Autorisations: FEEF et OE
  */
 export default defineEventHandler(async (event) => {
-  // Vérifier que l'utilisateur est authentifié et a le rôle FEEF ou OE
+  // Authentification requise
   const { user: currentUser } = await requireUserSession(event)
 
-  if (currentUser.role !== Role.FEEF && currentUser.role !== Role.OE) {
-    throw createError({
-      statusCode: 403,
-      message: 'Accès refusé. Seuls les rôles FEEF et OE peuvent modifier des audits.',
-    })
-  }
-
-  // Récupérer l'ID de l'audit à modifier
+  // RÃ©cupÃ©rer l'ID de l'audit Ã  modifier
   const auditId = getRouterParam(event, 'id')
 
   if (!auditId) {
@@ -59,7 +53,18 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Vérifier que l'audit existe
+  // VÃ©rifier l'accÃ¨s en Ã©criture Ã  l'audit
+  await requireAuditAccess({
+    userId: currentUser.id,
+    userRole: currentUser.role,
+    auditId: auditIdInt,
+    userOeId: currentUser.oeId,
+    userOeRole: currentUser.oeRole,
+    currentEntityId: currentUser.currentEntityId,
+    accessType: AccessType.WRITE
+  })
+
+  // Vï¿½rifier que l'audit existe
   const existingAudit = await db.query.audits.findFirst({
     where: eq(audits.id, auditIdInt),
   })
@@ -67,16 +72,16 @@ export default defineEventHandler(async (event) => {
   if (!existingAudit) {
     throw createError({
       statusCode: 404,
-      message: 'Audit non trouvé',
+      message: 'Audit non trouvï¿½',
     })
   }
 
-  // Récupérer les données du corps de la requête
+  // Rï¿½cupï¿½rer les donnï¿½es du corps de la requï¿½te
   const body = await readBody<UpdateAuditBody>(event)
 
   const { oeId, auditorId, plannedDate, actualDate, score, labelingOpinion } = body
 
-  // Vérifier qu'au moins un champ est fourni
+  // Vï¿½rifier qu'au moins un champ est fourni
   if (
     oeId === undefined &&
     auditorId === undefined &&
@@ -87,11 +92,11 @@ export default defineEventHandler(async (event) => {
   ) {
     throw createError({
       statusCode: 400,
-      message: 'Au moins un champ doit être fourni pour la modification',
+      message: 'Au moins un champ doit ï¿½tre fourni pour la modification',
     })
   }
 
-  // Si oeId est fourni, vérifier que l'OE existe
+  // Si oeId est fourni, vï¿½rifier que l'OE existe
   if (oeId !== undefined) {
     const oe = await db.query.oes.findFirst({
       where: eq(oes.id, oeId),
@@ -104,12 +109,12 @@ export default defineEventHandler(async (event) => {
     if (!oe) {
       throw createError({
         statusCode: 404,
-        message: 'L\'OE spécifié n\'existe pas.',
+        message: 'L\'OE spï¿½cifiï¿½ n\'existe pas.',
       })
     }
   }
 
-  // Si auditorId est fourni, vérifier que l'auditeur existe et a le rôle AUDITOR
+  // Si auditorId est fourni, vï¿½rifier que l'auditeur existe et a le rï¿½le AUDITOR
   if (auditorId !== undefined) {
     const auditor = await db.query.accounts.findFirst({
       where: eq(accounts.id, auditorId),
@@ -122,19 +127,19 @@ export default defineEventHandler(async (event) => {
     if (!auditor) {
       throw createError({
         statusCode: 404,
-        message: 'L\'auditeur spécifié n\'existe pas.',
+        message: 'L\'auditeur spï¿½cifiï¿½ n\'existe pas.',
       })
     }
 
     if (auditor.role !== Role.AUDITOR) {
       throw createError({
         statusCode: 400,
-        message: 'L\'account spécifié doit avoir le rôle AUDITOR.',
+        message: 'L\'account spï¿½cifiï¿½ doit avoir le rï¿½le AUDITOR.',
       })
     }
   }
 
-  // Préparer les données à mettre à jour
+  // Prï¿½parer les donnï¿½es ï¿½ mettre ï¿½ jour
   const updateData: Partial<UpdateAuditBody> = {}
 
   if (oeId !== undefined) updateData.oeId = oeId
@@ -144,14 +149,14 @@ export default defineEventHandler(async (event) => {
   if (score !== undefined) updateData.score = score
   if (labelingOpinion !== undefined) updateData.labelingOpinion = labelingOpinion
 
-  // Mettre à jour l'audit
+  // Mettre ï¿½ jour l'audit
   const [updatedAudit] = await db
     .update(audits)
     .set(forUpdate(event, updateData))
     .where(eq(audits.id, auditIdInt))
     .returning()
 
-  // Retourner l'audit mis à jour
+  // Retourner l'audit mis ï¿½ jour
   return {
     data: updatedAudit,
   }

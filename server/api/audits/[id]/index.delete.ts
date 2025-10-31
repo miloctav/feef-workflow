@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { audits } from '~~/server/database/schema'
 import { softDelete } from '~~/server/utils/softDelete'
+import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
 
 /**
  * DELETE /api/audits/:id
@@ -11,17 +12,10 @@ import { softDelete } from '~~/server/utils/softDelete'
  * Autorisations: FEEF et OE
  */
 export default defineEventHandler(async (event) => {
-  // Vérifier que l'utilisateur est authentifié et a le rôle FEEF ou OE
+  // Authentification requise
   const { user: currentUser } = await requireUserSession(event)
 
-  if (currentUser.role !== Role.FEEF && currentUser.role !== Role.OE) {
-    throw createError({
-      statusCode: 403,
-      message: 'Accès refusé. Seuls les rôles FEEF et OE peuvent supprimer des audits.',
-    })
-  }
-
-  // Récupérer l'ID de l'audit à supprimer
+  // RÃ©cupÃ©rer l'ID de l'audit Ã  supprimer
   const auditId = getRouterParam(event, 'id')
 
   if (!auditId) {
@@ -40,7 +34,18 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Vérifier que l'audit existe
+  // VÃ©rifier l'accÃ¨s en Ã©criture Ã  l'audit
+  await requireAuditAccess({
+    userId: currentUser.id,
+    userRole: currentUser.role,
+    auditId: auditIdInt,
+    userOeId: currentUser.oeId,
+    userOeRole: currentUser.oeRole,
+    currentEntityId: currentUser.currentEntityId,
+    accessType: AccessType.WRITE
+  })
+
+  // Vï¿½rifier que l'audit existe
   const audit = await db.query.audits.findFirst({
     where: eq(audits.id, auditIdInt),
   })
@@ -48,7 +53,7 @@ export default defineEventHandler(async (event) => {
   if (!audit) {
     throw createError({
       statusCode: 404,
-      message: 'Audit non trouvé',
+      message: 'Audit non trouvï¿½',
     })
   }
 

@@ -1,17 +1,24 @@
 <script setup lang="ts">
-import CompanyDetail from '~/components/CompanyDetail.vue';
-import { getCompanyById } from '~/utils/data'
+import EntityPage from '~/components/pages/EntityPage.vue'
 
 definePageMeta({
   layout: "dashboard-oe",
-});
+})
 
 const route = useRoute()
-const company = getCompanyById(route.params.id as string)
+const { currentEntity, fetchEntity, fetchLoading, fetchError } = useEntities()
 
-if (!company) {
-  throw createError({ statusCode: 404, message: 'Entreprise non trouvée' })
-}
+// Récupérer l'ID depuis la route
+const entityId = computed(() => Number(route.params.id))
+
+// Récupérer l'entité au montage du composant
+onMounted(async () => {
+  const result = await fetchEntity(entityId.value)
+
+  if (!result.success) {
+    throw createError({ statusCode: 404, message: 'Entité non trouvée' })
+  }
+})
 </script>
 
 <template>
@@ -20,7 +27,7 @@ if (!company) {
       <NavBar />
     </template>
     <template #body>
-      <CompanyTabs :company="company" role="oe" />
+      <EntityPage v-if="currentEntity" />
     </template>
   </UDashboardPanel>
 </template>

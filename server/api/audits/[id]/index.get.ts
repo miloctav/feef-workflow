@@ -1,6 +1,7 @@
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { audits } from '~~/server/database/schema'
+import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
 
 /**
  * GET /api/audits/:id
@@ -37,20 +38,20 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Récupérer l'audit par son ID avec toutes les relations
-  const whereClause = (fields: any) => {
-    if (user.role === Role.AUDITOR) {
-      return and(eq(fields.id, auditId), eq(fields.auditorId, Number(user.id)))
-    } else if(user.role === Role.OE) {
-      console.log(`OE user ${user.email} accessing audit ${auditId} oeId ${user.oeId}`)
-      return and(eq(fields.id, auditId), eq(fields.oeId, Number(user.oeId)))     
-    } else {
-      return eq(fields.id, auditId)
-    }
-  }
+  // Vérifier l'accès à l'audit
+  await requireAuditAccess({
+    userId: user.id,
+    userRole: user.role,
+    auditId: auditId,
+    userOeId: user.oeId,
+    userOeRole: user.oeRole,
+    currentEntityId: user.currentEntityId,
+    accessType: AccessType.READ
+  })
 
+  // Récupérer l'audit par son ID avec toutes les relations
   const audit = await db.query.audits.findFirst({
-    where: whereClause,
+    where: eq(audits.id, auditId),
     with: {
       entity: {
         with: {
@@ -106,17 +107,7 @@ export default defineEventHandler(async (event) => {
   if (!audit) {
     throw createError({
       statusCode: 404,
-      message: 'Audit non trouv�',
-    })
-  }
-
-  // Normalize entity to handle possible array returned by the ORM
-  const entity = Array.isArray(audit.entity) ? audit.entity[0] : audit.entity
-
-  if (user.role === Role.OE && user.oeRole === OERole.ACCOUNT_MANAGER && entity?.accountManagerId !== user.id) {
-    throw createError({
-      statusCode: 403,
-      message: 'Accés refusé à cet audit',
+      message: 'Audit non trouvé',
     })
   }
 

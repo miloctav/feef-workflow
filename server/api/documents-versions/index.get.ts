@@ -1,7 +1,7 @@
 import { db } from '~~/server/database'
 import { documentaryReviews, documentVersions } from '~~/server/database/schema'
 import { eq, and, isNull, desc } from 'drizzle-orm'
-import { requireEntityAccess } from '~~/server/utils/authorization'
+import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -37,13 +37,14 @@ export default defineEventHandler(async (event) => {
   }
 
   // Vérifier l'accès à l'entité du document
-  await requireEntityAccess(
-    user.id,
-    user.role,
-    documentaryReview.entityId,
-    user.oeId,
-    'Vous n\'avez pas accès aux versions de ce document'
-  )
+  await requireEntityAccess({
+    userId: user.id,
+    userRole: user.role,
+    entityId: documentaryReview.entityId,
+    userOeId: user.oeId,
+    accessType: AccessType.READ,
+    errorMessage: 'Vous n\'avez pas accès aux versions de ce document'
+  })
 
   // Récupérer les versions triées par date (plus récente en premier)
   const versions = await db.query.documentVersions.findMany({

@@ -1,10 +1,11 @@
 import { db } from "~~/server/database"
 import { entities, EntityType } from "~~/server/database/schema"
 import { eq } from "drizzle-orm"
+import { requireEntityAccess, AccessType } from "~~/server/utils/authorization"
 
 export default defineEventHandler(async (event) => {
 
-  await requireUserSession(event)
+  const { user } = await requireUserSession(event)
 
   const id = getRouterParam(event, 'id')
 
@@ -15,9 +16,20 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const entityId = parseInt(id)
+
+  // Vérifier l'accès à l'entité
+  await requireEntityAccess({
+    userId: user.id,
+    userRole: user.role,
+    entityId: entityId,
+    userOeId: user.oeId,
+    accessType: AccessType.READ
+  })
+
   // Récupérer l'entité par son ID avec toutes les relations
   const entity = await db.query.entities.findFirst({
-    where: eq(entities.id, parseInt(id)),
+    where: eq(entities.id, entityId),
     with: {
       oe: {
         columns: {

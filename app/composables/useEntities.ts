@@ -97,6 +97,8 @@ export const useEntities = () => {
     } catch (e: any) {
       const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération de l\'entité'
 
+      currentEntity.value = null
+
       toast.add({
         title: 'Erreur',
         description: errorMessage,

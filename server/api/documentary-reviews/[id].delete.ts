@@ -2,7 +2,7 @@ import { db } from '~~/server/database'
 import { documentaryReviews } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { forDelete } from '~~/server/utils/tracking'
-import { requireEntityAccess } from '~~/server/utils/authorization'
+import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -35,13 +35,14 @@ export default defineEventHandler(async (event) => {
   }
 
   // Vérifier l'accès à l'entité du document
-  await requireEntityAccess(
-    user.id,
-    user.role,
-    documentaryReview.entityId,
-    user.oeId,
-    'Vous n\'avez pas accès à ce document'
-  )
+  await requireEntityAccess({
+    userId: user.id,
+    userRole: user.role,
+    entityId: documentaryReview.entityId,
+    userOeId: user.oeId,
+    accessType: AccessType.WRITE,
+    errorMessage: 'Vous n\'avez pas accès à ce document'
+  })
 
   // Soft delete : mettre à jour le champ deletedAt avec tracking
   const [deletedReview] = await db

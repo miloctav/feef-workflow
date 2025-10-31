@@ -1,4 +1,4 @@
-import { and } from 'drizzle-orm'
+import { and, or, eq, isNull, isNotNull } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { entities as entitiesTable, accountsToEntities } from '~~/server/database/schema'
 import {
@@ -45,6 +45,14 @@ export default defineEventHandler(async (event) => {
   // Authentification requise
   const { user } = await requireUserSession(event)
 
+  // Les auditeurs n'ont pas accès à la liste des entités
+  if (user.role === Role.AUDITOR) {
+    throw createError({
+      statusCode: 403,
+      message: 'Les auditeurs ne peuvent pas accéder à la liste des entités'
+    })
+  }
+
   const query = getQuery(event)
 
   // Si compte ENTITY, filtrer uniquement les entités auxquelles il a accès
@@ -81,6 +89,20 @@ export default defineEventHandler(async (event) => {
 
   // 2. Construire les conditions WHERE
   const whereConditions = await buildWhereConditions(params, config)
+
+  // Ajouter les filtres spécifiques par rôle
+  if (user.role === Role.OE) {
+    const oeCondition = or(
+      eq(entitiesTable.oeId, user.oeId),
+      and(
+        isNull(entitiesTable.oeId),
+        isNotNull(entitiesTable.caseApprovedAt)
+      )
+    )
+    if (oeCondition) {
+      whereConditions.push(oeCondition)
+    }
+  }
 
   // 3. Construire la clause ORDER BY
   const orderByClause = buildOrderBy(params.sort, config)

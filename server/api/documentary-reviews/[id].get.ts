@@ -1,7 +1,7 @@
 import { db } from '~~/server/database'
 import { documentaryReviews } from '~~/server/database/schema'
 import { eq, and, isNull, desc } from 'drizzle-orm'
-import { requireEntityAccess } from '~~/server/utils/authorization'
+import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -59,13 +59,14 @@ export default defineEventHandler(async (event) => {
   }
 
   // Vérifier l'accès à l'entité du document
-  await requireEntityAccess(
-    user.id,
-    user.role,
-    documentaryReview.entityId,
-    user.oeId,
-    'Vous n\'avez pas accès à ce document'
-  )
+  await requireEntityAccess({
+    userId: user.id,
+    userRole: user.role,
+    entityId: documentaryReview.entityId,
+    userOeId: user.oeId,
+    accessType: AccessType.READ,
+    errorMessage: 'Vous n\'avez pas accès à ce document'
+  })
 
   return {
     data: documentaryReview,
