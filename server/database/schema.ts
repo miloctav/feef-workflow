@@ -121,13 +121,27 @@ export const documentaryReviews = pgTable('documentary_reviews', {
 
 export const documentVersions = pgTable('document_versions', {
   id: serial('id').primaryKey(),
-  documentaryReviewId: integer('documentary_review_id').notNull().references(() => documentaryReviews.id),
+  documentaryReviewId: integer('documentary_review_id').references(() => documentaryReviews.id),
+  contractId: integer('contract_id').references(() => contracts.id),
   uploadAt: timestamp('upload_at').notNull().defaultNow(),
   s3Key: varchar('s3_key', { length: 512 }),
   mimeType: varchar('mime_type', { length: 255 }),
   uploadBy: integer('upload_by').notNull().references(() => accounts.id),
   updatedBy: integer('updated_by').references(() => accounts.id),
   updatedAt: timestamp('updated_at'),
+})
+
+export const contracts = pgTable('contracts', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: varchar('description', { length: 1024 }),
+  entityId: integer('entity_id').notNull().references(() => entities.id),
+  oeId: integer('oe_id').references(() => oes.id),
+  createdBy: integer('created_by').notNull().references(() => accounts.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedBy: integer('updated_by').references(() => accounts.id),
+  updatedAt: timestamp('updated_at'),
+  deletedAt: timestamp('deleted_at'),
 })
 
 // Junction table for many-to-many relationship between accounts and entities
@@ -191,6 +205,10 @@ export type NewDocumentaryReview = typeof documentaryReviews.$inferInsert
 export type DocumentVersion = typeof documentVersions.$inferSelect
 export type NewDocumentVersion = typeof documentVersions.$inferInsert
 
+// Type pour Contract
+export type Contract = typeof contracts.$inferSelect
+export type NewContract = typeof contracts.$inferInsert
+
 // ========================================
 // Relations Drizzle pour les queries relationnelles
 // ========================================
@@ -209,6 +227,7 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
   auditorsToOE: many(auditorsToOE),
   documentaryReviews: many(documentaryReviews),
   documentVersions: many(documentVersions),
+  contracts: many(contracts),
 }))
 
 export const oeRelations = relations(oes, ({ many }) => ({
@@ -216,6 +235,7 @@ export const oeRelations = relations(oes, ({ many }) => ({
   entities: many(entities),
   audits: many(audits),
   auditorsToOE: many(auditorsToOE),
+  contracts: many(contracts),
 }))
 
 export const entitiesRelations = relations(entities, ({ one, many }) => ({
@@ -246,6 +266,23 @@ export const entitiesRelations = relations(entities, ({ one, many }) => ({
   accountsToEntities: many(accountsToEntities),
   audits: many(audits),
   documentaryReviews: many(documentaryReviews),
+  contracts: many(contracts),
+}))
+
+export const contractsRelations = relations(contracts, ({ one, many }) => ({
+  entity: one(entities, {
+    fields: [contracts.entityId],
+    references: [entities.id],
+  }),
+  oe: one(oes, {
+    fields: [contracts.oeId],
+    references: [oes.id],
+  }),
+  createdByAccount: one(accounts, {
+    fields: [contracts.createdBy],
+    references: [accounts.id],
+  }),
+  documentVersions: many(documentVersions),
 }))
 
 export const auditsRelations = relations(audits, ({ one }) => ({
@@ -309,6 +346,10 @@ export const documentVersionsRelations = relations(documentVersions, ({ one }) =
   documentaryReview: one(documentaryReviews, {
     fields: [documentVersions.documentaryReviewId],
     references: [documentaryReviews.id],
+  }),
+  contract: one(contracts, {
+    fields: [documentVersions.contractId],
+    references: [contracts.id],
   }),
   uploadByAccount: one(accounts, {
     fields: [documentVersions.uploadBy],
