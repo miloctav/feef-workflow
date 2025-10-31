@@ -290,6 +290,32 @@ export const useAccounts = () => {
   }
 
   /**
+   * Récupérer les chargés d'affaire d'un OE pour les sélecteurs
+   */
+  const fetchAccountManagers = async (oeId: number) => {
+    try {
+      const response = await $fetch<{ data: Array<{ id: number; firstname: string; lastname: string }> }>(
+        `/api/accounts?role=OE&oeRole=ACCOUNT_MANAGER&oeId=${oeId}&limit=-1`
+      )
+
+      return response.data.map(account => ({
+        label: `${account.firstname} ${account.lastname}`,
+        value: account.id,
+      }))
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération des chargés d\'affaire'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return []
+    }
+  }
+
+  /**
    * Supprimer l'association entre un compte et une entité
    */
   const removeAccountFromEntity = async (accountId: number, entityId: number) => {
@@ -371,6 +397,7 @@ export const useAccounts = () => {
     fetchAccount,
     fetchAuditors,
     fetchAuditorsByOe,
+    fetchAccountManagers,
     createAccount,
     updateAccount,
     deleteAccount,

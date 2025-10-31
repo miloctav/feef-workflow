@@ -39,6 +39,7 @@ export const useEntities = () => {
   const deleteLoading = useState('entities:deleteLoading', () => false)
   const submitCaseLoading = useState('entities:submitCaseLoading', () => false)
   const approveCaseLoading = useState('entities:approveCaseLoading', () => false)
+  const assignAccountManagerLoading = useState('entities:assignAccountManagerLoading', () => false)
 
   // Loading state dérivé de fetchStatus
   const fetchLoading = computed(() => fetchStatus.value === 'pending')
@@ -312,6 +313,48 @@ export const useEntities = () => {
   }
 
   /**
+   * Affecter un chargé d'affaire à une entité
+   */
+  const assignAccountManager = async (id: number, accountManagerId: number) => {
+    assignAccountManagerLoading.value = true
+
+    try {
+      const response = await $fetch<{ data: EntityWithRelations }>(`/api/entities/${id}/assign-account-manager`, {
+        method: 'POST',
+        body: { accountManagerId },
+      })
+
+      // Rafraîchir la liste paginée pour refléter les changements
+      await refresh()
+
+      // Mettre à jour l'entité courante si c'est celle-ci
+      if (currentEntity.value?.id === id) {
+        currentEntity.value = response.data
+      }
+
+      toast.add({
+        title: 'Succès',
+        description: 'Chargé d\'affaire affecté avec succès',
+        color: 'success',
+      })
+
+      return { success: true, data: response.data }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de l\'affectation du chargé d\'affaire'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    } finally {
+      assignAccountManagerLoading.value = false
+    }
+  }
+
+  /**
    * Récupérer les entités pour les filtres et sélecteurs
    */
   const fetchEntitiesForSelect = async (options: { includeAll?: boolean; mode?: EntityModeType } = {}) => {
@@ -384,6 +427,7 @@ export const useEntities = () => {
     deleteLoading: readonly(deleteLoading),
     submitCaseLoading: readonly(submitCaseLoading),
     approveCaseLoading: readonly(approveCaseLoading),
+    assignAccountManagerLoading: readonly(assignAccountManagerLoading),
 
     // Actions de pagination
     nextPage,
@@ -403,6 +447,7 @@ export const useEntities = () => {
     deleteEntity,
     submitCase,
     approveCase,
+    assignAccountManager,
     refresh,
     reset,
   }

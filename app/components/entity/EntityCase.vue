@@ -1,6 +1,15 @@
 <script setup lang="ts">
 
-const { currentEntity, submitCase, approveCase, approveCaseLoading, submitCaseLoading } = useEntities()
+const {
+  currentEntity,
+  submitCase,
+  approveCase,
+  assignAccountManager,
+  fetchAccountManagers,
+  approveCaseLoading,
+  submitCaseLoading,
+  assignAccountManagerLoading,
+} = useEntities()
 
 const { user } = useAuth()
 
@@ -15,7 +24,6 @@ const handleApproveCase = async () => {
 
   await approveCase(currentEntity.value.id)
 }
-
 </script>
 
 <template>
@@ -84,15 +92,7 @@ const handleApproveCase = async () => {
               >
                 Déposer le dossier
               </UButton>
-              <!-- <UButton
-                v-if="role === 'oe'"
-                color="primary"
-                variant="solid"
-                size="md"
-                icon="i-lucide-user-plus"
-              >
-                Affecter un chargé d'affaire
-              </UButton> -->
+              <AssignAccountManagerModal />
 
               <!-- Informations de soumission -->
               <div v-if="currentEntity?.caseSubmittedAt" class="text-sm text-gray-600 pt-2">
@@ -121,6 +121,20 @@ const handleApproveCase = async () => {
                   </div>
                 </div>
               </div>
+
+              <!-- Informations du chargé d'affaire -->
+              <div v-if="currentEntity?.accountManager" class="text-sm text-gray-600 pt-1">
+                <div class="flex items-start gap-2">
+                  <UIcon name="i-lucide-user-cog" class="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
+                  <div>
+                    <span class="font-medium text-primary">Chargé d'affaire</span>
+                    <div>
+                      {{ currentEntity.accountManager.firstname }} {{ currentEntity.accountManager.lastname }}
+                    </div>
+                    <div class="text-xs text-gray-500">{{ currentEntity.accountManager.email }}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -139,4 +153,7 @@ const handleApproveCase = async () => {
         </div>
       </div>
     </UCard>
+
+    <!-- Modal d'affectation du chargé d'affaire -->
+    
 </template>

@@ -125,14 +125,6 @@
 <script setup lang="ts">
 import DocumentViewer from '~/components/DocumentViewer.vue'
 
-interface Props {
-  company: any
-  role?: 'feef' | 'oe' | 'company'
-}
-const props = withDefaults(defineProps<Props>(), {
-  role: 'feef'
-})
-
 interface OeContract {
   id: string
   name: string

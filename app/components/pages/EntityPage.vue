@@ -39,10 +39,10 @@
         <template v-if="currentEntity.mode === EntityMode.MASTER" #contrats>
           <div class="py-6 space-y-6">
             <!-- Affiche les contrats FEEF si le role est feef -->
-            <!-- <FeefContractsList v-if="role === 'feef'" :role="role" /> -->
+            <FeefContractsList v-if="user?.role === Role.FEEF" />
 
             <!-- Affiche les contrats OE si le role est oe -->
-            <!-- <OeContractsList v-if="role === 'oe'" :role="role" /> -->
+            <OeContractsList v-if="user?.role === Role.OE" />
           </div>
         </template>
 
