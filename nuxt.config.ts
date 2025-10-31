@@ -28,7 +28,7 @@ export default defineNuxtConfig({
 
     // Security & Authentication
     jwtSecret: process.env.JWT_SECRET || '',
-    seedToken: process.env.SEED_TOKEN || '',
+    seedToken: process.env.NUXT_SEED_TOKEN || '',
 
     // Email (Resend)
     resend: {
