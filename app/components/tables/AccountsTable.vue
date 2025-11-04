@@ -16,6 +16,7 @@
       :on-search="setSearch"
       :search-placeholder="searchPlaceholder"
       :on-delete="allowDelete ? handleDelete : undefined"
+      :on-create="handleFormReset"
       :get-item-name="(account) => `${account.firstname} ${account.lastname}`"
     >
       <template #filters="{ filters, updateFilter }">
@@ -62,7 +63,7 @@
         </UBadge>
       </template>
 
-      <template #create-form>
+      <template #form="{ item, isEditing }">
         <UForm ref="form" :schema="schema" :state="state" class="space-y-4">
           <UFormField label="Prénom" name="firstname" required>
             <UInput
@@ -193,10 +194,10 @@
         </UForm>
       </template>
 
-      <template #create-footer="{ close }">
+      <template #form-footer="{ close, item, isEditing }">
         <UButton label="Annuler" color="neutral" variant="outline" @click="close" />
         <UButton
-          label="Créer"
+          :label="isEditing ? 'Modifier' : 'Créer'"
           color="primary"
           :loading="createLoading"
           @click="handleCreate(close)"
@@ -639,6 +640,19 @@ const removeEntityRole = (index: number) => {
   if (state.entityRoles) {
     state.entityRoles.splice(index, 1)
   }
+}
+
+// Réinitialiser le formulaire (fonction appelée par PaginatedTable pour la création)
+const handleFormReset = () => {
+  // Réinitialiser le formulaire pour la création
+  state.firstname = ''
+  state.lastname = ''
+  state.email = ''
+  state.role = forcedRole.value || ''
+  state.oeId = props.oeId
+  state.oeRole = ''
+  state.oeIds = props.oeId ? [props.oeId] : []
+  state.entityRoles = props.entityId ? [{ entityId: props.entityId, role: '' }] : []
 }
 
 // Créer un compte

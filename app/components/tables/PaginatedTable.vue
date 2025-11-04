@@ -40,23 +40,10 @@
           </UInput>
         </div>
 
-        <!-- Modal de création -->
-        <UModal v-if="hasAddButton" :title="addButtonText" :ui="{ footer: 'justify-end' }">
-          <UButton color="primary" :icon="addButtonIcon" size="sm">
-            {{ addButtonText }}
-          </UButton>
-
-          <template #body>
-            <slot name="create-form" />
-          </template>
-
-          <template #footer="{ close }">
-            <slot name="create-footer" :close="close">
-              <UButton label="Annuler" color="neutral" variant="outline" @click="close" />
-              <UButton label="Créer" color="primary" @click="close" />
-            </slot>
-          </template>
-        </UModal>
+        <!-- Bouton d'ajout -->
+        <UButton v-if="hasAddButton" color="primary" :icon="addButtonIcon" size="sm" @click="openCreateModal">
+          {{ addButtonText }}
+        </UButton>
       </div>
     </div>
 
@@ -99,6 +86,24 @@
       </div>
     </template>
 
+    <!-- Modal unifié pour création et édition -->
+    <UModal v-model:open="isFormModalOpen" :title="formModalTitle" :ui="{ footer: 'justify-end' }">
+      <template #body>
+        <slot name="form" :item="currentItem" :is-editing="isEditing" />
+      </template>
+
+      <template #footer="{ close }">
+        <slot name="form-footer" :close="close" :item="currentItem" :is-editing="isEditing">
+          <UButton label="Annuler" color="neutral" variant="outline" @click="close" />
+          <UButton 
+            :label="isEditing ? 'Modifier' : 'Créer'" 
+            color="primary" 
+            @click="close" 
+          />
+        </slot>
+      </template>
+    </UModal>
+
     <!-- Modal de confirmation de suppression -->
     <UModal v-model:open="isDeleteModalOpen" title="Confirmer la suppression" :ui="{ footer: 'justify-end' }">
       <template #header>
@@ -111,7 +116,7 @@
       <template #body>
         <p class="text-gray-700">
           Êtes-vous sûr de vouloir supprimer
-          <strong>{{ getItemName(itemToDelete) }}</strong> ?
+          <strong>{{ deleteItemName }}</strong> ?
         </p>
         <p class="text-sm text-gray-500 mt-2">
           Cette action est irréversible.
@@ -150,8 +155,11 @@ const props = withDefaults(defineProps<{
   searchPlaceholder?: string
   hasFilters?: boolean
   filtersTitle?: string
+  canEdit?: boolean
   onRowClick?: (row: T) => void
   onDelete?: (item: T) => Promise<{ success: boolean }>
+  onUpdate?: (item: T) => Promise<{ success: boolean }>
+  onCreate?: () => void
   onPageChange: (page: number) => void
   onSearch?: (search: string) => void
   onFiltersChange?: (filters: Record<string, any>) => void
@@ -165,6 +173,7 @@ const props = withDefaults(defineProps<{
   hasAddButton: true,
   hasFilters: false,
   hasSearch: true,
+  canEdit: false,
   filtersTitle: 'Filtres',
   getItemName: (item: T) => String(item.name || item.id || 'cet élément')
 })
@@ -201,8 +210,11 @@ const resetFilters = () => {
   }
 }
 
-// State pour le modal de suppression
+// State pour les modals
+const isFormModalOpen = ref(false)
 const isDeleteModalOpen = ref(false)
+const currentItem = ref<T | null>(null)
+const isEditing = ref(false)
 const itemToDelete = ref<T | null>(null)
 const deleteLoading = ref(false)
 
@@ -235,6 +247,28 @@ const clearSearch = () => {
   setSearch('')
 }
 
+// Ouvrir le modal pour la création
+const openCreateModal = () => {
+  currentItem.value = null
+  isEditing.value = false
+  isFormModalOpen.value = true
+  // Déclencher l'événement onCreate pour réinitialiser le formulaire si nécessaire
+  if (props.onCreate) {
+    props.onCreate()
+  }
+}
+
+// Ouvrir le modal pour l'édition
+const openEditModal = (item: T) => {
+  currentItem.value = item
+  isEditing.value = true
+  isFormModalOpen.value = true
+  // Déclencher l'événement onUpdate pour préremplir le formulaire
+  if (props.onUpdate) {
+    props.onUpdate(item)
+  }
+}
+
 // Ouvrir le modal de suppression
 const openDeleteModal = (item: T) => {
   itemToDelete.value = item
@@ -255,11 +289,21 @@ const confirmDelete = async () => {
   }
 }
 
-// Obtenir le nom de l'item à supprimer
+// Obtenir le nom de l'item
 const getItemName = (item: T | null) => {
   if (!item) return ''
   return props.getItemName(item)
 }
+
+// Computed pour les noms d'items et le titre du modal
+const formModalTitle = computed(() => {
+  if (isEditing.value && currentItem.value) {
+    return `Modifier ${getItemName(currentItem.value)}`
+  }
+  return props.addButtonText
+})
+
+const deleteItemName = computed(() => getItemName(itemToDelete.value))
 
 // Gérer le clic sur une ligne
 const handleRowClick = (row: TableRow<T>, e?: Event) => {
@@ -273,9 +317,9 @@ const handleRowClick = (row: TableRow<T>, e?: Event) => {
   }
 }
 
-// Ajouter la colonne Actions si onDelete est fourni
+// Ajouter la colonne Actions si onDelete ou canEdit est fourni
 const columnsWithActions = computed(() => {
-  if (!props.onDelete) return props.columns
+  if (!props.onDelete && !props.canEdit) return props.columns
 
   const UButton = resolveComponent('UButton')
   const UDropdownMenu = resolveComponent('UDropdownMenu')
@@ -287,7 +331,7 @@ const columnsWithActions = computed(() => {
       header: 'Actions',
       cell: ({ row }: { row: TableRow<T> }) => {
         const item = row.original
-        const items = [
+        const items: any[] = [
           {
             type: 'label',
             label: 'Actions',
@@ -295,15 +339,31 @@ const columnsWithActions = computed(() => {
           {
             type: 'separator',
           },
-          {
+        ]
+
+        // Ajouter l'option "Modifier" si canEdit est true
+        if (props.canEdit) {
+          items.push({
+            label: 'Modifier',
+            icon: 'i-heroicons-pencil',
+            color: 'primary',
+            onSelect() {
+              openEditModal(item)
+            },
+          })
+        }
+
+        // Ajouter l'option "Supprimer" si onDelete est fourni
+        if (props.onDelete) {
+          items.push({
             label: 'Supprimer',
             icon: 'i-heroicons-trash',
             color: 'error',
             onSelect() {
               openDeleteModal(item)
             },
-          },
-        ]
+          })
+        }
 
         return h(
           'div',

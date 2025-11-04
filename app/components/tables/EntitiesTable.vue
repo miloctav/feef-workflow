@@ -17,6 +17,7 @@
       search-placeholder="Rechercher par nom, SIREN, SIRET..."
       :on-row-click="handleRowClick"
       :on-delete="user?.role === Role.FEEF ? handleDelete : undefined"
+      :on-create="user?.role === Role.FEEF ? handleFormReset : undefined"
       :get-item-name="(entity) => entity.name"
     >
       <template #filters="{ filters, updateFilter }">
@@ -69,7 +70,7 @@
         </UBadge>
       </template>
 
-      <template v-if="user?.role === Role.FEEF" #create-form>
+      <template v-if="user?.role === Role.FEEF" #form="{ item, isEditing }">
         <UForm ref="form" :schema="schema" :state="state" class="space-y-4">
           <UFormField label="Nom de l'entité" name="name" required>
             <UInput v-model="state.name" placeholder="Ex: Entreprise ABC" icon="i-lucide-building" />
@@ -93,9 +94,14 @@
         </UForm>
       </template>
 
-      <template v-if="user?.role === Role.FEEF" #create-footer="{ close }">
+      <template v-if="user?.role === Role.FEEF" #form-footer="{ close, item, isEditing }">
         <UButton label="Annuler" color="neutral" variant="outline" @click="close" />
-        <UButton label="Créer" color="primary" :loading="createLoading" @click="handleCreate(close)" />
+        <UButton 
+          :label="isEditing ? 'Modifier' : 'Créer'" 
+          color="primary" 
+          :loading="createLoading" 
+          @click="handleCreate(close)" 
+        />
       </template>
     </PaginatedTable>
   </div>
@@ -231,6 +237,16 @@ const state = reactive<Schema>({
 
 const createLoading = ref(false)
 const form = ref()
+
+// Réinitialiser le formulaire (fonction appelée par PaginatedTable pour la création)
+const handleFormReset = () => {
+  // Réinitialiser le formulaire pour la création
+  state.name = ''
+  state.type = EntityType.COMPANY
+  state.mode = EntityMode.MASTER
+  state.siren = ''
+  state.siret = ''
+}
 
 // Créer une entité
 const handleCreate = async (close: () => void) => {

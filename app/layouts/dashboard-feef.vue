@@ -62,14 +62,14 @@ const items = [
   { label: 'Dashboard', icon: 'i-lucide-home', to: '/feef' },
   { label: 'Entités', icon: 'i-lucide-users', to: '/feef/entities' },
   { label: 'Audits', icon: 'i-lucide-folder', to: '/feef/audits' },
-  { label: 'Organismes Évaluateurs', icon: 'i-lucide-shield-check', to: '/feef/oe' },
+  { label: 'Organismes Évaluateurs', icon: 'i-lucide-shield-check', to: '/feef/oes' },
   {
     label: 'Paramètres',
     icon: 'i-lucide-settings',
     defaultOpen: true,
     children: [
       { label: 'Configuration des documents', icon: 'i-lucide-file-text', to: '/feef/settings/documents' },
-      { label: 'Gestion des comptes FEEF', icon: 'i-lucide-users-2', to: '/feef/settings/accounts' }
+      { label: 'Gestion des comptes', icon: 'i-lucide-users-2', to: '/feef/settings/accounts' }
     ]
   },
 ]

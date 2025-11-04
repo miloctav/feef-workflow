@@ -28,6 +28,9 @@
           add-button-text="Ajouter un document type"
           search-placeholder="Rechercher un document type..."
           :on-delete="handleDelete"
+          :on-create="handleFormReset"
+          :on-update="handleUpdate"
+          :can-edit="true"
           :get-item-name="(doc) => doc.title"
         >
           <!-- Filtres personnalisés -->
@@ -58,7 +61,7 @@
               Demande auto: {{ filters.autoAsk === 'true' ? 'Oui' : 'Non' }}
             </UBadge>
           </template>
-          <template #create-form>
+          <template #form="{ item, isEditing }">
             <UForm ref="form" :schema="schema" :state="state" class="space-y-4">
               <UFormField label="Titre du document" name="title" required>
                 <UInput
@@ -94,13 +97,13 @@
             </UForm>
           </template>
 
-          <template #create-footer="{ close }">
+          <template #form-footer="{ close, item, isEditing }">
             <UButton label="Annuler" color="neutral" variant="outline" @click="close" />
             <UButton
-              label="Créer"
+              :label="isEditing ? 'Modifier' : 'Créer'"
               color="primary"
-              :loading="createLoading"
-              @click="handleCreate(close)"
+              :loading="isEditing ? updateLoading : createLoading"
+              @click="isEditing ? handleEdit(item, close) : handleCreate(close)"
             />
           </template>
         </PaginatedTable>
@@ -127,11 +130,13 @@ const {
   pagination,
   fetchLoading,
   fetchError,
+  updateLoading,
   goToPage,
   setSearch,
   setFilters,
   deleteDocumentType,
   createDocumentType,
+  updateDocumentType,
   fetchDocumentsType,
 } = useDocumentsType()
 
@@ -181,14 +186,14 @@ const schema = z.object({
   title: z.string().min(1, 'Le titre est requis').min(3, 'Le titre doit contenir au moins 3 caractères'),
   description: z.string().optional(),
   category: z.enum(['LEGAL', 'FINANCIAL', 'TECHNICAL', 'OTHER'], {
-    errorMap: () => ({ message: 'La catégorie est requise' }),
+    message: 'La catégorie est requise',
   }),
   autoAsk: z.boolean().optional(),
 })
 
 type Schema = z.output<typeof schema>
 
-// State du formulaire
+// State unifié du formulaire (pour création et édition)
 const state = reactive<Schema>({
   title: '',
   description: '',
@@ -198,6 +203,49 @@ const state = reactive<Schema>({
 
 const createLoading = ref(false)
 const form = ref()
+
+// Réinitialiser le formulaire (fonction appelée par PaginatedTable pour la création)
+const handleFormReset = () => {
+  // Réinitialiser le formulaire pour la création
+  state.title = ''
+  state.description = ''
+  state.category = 'LEGAL'
+  state.autoAsk = false
+}
+
+// Mettre à jour un document type (fonction appelée par PaginatedTable pour préremplir le formulaire)
+const handleUpdate = async (doc: DocumentTypeWithRelations) => {
+  // Pré-remplir le formulaire avec les données du document
+  state.title = doc.title
+  state.description = doc.description || ''
+  state.category = doc.category
+  state.autoAsk = doc.autoAsk || false
+  return { success: true }
+}
+
+// Modifier un document type (fonction appelée par le bouton du modal)
+const handleEdit = async (doc: DocumentTypeWithRelations | null, close: () => void) => {
+  if (!doc) return
+  
+  // Valider le formulaire avant de soumettre
+  try {
+    await form.value.validate()
+  } catch (error) {
+    // Si le formulaire n'est pas valide, arrêter ici
+    return
+  }
+
+  const result = await updateDocumentType(doc.id, state)
+
+  if (result.success) {
+    // Réinitialiser le formulaire
+    state.title = ''
+    state.description = ''
+    state.category = 'LEGAL'
+    state.autoAsk = false
+    close()
+  }
+}
 
 // Créer un document type
 const handleCreate = async (close: () => void) => {
