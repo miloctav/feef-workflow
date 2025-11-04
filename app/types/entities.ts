@@ -56,6 +56,17 @@ export interface EntityAccount {
   email: string
 }
 
+// Champ versionné d'une entité
+export interface EntityField {
+  key: string
+  label: string
+  type: 'string' | 'number' | 'boolean' | 'date'
+  value: string | number | boolean | Date | null
+  unit?: string
+  lastUpdatedAt?: Date
+  lastUpdatedBy?: number
+}
+
 // Entity avec relations complètes
 export interface EntityWithRelations extends EntityPublic {
   oe?: EntityOE | null
@@ -64,4 +75,5 @@ export interface EntityWithRelations extends EntityPublic {
   childEntities?: EntityWithRelations[]
   caseSubmittedByAccount?: EntityAccount | null
   caseApprovedByAccount?: EntityAccount | null
+  fields?: EntityField[]
 }

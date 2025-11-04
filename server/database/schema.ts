@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, timestamp, pgEnum, json, integer, date, primaryKey, type AnyPgColumn, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, serial, varchar, timestamp, pgEnum, json, integer, date, primaryKey, type AnyPgColumn, boolean, text, numeric } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
 // Define role enum
@@ -54,6 +54,19 @@ export const entities = pgTable('entities', {
   updatedBy: integer('updated_by').references(() => accounts.id),
   updatedAt: timestamp('updated_at'),
   deletedAt: timestamp('deleted_at'),
+})
+
+export const entityFieldVersions = pgTable('entity_field_versions', {
+  id: serial('id').primaryKey(),
+  entityId: integer('entity_id').notNull().references(() => entities.id),
+  fieldKey: varchar('field_key', { length: 100 }).notNull(),
+  // Colonnes pour chaque type de valeur (une seule remplie à la fois)
+  valueString: text('value_string'),
+  valueNumber: numeric('value_number'),
+  valueBoolean: boolean('value_boolean'),
+  valueDate: timestamp('value_date'),
+  createdBy: integer('created_by').notNull().references(() => accounts.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
 export const audits = pgTable('audits', {
@@ -209,6 +222,10 @@ export type NewDocumentVersion = typeof documentVersions.$inferInsert
 export type Contract = typeof contracts.$inferSelect
 export type NewContract = typeof contracts.$inferInsert
 
+// Type pour EntityFieldVersion
+export type EntityFieldVersion = typeof entityFieldVersions.$inferSelect
+export type NewEntityFieldVersion = typeof entityFieldVersions.$inferInsert
+
 // ========================================
 // Relations Drizzle pour les queries relationnelles
 // ========================================
@@ -228,6 +245,7 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
   documentaryReviews: many(documentaryReviews),
   documentVersions: many(documentVersions),
   contracts: many(contracts),
+  entityFieldVersions: many(entityFieldVersions),
 }))
 
 export const oeRelations = relations(oes, ({ many }) => ({
@@ -267,6 +285,7 @@ export const entitiesRelations = relations(entities, ({ one, many }) => ({
   audits: many(audits),
   documentaryReviews: many(documentaryReviews),
   contracts: many(contracts),
+  fieldVersions: many(entityFieldVersions),
 }))
 
 export const contractsRelations = relations(contracts, ({ one, many }) => ({
@@ -353,6 +372,17 @@ export const documentVersionsRelations = relations(documentVersions, ({ one }) =
   }),
   uploadByAccount: one(accounts, {
     fields: [documentVersions.uploadBy],
+    references: [accounts.id],
+  }),
+}))
+
+export const entityFieldVersionsRelations = relations(entityFieldVersions, ({ one }) => ({
+  entity: one(entities, {
+    fields: [entityFieldVersions.entityId],
+    references: [entities.id],
+  }),
+  createdByAccount: one(accounts, {
+    fields: [entityFieldVersions.createdBy],
     references: [accounts.id],
   }),
 }))

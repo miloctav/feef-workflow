@@ -92,7 +92,11 @@ const handleApproveCase = async () => {
               >
                 Déposer le dossier
               </UButton>
+
               <AssignAccountManagerModal />
+
+              <!-- Modal de modification des champs (contient son propre bouton) -->
+              <UpdateEntityFieldsModal />
 
               <!-- Informations de soumission -->
               <div v-if="currentEntity?.caseSubmittedAt" class="text-sm text-gray-600 pt-2">
@@ -140,20 +144,42 @@ const handleApproveCase = async () => {
         </div>
       </div>
 
-      <!-- Périmètre de labellisation -->
-      <div v-if="false" class="mt-6 pt-6 border-t border-gray-200">
+      <!-- Informations complémentaires (champs versionnés) -->
+      <div v-if="currentEntity?.fields && currentEntity.fields.length > 0" class="mt-6 pt-6 border-t border-gray-200">
         <div class="flex items-start gap-3">
-          <UIcon name="i-lucide-target" class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-          <div>
-            <h3 class="font-semibold text-gray-900 mb-2">Périmètre de labellisation</h3>
-            <p class="text-gray-700 text-sm leading-relaxed">
-              balavbzjdsbfkfnkfbkdfbdfbsdfjsfjnds
-            </p>
+          <UIcon name="i-lucide-info" class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+          <div class="flex-1">
+            <h3 class="font-semibold text-gray-900 mb-4">Informations complémentaires</h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div
+                v-for="field in currentEntity.fields"
+                :key="field.key"
+                class="space-y-1"
+              >
+                <div class="text-sm font-medium text-gray-600">{{ field.label }}</div>
+                <div class="text-gray-900">
+                  <template v-if="field.value === null || field.value === undefined">
+                    <span class="text-gray-400 italic">Non défini</span>
+                  </template>
+                  <template v-else-if="field.type === 'date'">
+                    {{ new Date(field.value).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}
+                  </template>
+                  <template v-else-if="field.type === 'boolean'">
+                    {{ field.value ? 'Oui' : 'Non' }}
+                  </template>
+                  <template v-else-if="field.type === 'number' && field.unit">
+                    {{ field.value }} {{ field.unit }}
+                  </template>
+                  <template v-else>
+                    {{ field.value }}
+                  </template>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </UCard>
 
     <!-- Modal d'affectation du chargé d'affaire -->
-    
 </template>

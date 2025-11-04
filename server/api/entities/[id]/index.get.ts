@@ -2,6 +2,7 @@ import { db } from "~~/server/database"
 import { entities, EntityType } from "~~/server/database/schema"
 import { eq } from "drizzle-orm"
 import { requireEntityAccess, AccessType } from "~~/server/utils/authorization"
+import { getFormattedEntityFields } from "~~/server/utils/entity-fields-formatter"
 
 export default defineEventHandler(async (event) => {
 
@@ -88,7 +89,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Récupérer les champs versionnés formatés
+  const fields = await getFormattedEntityFields(entityId)
+
   return {
-    data: entity
+    data: {
+      ...entity,
+      fields
+    }
   }
 })
