@@ -1,0 +1,144 @@
+import { eq, and, isNull } from 'drizzle-orm'
+import { db } from '~~/server/database'
+import { entities, oes } from '~~/server/database/schema'
+import { forUpdate } from '~~/server/utils/tracking'
+
+interface AssignOeBody {
+  oeId: number
+}
+
+export default defineEventHandler(async (event) => {
+  // Récupérer l'utilisateur connecté
+  const { user: currentUser } = await requireUserSession(event)
+
+  // Récupérer l'ID de l'entité
+  const entityId = getRouterParam(event, 'id')
+
+  if (!entityId) {
+    throw createError({
+      statusCode: 400,
+      message: 'ID de l\'entité manquant',
+    })
+  }
+
+  const entityIdInt = parseInt(entityId)
+
+  if (isNaN(entityIdInt)) {
+    throw createError({
+      statusCode: 400,
+      message: 'ID de l\'entité invalide',
+    })
+  }
+
+  // Vérifications d'autorisation selon le rôle
+  if (currentUser.role === Role.ENTITY) {
+    // Une entité ne peut modifier que sa propre assignation OE
+    if (currentUser.currentEntityId !== entityIdInt) {
+      throw createError({
+        statusCode: 403,
+        message: 'Vous ne pouvez modifier que l\'OE de votre propre entité',
+      })
+    }
+  } else if (currentUser.role === Role.FEEF) {
+    // FEEF peut modifier n'importe quelle entité
+    // Pas de restriction supplémentaire
+  } else {
+    // Autres rôles (OE, AUDITOR) ne peuvent pas assigner d'OE
+    throw createError({
+      statusCode: 403,
+      message: 'Vous n\'avez pas l\'autorisation d\'assigner un OE à une entité',
+    })
+  }
+
+  // Vérifier que l'entité existe
+  const existingEntity = await db.query.entities.findFirst({
+    where: eq(entities.id, entityIdInt),
+    columns: {
+      id: true,
+      name: true,
+      oeId: true,
+    }
+  })
+
+  if (!existingEntity) {
+    throw createError({
+      statusCode: 404,
+      message: 'Entité non trouvée',
+    })
+  }
+
+  // Récupérer les données du corps de la requête
+  const body = await readBody<AssignOeBody>(event)
+
+  const { oeId } = body
+
+  if (!oeId || typeof oeId !== 'number') {
+    throw createError({
+      statusCode: 400,
+      message: 'L\'ID de l\'OE est requis et doit être un nombre',
+    })
+  }
+
+  console.log(`Assignation de l'OE ID ${oeId} à l'entité ID ${entityIdInt} par l'utilisateur ID ${currentUser.id}`)
+
+  // Vérifier que l'OE existe et est actif
+  const targetOe = await db.query.oes.findFirst({
+    where: and(
+      eq(oes.id, oeId),
+      isNull(oes.deletedAt) // Vérifier que l'OE n'est pas supprimé
+    )
+  })
+
+  console.log(`Vérification de l'existence de l'OE ID ${oeId}`)
+  console.log('OE trouvée:', targetOe)
+
+  if (!targetOe) {
+    throw createError({
+      statusCode: 404,
+      message: 'Organisme évaluateur non trouvé ou inactif',
+    })
+  }
+
+  // Vérifier si l'OE est déjà assigné à cette entité
+  if (existingEntity.oeId === oeId) {
+    throw createError({
+      statusCode: 400,
+      message: `Cette entité est déjà assignée à l'OE ${targetOe.name}`,
+    })
+  }
+
+  // Mettre à jour l'entité avec le nouvel OE
+  const [updatedEntity] = await db
+    .update(entities)
+    .set(forUpdate(event, {
+      oeId: oeId
+    }))
+    .where(eq(entities.id, entityIdInt))
+    .returning()
+
+  // Retourner l'entité mise à jour avec les relations
+  const entityWithRelations = await db.query.entities.findFirst({
+    where: eq(entities.id, entityIdInt),
+    with: {
+      oe: {
+        columns: {
+          id: true,
+          name: true,
+        }
+      },
+      accountManager: {
+        columns: {
+          id: true,
+          firstname: true,
+          lastname: true,
+          email: true,
+        }
+      }
+    }
+  })
+
+  return {
+    data: entityWithRelations,
+    message: `OE ${targetOe.name} assigné avec succès à l'entité ${existingEntity.name}`,
+  }
+})

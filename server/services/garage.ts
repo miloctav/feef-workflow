@@ -86,8 +86,9 @@ export async function initializeBucket(): Promise<void> {
  * @param filename - Nom du fichier original
  * @param mimeType - Type MIME du fichier
  * @param entityId - ID de l'entité
- * @param documentaryReviewId - ID du documentary review
+ * @param documentId - ID du document (documentaryReviewId ou contractId)
  * @param versionId - ID de la version
+ * @param documentType - Type de document ('documentary-review' ou 'contract')
  * @returns Clé (path) du fichier dans Garage
  */
 export async function uploadFile(
@@ -95,14 +96,15 @@ export async function uploadFile(
   filename: string,
   mimeType: string,
   entityId: number,
-  documentaryReviewId: number,
-  versionId: number
+  documentId: number,
+  versionId: number,
+  documentType: 'documentary-review' | 'contract'
 ): Promise<string> {
   const client = getGarageClient()
   const bucketName = getBucketName()
 
-  // Générer la clé avec la structure: documents/{entityId}/{documentaryReviewId}/{versionId}-{filename}
-  const key = `documents/${entityId}/${documentaryReviewId}/${versionId}-${filename}`
+  // Générer la clé avec la structure: documents/{entityId}/{documentType}s/{documentId}/{versionId}-{filename}
+  const key = `documents/${entityId}/${documentType}s/${documentId}/${versionId}-${filename}`
 
   try {
     await client.send(

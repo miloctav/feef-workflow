@@ -59,4 +59,20 @@ const items = [
   { label: 'Mes contrats', icon: 'i-lucide-file-signature', to: `/entity/contracts` },
   { label: 'Mes audits', icon: 'i-lucide-clipboard-list', to: `/entity/audits` }
 ]
+
+const { fetchEntity } = useEntities()
+const { user } = useAuth()
+
+const entityId = user.value?.currentEntityId
+
+onMounted(async () => {
+  if (!entityId) {
+    throw createError({ statusCode: 404, message: 'Entité non trouvée' })
+  }
+  const result = await fetchEntity(entityId)
+
+  if (!result.success) {
+    throw createError({ statusCode: 404, message: 'Entité non trouvée' })
+  }
+})
 </script>

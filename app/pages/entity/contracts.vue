@@ -13,11 +13,7 @@
 
         <UPageBody>
           <div class="space-y-6">
-            <!-- Contrats avec la FEEF -->
-            <FeefContractsList role="company" />
-
-            <!-- Contrats avec les Organismes Évaluateurs -->
-            <OeContractsList role="company" />
+            <ContractsList />
           </div>
         </UPageBody>
       </UPage>
@@ -28,5 +24,21 @@
 <script setup lang="ts">
 definePageMeta({
   layout: 'dashboard-entity'
+})
+
+const { currentEntity, fetchEntity, fetchLoading, fetchError, submitCase, submitCaseLoading } = useEntities()
+const { user } = useAuth()
+
+const entityId = user.value?.currentEntityId
+
+onMounted(async () => {
+  if (!entityId) {
+    throw createError({ statusCode: 404, message: 'Entité non trouvée' })
+  }
+  const result = await fetchEntity(entityId)
+
+  if (!result.success) {
+    throw createError({ statusCode: 404, message: 'Entité non trouvée' })
+  }
 })
 </script>

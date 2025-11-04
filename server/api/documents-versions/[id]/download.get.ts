@@ -20,11 +20,16 @@ export default defineEventHandler(async (event) => {
 
   const versionId = Number(id)
 
-  // Récupérer la version avec le documentary review et l'entité
+  // Récupérer la version avec le documentary review OU le contract et l'entité
   const version = await db.query.documentVersions.findFirst({
     where: eq(documentVersions.id, versionId),
     with: {
       documentaryReview: {
+        with: {
+          entity: true,
+        },
+      },
+      contract: {
         with: {
           entity: true,
         },
@@ -46,18 +51,38 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Vérifier que le documentary review n'est pas soft-deleted
-  if (version.documentaryReview.deletedAt) {
+  // Déterminer le type de document (documentaryReview ou contract)
+  let entityId: number
+
+  if (version.documentaryReview) {
+    // Vérifier que le documentary review n'est pas soft-deleted
+    if (version.documentaryReview.deletedAt) {
+      throw createError({
+        statusCode: 404,
+        message: 'Document non trouvé',
+      })
+    }
+    entityId = version.documentaryReview.entityId
+  } else if (version.contract) {
+    // Vérifier que le contract n'est pas soft-deleted
+    if (version.contract.deletedAt) {
+      throw createError({
+        statusCode: 404,
+        message: 'Contrat non trouvé',
+      })
+    }
+    entityId = version.contract.entityId
+  } else {
     throw createError({
       statusCode: 404,
-      message: 'Document non trouvé',
+      message: 'Document parent non trouvé',
     })
   }
 
   // Vérifier l'accès à l'entité du document
   await requireEntityAccess({
     user,
-    entityId: version.documentaryReview.entityId,
+    entityId,
     accessType: AccessType.READ,
     errorMessage: 'Vous n\'avez pas accès à ce fichier'
   })

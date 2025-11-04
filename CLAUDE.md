@@ -250,7 +250,9 @@ The application uses **Garage** (S3-compatible distributed object storage) for d
 
 - **Service**: `server/services/garage.ts` provides S3 client and storage operations using AWS SDK
 - **Bucket**: `feef-storage` (must be created manually via Garage CLI)
-- **File organization**: `documents/{entityId}/{documentaryReviewId}/{versionId}-{filename}`
+- **File organization**: 
+  - Documentary Reviews: `documents/{entityId}/documentary-reviews/{documentaryReviewId}/{versionId}-{filename}`
+  - Contracts: `documents/{entityId}/contracts/{contractId}/{versionId}-{filename}`
 - **Operations**:
   - `uploadFile()` - Upload document with automatic key generation (uses S3 PutObjectCommand)
   - `getSignedUrl()` - Generate presigned URL (1 hour expiry) for secure downloads (uses @aws-sdk/s3-request-presigner)

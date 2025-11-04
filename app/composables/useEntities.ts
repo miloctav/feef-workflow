@@ -40,6 +40,7 @@ export const useEntities = () => {
   const submitCaseLoading = useState('entities:submitCaseLoading', () => false)
   const approveCaseLoading = useState('entities:approveCaseLoading', () => false)
   const assignAccountManagerLoading = useState('entities:assignAccountManagerLoading', () => false)
+  const assignOeLoading = useState('entities:assignOeLoading', () => false)
 
   // Loading state dérivé de fetchStatus
   const fetchLoading = computed(() => fetchStatus.value === 'pending')
@@ -355,6 +356,48 @@ export const useEntities = () => {
   }
 
   /**
+   * Assigner un OE à une entité
+   */
+  const assignOe = async (id: number, oeId: number) => {
+    assignOeLoading.value = true
+
+    try {
+      const response = await $fetch<{ data: EntityWithRelations; message: string }>(`/api/entities/${id}/assign-oe`, {
+        method: 'POST',
+        body: { oeId },
+      })
+
+      // Rafraîchir la liste paginée pour refléter les changements
+      await refresh()
+
+      // Mettre à jour l'entité courante si c'est celle-ci
+      if (currentEntity.value?.id === id) {
+        currentEntity.value = response.data
+      }
+
+      toast.add({
+        title: 'Succès',
+        description: response.message || 'Organisme évaluateur assigné avec succès',
+        color: 'success',
+      })
+
+      return { success: true, data: response.data }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de l\'assignation de l\'organisme évaluateur'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    } finally {
+      assignOeLoading.value = false
+    }
+  }
+
+  /**
    * Récupérer les entités pour les filtres et sélecteurs
    */
   const fetchEntitiesForSelect = async (options: { includeAll?: boolean; mode?: EntityModeType } = {}) => {
@@ -428,6 +471,7 @@ export const useEntities = () => {
     submitCaseLoading: readonly(submitCaseLoading),
     approveCaseLoading: readonly(approveCaseLoading),
     assignAccountManagerLoading: readonly(assignAccountManagerLoading),
+    assignOeLoading: readonly(assignOeLoading),
 
     // Actions de pagination
     nextPage,
@@ -448,6 +492,7 @@ export const useEntities = () => {
     submitCase,
     approveCase,
     assignAccountManager,
+    assignOe,
     refresh,
     reset,
   }

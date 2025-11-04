@@ -8,14 +8,31 @@ export default defineEventHandler(async (event) => {
   // Authentification
   const { user } = await requireUserSession(event)
 
-  // Récupérer entityId depuis query params
+  // Récupérer entityId depuis query params OU user.currentEntityId pour ENTITY
   const query = getQuery(event)
-  const entityId = query.entityId ? Number(query.entityId) : null
+  let entityId = query.entityId ? Number(query.entityId) : null
 
-  if (!entityId) {
+  // Si pas d'entityId fourni et que l'utilisateur est ENTITY, utiliser currentEntityId
+  if (!entityId && user.role === Role.ENTITY) {
+    if (!user.currentEntityId) {
+      throw createError({
+        statusCode: 400,
+        message: 'Aucune entité associée à votre compte',
+      })
+    }
+    entityId = user.currentEntityId
+  } else if (!entityId) {
     throw createError({
       statusCode: 400,
       message: 'entityId est obligatoire',
+    })
+  }
+
+  // Bloquer les auditeurs
+  if (user.role === Role.AUDITOR) {
+    throw createError({
+      statusCode: 403,
+      message: 'Les auditeurs n\'ont pas accès aux contrats',
     })
   }
 
@@ -24,34 +41,29 @@ export default defineEventHandler(async (event) => {
     user,
     entityId,
     accessType: AccessType.READ,
-    errorMessage: 'Vous n\'avez pas accès aux documents de cette entité'
+    errorMessage: 'Vous n\'avez pas accès aux contrats de cette entité'
   })
 
-  if(user.role === Role.AUDITOR){
-    throw createError({
-      statusCode: 403,
-      message: 'Les auditeurs n\'ont pas accès aux contrats des entités',
-    })
-  }
-
   // Construire les conditions de filtrage selon le rôle
-  let whereConditions = [
+  const whereConditions = [
     eq(contracts.entityId, entityId),
     isNull(contracts.deletedAt)
   ]
 
   // Appliquer les filtres selon le rôle de l'utilisateur
   if (user.role === Role.OE) {
-    if (user.oeId) {
-      whereConditions.push(eq(contracts.oeId, user.oeId))
-    } else {
+    // OE : voir uniquement les contrats avec oeId = user.oeId
+    if (!user.oeId) {
       return { data: [] }
     }
+    whereConditions.push(eq(contracts.oeId, user.oeId))
   } else if (user.role === Role.FEEF) {
+    // FEEF : voir uniquement les contrats avec oeId = null
     whereConditions.push(isNull(contracts.oeId))
   }
+  // ENTITY : voir tous les contrats de l'entité (pas de filtre supplémentaire sur oeId)
 
-  // Récupérer les contracts filtrés
+  // Récupérer les contrats filtrés
   const contractsData = await db.query.contracts.findMany({
     where: and(...whereConditions),
   })

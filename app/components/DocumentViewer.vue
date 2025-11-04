@@ -1,15 +1,15 @@
 <template>
-  <USlideover v-model:open="isOpen" :title="documentaryReview?.title || 'Document'" side="right" class="w-full max-w-4xl" close-icon="i-lucide-arrow-right">
+  <USlideover v-model:open="isOpen" :title="documentTitle" side="right" class="w-full max-w-4xl" close-icon="i-lucide-arrow-right">
     <!-- Header avec informations du document -->
     <template #header>
       <div class="flex flex-col space-y-3">
         <div class="flex items-start gap-12">
           <div class="flex-1 pr-16 max-w-2xl">
             <h2 class="text-lg font-semibold text-gray-900">
-              {{ documentaryReview?.title || 'Document' }}
+              {{ documentTitle }}
             </h2>
             <p class="text-sm text-gray-600 mt-1">
-              {{ documentaryReview?.description }}
+              {{ documentDescription }}
             </p>
           </div>
 
@@ -101,7 +101,7 @@
           <div class="absolute top-0 left-0 right-0 bg-gray-800 text-white p-2 flex justify-between items-center z-10 text-sm">
             <div class="flex items-center gap-2">
               <UIcon name="i-lucide-file-text" class="w-4 h-4" />
-              <span class="font-medium">{{ documentaryReview?.title }}</span>
+              <span class="font-medium">{{ documentTitle }}</span>
             </div>
             <div class="flex items-center gap-2">
               <UButton
@@ -161,15 +161,33 @@
 
 <script setup lang="ts">
 import type { DocumentaryReview } from '~~/app/types/documentaryReviews'
+import type { ContractWithRelations } from '~~/app/types/contracts'
 
 interface Props {
   documentaryReview?: DocumentaryReview | null
+  contract?: ContractWithRelations | null
   open?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   open: false
 })
+
+// Computed pour déterminer le type et récupérer les infos
+const documentType = computed(() => {
+  if (props.documentaryReview) return 'documentaryReview'
+  if (props.contract) return 'contract'
+  return null
+})
+
+const documentData = computed(() => {
+  if (props.documentaryReview) return props.documentaryReview
+  if (props.contract) return props.contract
+  return null
+})
+
+const documentTitle = computed(() => documentData.value?.title || 'Document')
+const documentDescription = computed(() => documentData.value?.description || '')
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
@@ -248,9 +266,9 @@ const handleFileSelect = async (event: Event) => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
 
-  if (!file || !props.documentaryReview) return
+  if (!file || !documentData.value || !documentType.value) return
 
-  const result = await createDocumentVersion(props.documentaryReview.id, file)
+  const result = await createDocumentVersion(documentData.value.id, file, documentType.value)
 
   if (result.success && result.data) {
     // Sélectionner automatiquement la nouvelle version (la plus récente)
@@ -263,7 +281,7 @@ const handleFileSelect = async (event: Event) => {
 
 // Gérer le téléchargement du document
 const handleDownload = () => {
-  if (!selectedVersionData.value || !props.documentaryReview || selectedVersionId.value === undefined) return
+  if (!selectedVersionData.value || !documentData.value || selectedVersionId.value === undefined) return
 
   // Calculer le numéro de version (inverse de l'index)
   const versionIndex = documentVersions.value.findIndex(v => v.id === selectedVersionId.value)
@@ -271,7 +289,7 @@ const handleDownload = () => {
 
   downloadVersion(
     selectedVersionId.value,
-    props.documentaryReview.title,
+    documentTitle.value,
     versionNumber,
     selectedVersionData.value.uploadAt,
     selectedVersionData.value.mimeType
@@ -319,14 +337,14 @@ const closeViewer = () => {
 
 // Watcher pour charger les versions quand le viewer s'ouvre
 watch(isOpen, async (newValue) => {
-  if (newValue && props.documentaryReview) {
+  if (newValue && documentData.value && documentType.value) {
     // Réinitialiser avant de charger
     reset()
     selectedVersionId.value = undefined
     currentSignedUrl.value = null
 
-    // Toujours fetch les versions à l'ouverture
-    await fetchDocumentVersions(props.documentaryReview.id)
+    // Toujours fetch les versions à l'ouverture avec le bon type
+    await fetchDocumentVersions(documentData.value.id, documentType.value)
 
     // Sélectionner la version la plus récente par défaut (première dans la liste)
     // Uniquement si le viewer est toujours ouvert (évite les race conditions)

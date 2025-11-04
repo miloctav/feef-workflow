@@ -45,15 +45,22 @@ export const useDocumentVersions = () => {
   const fetchError = useState<string | null>('documentVersions:fetchError', () => null)
 
   /**
-   * Récupérer la liste des versions pour un documentaryReview
+   * Récupérer la liste des versions pour un documentaryReview ou un contract
    */
-  const fetchDocumentVersions = async (documentaryReviewId: number) => {
+  const fetchDocumentVersions = async (
+    id: number,
+    type: 'documentaryReview' | 'contract' = 'documentaryReview'
+  ) => {
     fetchLoading.value = true
     fetchError.value = null
 
     try {
+      const queryParam = type === 'documentaryReview'
+        ? { documentaryReviewId: id }
+        : { contractId: id }
+
       const response = await $fetch<{ data: DocumentVersion[] }>('/api/documents-versions', {
-        query: { documentaryReviewId },
+        query: queryParam,
       })
 
       documentVersions.value = response.data
@@ -79,13 +86,23 @@ export const useDocumentVersions = () => {
   /**
    * Créer une nouvelle version de document avec upload de fichier
    */
-  const createDocumentVersion = async (documentaryReviewId: number, file: File) => {
+  const createDocumentVersion = async (
+    id: number,
+    file: File,
+    type: 'documentaryReview' | 'contract' = 'documentaryReview'
+  ) => {
     createLoading.value = true
 
     try {
       // Créer le FormData avec le fichier et les données
       const formData = new FormData()
-      formData.append('documentaryReviewId', documentaryReviewId.toString())
+
+      if (type === 'documentaryReview') {
+        formData.append('documentaryReviewId', id.toString())
+      } else {
+        formData.append('contractId', id.toString())
+      }
+
       formData.append('file', file)
 
       const response = await $fetch<{ data: DocumentVersion }>('/api/documents-versions', {

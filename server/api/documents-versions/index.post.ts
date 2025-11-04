@@ -1,8 +1,9 @@
 import { db } from '~~/server/database'
-import { documentaryReviews, documentVersions, entities, accountsToEntities } from '~~/server/database/schema'
+import { documentaryReviews, documentVersions, entities, accountsToEntities, contracts } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { uploadFile } from '~~/server/services/garage'
 import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
+import { Role } from '#shared/types/roles'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -18,13 +19,16 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Extraire le documentaryReviewId et le fichier
+  // Extraire documentaryReviewId OU contractId et le fichier
   let documentaryReviewId: number | null = null
+  let contractId: number | null = null
   let fileData: { filename: string, data: Buffer } | null = null
 
   for (const part of formData) {
     if (part.name === 'documentaryReviewId') {
       documentaryReviewId = Number(part.data.toString())
+    } else if (part.name === 'contractId') {
+      contractId = Number(part.data.toString())
     } else if (part.name === 'file' && part.filename) {
       fileData = {
         filename: part.filename,
@@ -33,11 +37,11 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Validation
-  if (!documentaryReviewId || isNaN(documentaryReviewId)) {
+  // Validation: exactement un des deux doit être fourni
+  if ((!documentaryReviewId && !contractId) || (documentaryReviewId && contractId)) {
     throw createError({
       statusCode: 400,
-      message: 'documentaryReviewId est obligatoire et doit être un nombre',
+      message: 'Vous devez fournir soit documentaryReviewId soit contractId',
     })
   }
 
@@ -48,78 +52,155 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Récupérer le documentary review avec l'entité
-  const documentaryReview = await db.query.documentaryReviews.findFirst({
-    where: and(
-      eq(documentaryReviews.id, documentaryReviewId),
-      isNull(documentaryReviews.deletedAt)
-    ),
-    with: {
-      entity: true,
-    },
-  })
+  let entityId: number
+  let documentId: number
 
-  if (!documentaryReview) {
-    throw createError({
-      statusCode: 404,
-      message: 'Document non trouvé',
-    })
-  }
-
-  // Vérifier que l'entité n'est pas soft-deleted
-  if (documentaryReview.entity.deletedAt) {
-    throw createError({
-      statusCode: 404,
-      message: 'Entité non trouvée',
-    })
-  }
-
-  // Autorisation basée sur le rôle
-  if (user.role === Role.FEEF) {
-    // FEEF a accès à tout
-  } else if (user.role === Role.ENTITY) {
-    // ENTITY doit être lié à l'entité via accountsToEntities
-    const accountToEntity = await db.query.accountsToEntities.findFirst({
+  // Récupérer l'entité et vérifier les autorisations selon le type
+  if (documentaryReviewId) {
+    // DocumentaryReview
+    const documentaryReview = await db.query.documentaryReviews.findFirst({
       where: and(
-        eq(accountsToEntities.accountId, user.id),
-        eq(accountsToEntities.entityId, documentaryReview.entityId)
+        eq(documentaryReviews.id, documentaryReviewId),
+        isNull(documentaryReviews.deletedAt)
       ),
+      with: {
+        entity: true,
+      },
     })
 
-    if (!accountToEntity) {
+    if (!documentaryReview) {
+      throw createError({
+        statusCode: 404,
+        message: 'Document non trouvé',
+      })
+    }
+
+    if (documentaryReview.entity.deletedAt) {
+      throw createError({
+        statusCode: 404,
+        message: 'Entité non trouvée',
+      })
+    }
+
+    entityId = documentaryReview.entityId
+    documentId = documentaryReviewId
+
+    // Autorisation pour documentaryReview
+    if (user.role === Role.FEEF) {
+      // FEEF a accès à tout
+    } else if (user.role === Role.ENTITY) {
+      const accountToEntity = await db.query.accountsToEntities.findFirst({
+        where: and(
+          eq(accountsToEntities.accountId, user.id),
+          eq(accountsToEntities.entityId, entityId)
+        ),
+      })
+
+      if (!accountToEntity) {
+        throw createError({
+          statusCode: 403,
+          message: 'Vous n\'avez pas accès à ce document',
+        })
+      }
+    } else {
       throw createError({
         statusCode: 403,
-        message: 'Vous n\'avez pas accès à ce document',
+        message: 'Seuls FEEF et ENTITY peuvent créer des versions de documents',
       })
     }
   } else {
-    throw createError({
-      statusCode: 403,
-      message: 'Seuls FEEF et ENTITY peuvent créer des versions',
+    // Contract
+    const contract = await db.query.contracts.findFirst({
+      where: and(
+        eq(contracts.id, contractId!),
+        isNull(contracts.deletedAt)
+      ),
+      with: {
+        entity: true,
+      },
     })
+
+    if (!contract) {
+      throw createError({
+        statusCode: 404,
+        message: 'Contrat non trouvé',
+      })
+    }
+
+    if (contract.entity.deletedAt) {
+      throw createError({
+        statusCode: 404,
+        message: 'Entité non trouvée',
+      })
+    }
+
+    // Bloquer les auditeurs pour les contrats
+    if (user.role === Role.AUDITOR) {
+      throw createError({
+        statusCode: 403,
+        message: 'Les auditeurs n\'ont pas accès aux contrats',
+      })
+    }
+
+    entityId = contract.entityId
+    documentId = contractId!
+
+    // Autorisation pour contract (FEEF, OE, ENTITY peuvent uploader)
+    if (user.role === Role.FEEF || user.role === Role.OE) {
+      // FEEF et OE peuvent uploader
+    } else if (user.role === Role.ENTITY) {
+      const accountToEntity = await db.query.accountsToEntities.findFirst({
+        where: and(
+          eq(accountsToEntities.accountId, user.id),
+          eq(accountsToEntities.entityId, entityId)
+        ),
+      })
+
+      if (!accountToEntity) {
+        throw createError({
+          statusCode: 403,
+          message: 'Vous n\'avez pas accès à ce contrat',
+        })
+      }
+    } else {
+      throw createError({
+        statusCode: 403,
+        message: 'Vous n\'avez pas la permission d\'uploader des versions de contrats',
+      })
+    }
   }
 
   // Déterminer le type MIME du fichier
   const mimeType = getMimeTypeFromFilename(fileData.filename)
 
   // Créer la nouvelle version (sans s3Key pour l'instant)
-  const [newVersion] = await db.insert(documentVersions).values(forInsert(event, {
-    documentaryReviewId,
+  const versionData: any = {
     uploadBy: user.id,
     s3Key: null,
     mimeType,
-  })).returning()
+  }
+
+  // Ajouter le bon ID selon le type
+  if (documentaryReviewId) {
+    versionData.documentaryReviewId = documentaryReviewId
+  } else {
+    versionData.contractId = contractId
+  }
+
+  const [newVersion] = await db.insert(documentVersions).values(forInsert(event, versionData)).returning()
 
   // Uploader le fichier vers Garage
   let uploadedS3Key: string | null = null
+  const documentType = documentaryReviewId ? 'documentary-review' : 'contract'
   try {
     uploadedS3Key = await uploadFile(
       fileData.data,
       fileData.filename,
       mimeType,
-      documentaryReview.entityId,
-      documentaryReviewId,
-      newVersion.id
+      entityId,
+      documentId,
+      newVersion.id,
+      documentType
     )
   } catch (error) {
     // Si l'upload échoue, supprimer la version créée
