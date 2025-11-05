@@ -53,11 +53,21 @@
                 <div class="flex-1 min-w-0">
                   <div class="flex items-start justify-between gap-4">
                     <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2">
+                      <div class="flex items-center gap-2 flex-wrap">
                         <h4 class="font-semibold text-base text-gray-900 group-hover:text-blue-900">
                           {{ contract.title }}
                         </h4>
                         <UIcon name="i-lucide-eye" class="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
+
+                        <!-- Badge statut de signature -->
+                        <UBadge
+                          v-if="contract.requiresSignature"
+                          :color="getSignatureStatusColor(contract.signatureStatus)"
+                          variant="subtle"
+                          size="sm"
+                        >
+                          {{ getSignatureStatusLabel(contract.signatureStatus) }}
+                        </UBadge>
                       </div>
                       <p v-if="contract.description" class="text-sm text-gray-600 mt-1.5">
                         {{ contract.description }}
@@ -77,8 +87,21 @@
                     </div>
 
                     <!-- Actions -->
-                    <div v-if="canEditContract(contract)" class="flex-shrink-0 flex gap-2">
-                      <slot name="contract-actions" :contract="contract" />
+                    <div class="flex-shrink-0 flex gap-2">
+                      <!-- Bouton Signer -->
+                      <UButton
+                        v-if="canSignContract(contract)"
+                        icon="i-lucide-pen-line"
+                        size="sm"
+                        color="primary"
+                        variant="soft"
+                        @click.stop="$emit('sign-click', contract)"
+                      >
+                        Signer
+                      </UButton>
+
+                      <!-- Actions existantes -->
+                      <slot v-if="canEditContract(contract)" name="contract-actions" :contract="contract" />
                     </div>
                   </div>
                 </div>
@@ -103,6 +126,7 @@ interface Props {
 
 interface Emits {
   (e: 'contract-click', contract: any): void
+  (e: 'sign-click', contract: any): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -134,6 +158,55 @@ const accordionItem = computed(() => ({
 function canEditContract(contract: any): boolean {
   if (!user.value) return false
   return contract.createdBy === user.value.id
+}
+
+// Fonction pour vérifier si l'utilisateur peut signer un contrat
+function canSignContract(contract: any): boolean {
+  if (!user.value || !contract.requiresSignature) return false
+
+  // ENTITY peut signer si le statut est PENDING_ENTITY
+  if (user.value.role === 'ENTITY' && contract.signatureStatus === 'PENDING_ENTITY') {
+    return true
+  }
+
+  // FEEF peut signer si le statut est PENDING_FEEF
+  if (user.value.role === 'FEEF' && contract.signatureStatus === 'PENDING_FEEF') {
+    return true
+  }
+
+  return false
+}
+
+// Fonction pour obtenir la couleur du badge de statut
+function getSignatureStatusColor(status: string | null): string {
+  switch (status) {
+    case 'DRAFT':
+      return 'neutral'
+    case 'PENDING_ENTITY':
+      return 'amber'
+    case 'PENDING_FEEF':
+      return 'orange'
+    case 'COMPLETED':
+      return 'green'
+    default:
+      return 'neutral'
+  }
+}
+
+// Fonction pour obtenir le label du badge de statut
+function getSignatureStatusLabel(status: string | null): string {
+  switch (status) {
+    case 'DRAFT':
+      return 'Brouillon'
+    case 'PENDING_ENTITY':
+      return 'En attente Entity'
+    case 'PENDING_FEEF':
+      return 'En attente FEEF'
+    case 'COMPLETED':
+      return 'Signé'
+    default:
+      return 'Inconnu'
+  }
 }
 
 // Fonction utilitaire pour formater les dates

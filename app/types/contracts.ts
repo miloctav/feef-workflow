@@ -19,6 +19,8 @@ export interface CreateContractData {
   title: string
   description?: string
   forceOeId?: number | null // null pour forcer FEEF, number pour forcer un OE, undefined pour auto
+  requiresSignature?: boolean // Si le contrat doit être signé (FEEF uniquement)
+  signatureType?: 'ENTITY_ONLY' | 'ENTITY_AND_FEEF' | null // Qui doit signer
 }
 
 // Type pour la mise à jour d'un contrat

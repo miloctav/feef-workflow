@@ -1,6 +1,6 @@
 import { db } from '~~/server/database'
-import { contracts } from '~~/server/database/schema'
-import { eq, and, isNull } from 'drizzle-orm'
+import { contracts, documentVersions } from '~~/server/database/schema'
+import { eq, and, isNull, desc } from 'drizzle-orm'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 import { Role } from '#shared/types/roles'
 
@@ -63,9 +63,47 @@ export default defineEventHandler(async (event) => {
   }
   // ENTITY : voir tous les contrats de l'entité (pas de filtre supplémentaire sur oeId)
 
-  // Récupérer les contrats filtrés
+  // Récupérer les contrats filtrés avec leurs relations
   const contractsData = await db.query.contracts.findMany({
     where: and(...whereConditions),
+    with: {
+      entity: true,
+      oe: true,
+      createdByAccount: {
+        columns: {
+          id: true,
+          firstname: true,
+          lastname: true,
+        },
+      },
+      entitySignedByAccount: {
+        columns: {
+          id: true,
+          firstname: true,
+          lastname: true,
+        },
+      },
+      feefSignedByAccount: {
+        columns: {
+          id: true,
+          firstname: true,
+          lastname: true,
+        },
+      },
+      documentVersions: {
+        orderBy: [desc(documentVersions.uploadAt)],
+        limit: 1,
+        with: {
+          uploadByAccount: {
+            columns: {
+              id: true,
+              firstname: true,
+              lastname: true,
+            },
+          },
+        },
+      },
+    },
   })
 
   return {

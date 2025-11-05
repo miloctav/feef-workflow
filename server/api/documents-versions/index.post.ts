@@ -217,6 +217,19 @@ export default defineEventHandler(async (event) => {
     .set({ s3Key: uploadedS3Key })
     .where(eq(documentVersions.id, newVersion.id))
 
+  // Si c'est un contrat avec signature requise en DRAFT, passer à PENDING_ENTITY
+  if (contractId && contract) {
+    if (contract.requiresSignature && contract.signatureStatus === 'DRAFT') {
+      await db.update(contracts)
+        .set({
+          signatureStatus: 'PENDING_ENTITY',
+          updatedBy: user.id,
+          updatedAt: new Date()
+        })
+        .where(eq(contracts.id, contractId))
+    }
+  }
+
   // Récupérer la version créée avec les infos de l'uploader et la clé
   const versionWithUploader = await db.query.documentVersions.findFirst({
     where: eq(documentVersions.id, newVersion.id),

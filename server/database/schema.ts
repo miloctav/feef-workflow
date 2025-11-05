@@ -21,6 +21,12 @@ export const accountEntityRoleEnum = pgEnum('account_entity_role', ['SIGNATORY',
 
 export const documentCategoryEnum = pgEnum('document_category', ['LEGAL', 'FINANCIAL', 'TECHNICAL', 'OTHER'])
 
+// Define signature type enum
+export const signatureTypeEnum = pgEnum('signature_type', ['ENTITY_ONLY', 'ENTITY_AND_FEEF'])
+
+// Define signature status enum
+export const signatureStatusEnum = pgEnum('signature_status', ['DRAFT', 'PENDING_ENTITY', 'PENDING_FEEF', 'COMPLETED'])
+
 // ========================================
 // Import enum values and types from shared
 // ========================================
@@ -150,6 +156,14 @@ export const contracts = pgTable('contracts', {
   description: varchar('description', { length: 1024 }),
   entityId: integer('entity_id').notNull().references(() => entities.id),
   oeId: integer('oe_id').references(() => oes.id),
+  // Signature fields
+  requiresSignature: boolean('requires_signature').notNull().default(false),
+  signatureType: signatureTypeEnum('signature_type'),
+  signatureStatus: signatureStatusEnum('signature_status'),
+  entitySignedAt: timestamp('entity_signed_at'),
+  entitySignedBy: integer('entity_signed_by').references(() => accounts.id),
+  feefSignedAt: timestamp('feef_signed_at'),
+  feefSignedBy: integer('feef_signed_by').references(() => accounts.id),
   createdBy: integer('created_by').notNull().references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
@@ -299,6 +313,14 @@ export const contractsRelations = relations(contracts, ({ one, many }) => ({
   }),
   createdByAccount: one(accounts, {
     fields: [contracts.createdBy],
+    references: [accounts.id],
+  }),
+  entitySignedByAccount: one(accounts, {
+    fields: [contracts.entitySignedBy],
+    references: [accounts.id],
+  }),
+  feefSignedByAccount: one(accounts, {
+    fields: [contracts.feefSignedBy],
     references: [accounts.id],
   }),
   documentVersions: many(documentVersions),

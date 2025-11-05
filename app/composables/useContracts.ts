@@ -90,8 +90,9 @@ export const useContracts = () => {
 
   /**
    * Créer un nouveau contrat
+   * Accepte soit CreateContractData soit FormData (pour l'upload de fichier)
    */
-  const createContract = async (data: CreateContractData) => {
+  const createContract = async (data: CreateContractData | FormData) => {
     createLoading.value = true
 
     try {

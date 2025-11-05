@@ -27,6 +27,7 @@
               {{ feefContracts.length }} contrat{{ feefContracts.length > 1 ? 's' : '' }}
             </p>
           </div>
+          <!-- Seul FEEF peut créer des contrats FEEF -->
           <AddContractModal
             v-if="canAddFeefContract && entityId"
             :entity-id="entityId"
@@ -43,6 +44,7 @@
           icon="i-lucide-award"
           empty-message="Aucun contrat FEEF"
           @contract-click="openContractViewer"
+          @sign-click="openSignModal"
         >
           <template #contract-actions="{ contract }">
             <EditContractModal
@@ -107,6 +109,7 @@
           icon="i-lucide-briefcase"
           empty-message="Aucun contrat dans cette catégorie"
           @contract-click="openContractViewer"
+          @sign-click="openSignModal"
         >
           <template #contract-actions="{ contract }">
             <EditContractModal
@@ -130,6 +133,14 @@
     <DocumentViewer
       v-model:open="isViewerOpen"
       :contract="selectedContract"
+    />
+
+    <!-- Sign Contract Modal -->
+    <SignContractModal
+      v-if="selectedContractToSign"
+      v-model:open="isSignModalOpen"
+      :contract="selectedContractToSign"
+      @signed="handleContractSigned"
     />
   </div>
 </template>
@@ -202,7 +213,8 @@ const showOeSection = computed(() => {
 // Permissions de création
 const canAddFeefContract = computed(() => {
   if (!user.value) return false
-  return user.value.role === Role.FEEF || user.value.role === Role.ENTITY
+  // Seul FEEF peut créer des contrats FEEF
+  return user.value.role === Role.FEEF
 })
 
 const canAddOeContract = computed(() => {
@@ -234,7 +246,24 @@ function openContractViewer(contract: ContractWithRelations) {
   isViewerOpen.value = true
 }
 
+// Gestion du Sign Modal
+const isSignModalOpen = ref(false)
+const selectedContractToSign = ref<ContractWithRelations | null>(null)
 
+function openSignModal(contract: ContractWithRelations) {
+  selectedContractToSign.value = contract
+  isSignModalOpen.value = true
+}
+
+async function handleContractSigned() {
+  isSignModalOpen.value = false
+  selectedContractToSign.value = null
+
+  // Rafraîchir les contrats pour voir les changements
+  if (entityId.value) {
+    await fetchContracts(entityId.value)
+  }
+}
 
 // Gérer la mise à jour de l'OE
 async function handleOeUpdated() {
