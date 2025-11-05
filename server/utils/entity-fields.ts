@@ -57,6 +57,7 @@ function prepareValueColumns(type: EntityFieldType, value: EntityFieldValue): Pi
 
   switch (type) {
     case 'string':
+    case 'text':
       columns.valueString = String(value)
       break
     case 'number':
@@ -154,6 +155,7 @@ export async function getEntityFieldHistory(
     value: extractValue(version),
     createdAt: version.createdAt,
     createdBy: version.createdBy,
+    createdByAccount: version.createdByAccount,
   }))
 }
 

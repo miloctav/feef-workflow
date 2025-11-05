@@ -10,6 +10,10 @@ export const useEntityFields = () => {
   // États de chargement
   const updateFieldLoading = useState('entityFields:updateFieldLoading', () => false)
   const updateFieldsLoading = useState('entityFields:updateFieldsLoading', () => false)
+  const fetchHistoryLoading = useState('entityFields:fetchHistoryLoading', () => false)
+
+  // Historique du champ
+  const fieldHistory = useState<any[]>('entityFields:fieldHistory', () => [])
 
   /**
    * Met à jour un champ versionné d'une entité (crée une nouvelle version)
@@ -113,13 +117,49 @@ export const useEntityFields = () => {
     }
   }
 
+  /**
+   * Récupère l'historique complet d'un champ versionné
+   */
+  const fetchEntityFieldHistory = async (
+    entityId: number,
+    fieldKey: string
+  ) => {
+    fetchHistoryLoading.value = true
+    fieldHistory.value = []
+
+    try {
+      const response = await $fetch<{ data: any[] }>(`/api/entities/${entityId}/fields/${fieldKey}/history`)
+
+      fieldHistory.value = response.data
+
+      return { success: true, data: response.data }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération de l\'historique'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    } finally {
+      fetchHistoryLoading.value = false
+    }
+  }
+
   return {
     // États de chargement
     updateFieldLoading: readonly(updateFieldLoading),
     updateFieldsLoading: readonly(updateFieldsLoading),
+    fetchHistoryLoading: readonly(fetchHistoryLoading),
+
+    // Données
+    fieldHistory: readonly(fieldHistory),
 
     // Actions
     updateEntityField,
     updateEntityFields,
+    fetchEntityFieldHistory,
   }
 }

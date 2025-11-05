@@ -13,6 +13,15 @@ const {
 
 const { user } = useAuth()
 
+// État pour le slideover d'édition des champs
+const isFieldEditorOpen = ref(false)
+const selectedFieldKey = ref<string | undefined>(undefined)
+
+const openFieldEditor = (fieldKey: string) => {
+  selectedFieldKey.value = fieldKey
+  isFieldEditorOpen.value = true
+}
+
 const handleSubmitCase = async () => {
   if (!currentEntity.value) return
 
@@ -95,9 +104,6 @@ const handleApproveCase = async () => {
 
               <AssignAccountManagerModal />
 
-              <!-- Modal de modification des champs (contient son propre bouton) -->
-              <UpdateEntityFieldsModal />
-
               <!-- Informations de soumission -->
               <div v-if="currentEntity?.caseSubmittedAt" class="text-sm text-gray-600 pt-2">
                 <div class="flex items-start gap-2">
@@ -153,6 +159,37 @@ const handleApproveCase = async () => {
             <div class="grid grid-cols-2 gap-4">
               <div
                 v-for="field in currentEntity.fields"
+                v-if="user?.role === Role.FEEF || user?.role === Role.ENTITY"
+                :key="field.key"
+                class="space-y-1 cursor-pointer hover:bg-gray-50 rounded-md p-2 -m-2 transition-colors"
+                @click="openFieldEditor(field.key)"
+              >
+                <div class="text-sm font-medium text-gray-600">{{ field.label }}</div>
+                <div class="text-gray-900">
+                  <template v-if="field.value === null || field.value === undefined">
+                    <span class="text-gray-400 italic">Non défini</span>
+                  </template>
+                  <template v-else-if="field.type === 'date'">
+                    {{ new Date(field.value).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}
+                  </template>
+                  <template v-else-if="field.type === 'boolean'">
+                    {{ field.value ? 'Oui' : 'Non' }}
+                  </template>
+                  <template v-else-if="field.type === 'number' && field.unit">
+                    {{ field.value }} {{ field.unit }}
+                  </template>
+                  <template v-else-if="field.type === 'text'">
+                    <span class="line-clamp-2">{{ field.value }}</span>
+                  </template>
+                  <template v-else>
+                    {{ field.value }}
+                  </template>
+                </div>
+              </div>
+              <!-- Affichage non cliquable pour les autres rôles -->
+              <div
+                v-else
+                v-for="field in currentEntity.fields"
                 :key="field.key"
                 class="space-y-1"
               >
@@ -170,6 +207,9 @@ const handleApproveCase = async () => {
                   <template v-else-if="field.type === 'number' && field.unit">
                     {{ field.value }} {{ field.unit }}
                   </template>
+                  <template v-else-if="field.type === 'text'">
+                    <span class="line-clamp-2">{{ field.value }}</span>
+                  </template>
                   <template v-else>
                     {{ field.value }}
                   </template>
@@ -182,4 +222,13 @@ const handleApproveCase = async () => {
     </UCard>
 
     <!-- Modal d'affectation du chargé d'affaire -->
+
+    <!-- Slideover d'édition des champs -->
+    <EntityFieldEditor
+      v-if="currentEntity"
+      v-model:open="isFieldEditorOpen"
+      :entity-id="currentEntity.id"
+      :fields="currentEntity.fields || []"
+      :initial-field-key="selectedFieldKey"
+    />
 </template>

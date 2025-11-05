@@ -6,7 +6,7 @@
  */
 
 // Types de champs supportés
-export type EntityFieldType = 'string' | 'number' | 'boolean' | 'date'
+export type EntityFieldType = 'string' | 'number' | 'boolean' | 'date' | 'text'
 
 // Clés des champs (à étendre au besoin)
 export type EntityFieldKey =
@@ -36,9 +36,9 @@ export const entityFieldsConfig: EntityFieldDefinition[] = [
   {
     key: 'labeling_scope',
     label: 'Périmètre de labellisation',
-    type: 'string',
+    type: 'text',
     required: true,
-    description: 'Description du périmètre couvert par la certification FEEF',
+    description: 'Description détaillée du périmètre couvert par la certification FEEF',
   },
   {
     key: 'employee_count',

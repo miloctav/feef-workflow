@@ -25,6 +25,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const {user } = await requireUserSession(event)
+
+  await requireEntityAccess({
+      user,
+      entityId: entityId,
+      accessType: AccessType.READ,
+      errorMessage: 'Vous n\'avez pas accès à cette entité'
+  })
+
   try {
     // Récupérer l'historique du champ
     const history = await getEntityFieldHistory(entityId, key as EntityFieldKey)

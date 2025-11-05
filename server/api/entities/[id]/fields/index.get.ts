@@ -7,6 +7,7 @@
 import { getEntityFields } from '~~/server/utils/entity-fields'
 
 export default defineEventHandler(async (event) => {
+
   const { id } = getRouterParams(event)
   const entityId = Number(id)
 
@@ -16,6 +17,15 @@ export default defineEventHandler(async (event) => {
       message: 'ID d\'entité invalide',
     })
   }
+
+  const {user } = await requireUserSession(event)
+
+  await requireEntityAccess({
+      user,
+      entityId: entityId,
+      accessType: AccessType.READ,
+      errorMessage: 'Vous n\'avez pas accès à cette entité'
+  })
 
   // Récupérer tous les champs avec leurs valeurs actuelles
   const fieldsMap = await getEntityFields(entityId)

@@ -29,8 +29,14 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const { value } = body
 
-  // Récupérer l'utilisateur authentifié
-  const { user } = await requireUserSession(event)
+  const {user } = await requireUserSession(event)
+
+  await requireEntityAccess({
+      user,
+      entityId: entityId,
+      accessType: AccessType.WRITE,
+      errorMessage: 'Vous n\'avez pas accès à cette entité'
+  })
 
   try {
     // Créer une nouvelle version du champ
