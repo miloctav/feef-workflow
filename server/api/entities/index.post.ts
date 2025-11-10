@@ -1,7 +1,8 @@
-import { eq } from "drizzle-orm"
+import { eq, isNull, and } from "drizzle-orm"
 import { db } from "~~/server/database"
-import { entities } from "~~/server/database/schema"
+import { entities, documentsType, documentaryReviews } from "~~/server/database/schema"
 import { forInsert } from "~~/server/utils/tracking"
+import { EntityType, EntityMode } from "~~/shared/types/enums"
 
 interface CreateEntityBody {
   name: string
@@ -113,6 +114,29 @@ export default defineEventHandler(async (event) => {
   if (accountManagerId !== undefined) insertData.accountManagerId = accountManagerId
 
   const [newEntity] = await db.insert(entities).values(forInsert(event, insertData)).returning()
+
+  // Récupérer tous les documents types avec autoAsk = true
+  const autoAskDocuments = await db.query.documentsType.findMany({
+    where: and(
+      eq(documentsType.autoAsk, true),
+      isNull(documentsType.deletedAt)
+    ),
+  })
+
+  // Créer automatiquement les revues documentaires pour les documents avec autoAsk = true
+  if (autoAskDocuments.length > 0) {
+    const documentaryReviewsToInsert = autoAskDocuments.map(docType => 
+      forInsert(event, {
+        entityId: newEntity.id,
+        documentTypeId: docType.id,
+        title: docType.title,
+        description: docType.description,
+        category: docType.category,
+      })
+    )
+
+    await db.insert(documentaryReviews).values(documentaryReviewsToInsert)
+  }
 
   return {
     data: newEntity
