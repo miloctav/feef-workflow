@@ -220,11 +220,16 @@
 <script setup lang="ts">
 import type { DocumentaryReview } from '~~/app/types/documentaryReviews'
 import type { ContractWithRelations } from '~~/app/types/contracts'
+import type { AuditWithRelations } from '~~/app/types/audits'
+import type { AuditDocumentTypeType } from '~~/app/types/auditDocuments'
 import { Role } from '#shared/types/roles'
+import { AuditDocumentTypeLabels } from '~~/app/types/auditDocuments'
 
 interface Props {
   documentaryReview?: DocumentaryReview | null
   contract?: ContractWithRelations | null
+  audit?: AuditWithRelations | null
+  auditDocumentType?: AuditDocumentTypeType
   open?: boolean
 }
 
@@ -236,17 +241,41 @@ const props = withDefaults(defineProps<Props>(), {
 const documentType = computed(() => {
   if (props.documentaryReview) return 'documentaryReview'
   if (props.contract) return 'contract'
+  if (props.audit) return 'audit'
   return null
 })
 
 const documentData = computed(() => {
   if (props.documentaryReview) return props.documentaryReview
   if (props.contract) return props.contract
+  if (props.audit) return props.audit
   return null
 })
 
-const documentTitle = computed(() => documentData.value?.title || 'Document')
-const documentDescription = computed(() => documentData.value?.description || '')
+const documentTitle = computed(() => {
+  // Pour les audits, générer un titre selon le type de document
+  if (props.audit) {
+    // Utiliser le type fourni en prop, sinon déduire de la première version
+    const docType = props.auditDocumentType || documentVersions.value[0]?.auditDocumentType
+    if (docType) {
+      return AuditDocumentTypeLabels[docType as keyof typeof AuditDocumentTypeLabels] || 'Document d\'audit'
+    }
+    return 'Document d\'audit'
+  }
+
+  // Pour les autres types (documentaryReview, contract)
+  return (documentData.value as any)?.title || 'Document'
+})
+
+const documentDescription = computed(() => {
+  // Pour les audits, générer une description contextuelle
+  if (props.audit) {
+    return `Audit ${props.audit.type} - ${props.audit.entity.name}`
+  }
+
+  // Pour les autres types
+  return (documentData.value as any)?.description || ''
+})
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
@@ -444,7 +473,12 @@ watch(isOpen, async (newValue) => {
     currentSignedUrl.value = null
 
     // Toujours fetch les versions à l'ouverture avec le bon type
-    await fetchDocumentVersions(documentData.value.id, documentType.value)
+    if (documentType.value === 'audit' && props.auditDocumentType) {
+      // Pour les audits, passer aussi le type de document
+      await fetchDocumentVersions(documentData.value.id, documentType.value, props.auditDocumentType)
+    } else {
+      await fetchDocumentVersions(documentData.value.id, documentType.value as any)
+    }
 
     // Sélectionner la version la plus récente par défaut (première dans la liste)
     // Uniquement si le viewer est toujours ouvert (évite les race conditions)

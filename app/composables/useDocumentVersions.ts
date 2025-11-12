@@ -2,6 +2,7 @@ import type {
   DocumentVersion,
   CreateDocumentVersionData,
 } from '~~/app/types/documentVersions'
+import type { AuditDocumentTypeType } from '~~/app/types/auditDocuments'
 
 /**
  * Obtenir l'extension du fichier à partir du type MIME
@@ -46,19 +47,29 @@ export const useDocumentVersions = () => {
   const fetchError = useState<string | null>('documentVersions:fetchError', () => null)
 
   /**
-   * Récupérer la liste des versions pour un documentaryReview ou un contract
+   * Récupérer la liste des versions pour un documentaryReview, contract ou audit
    */
   const fetchDocumentVersions = async (
     id: number,
-    type: 'documentaryReview' | 'contract' = 'documentaryReview'
+    type: 'documentaryReview' | 'contract' | 'audit' = 'documentaryReview',
+    auditDocumentType?: AuditDocumentTypeType
   ) => {
     fetchLoading.value = true
     fetchError.value = null
 
     try {
-      const queryParam = type === 'documentaryReview'
-        ? { documentaryReviewId: id }
-        : { contractId: id }
+      let queryParam: Record<string, any> = {}
+
+      if (type === 'documentaryReview') {
+        queryParam = { documentaryReviewId: id }
+      } else if (type === 'contract') {
+        queryParam = { contractId: id }
+      } else if (type === 'audit') {
+        queryParam = { auditId: id }
+        if (auditDocumentType) {
+          queryParam.auditDocumentType = auditDocumentType
+        }
+      }
 
       const response = await $fetch<{ data: DocumentVersion[] }>('/api/documents-versions', {
         query: queryParam,
@@ -90,7 +101,8 @@ export const useDocumentVersions = () => {
   const createDocumentVersion = async (
     id: number,
     file: File,
-    type: 'documentaryReview' | 'contract' = 'documentaryReview'
+    type: 'documentaryReview' | 'contract' | 'audit' = 'documentaryReview',
+    auditDocumentType?: AuditDocumentTypeType
   ) => {
     createLoading.value = true
 
@@ -98,21 +110,38 @@ export const useDocumentVersions = () => {
       // Créer le FormData avec le fichier et les données
       const formData = new FormData()
 
-      if (type === 'documentaryReview') {
-        formData.append('documentaryReviewId', id.toString())
+      // Déterminer l'URL et les paramètres selon le type
+      let apiUrl: string
+
+      if (type === 'audit') {
+        // Utiliser la route spécifique pour les audits
+        apiUrl = `/api/audits/${id}/documents`
+        if (auditDocumentType) {
+          formData.append('auditDocumentType', auditDocumentType)
+        }
       } else {
-        formData.append('contractId', id.toString())
+        // Utiliser la route générique pour documentaryReview et contract
+        apiUrl = '/api/documents-versions'
+        if (type === 'documentaryReview') {
+          formData.append('documentaryReviewId', id.toString())
+        } else if (type === 'contract') {
+          formData.append('contractId', id.toString())
+        }
       }
 
       formData.append('file', file)
 
-      const response = await $fetch<{ data: DocumentVersion }>('/api/documents-versions', {
+      const response = await $fetch<{ data: DocumentVersion }>(apiUrl, {
         method: 'POST',
         body: formData,
       })
 
       // Rafraîchir la liste complète (car une demande existante a pu être mise à jour)
-      await fetchDocumentVersions(id, type)
+      if (type === 'audit') {
+        await fetchDocumentVersions(id, type, auditDocumentType)
+      } else {
+        await fetchDocumentVersions(id, type)
+      }
 
       toast.add({
         title: 'Succès',

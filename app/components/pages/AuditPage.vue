@@ -79,7 +79,7 @@ const auditTypeBadgeColor = computed(() => {
           <UIcon name="i-lucide-clipboard-check" class="w-10 h-10 text-primary" />
           <div>
             <h1 class="text-2xl font-bold text-gray-900">Audit {{ auditTypeLabel }}</h1>
-            <p class="text-sm text-gray-600">Entreprise: {{ currentAudit.entity.name }}</p>
+            <p class="text-sm text-gray-600">Entreprise: {{ currentAudit?.entity?.name }}</p>
           </div>
         </div>
       </div>
@@ -113,14 +113,14 @@ const auditTypeBadgeColor = computed(() => {
               <div class="space-y-3">
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-gray-600">Nom:</span>
-                  <NuxtLink :to="`/entity/${currentAudit.entity.id}`" class="text-gray-900 font-medium hover:text-primary hover:underline cursor-pointer">
-                    {{ currentAudit.entity.name }}
+                  <NuxtLink :to="`/entity/${currentAudit?.entity?.id}`" class="text-gray-900 font-medium hover:text-primary hover:underline cursor-pointer">
+                    {{ currentAudit?.entity?.name }}
                   </NuxtLink>
                 </div>
 
-                <div v-if="currentAudit.entity.siren" class="flex items-center gap-2">
+                <div v-if="currentAudit?.entity?.siren" class="flex items-center gap-2">
                   <span class="text-sm font-medium text-gray-600">SIREN:</span>
-                  <span class="text-gray-900">{{ currentAudit.entity.siren }}</span>
+                  <span class="text-gray-900">{{ currentAudit?.entity?.siren }}</span>
                 </div>
 
                 <div class="flex items-center gap-2">
@@ -164,18 +164,18 @@ const auditTypeBadgeColor = computed(() => {
               <h2 class="font-bold text-xl text-gray-900 mb-4">Organisme Évaluateur</h2>
 
               <div class="space-y-3">
-                <div v-if="currentAudit.oe" class="flex items-center gap-2">
+                <div v-if="currentAudit?.oe" class="flex items-center gap-2">
                   <span class="text-sm font-medium text-gray-600">OE:</span>
-                  <span class="text-gray-900 font-medium">{{ currentAudit.oe.name }}</span>
+                  <span class="text-gray-900 font-medium">{{ currentAudit?.oe?.name }}</span>
                 </div>
                 <div v-else class="flex items-center gap-2">
                   <span class="text-sm font-medium text-gray-600">OE:</span>
                   <span class="text-gray-500 italic">Non assigné</span>
                 </div>
 
-                <div v-if="currentAudit.auditor" class="flex items-center gap-2">
+                <div v-if="currentAudit?.auditor" class="flex items-center gap-2">
                   <span class="text-sm font-medium text-gray-600">Auditeur:</span>
-                  <span class="text-gray-900">{{ currentAudit.auditor.firstname }} {{ currentAudit.auditor.lastname }}</span>
+                  <span class="text-gray-900">{{ currentAudit?.auditor?.firstname }} {{ currentAudit?.auditor?.lastname }}</span>
                 </div>
                 <div v-else class="flex items-center gap-2">
                   <span class="text-sm font-medium text-gray-600">Auditeur:</span>
@@ -183,11 +183,11 @@ const auditTypeBadgeColor = computed(() => {
                 </div>
 
                 <AssignAuditorModal
-                  v-if="user?.role === Role.OE && currentAudit.oeId"
-                  :audit-id="currentAudit.id"
-                  :current-auditor-id="currentAudit.auditorId"
-                  :current-auditor-name="currentAudit.auditor ? `${currentAudit.auditor.firstname} ${currentAudit.auditor.lastname}` : null"
-                  :oe-id="currentAudit.oeId"
+                  v-if="user?.role === Role.OE && currentAudit?.oeId"
+                  :audit-id="currentAudit?.id"
+                  :current-auditor-id="currentAudit?.auditorId"
+                  :current-auditor-name="currentAudit?.auditor ? `${currentAudit.auditor.firstname} ${currentAudit.auditor.lastname}` : null"
+                  :oe-id="currentAudit?.oeId"
                   class="mt-3"
                 />
               </div>
@@ -216,7 +216,7 @@ const auditTypeBadgeColor = computed(() => {
       <UTabs v-model="selectedTab" :items="tabItems">
         <template #documents>
           <div class="py-6">
-            <DocumentaryReviewTab />
+            <DocumentaryReviewTab v-if="currentAudit" :entity-id="currentAudit.entityId" />
           </div>
         </template>
 
@@ -228,7 +228,11 @@ const auditTypeBadgeColor = computed(() => {
 
         <template #audit>
           <div class="py-6">
-            <!-- <AuditTab v-if="currentAudit" /> -->
+            <AuditTab
+              v-if="currentAudit"
+              :entity-id="currentAudit.entityId"
+              :role="user?.role === Role.OE ? 'oe' : user?.role === Role.FEEF ? 'feef' : 'company'"
+            />
           </div>
         </template>
 

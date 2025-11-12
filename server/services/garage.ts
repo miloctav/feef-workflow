@@ -86,9 +86,10 @@ export async function initializeBucket(): Promise<void> {
  * @param filename - Nom du fichier original
  * @param mimeType - Type MIME du fichier
  * @param entityId - ID de l'entité
- * @param documentId - ID du document (documentaryReviewId ou contractId)
+ * @param documentId - ID du document (documentaryReviewId, contractId ou auditId)
  * @param versionId - ID de la version
- * @param documentType - Type de document ('documentary-review' ou 'contract')
+ * @param documentType - Type de document ('documentary-review', 'contract' ou 'audit')
+ * @param auditDocumentType - Type de document d'audit ('PLAN', 'REPORT', 'CORRECTIVE_PLAN') - requis si documentType est 'audit'
  * @returns Clé (path) du fichier dans Garage
  */
 export async function uploadFile(
@@ -98,13 +99,24 @@ export async function uploadFile(
   entityId: number,
   documentId: number,
   versionId: number,
-  documentType: 'documentary-review' | 'contract'
+  documentType: 'documentary-review' | 'contract' | 'audit',
+  auditDocumentType?: string
 ): Promise<string> {
   const client = getGarageClient()
   const bucketName = getBucketName()
 
-  // Générer la clé avec la structure: documents/{entityId}/{documentType}s/{documentId}/{versionId}-{filename}
-  const key = `documents/${entityId}/${documentType}s/${documentId}/${versionId}-${filename}`
+  // Générer la clé selon le type de document
+  let key: string
+  if (documentType === 'audit') {
+    if (!auditDocumentType) {
+      throw new Error('auditDocumentType est requis pour les documents d\'audit')
+    }
+    // Structure pour audit: documents/{entityId}/audits/{documentId}/{auditDocumentType}/{versionId}-{filename}
+    key = `documents/${entityId}/audits/${documentId}/${auditDocumentType}/${versionId}-${filename}`
+  } else {
+    // Structure pour documentary-review et contract: documents/{entityId}/{documentType}s/{documentId}/{versionId}-{filename}
+    key = `documents/${entityId}/${documentType}s/${documentId}/${versionId}-${filename}`
+  }
 
   try {
     await client.send(

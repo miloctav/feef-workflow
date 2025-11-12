@@ -7,8 +7,10 @@ import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
 interface UpdateAuditBody {
   oeId?: number
   auditorId?: number
-  plannedDate?: string | null
-  actualDate?: string | null
+  plannedStartDate?: string | null
+  plannedEndDate?: string | null
+  actualStartDate?: string | null
+  actualEndDate?: string | null
   score?: number | null
   labelingOpinion?: any | null
 }
@@ -16,15 +18,17 @@ interface UpdateAuditBody {
 /**
  * PUT /api/audits/:id
  *
- * Met � jour un audit existant
+ * Met à jour un audit existant
  *
- * IMPORTANT: entityId et type NE PEUVENT PAS �tre modifi�s
+ * IMPORTANT: entityId et type NE PEUVENT PAS être modifiés
  *
  * Champs modifiables:
  * - oeId: ID de l'OE
- * - auditorId: ID de l'auditeur (doit avoir le r�le AUDITOR)
- * - plannedDate: date planifi�e de l'audit (format: YYYY-MM-DD)
- * - actualDate: date r�elle de l'audit (format: YYYY-MM-DD)
+ * - auditorId: ID de l'auditeur (doit avoir le rôle AUDITOR)
+ * - plannedStartDate: date de début prévisionnelle (format: YYYY-MM-DD)
+ * - plannedEndDate: date de fin prévisionnelle (format: YYYY-MM-DD)
+ * - actualStartDate: date de début réelle (format: YYYY-MM-DD)
+ * - actualEndDate: date de fin réelle (format: YYYY-MM-DD)
  * - score: score de l'audit
  * - labelingOpinion: avis de labellisation (JSON)
  *
@@ -72,23 +76,25 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // R�cup�rer les donn�es du corps de la requ�te
+  // Récupérer les données du corps de la requête
   const body = await readBody<UpdateAuditBody>(event)
 
-  const { oeId, auditorId, plannedDate, actualDate, score, labelingOpinion } = body
+  const { oeId, auditorId, plannedStartDate, plannedEndDate, actualStartDate, actualEndDate, score, labelingOpinion } = body
 
-  // V�rifier qu'au moins un champ est fourni
+  // Vérifier qu'au moins un champ est fourni
   if (
     oeId === undefined &&
     auditorId === undefined &&
-    plannedDate === undefined &&
-    actualDate === undefined &&
+    plannedStartDate === undefined &&
+    plannedEndDate === undefined &&
+    actualStartDate === undefined &&
+    actualEndDate === undefined &&
     score === undefined &&
     labelingOpinion === undefined
   ) {
     throw createError({
       statusCode: 400,
-      message: 'Au moins un champ doit �tre fourni pour la modification',
+      message: 'Au moins un champ doit être fourni pour la modification',
     })
   }
 
@@ -135,13 +141,15 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Pr�parer les donn�es � mettre � jour
+  // Préparer les données à mettre à jour
   const updateData: Partial<UpdateAuditBody> = {}
 
   if (oeId !== undefined) updateData.oeId = oeId
   if (auditorId !== undefined) updateData.auditorId = auditorId
-  if (plannedDate !== undefined) updateData.plannedDate = plannedDate
-  if (actualDate !== undefined) updateData.actualDate = actualDate
+  if (plannedStartDate !== undefined) updateData.plannedStartDate = plannedStartDate
+  if (plannedEndDate !== undefined) updateData.plannedEndDate = plannedEndDate
+  if (actualStartDate !== undefined) updateData.actualStartDate = actualStartDate
+  if (actualEndDate !== undefined) updateData.actualEndDate = actualEndDate
   if (score !== undefined) updateData.score = score
   if (labelingOpinion !== undefined) updateData.labelingOpinion = labelingOpinion
 

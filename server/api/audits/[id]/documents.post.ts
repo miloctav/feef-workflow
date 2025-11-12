@@ -1,0 +1,224 @@
+import { db } from '~~/server/database'
+import { audits, documentVersions, entities } from '~~/server/database/schema'
+import { eq, and, isNull, isNotNull, desc } from 'drizzle-orm'
+import { uploadFile } from '~~/server/services/garage'
+import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
+import { Role } from '#shared/types/roles'
+
+export default defineEventHandler(async (event) => {
+  // Authentification
+  const { user } = await requireUserSession(event)
+
+  // Récupérer l'ID de l'audit depuis l'URL
+  const auditId = Number(event.context.params?.id)
+
+  if (!auditId || isNaN(auditId)) {
+    throw createError({
+      statusCode: 400,
+      message: 'ID d\'audit invalide',
+    })
+  }
+
+  // Lire les données multipart (formulaire avec fichier)
+  const formData = await readMultipartFormData(event)
+
+  if (!formData || formData.length === 0) {
+    throw createError({
+      statusCode: 400,
+      message: 'Aucune donnée reçue',
+    })
+  }
+
+  // Extraire auditDocumentType et le fichier
+  let auditDocumentType: string | null = null
+  let fileData: { filename: string, data: Buffer } | null = null
+
+  for (const part of formData) {
+    if (part.name === 'auditDocumentType') {
+      auditDocumentType = part.data.toString()
+    } else if (part.name === 'file' && part.filename) {
+      fileData = {
+        filename: part.filename,
+        data: part.data,
+      }
+    }
+  }
+
+  // Validation
+  if (!auditDocumentType) {
+    throw createError({
+      statusCode: 400,
+      message: 'Type de document d\'audit manquant',
+    })
+  }
+
+  // Valider que le type de document est bien un des types attendus
+  const validTypes = ['PLAN', 'REPORT', 'CORRECTIVE_PLAN']
+  if (!validTypes.includes(auditDocumentType)) {
+    throw createError({
+      statusCode: 400,
+      message: `Type de document invalide. Types valides: ${validTypes.join(', ')}`,
+    })
+  }
+
+  if (!fileData) {
+    throw createError({
+      statusCode: 400,
+      message: 'Aucun fichier fourni',
+    })
+  }
+
+  // Récupérer l'audit et vérifier les autorisations
+  const audit = await db.query.audits.findFirst({
+    where: and(
+      eq(audits.id, auditId),
+      isNull(audits.deletedAt)
+    ),
+    with: {
+      entity: true,
+      oe: true,
+    },
+  })
+
+  if (!audit) {
+    throw createError({
+      statusCode: 404,
+      message: 'Audit non trouvé',
+    })
+  }
+
+  if (audit.entity.deletedAt) {
+    throw createError({
+      statusCode: 404,
+      message: 'Entité non trouvée',
+    })
+  }
+
+  // Autorisation : FEEF, OE (qui gère l'audit), AUDITOR (assigné à l'audit)
+  if (user.role === Role.FEEF) {
+    // FEEF a accès à tout
+  } else if (user.role === Role.OE) {
+    // Vérifier que l'OE est bien celui qui gère l'audit
+    if (audit.oeId !== user.oeId) {
+      throw createError({
+        statusCode: 403,
+        message: 'Vous n\'avez pas accès à cet audit',
+      })
+    }
+  } else if (user.role === Role.AUDITOR) {
+    // Vérifier que l'auditeur est bien celui assigné à l'audit
+    if (audit.auditorId !== user.id) {
+      throw createError({
+        statusCode: 403,
+        message: 'Vous n\'êtes pas assigné à cet audit',
+      })
+    }
+  } else {
+    throw createError({
+      statusCode: 403,
+      message: 'Seuls FEEF, OE et AUDITOR peuvent créer des documents d\'audit',
+    })
+  }
+
+  // Déterminer le type MIME du fichier
+  const mimeType = getMimeTypeFromFilename(fileData.filename)
+
+  // Chercher une demande de mise à jour en attente pour ce document (même type)
+  const pendingRequest = await db.query.documentVersions.findFirst({
+    where: and(
+      eq(documentVersions.auditId, auditId),
+      eq(documentVersions.auditDocumentType, auditDocumentType as any),
+      isNull(documentVersions.s3Key),
+      isNotNull(documentVersions.askedBy)
+    ),
+    orderBy: [desc(documentVersions.uploadAt)],
+  })
+
+  let newVersion: any
+
+  if (pendingRequest) {
+    // Une demande existe : mettre à jour cette version au lieu d'en créer une nouvelle
+    const [updatedVersion] = await db
+      .update(documentVersions)
+      .set({
+        s3Key: null, // Sera mis à jour après l'upload
+        mimeType,
+        updatedBy: user.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(documentVersions.id, pendingRequest.id))
+      .returning()
+
+    newVersion = updatedVersion
+  } else {
+    // Pas de demande : créer une nouvelle version normale
+    const [createdVersion] = await db.insert(documentVersions).values(forInsert(event, {
+      auditId,
+      auditDocumentType: auditDocumentType as any,
+      uploadBy: user.id,
+      s3Key: null,
+      mimeType,
+    })).returning()
+
+    newVersion = createdVersion
+  }
+
+  // Uploader le fichier vers Garage
+  let uploadedS3Key: string | null = null
+  try {
+    uploadedS3Key = await uploadFile(
+      fileData.data,
+      fileData.filename,
+      mimeType,
+      audit.entityId,
+      auditId,
+      newVersion.id,
+      'audit',
+      auditDocumentType
+    )
+  } catch (error) {
+    // Si l'upload échoue, supprimer la version créée
+    await db.delete(documentVersions).where(eq(documentVersions.id, newVersion.id))
+
+    throw createError({
+      statusCode: 500,
+      message: 'Erreur lors de l\'upload du fichier vers le stockage',
+    })
+  }
+
+  // Mettre à jour la version avec la clé de stockage
+  await db.update(documentVersions)
+    .set({ s3Key: uploadedS3Key })
+    .where(eq(documentVersions.id, newVersion.id))
+
+  // TODO: Ajouter ici les actions particulières futures
+  // - Notifications aux parties prenantes
+  // - Mise à jour du workflow de l'audit
+  // - Logs d'activité
+  // - etc.
+
+  // Récupérer la version créée avec les infos de l'uploader
+  const versionWithUploader = await db.query.documentVersions.findFirst({
+    where: eq(documentVersions.id, newVersion.id),
+    with: {
+      uploadByAccount: {
+        columns: {
+          id: true,
+          firstname: true,
+          lastname: true,
+        },
+      },
+      askedByAccount: {
+        columns: {
+          id: true,
+          firstname: true,
+          lastname: true,
+        },
+      },
+    },
+  })
+
+  return {
+    data: versionWithUploader,
+  }
+})

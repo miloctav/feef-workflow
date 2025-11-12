@@ -8,25 +8,29 @@ import type { EntityWithRelations } from './entities'
 // Audit public (pour affichage)
 export type AuditPublic = Omit<Audit, 'deletedAt'>
 
-// Données pour créer un audit
+// Donnï¿½es pour crï¿½er un audit
 export interface CreateAuditData {
   entityId: number
   type: AuditTypeType
   oeId: number
   auditorId: number
-  plannedDate?: string
-  actualDate?: string
+  plannedStartDate?: string
+  plannedEndDate?: string
+  actualStartDate?: string
+  actualEndDate?: string
   score?: number
   labelingOpinion?: any
 }
 
-// Données pour mettre à jour un audit
-// IMPORTANT: entityId et type ne peuvent PAS être modifiés
+// Donnï¿½es pour mettre ï¿½ jour un audit
+// IMPORTANT: entityId et type ne peuvent PAS ï¿½tre modifiï¿½s
 export interface UpdateAuditData {
   oeId?: number
   auditorId?: number
-  plannedDate?: string | null
-  actualDate?: string | null
+  plannedStartDate?: string | null
+  plannedEndDate?: string | null
+  actualStartDate?: string | null
+  actualEndDate?: string | null
   score?: number | null
   labelingOpinion?: any | null
 }
@@ -74,7 +78,7 @@ export interface AuditAuditor {
   } | null
 }
 
-// Audit avec relations complètes
+// Audit avec relations complï¿½tes
 export interface AuditWithRelations extends AuditPublic {
   entity: AuditEntity
   oe?: AuditOE | null

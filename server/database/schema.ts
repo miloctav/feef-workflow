@@ -21,6 +21,9 @@ export const accountEntityRoleEnum = pgEnum('account_entity_role', ['SIGNATORY',
 
 export const documentCategoryEnum = pgEnum('document_category', ['LEGAL', 'FINANCIAL', 'TECHNICAL', 'OTHER'])
 
+// Define audit document type enum
+export const auditDocumentTypeEnum = pgEnum('audit_document_type', ['PLAN', 'REPORT', 'CORRECTIVE_PLAN'])
+
 // Define signature type enum
 export const signatureTypeEnum = pgEnum('signature_type', ['ENTITY_ONLY', 'ENTITY_AND_FEEF'])
 
@@ -83,8 +86,10 @@ export const audits = pgTable('audits', {
   oeId: integer('oe_id').references(() => oes.id),
   auditorId: integer('auditor_id').references(() => accounts.id),
   type: auditTypeEnum('type').notNull(),
-  plannedDate: date('planned_date'),
-  actualDate: date('actual_date'),
+  plannedStartDate: date('planned_start_date'),
+  plannedEndDate: date('planned_end_date'),
+  actualStartDate: date('actual_start_date'),
+  actualEndDate: date('actual_end_date'),
   score: integer('score'),
   labelingOpinion: json('labeling_opinion'),
   createdBy: integer('created_by').references(() => accounts.id),
@@ -144,6 +149,8 @@ export const documentVersions = pgTable('document_versions', {
   id: serial('id').primaryKey(),
   documentaryReviewId: integer('documentary_review_id').references(() => documentaryReviews.id),
   contractId: integer('contract_id').references(() => contracts.id),
+  auditId: integer('audit_id').references(() => audits.id),
+  auditDocumentType: auditDocumentTypeEnum('audit_document_type'),
   uploadAt: timestamp('upload_at').notNull().defaultNow(),
   s3Key: varchar('s3_key', { length: 512 }),
   mimeType: varchar('mime_type', { length: 255 }),
@@ -335,7 +342,7 @@ export const contractsRelations = relations(contracts, ({ one, many }) => ({
   documentVersions: many(documentVersions),
 }))
 
-export const auditsRelations = relations(audits, ({ one }) => ({
+export const auditsRelations = relations(audits, ({ one, many }) => ({
   entity: one(entities, {
     fields: [audits.entityId],
     references: [entities.id],
@@ -348,6 +355,7 @@ export const auditsRelations = relations(audits, ({ one }) => ({
     fields: [audits.auditorId],
     references: [accounts.id],
   }),
+  documentVersions: many(documentVersions),
 }))
 
 export const accountsToEntitiesRelations = relations(accountsToEntities, ({ one }) => ({
@@ -400,6 +408,10 @@ export const documentVersionsRelations = relations(documentVersions, ({ one }) =
   contract: one(contracts, {
     fields: [documentVersions.contractId],
     references: [contracts.id],
+  }),
+  audit: one(audits, {
+    fields: [documentVersions.auditId],
+    references: [audits.id],
   }),
   uploadByAccount: one(accounts, {
     fields: [documentVersions.uploadBy],

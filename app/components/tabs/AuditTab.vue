@@ -1,29 +1,5 @@
 <template>
   <div class="bg-gray-50 rounded-b-lg p-6 min-h-[300px]">
-    <!-- Sélecteur de phase d'audit -->
-    <div class="bg-white p-4 rounded-lg border border-gray-200 mb-6">
-      <div class="flex items-center gap-4 mb-4">
-        <UIcon name="i-lucide-settings" class="w-5 h-5 text-gray-600" />
-        <h4 class="font-medium text-gray-900">Simulateur de phase d'audit</h4>
-      </div>
-      
-      <div class="flex gap-6">
-        <label v-for="option in phaseOptions" :key="option.value" class="flex items-center gap-2 cursor-pointer">
-          <input 
-            type="radio" 
-            :value="option.value" 
-            v-model="selectedPhase" 
-            class="text-blue-600 focus:ring-blue-500" 
-          />
-          <span class="text-sm text-gray-700">{{ option.label }}</span>
-        </label>
-      </div>
-      
-      <div class="mt-3 p-3 bg-blue-50 rounded-lg">
-        <p class="text-sm text-blue-800">{{ phaseDescriptions[selectedPhase as keyof typeof phaseDescriptions] }}</p>
-      </div>
-    </div>
-
     <div class="flex items-start gap-4 mb-6">
       <UIcon name="i-lucide-search" class="w-6 h-6 text-primary mt-1" />
       <div>
@@ -31,7 +7,7 @@
         <p class="text-gray-600 text-sm">Suivi de l'audit réalisé par l'Organisme Évaluateur</p>
       </div>
     </div>
-    
+
     <div class="space-y-8">
       <!-- Section 0: Informations d'audit -->
       <UCard>
@@ -43,353 +19,295 @@
         </template>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- Transmission des documents -->
-          <div :class="[
-            'text-center p-4 rounded-lg border',
-            simulatedData.workflow.audit.revueDocumentaire.documentsTransmis
-              ? 'bg-green-50 border-green-200' 
-              : 'bg-orange-50 border-orange-200'
-          ]">
-            <UIcon 
-              :name="simulatedData.workflow.audit.revueDocumentaire.documentsTransmis ? 'i-lucide-file-check' : 'i-lucide-file-x'" 
-              :class="[
-                'w-6 h-6 mx-auto mb-2',
-                simulatedData.workflow.audit.revueDocumentaire.documentsTransmis ? 'text-green-600' : 'text-orange-600'
-              ]" 
-            />
-            <h5 class="text-sm font-medium text-gray-900 mb-1">Documents</h5>
-            <div class="space-y-2">
-              <UBadge 
-                :color="simulatedData.workflow.audit.revueDocumentaire.documentsTransmis ? 'success' : 'warning'" 
-                variant="solid" 
-                size="xs"
-              >
-                {{ simulatedData.workflow.audit.revueDocumentaire.documentsTransmis ? 'Transmis' : 'En cours' }}
-              </UBadge>
-              
-              <div v-if="simulatedData.workflow.audit.revueDocumentaire.documentsTransmis">
-                <p class="text-xs text-blue-800">Partagés le : {{ simulatedData.workflow.audit.revueDocumentaire.datePartage }}</p>
-                <p class="text-xs text-gray-600">{{ simulatedData.workflow.audit.revueDocumentaire.documentsManquants || 0 }} docs manquants</p>
+          <!-- Card 1: Transmission des documents -->
+          <AuditStepCard
+            title="Documents"
+            :state="documentsTransmitted ? 'success' : 'warning'"
+            icon-success="i-lucide-file-check"
+            icon-warning="i-lucide-file-x"
+            label-success="Transmis"
+            label-warning="En cours"
+            color-scheme="green"
+          >
+            <template #content>
+              <div v-if="documentsTransmitted">
+                <p class="text-xs text-blue-800">Partagés le : {{ formatDate(currentEntity?.documentaryReviewReadyAt) }}</p>
+                <p class="text-xs text-gray-600">{{ pendingDocumentsCount }} docs en demande</p>
               </div>
-              
+
               <div v-else>
-                <p class="text-xs text-orange-700">{{ simulatedData.workflow.audit.revueDocumentaire.documentsManquants || 0 }} docs à transmettre</p>
+                <p class="text-xs text-orange-700">{{ pendingDocumentsCount }} docs à transmettre</p>
                 <p class="text-xs text-gray-500">Transmission en cours</p>
               </div>
-                <!-- Date limite de dépôt visible uniquement à la phase 0 -->
-                <div v-if="selectedPhase === 'phase0'">
-                  <p class="text-xs text-red-700 font-semibold">date limite de dépôt : 12/12/2025</p>
-                </div>
-            </div>
-          </div>
 
-          <!-- Plan d'audit et Dates -->
-          <div :class="[
-            'text-center p-4 rounded-lg border',
-            simulatedData.workflow.audit.planAuditDisponible
-              ? 'bg-blue-50 border-blue-200 cursor-pointer hover:bg-blue-100 hover:shadow-md group' 
-              : 'bg-yellow-50 border-yellow-200'
-          ]"
-          @click="simulatedData.workflow.audit.planAuditDisponible ? viewAuditPlan() : null"
+              <!-- Date limite de dépôt visible uniquement si dates planifiées existent -->
+              <div v-if="currentAudit?.plannedStartDate">
+                <p class="text-xs text-red-700 font-semibold">
+                  Date limite de dépôt : {{ depositDeadline }}
+                </p>
+              </div>
+            </template>
+          </AuditStepCard>
+
+          <!-- Card 2: Plan d'audit -->
+          <AuditStepCard
+            title="Plan d'audit"
+            :state="!documentsTransmitted ? 'pending' : planAuditAvailable ? 'success' : 'warning'"
+            :disabled="!documentsTransmitted"
+            icon-pending="i-lucide-file-plus"
+            icon-success="i-lucide-file-check"
+            icon-warning="i-lucide-file-plus"
+            label-pending="À uploader"
+            label-success="Disponible"
+            label-warning="À uploader"
+            color-scheme="blue"
+            :clickable="planAuditAvailable"
+            clickable-text="Cliquer pour consulter le plan"
+            @click="viewAuditPlan"
           >
-            <UIcon 
-              :name="!simulatedData.workflow.audit.revueDocumentaire.documentsTransmis
-                ? 'i-lucide-lock'
-                : simulatedData.workflow.audit.planAuditDisponible 
-                  ? 'i-lucide-calendar-check' 
-                  : 'i-lucide-clock'" 
-              :class="[
-                'w-6 h-6 mx-auto mb-2 transition-transform',
-                !simulatedData.workflow.audit.revueDocumentaire.documentsTransmis
-                  ? 'text-gray-400'
-                  : simulatedData.workflow.audit.planAuditDisponible 
-                    ? 'text-blue-600 group-hover:scale-110' 
-                    : 'text-yellow-600'
-              ]" 
-            />
-            <h5 class="text-sm font-medium text-gray-900 mb-1">Plan d'audit et Dates</h5>
-            <div class="space-y-2">
-              <UBadge 
-                :color="!simulatedData.workflow.audit.revueDocumentaire.documentsTransmis
-                  ? 'warning'
-                  : simulatedData.workflow.audit.planAuditDisponible 
-                    ? 'success' 
-                    : 'warning'" 
-                variant="solid" 
-                size="xs"
-              >
-                {{ !simulatedData.workflow.audit.revueDocumentaire.documentsTransmis
-                  ? 'En attente'
-                  : simulatedData.workflow.audit.planAuditDisponible 
-                    ? 'Disponible' 
-                    : 'En préparation' }}
-              </UBadge>
-                <!-- Bouton pour OE en phase0 -->
-                <div v-if="props.role === 'oe' && selectedPhase === 'phase0'">
-                  <UButton color="primary" size="sm" icon="i-lucide-plus" @click.stop="addAuditPlanDates">
-                    Ajouter le plan et les dates d'audit
-                  </UButton>
-                </div>
-              
-              <div v-if="simulatedData.workflow.audit.planAuditDisponible">
-                <!-- Informations du plan d'audit -->
-                <div class="mb-2">
-                  <p class="text-xs font-medium text-gray-900">Plan d'audit disponible</p>
-                  <p class="text-xs text-gray-700">{{ simulatedData.workflow.audit.dateTransmissionPlan }}</p>
-                </div>
-                
-                <!-- Informations des dates d'audit -->
-                <div v-if="simulatedData.workflow.audit.datesAuditPlanifiees" class="mb-2">
-                  <p class="text-xs font-medium text-gray-900">Dates d'audit prévisionnelles</p>
-                  <p class="text-xs text-gray-700">{{ simulatedData.workflow.audit.dateDebutPlanifiee }} - {{ simulatedData.workflow.audit.dateFinPlanifiee }}</p>
-                </div>
-                
-                <div class="flex items-center justify-center gap-1 text-xs text-gray-600">
-                  <span>Cliquer pour consulter le plan</span>
-                  <UIcon name="i-lucide-external-link" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
+            <template #actions>
+              <!-- Bouton pour uploader le plan (OE seulement, uniquement si pas de plan disponible) -->
+              <div v-if="user?.role === Role.OE && documentsTransmitted && currentAudit && !planAuditAvailable">
+                <AuditPlanModal
+                  :audit-id="currentAudit.id"
+                  @uploaded="handlePlanUploaded"
+                />
               </div>
-              
-              
-            </div>
-          </div>
+            </template>
 
-          <!-- Audit terminé -->
-          <div :class="[
-            'text-center p-4 rounded-lg border',
-            !simulatedData.workflow.audit.datesAuditPlanifiees
-              ? 'bg-gray-100 border-gray-300 opacity-50'
-              : simulatedData.workflow.audit.auditTermine 
-                ? 'bg-emerald-50 border-emerald-200' 
-                : 'bg-amber-50 border-amber-200'
-          ]">
-            <UIcon 
-              :name="!simulatedData.workflow.audit.datesAuditPlanifiees
-                ? 'i-lucide-lock'
-                : simulatedData.workflow.audit.auditTermine 
-                  ? 'i-lucide-check-circle-2' 
-                  : 'i-lucide-play'" 
-              :class="[
-                'w-6 h-6 mx-auto mb-2',
-                !simulatedData.workflow.audit.datesAuditPlanifiees
-                  ? 'text-gray-400'
-                  : simulatedData.workflow.audit.auditTermine 
-                    ? 'text-emerald-600' 
-                    : 'text-amber-600'
-              ]" 
-            />
-            <h5 class="text-sm font-medium text-gray-900 mb-1">Audit</h5>
-            <div class="space-y-2">
-              <UBadge 
-                :color="!simulatedData.workflow.audit.datesAuditPlanifiees
-                  ? 'neutral'
-                  : simulatedData.workflow.audit.auditTermine 
-                    ? 'success' 
-                    : 'warning'" 
-                variant="solid" 
-                size="xs"
-              >
-                {{ !simulatedData.workflow.audit.datesAuditPlanifiees
-                  ? 'Dates requises'
-                  : simulatedData.workflow.audit.auditTermine 
-                    ? 'Terminé' 
-                    : 'En cours' }}
-              </UBadge>
-              
-              <div v-if="simulatedData.workflow.audit.auditTermine">
-                <p class="text-xs text-emerald-800">{{ simulatedData.workflow.audit.dateDebutReelle }} - {{ simulatedData.workflow.audit.dateFinReelle }}</p>
-                <p class="text-xs text-gray-600">Audit réalisé</p>
-                <template v-if="role !== 'company'">
-                  <UButton
-                    color="neutral"
-                    size="xs"
-                    icon="i-lucide-edit"
-                    class="mt-1"
-                    disabled
-                  >
-                    Modifier les dates
-                  </UButton>
-                  <p class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
-                </template>
+            <template #content>
+              <!-- Informations du plan d'audit disponible -->
+              <div v-if="planAuditAvailable && auditPlanVersion">
+                <div class="mb-2">
+                  <p class="text-xs font-medium text-gray-900">Plan disponible</p>
+                  <p class="text-xs text-gray-700">
+                    {{ formatDate(auditPlanVersion.uploadAt) }}
+                  </p>
+                </div>
               </div>
-              
-              <div v-else-if="simulatedData.workflow.audit.datesAuditPlanifiees">
-                <p class="text-xs text-emerald-800">{{ simulatedData.workflow.audit.dateDebutPlanifiee }} - {{ simulatedData.workflow.audit.dateFinPlanifiee }}</p>
-                <p class="text-xs text-gray-500">Audit en préparation</p>
-                <template v-if="role !== 'company'">
-                  <UButton
-                    color="neutral"
-                    size="xs"
-                    icon="i-lucide-edit"
-                    class="mt-1"
-                    disabled
-                  >
-                    Modifier les dates
-                  </UButton>
-                  <p class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
-                </template>
+              <!-- Message quand pas de plan disponible -->
+              <div v-else-if="!planAuditAvailable && documentsTransmitted">
+                <p class="text-xs text-gray-600">
+                  Aucun plan d'audit uploadé pour le moment
+                </p>
               </div>
-              
-              <div v-else>
-                <p class="text-xs text-gray-500">En attente dates</p>
+            </template>
+          </AuditStepCard>
+
+          <!-- Card 3: Dates d'audit -->
+          <AuditStepCard
+            title="Dates d'audit"
+            :state="!documentsTransmitted ? 'pending' : plannedDatesSet ? 'success' : 'warning'"
+            :disabled="!documentsTransmitted"
+            icon-pending="i-lucide-calendar-plus"
+            icon-success="i-lucide-calendar-check"
+            icon-warning="i-lucide-calendar-plus"
+            label-pending="À programmer"
+            label-success="Programmé"
+            label-warning="À programmer"
+            color-scheme="orange"
+          >
+            <template #actions>
+              <!-- Bouton pour programmer les dates (OE/FEEF seulement) -->
+              <div v-if="(user?.role === Role.OE || user?.role === Role.FEEF) && documentsTransmitted && currentAudit && !plannedDatesSet">
+                <AuditDatesModal
+                  :audit-id="currentAudit.id"
+                  :initial-planned-start-date="currentAudit.plannedStartDate"
+                  :initial-planned-end-date="currentAudit.plannedEndDate"
+                  :initial-actual-start-date="currentAudit.actualStartDate"
+                  :initial-actual-end-date="currentAudit.actualEndDate"
+                  @saved="handleDatesSaved"
+                />
               </div>
-            </div>
-          </div>
+            </template>
+
+            <template #content>
+              <!-- Affichage des dates programmées -->
+              <div v-if="plannedDatesSet && currentAudit">
+                <!-- Dates prévisionnelles -->
+                <div class="mb-3">
+                  <p class="text-xs font-semibold text-gray-900 mb-1">Dates prévisionnelles</p>
+                  <p class="text-xs text-gray-700">
+                    📅 {{ formatDate(currentAudit.plannedStartDate) }} - {{ formatDate(currentAudit.plannedEndDate) }}
+                  </p>
+                </div>
+
+                <!-- Dates réelles (si l'audit est terminé) -->
+                <div v-if="auditCompleted" class="mb-3 p-2 bg-green-50 rounded">
+                  <p class="text-xs font-semibold text-green-900 mb-1">Dates réelles</p>
+                  <p class="text-xs text-green-700">
+                    ✅ {{ formatDate(currentAudit.actualStartDate) }} - {{ formatDate(currentAudit.actualEndDate) }}
+                  </p>
+                  <UBadge color="success" size="xs" class="mt-1">Audit terminé</UBadge>
+                </div>
+
+                <!-- Bouton pour modifier les dates -->
+                <div v-if="user?.role === Role.OE || user?.role === Role.FEEF" class="mt-2">
+                  <AuditDatesModal
+                    :audit-id="currentAudit.id"
+                    :initial-planned-start-date="currentAudit.plannedStartDate"
+                    :initial-planned-end-date="currentAudit.plannedEndDate"
+                    :initial-actual-start-date="currentAudit.actualStartDate"
+                    :initial-actual-end-date="currentAudit.actualEndDate"
+                    @saved="handleDatesSaved"
+                  />
+                </div>
+              </div>
+            </template>
+          </AuditStepCard>
+
         </div>
       </UCard>
 
-    <!-- DocumentViewer pour consulter les documents d'audit -->
-    <DocumentViewer
-      :document="currentDocument"
-      v-model:open="showDocumentViewer"
-    />
+      <!-- DocumentViewer pour consulter les documents d'audit -->
+      <DocumentViewer
+        v-if="currentAudit"
+        :audit="currentAudit"
+        :audit-document-type="AuditDocumentType.PLAN"
+        v-model:open="showDocumentViewer"
+      />
     </div>
-    
   </div>
 </template>
 
 <script setup lang="ts">
-import { DOCUMENTS } from '~/utils/data'
-import type { Documents } from '~/utils/data'
+import { AuditDocumentType } from '~~/app/types/auditDocuments'
+import { Role } from '#shared/types/roles'
 
-interface Props {
-  company: any
-  role?: 'oe' | 'feef' | 'company'
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  role: 'feef'
-})
+// Composables
+const { currentAudit, fetchAudit } = useAudits()
+const { documentVersions, fetchDocumentVersions } = useDocumentVersions()
+const { documentaryReviews, fetchDocumentaryReviews } = useDocumentaryReviews()
+const { currentEntity, fetchEntity } = useEntities()
+const { user } = useAuth()
 
 // État pour le DocumentViewer
 const showDocumentViewer = ref(false)
-const currentDocument = ref<Documents | undefined>()
 
-// Phase d'audit sélectionnée
-const selectedPhase = ref('phase0')
+// Computed: Documents transmis
+const documentsTransmitted = computed(() => {
+  return currentEntity.value?.documentaryReviewReadyAt !== null
+})
 
-// Options pour les phases
-const phaseOptions = [
-  { value: 'phase0', label: 'Phase 0 - Transmission en cours' },
-  { value: 'phase1', label: 'Phase 1 - Documents et plan d\'audit transmis' },
-  { value: 'phase2', label: 'Phase 2 - Audit terminé' }
-]
+// Computed: Nombre de documents en demande (ou manquants)
+const pendingDocumentsCount = computed(() => {
+  if (!documentaryReviews.value) return 0
 
-// Descriptions des phases
-const phaseDescriptions = {
-  'phase0': 'La transmission des documents requis pour l\'audit est en cours.',
-  'phase1': 'Tous les documents ont été transmis avec le plan d\'audit et les dates d\'audit planifiées par l\'OE.',
-  'phase2': 'L\'audit a été réalisé et est maintenant terminé.'
+  // Compter les documents qui ont une version fantôme (askedBy renseigné, s3Key null)
+  let count = 0
+  for (const review of documentaryReviews.value) {
+    // TODO: Implémenter la logique pour vérifier si un document a une demande pendante
+    // Pour l'instant, retourner 0
+  }
+  return count
+})
+
+// Computed: Plan d'audit disponible
+const planAuditAvailable = computed(() => {
+  if (!currentAudit.value) return false
+
+  // Vérifier si un document de type PLAN existe pour cet audit
+  return auditPlanVersion.value !== null
+})
+
+// Computed: Version du plan d'audit
+const auditPlanVersion = computed(() => {
+  if (!documentVersions.value || documentVersions.value.length === 0) return null
+
+  // Trouver le document de type PLAN (vérifier si la propriété existe)
+  return documentVersions.value.find(v => 
+    'auditDocumentType' in v && v.auditDocumentType === AuditDocumentType.PLAN
+  ) || null
+})
+
+
+// Computed: Dates prévisionnelles renseignées
+const plannedDatesSet = computed(() => {
+  return currentAudit.value?.plannedStartDate && currentAudit.value?.plannedEndDate
+})
+
+// Computed: Audit terminé (dates réelles différentes des dates prévisionnelles)
+const auditCompleted = computed(() => {
+  if (!currentAudit.value) return false
+
+  // L'audit est terminé si les dates réelles sont renseignées
+  // (elles sont initialisées avec les dates prévisionnelles, mais on considère terminé dès qu'elles existent)
+  return currentAudit.value.actualStartDate && currentAudit.value.actualEndDate
+})
+
+// Computed: Date limite de dépôt (15 jours avant la date de début réelle ou prévue)
+const depositDeadline = computed(() => {
+  if (!currentAudit.value) return null
+
+  // Utiliser la date réelle si elle existe, sinon la date prévisionnelle
+  const startDate = currentAudit.value.actualStartDate || currentAudit.value.plannedStartDate
+
+  if (!startDate) return null
+
+  const auditStartDate = new Date(startDate)
+  const deadline = new Date(auditStartDate)
+  deadline.setDate(deadline.getDate() - 15)
+
+  return formatDate(deadline.toISOString())
+})
+
+// Fonction pour formater une date
+function formatDate(dateString: string | Date | null | undefined): string {
+  if (!dateString) return 'N/A'
+
+  const date = new Date(dateString)
+  return date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
 }
-
-// Données simulées basées sur la phase
-const simulatedData = computed(() => {
-  const baseData = {
-    auditSouhaite: props.company.auditSouhaite
-  }
-
-  switch (selectedPhase.value) {
-    case 'phase0':
-      return {
-        ...baseData,
-        workflow: {
-          audit: {
-            revueDocumentaire: {
-              documentsTransmis: false,
-              dateTransmission: null,
-              datePartage: null,
-              documentsManquants: 3
-            },
-            planAuditDisponible: false,
-            dateTransmissionPlan: null,
-            planMisEnLignePar: null,
-            datesAuditPlanifiees: false,
-            dateDebutPlanifiee: null,
-            dateFinPlanifiee: null,
-            auditTermine: false,
-            dateDebutReelle: null,
-            dateFinReelle: null,
-            auditeur: {
-              nom: 'Dupont',
-              prenom: 'Jean'
-            }
-          }
-        }
-      }
-    case 'phase1':
-      return {
-        ...baseData,
-        workflow: {
-          audit: {
-            revueDocumentaire: {
-              documentsTransmis: true,
-              dateTransmission: '10/8/2025',
-              datePartage: '12/8/2025',
-              documentsManquants: 0
-            },
-            planAuditDisponible: true,
-            dateTransmissionPlan: '12/8/2025',
-            planMisEnLignePar: 'Pierre Martin (SGS)',
-            datesAuditPlanifiees: true,
-            dateDebutPlanifiee: '25/8/2025',
-            dateFinPlanifiee: '27/8/2025',
-            auditTermine: false,
-            dateDebutReelle: null,
-            dateFinReelle: null,
-            auditeur: {
-              nom: 'Dupont',
-              prenom: 'Jean'
-            }
-          }
-        }
-      }
-    case 'phase2':
-      return {
-        ...baseData,
-        workflow: {
-          audit: {
-            revueDocumentaire: {
-              documentsTransmis: true,
-              dateTransmission: '10/8/2025',
-              datePartage: '12/8/2025',
-              documentsManquants: 0
-            },
-            planAuditDisponible: true,
-            dateTransmissionPlan: '12/8/2025',
-            planMisEnLignePar: 'Pierre Martin (SGS)',
-            datesAuditPlanifiees: true,
-            dateDebutPlanifiee: '25/8/2025',
-            dateFinPlanifiee: '27/8/2025',
-            auditTermine: true,
-            dateDebutReelle: '25/8/2025',
-            dateFinReelle: '27/8/2025',
-            auditeur: {
-              nom: 'Dupont',
-              prenom: 'Jean'
-            }
-          }
-        }
-      }
-    default:
-      return props.company
-  }
-})
-
-// Trouver le plan d'audit dans les documents
-const auditPlanDocument = computed(() => {
-  return DOCUMENTS.find(doc => doc.id === 'plan-audit')
-})
 
 // Fonction pour ouvrir le plan d'audit dans le DocumentViewer
-const viewAuditPlan = () => {
-  if (auditPlanDocument.value && simulatedData.value.workflow.audit.planAuditDisponible) {
-    currentDocument.value = auditPlanDocument.value
-    showDocumentViewer.value = true
+async function viewAuditPlan() {
+  if (!currentAudit.value) return
+
+  // Ouvrir le DocumentViewer qui se chargera de fetcher les versions
+  showDocumentViewer.value = true
+}
+
+// Handlers pour les événements des modals
+async function handlePlanUploaded(version: any) {
+  console.log('Plan d\'audit uploadé:', version)
+  // Rafraîchir les versions de documents pour cet audit (uniquement le PLAN)
+  if (currentAudit.value) {
+    await fetchDocumentVersions(currentAudit.value.id, 'audit', AuditDocumentType.PLAN)
   }
 }
 
-// Fonction pour OE pour ajouter le plan et les dates d'audit en phase0
-function addAuditPlanDates() {
-  
+async function handleDatesSaved(dates: any) {
+  console.log('Dates d\'audit sauvegardées:', dates)
+  // Rafraîchir l'audit pour avoir les nouvelles dates
+  if (currentAudit.value) {
+    await fetchAudit(currentAudit.value.id)
+  }
 }
+
+// Charger les versions du plan au montage pour vérifier s'il existe
+onMounted(async () => {
+  if (currentAudit.value) {
+    // Charger uniquement les versions du PLAN pour savoir si un plan existe
+    await fetchDocumentVersions(currentAudit.value.id, 'audit', AuditDocumentType.PLAN)
+  }
+})
+
+// Watcher sur currentAudit pour recharger les versions si l'audit change
+watch(currentAudit, async (newAudit) => {
+  if (newAudit) {
+    await fetchDocumentVersions(newAudit.id, 'audit', AuditDocumentType.PLAN)
+  }
+})
+
+// Watcher sur showDocumentViewer pour recharger les versions quand le viewer se ferme
+watch(showDocumentViewer, async (isOpen) => {
+  // Quand le viewer se ferme, recharger les versions pour l'AuditTab
+  if (!isOpen && currentAudit.value) {
+    await fetchDocumentVersions(currentAudit.value.id, 'audit', AuditDocumentType.PLAN)
+  }
+})
 </script>
