@@ -97,6 +97,13 @@ export default defineEventHandler(async (event) => {
           lastname: true,
         },
       },
+      askedByAccount: {
+        columns: {
+          id: true,
+          firstname: true,
+          lastname: true,
+        },
+      },
     },
   })
 

@@ -38,6 +38,13 @@
                 accept="*/*"
                 @change="handleFileSelect"
               />
+              <DocumentRequestUpdateModal
+                v-if="(user?.role === Role.FEEF || user?.role === Role.OE) && !hasPendingRequestForDocument"
+                :documentary-review-id="documentaryReview?.id"
+                :contract-id="contract?.id"
+                :document-title="documentTitle"
+                button-label="Demander MAJ"
+              />
               <UButton
                 @click="triggerFileInput"
                 color="secondary"
@@ -92,6 +99,57 @@
           <div class="text-center">
             <UIcon name="i-heroicons-arrow-path" class="animate-spin w-8 h-8 mx-auto mb-4 text-primary" />
             <p class="text-gray-600">Chargement des versions...</p>
+          </div>
+        </div>
+
+        <!-- Demande de mise à jour en attente -->
+        <div v-else-if="hasVersions && isPendingRequest" class="flex-1 flex items-center justify-center bg-gray-50 rounded-lg">
+          <div class="text-center p-8 max-w-md">
+            <UIcon name="i-lucide-alert-circle" class="w-16 h-16 mx-auto mb-4 text-orange-500" />
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Demande de mise à jour en attente</h3>
+
+            <div v-if="selectedVersionData?.askedByAccount" class="mb-4 text-sm text-gray-600">
+              <p class="mb-2">
+                Demandée par <span class="font-medium">{{ selectedVersionData.askedByAccount.firstname }} {{ selectedVersionData.askedByAccount.lastname }}</span>
+              </p>
+              <p class="text-xs text-gray-500">
+                Le {{ formatDate(selectedVersionData.uploadAt) }}
+              </p>
+            </div>
+
+            <div v-if="selectedVersionData?.comment" class="bg-white rounded-lg p-4 mb-6 text-left border border-gray-200">
+              <p class="text-xs font-semibold text-gray-700 mb-2">Commentaire :</p>
+              <p class="text-sm text-gray-800 whitespace-pre-wrap">{{ selectedVersionData.comment }}</p>
+            </div>
+
+            <p class="text-gray-600 mb-6">
+              Ce document est en attente de mise à jour. L'entité doit uploader une nouvelle version pour répondre à cette demande.
+            </p>
+
+            <div class="flex flex-col gap-3">
+              <!-- Bouton pour ENTITY : Upload le document demandé -->
+              <UButton
+                v-if="user?.role === Role.ENTITY"
+                @click="triggerFileInput"
+                color="primary"
+                variant="solid"
+                icon="i-lucide-upload"
+                label="Importer le document mis à jour"
+                size="lg"
+                :loading="createLoading"
+                :disabled="createLoading"
+              />
+
+              <!-- Bouton pour annuler (celui qui a demandé) -->
+              <UButton
+                v-if="canCancelRequest"
+                @click="handleCancelRequest"
+                color="error"
+                variant="outline"
+                icon="i-lucide-x"
+                label="Annuler cette demande"
+              />
+            </div>
           </div>
         </div>
 
@@ -162,6 +220,7 @@
 <script setup lang="ts">
 import type { DocumentaryReview } from '~~/app/types/documentaryReviews'
 import type { ContractWithRelations } from '~~/app/types/contracts'
+import { Role } from '#shared/types/roles'
 
 interface Props {
   documentaryReview?: DocumentaryReview | null
@@ -203,12 +262,18 @@ const {
   documentVersions,
   fetchLoading,
   createLoading,
+  requestUpdateLoading,
   fetchDocumentVersions,
   createDocumentVersion,
+  requestDocumentUpdate,
+  cancelDocumentRequest,
   getVersionUrl,
   downloadVersion,
   reset,
 } = useDocumentVersions()
+
+// Session user pour vérifier les permissions
+const { user } = useUserSession()
 
 // Refs pour les inputs file
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -228,16 +293,39 @@ const hasVersions = computed(() => documentVersions.value.length > 0)
 
 // Préparer les items pour le select avec le format "v1 - 16/10/2025"
 const versionSelectItems = computed(() => {
-  return documentVersions.value.map((version, index) => ({
-    label: `v${documentVersions.value.length - index} - ${formatDate(version.uploadAt)}${index === 0 ? ' (Actuelle)' : ''}`,
-    value: version.id,
-  }))
+  return documentVersions.value.map((version, index) => {
+    const isPendingRequest = version.s3Key === null && version.askedBy !== null
+    const versionLabel = `v${documentVersions.value.length - index} - ${formatDate(version.uploadAt)}`
+    const statusLabel = isPendingRequest ? ' 🔔 Demande en attente' : (index === 0 && !isPendingRequest ? ' (Actuelle)' : '')
+
+    return {
+      label: `${versionLabel}${statusLabel}`,
+      value: version.id,
+    }
+  })
 })
 
 // Données de la version sélectionnée
 const selectedVersionData = computed(() => {
   if (selectedVersionId.value === undefined) return null
   return documentVersions.value.find(v => v.id === selectedVersionId.value) || null
+})
+
+// Vérifier si la version sélectionnée est une demande en attente
+const isPendingRequest = computed(() => {
+  return selectedVersionData.value?.s3Key === null && selectedVersionData.value?.askedBy !== null
+})
+
+// Vérifier si l'utilisateur peut annuler la demande (seulement celui qui a demandé)
+const canCancelRequest = computed(() => {
+  return isPendingRequest.value && selectedVersionData.value?.askedBy === user.value?.id
+})
+
+// Vérifier si le document a une demande en attente (pour masquer le bouton "Demander MAJ")
+const hasPendingRequestForDocument = computed(() => {
+  return documentVersions.value.some(version =>
+    version.s3Key === null && version.askedBy !== null
+  )
 })
 
 // Fonction pour formater une date
@@ -294,6 +382,18 @@ const handleDownload = () => {
     selectedVersionData.value.uploadAt,
     selectedVersionData.value.mimeType
   )
+}
+
+// Annuler une demande de mise à jour
+const handleCancelRequest = async () => {
+  if (!selectedVersionId.value) return
+
+  const result = await cancelDocumentRequest(selectedVersionId.value)
+
+  if (result.success) {
+    // Réinitialiser la sélection
+    selectedVersionId.value = documentVersions.value[0]?.id
+  }
 }
 
 // Watcher pour charger l'URL signée quand la version sélectionnée change

@@ -40,6 +40,7 @@ export const useDocumentVersions = () => {
   // États de chargement pour les opérations
   const fetchLoading = useState('documentVersions:fetchLoading', () => false)
   const createLoading = useState('documentVersions:createLoading', () => false)
+  const requestUpdateLoading = useState('documentVersions:requestUpdateLoading', () => false)
 
   // Erreur de fetch
   const fetchError = useState<string | null>('documentVersions:fetchError', () => null)
@@ -110,8 +111,8 @@ export const useDocumentVersions = () => {
         body: formData,
       })
 
-      // Ajouter la nouvelle version au début de la liste (plus récente)
-      documentVersions.value.unshift(response.data)
+      // Rafraîchir la liste complète (car une demande existante a pu être mise à jour)
+      await fetchDocumentVersions(id, type)
 
       toast.add({
         title: 'Succès',
@@ -223,6 +224,83 @@ export const useDocumentVersions = () => {
   }
 
   /**
+   * Demander une mise à jour de document (crée une version fantôme)
+   */
+  const requestDocumentUpdate = async (
+    id: number,
+    type: 'documentaryReview' | 'contract' = 'documentaryReview',
+    comment?: string
+  ) => {
+    requestUpdateLoading.value = true
+
+    try {
+      const body = type === 'documentaryReview'
+        ? { documentaryReviewId: id, comment }
+        : { contractId: id, comment }
+
+      const response = await $fetch<{ data: DocumentVersion }>('/api/documents-versions/request-update', {
+        method: 'POST',
+        body,
+      })
+
+      // Ajouter la demande au début de la liste
+      documentVersions.value.unshift(response.data)
+
+      toast.add({
+        title: 'Succès',
+        description: 'Demande de mise à jour créée',
+        color: 'success',
+      })
+
+      return { success: true, data: response.data }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la création de la demande'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    } finally {
+      requestUpdateLoading.value = false
+    }
+  }
+
+  /**
+   * Annuler une demande de mise à jour (hard delete)
+   */
+  const cancelDocumentRequest = async (versionId: number) => {
+    try {
+      await $fetch(`/api/documents-versions/${versionId}/cancel-request`, {
+        method: 'DELETE',
+      })
+
+      // Retirer la version de la liste
+      documentVersions.value = documentVersions.value.filter(v => v.id !== versionId)
+
+      toast.add({
+        title: 'Succès',
+        description: 'Demande annulée',
+        color: 'success',
+      })
+
+      return { success: true }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de l\'annulation de la demande'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  /**
    * Rafraîchir la liste des versions
    */
   const refresh = async (documentaryReviewId: number) => {
@@ -249,10 +327,13 @@ export const useDocumentVersions = () => {
     fetchLoading: readonly(fetchLoading),
     fetchError: readonly(fetchError),
     createLoading: readonly(createLoading),
+    requestUpdateLoading: readonly(requestUpdateLoading),
 
     // Actions
     fetchDocumentVersions,
     createDocumentVersion,
+    requestDocumentUpdate,
+    cancelDocumentRequest,
     getVersionUrl,
     downloadVersion,
     refresh,

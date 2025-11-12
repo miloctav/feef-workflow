@@ -114,6 +114,16 @@
                             <h4 class="font-semibold text-base text-gray-900 group-hover:text-blue-900">
                               {{ document.title }}
                             </h4>
+                            <UBadge
+                              v-if="hasPendingRequest(document.id)"
+                              color="warning"
+                              variant="soft"
+                              size="sm"
+                              class="flex items-center gap-1"
+                            >
+                              <UIcon name="i-lucide-alert-circle" class="w-3 h-3" />
+                              Demande en attente
+                            </UBadge>
                             <UIcon name="i-lucide-eye" class="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
                           </div>
                           <p v-if="document.description" class="text-sm text-gray-600 mt-1.5">
@@ -134,8 +144,21 @@
                         </div>
 
                         <!-- Actions -->
-                        <div v-if="user?.role === Role.FEEF" class="flex-shrink-0 flex gap-2">
+                        <div class="flex-shrink-0 flex gap-2">
+                          <!-- Bouton demande de mise à jour (FEEF ou OE, seulement si pas de demande en attente) -->
+                          <DocumentRequestUpdateModal
+                            v-if="(user?.role === Role.FEEF || user?.role === Role.OE) && !hasPendingRequest(document.id)"
+                            :documentary-review-id="document.id"
+                            :document-title="document.title"
+                            button-label="Demander MAJ"
+                            button-size="sm"
+                            @update-requested="handleUpdateRequested(document.id)"
+                            @click.stop
+                          />
+
+                          <!-- Bouton supprimer (FEEF seulement) -->
                           <UButton
+                            v-if="user?.role === Role.FEEF"
                             color="error"
                             size="sm"
                             icon="i-lucide-trash-2"
@@ -184,10 +207,38 @@ const {
   deleteDocumentaryReview,
 } = useDocumentaryReviews()
 
-// Charger les documents au montage
+// État pour tracker les documents avec demandes en attente
+const documentsWithPendingRequests = ref<Set<number>>(new Set())
+
+// Fonction pour vérifier si un document a une demande en attente
+async function checkPendingRequest(documentId: number) {
+  try {
+    const response = await $fetch<{ data: any[] }>('/api/documents-versions', {
+      query: { documentaryReviewId: documentId },
+    })
+
+    const hasPending = response.data.some(version =>
+      version.s3Key === null && version.askedBy !== null
+    )
+
+    if (hasPending) {
+      documentsWithPendingRequests.value.add(documentId)
+    } else {
+      documentsWithPendingRequests.value.delete(documentId)
+    }
+  } catch (error) {
+    // Ignorer les erreurs silencieusement
+  }
+}
+
+// Charger les documents au montage et vérifier les demandes
 onMounted(async () => {
   if (currentEntity.value) {
     await fetchDocumentaryReviews(currentEntity.value.id)
+
+    // Vérifier les demandes en attente pour tous les documents (en parallèle)
+    const checks = documentaryReviews.value.map(doc => checkPendingRequest(doc.id))
+    await Promise.all(checks)
   }
 })
 
@@ -278,5 +329,15 @@ const selectedDocument = ref<DocumentaryReview | null>(null)
 function openDocumentViewer(document: DocumentaryReview) {
   selectedDocument.value = document
   isViewerOpen.value = true
+}
+
+// Rafraîchir les demandes après qu'une demande a été créée
+async function handleUpdateRequested(documentId: number) {
+  await checkPendingRequest(documentId)
+}
+
+// Vérifier si un document a une demande en attente
+function hasPendingRequest(documentId: number): boolean {
+  return documentsWithPendingRequests.value.has(documentId)
 }
 </script>

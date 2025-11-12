@@ -1,6 +1,6 @@
 import { db } from '~~/server/database'
 import { documentaryReviews, documentVersions, entities, accountsToEntities, contracts } from '~~/server/database/schema'
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and, isNull, isNotNull, desc } from 'drizzle-orm'
 import { uploadFile } from '~~/server/services/garage'
 import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
 import { Role } from '#shared/types/roles'
@@ -173,21 +173,56 @@ export default defineEventHandler(async (event) => {
   // Déterminer le type MIME du fichier
   const mimeType = getMimeTypeFromFilename(fileData.filename)
 
-  // Créer la nouvelle version (sans s3Key pour l'instant)
-  const versionData: any = {
-    uploadBy: user.id,
-    s3Key: null,
-    mimeType,
-  }
+  // Chercher une demande de mise à jour en attente pour ce document
+  const pendingRequest = await db.query.documentVersions.findFirst({
+    where: documentaryReviewId
+      ? and(
+          eq(documentVersions.documentaryReviewId, documentaryReviewId),
+          isNull(documentVersions.s3Key),
+          isNotNull(documentVersions.askedBy)
+        )
+      : and(
+          eq(documentVersions.contractId, contractId!),
+          isNull(documentVersions.s3Key),
+          isNotNull(documentVersions.askedBy)
+        ),
+    orderBy: [desc(documentVersions.uploadAt)],
+  })
 
-  // Ajouter le bon ID selon le type
-  if (documentaryReviewId) {
-    versionData.documentaryReviewId = documentaryReviewId
+  let newVersion: any
+
+  if (pendingRequest) {
+    // Une demande existe : mettre à jour cette version au lieu d'en créer une nouvelle
+    const [updatedVersion] = await db
+      .update(documentVersions)
+      .set({
+        s3Key: null, // Sera mis à jour après l'upload
+        mimeType,
+        updatedBy: user.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(documentVersions.id, pendingRequest.id))
+      .returning()
+
+    newVersion = updatedVersion
   } else {
-    versionData.contractId = contractId
-  }
+    // Pas de demande : créer une nouvelle version normale
+    const versionData: any = {
+      uploadBy: user.id,
+      s3Key: null,
+      mimeType,
+    }
 
-  const [newVersion] = await db.insert(documentVersions).values(forInsert(event, versionData)).returning()
+    // Ajouter le bon ID selon le type
+    if (documentaryReviewId) {
+      versionData.documentaryReviewId = documentaryReviewId
+    } else {
+      versionData.contractId = contractId
+    }
+
+    const [createdVersion] = await db.insert(documentVersions).values(forInsert(event, versionData)).returning()
+    newVersion = createdVersion
+  }
 
   // Uploader le fichier vers Garage
   let uploadedS3Key: string | null = null
@@ -235,6 +270,13 @@ export default defineEventHandler(async (event) => {
     where: eq(documentVersions.id, newVersion.id),
     with: {
       uploadByAccount: {
+        columns: {
+          id: true,
+          firstname: true,
+          lastname: true,
+        },
+      },
+      askedByAccount: {
         columns: {
           id: true,
           firstname: true,

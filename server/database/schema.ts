@@ -148,6 +148,9 @@ export const documentVersions = pgTable('document_versions', {
   s3Key: varchar('s3_key', { length: 512 }),
   mimeType: varchar('mime_type', { length: 255 }),
   uploadBy: integer('upload_by').notNull().references(() => accounts.id),
+  askedBy: integer('asked_by').references(() => accounts.id),
+  askedAt: timestamp('asked_at'),
+  comment: text('comment'),
   updatedBy: integer('updated_by').references(() => accounts.id),
   updatedAt: timestamp('updated_at'),
 })
@@ -400,6 +403,10 @@ export const documentVersionsRelations = relations(documentVersions, ({ one }) =
   }),
   uploadByAccount: one(accounts, {
     fields: [documentVersions.uploadBy],
+    references: [accounts.id],
+  }),
+  askedByAccount: one(accounts, {
+    fields: [documentVersions.askedBy],
     references: [accounts.id],
   }),
 }))
