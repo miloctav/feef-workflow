@@ -1,0 +1,3 @@
+ALTER TABLE "entities" ADD COLUMN "documentary_review_ready_at" timestamp;--> statement-breakpoint
+ALTER TABLE "entities" ADD COLUMN "documentary_review_ready_by" integer;--> statement-breakpoint
+ALTER TABLE "entities" ADD CONSTRAINT "entities_documentary_review_ready_by_accounts_id_fk" FOREIGN KEY ("documentary_review_ready_by") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;

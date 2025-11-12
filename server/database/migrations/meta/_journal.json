@@ -43,6 +43,13 @@
       "when": 1762355926788,
       "tag": "0005_neat_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1762937625772,
+      "tag": "0006_shallow_blacklash",
+      "breakpoints": true
     }
   ]
 }

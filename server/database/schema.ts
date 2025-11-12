@@ -55,6 +55,8 @@ export const entities = pgTable('entities', {
   parentGroupId: integer('parent_group_id').references((): AnyPgColumn => entities.id),
   oeId: integer('oe_id').references(() => oes.id),
   accountManagerId: integer('account_manager_id').references(() => accounts.id),
+  documentaryReviewReadyAt: timestamp('documentary_review_ready_at'),
+  documentaryReviewReadyBy: integer('documentary_review_ready_by').references(() => accounts.id),
   createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
@@ -293,6 +295,10 @@ export const entitiesRelations = relations(entities, ({ one, many }) => ({
   }),
   caseApprovedByAccount: one(accounts, {
     fields: [entities.caseApprovedBy],
+    references: [accounts.id],
+  }),
+  documentaryReviewReadyByAccount: one(accounts, {
+    fields: [entities.documentaryReviewReadyBy],
     references: [accounts.id],
   }),
   accountsToEntities: many(accountsToEntities),

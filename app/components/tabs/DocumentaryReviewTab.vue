@@ -30,6 +30,28 @@
         />
       </div>
 
+      <!-- Info sur la revue documentaire prête (visible uniquement pour OE et FEEF) -->
+      <div
+        v-if="showDocumentaryReviewStatus && currentEntity?.documentaryReviewReadyAt"
+        class="p-4 bg-green-50 rounded-lg border border-green-200"
+      >
+        <div class="flex items-center gap-3">
+          <UIcon name="i-lucide-check-circle" class="w-6 h-6 text-green-600 flex-shrink-0" />
+          <div class="flex-1">
+            <h5 class="font-medium text-green-800 mb-1">Revue documentaire validée par l'entité</h5>
+            <p class="text-sm text-green-700">
+              Marquée comme prête le {{ formatDate(currentEntity.documentaryReviewReadyAt, true) }}
+              <span v-if="currentEntity.documentaryReviewReadyByAccount">
+                par {{ currentEntity.documentaryReviewReadyByAccount.firstname }} {{ currentEntity.documentaryReviewReadyByAccount.lastname }}
+              </span>
+            </p>
+          </div>
+          <UBadge color="success" variant="solid" size="lg">
+            Validée
+          </UBadge>
+        </div>
+      </div>
+
       <UCard v-for="category in accordionItems" :key="category.value" class="overflow-hidden">
         <UAccordion
           type="single"
@@ -169,6 +191,11 @@ onMounted(async () => {
   }
 })
 
+// Vérifier si l'utilisateur peut voir le statut de la revue documentaire (OE ou FEEF)
+const showDocumentaryReviewStatus = computed(() => {
+  return user.value?.role === Role.FEEF || user.value?.role === Role.OE
+})
+
 // Organiser les documents par catégorie
 const documentsByCategory = computed(() => {
   const categories: Record<DocumentCategoryType, DocumentaryReview[]> = {
@@ -218,14 +245,22 @@ function getCategoryBackgroundClass(color: string): string {
   return colorMap[color] || 'bg-gray-100'
 }
 
-function formatDate(date: Date | string): string {
+function formatDate(date: Date | string, includeTime: boolean = false): string {
   if (!date) return ''
   const d = new Date(date)
-  return d.toLocaleDateString('fr-FR', {
+
+  const options: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  })
+  }
+
+  if (includeTime) {
+    options.hour = '2-digit'
+    options.minute = '2-digit'
+  }
+
+  return d.toLocaleDateString('fr-FR', options)
 }
 
 async function handleDelete(document: DocumentaryReview) {
