@@ -69,27 +69,31 @@ export default defineEventHandler(async (event) => {
   }
 
   // Vérifier que l'entité peut changer d'OE :
-  // - Pas d'audits OU dernier audit COMPLETED et de type MONITORING
-  const lastAudit = await db.query.audits.findFirst({
-    where: and(
-      eq(audits.entityId, entityIdInt),
-      isNull(audits.deletedAt)
-    ),
-    orderBy: desc(audits.createdAt),
-    columns: {
-      id: true,
-      status: true,
-      type: true,
-    }
-  })
+  // - Pas d'OE assigné (peut en choisir un), OU
+  // - Pas d'audits, OU
+  // - Dernier audit COMPLETED et de type MONITORING
+  if (existingEntity.oeId) {
+    const lastAudit = await db.query.audits.findFirst({
+      where: and(
+        eq(audits.entityId, entityIdInt),
+        isNull(audits.deletedAt)
+      ),
+      orderBy: desc(audits.createdAt),
+      columns: {
+        id: true,
+        status: true,
+        type: true,
+      }
+    })
 
-  if (lastAudit) {
-    const canChangeOe = lastAudit.status === AuditStatus.COMPLETED && lastAudit.type === AuditType.MONITORING
-    if (!canChangeOe) {
-      throw createError({
-        statusCode: 400,
-        message: 'Impossible de changer d\'OE : un audit est en cours ou le dernier audit n\'est pas un suivi terminé',
-      })
+    if (lastAudit) {
+      const canChangeOe = lastAudit.status === AuditStatus.COMPLETED && lastAudit.type === AuditType.MONITORING
+      if (!canChangeOe) {
+        throw createError({
+          statusCode: 400,
+          message: 'Impossible de changer d\'OE : un audit est en cours ou le dernier audit n\'est pas un suivi terminé',
+        })
+      }
     }
   }
 

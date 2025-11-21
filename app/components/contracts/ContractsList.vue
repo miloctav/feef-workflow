@@ -176,8 +176,13 @@ const {
 const { audits, setFilters: setAuditFilters, refresh: refreshAudits } = useAudits()
 
 // Vérifier si l'entité peut changer d'OE :
-// - Pas d'audits OU dernier audit COMPLETED et de type MONITORING
+// - Pas d'OE assigné (peut en choisir un), OU
+// - Pas d'audits, OU
+// - Dernier audit COMPLETED et de type MONITORING
 const canChangeOe = computed(() => {
+  // Si pas d'OE assigné, on peut toujours en choisir un
+  if (!currentEntity.value?.oeId) return true
+  // Si pas d'audits, on peut changer
   if (!audits.value || audits.value.length === 0) return true
   // Trier par date de création décroissante pour avoir le dernier audit
   const sortedAudits = [...audits.value].sort((a, b) =>
