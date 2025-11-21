@@ -1,10 +1,11 @@
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and, isNull, desc } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { entities, oes } from '~~/server/database/schema'
+import { entities, oes, audits } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
+import { AuditStatus, AuditType } from '~~/shared/types/enums'
 
 interface AssignOeBody {
-  oeId: number
+  oeId: number | null
 }
 
 export default defineEventHandler(async (event) => {
@@ -67,16 +68,89 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Vérifier que l'entité peut changer d'OE :
+  // - Pas d'audits OU dernier audit COMPLETED et de type MONITORING
+  const lastAudit = await db.query.audits.findFirst({
+    where: and(
+      eq(audits.entityId, entityIdInt),
+      isNull(audits.deletedAt)
+    ),
+    orderBy: desc(audits.createdAt),
+    columns: {
+      id: true,
+      status: true,
+      type: true,
+    }
+  })
+
+  if (lastAudit) {
+    const canChangeOe = lastAudit.status === AuditStatus.COMPLETED && lastAudit.type === AuditType.MONITORING
+    if (!canChangeOe) {
+      throw createError({
+        statusCode: 400,
+        message: 'Impossible de changer d\'OE : un audit est en cours ou le dernier audit n\'est pas un suivi terminé',
+      })
+    }
+  }
+
   // Récupérer les données du corps de la requête
   const body = await readBody<AssignOeBody>(event)
 
   const { oeId } = body
 
-  if (!oeId || typeof oeId !== 'number') {
+  // Valider que oeId est soit null soit un nombre
+  if (oeId !== null && typeof oeId !== 'number') {
     throw createError({
       statusCode: 400,
-      message: 'L\'ID de l\'OE est requis et doit être un nombre',
+      message: 'L\'ID de l\'OE doit être un nombre ou null',
     })
+  }
+
+  // Mode appel d'offre : désassigner l'OE (oeId = null)
+  if (oeId === null) {
+    // Vérifier que l'entité a un OE assigné
+    if (!existingEntity.oeId) {
+      throw createError({
+        statusCode: 400,
+        message: 'Cette entité n\'a pas d\'OE assigné',
+      })
+    }
+
+    console.log(`Passage en mode appel d'offre pour l'entité ID ${entityIdInt} par l'utilisateur ID ${currentUser.id}`)
+
+    // Mettre à jour l'entité pour retirer l'OE
+    await db
+      .update(entities)
+      .set(forUpdate(event, {
+        oeId: null
+      }))
+      .where(eq(entities.id, entityIdInt))
+
+    // Retourner l'entité mise à jour
+    const entityWithRelations = await db.query.entities.findFirst({
+      where: eq(entities.id, entityIdInt),
+      with: {
+        oe: {
+          columns: {
+            id: true,
+            name: true,
+          }
+        },
+        accountManager: {
+          columns: {
+            id: true,
+            firstname: true,
+            lastname: true,
+            email: true,
+          }
+        }
+      }
+    })
+
+    return {
+      data: entityWithRelations,
+      message: `L'entité ${existingEntity.name} est maintenant en mode appel d'offre`,
+    }
   }
 
   console.log(`Assignation de l'OE ID ${oeId} à l'entité ID ${entityIdInt} par l'utilisateur ID ${currentUser.id}`)

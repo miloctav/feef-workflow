@@ -1,5 +1,22 @@
 <template>
-  <UModal 
+  <!-- Bouton désactivé avec tooltip si disabled -->
+  <UTooltip v-if="disabled" :text="disabledReason">
+    <span class="inline-block">
+      <UButton
+        :icon="currentEntityOe ? 'i-lucide-edit' : 'i-lucide-plus'"
+        size="xs"
+        color="primary"
+        variant="outline"
+        :label="currentEntityOe ? 'Modifier OE' : 'Choisir OE'"
+        disabled
+        class="pointer-events-none"
+      />
+    </span>
+  </UTooltip>
+
+  <!-- Modal normal si pas disabled -->
+  <UModal
+    v-else
     :title="currentEntityOe ? 'Modifier l\'Organisme Évaluateur' : 'Sélectionner un Organisme Évaluateur'"
     :ui="{ footer: 'justify-end' }"
   >
@@ -51,6 +68,16 @@
 
     <template #footer="{ close }">
       <UButton
+        v-if="currentEntityOe"
+        label="Passer en appel d'offre"
+        color="warning"
+        variant="soft"
+        icon="i-lucide-megaphone"
+        :loading="assignOeLoading"
+        @click="handleTenderMode(close)"
+      />
+      <div class="flex-1" />
+      <UButton
         label="Annuler"
         color="neutral"
         variant="outline"
@@ -74,6 +101,8 @@ import type { OEWithRelations } from '~~/app/types/oes'
 interface Props {
   entityId?: number
   currentEntityOe?: { id: number; name: string } | null
+  disabled?: boolean
+  disabledReason?: string
 }
 
 interface Emits {
@@ -134,10 +163,10 @@ const handleConfirm = async (close: () => void) => {
 
     if (result.success) {
       emit('updated')
-      
+
       // Réinitialiser le formulaire
       selectedOeId.value = props.currentEntityOe?.id || undefined
-      
+
       // Fermer le modal
       close()
     }
@@ -147,6 +176,29 @@ const handleConfirm = async (close: () => void) => {
     toast.add({
       title: 'Erreur',
       description: error.message || 'Erreur inattendue lors de l\'assignation de l\'OE',
+      color: 'error',
+    })
+  }
+}
+
+// Gérer le passage en mode appel d'offre
+const handleTenderMode = async (close: () => void) => {
+  if (!props.entityId) {
+    return
+  }
+
+  try {
+    const result = await assignOe(props.entityId, null)
+
+    if (result.success) {
+      emit('updated')
+      selectedOeId.value = undefined
+      close()
+    }
+  } catch (error: any) {
+    toast.add({
+      title: 'Erreur',
+      description: error.message || 'Erreur inattendue lors du passage en mode appel d\'offre',
       color: 'error',
     })
   }

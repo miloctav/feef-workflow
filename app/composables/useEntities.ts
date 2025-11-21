@@ -359,7 +359,7 @@ export const useEntities = () => {
   /**
    * Assigner un OE à une entité
    */
-  const assignOe = async (id: number, oeId: number) => {
+  const assignOe = async (id: number, oeId: number | null) => {
     assignOeLoading.value = true
 
     try {

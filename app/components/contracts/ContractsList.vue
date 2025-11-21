@@ -83,6 +83,8 @@
                 v-if="user?.role === Role.ENTITY && currentEntity"
                 :entity-id="currentEntity.id"
                 :current-entity-oe="currentEntity.oe"
+                :disabled="!canChangeOe"
+                disabled-reason="Un audit est en cours. Vous pourrez changer d'OE après un audit de suivi terminé."
                 @updated="handleOeUpdated"
               />
             </div>
@@ -147,6 +149,7 @@
 
 <script setup lang="ts">
 import type { ContractWithRelations } from '~~/app/types/contracts'
+import { AuditStatus, AuditType } from '~~/shared/types/enums'
 
 const { user } = useAuth()
 
@@ -169,10 +172,28 @@ const {
   fetchContracts,
 } = useContracts()
 
-// Charger les contrats au montage
+// Récupérer les audits pour l'entité courante
+const { audits, setFilters: setAuditFilters, refresh: refreshAudits } = useAudits()
+
+// Vérifier si l'entité peut changer d'OE :
+// - Pas d'audits OU dernier audit COMPLETED et de type MONITORING
+const canChangeOe = computed(() => {
+  if (!audits.value || audits.value.length === 0) return true
+  // Trier par date de création décroissante pour avoir le dernier audit
+  const sortedAudits = [...audits.value].sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
+  const lastAudit = sortedAudits[0]
+  return lastAudit.status === AuditStatus.COMPLETED && lastAudit.type === AuditType.MONITORING
+})
+
+// Charger les contrats et audits au montage
 onMounted(async () => {
   if (entityId.value) {
     await fetchContracts(entityId.value)
+    // Charger les audits pour vérifier si on peut changer d'OE
+    setAuditFilters({ entityId: entityId.value })
+    await refreshAudits()
   }
 })
 

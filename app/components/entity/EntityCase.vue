@@ -32,9 +32,10 @@ const openFieldEditor = (fieldKey: string) => {
   isFieldEditorOpen.value = true
 }
 
-const handleSubmitCase = async () => {
+const handleSubmitCaseAndClose = async (close: () => void) => {
   if (!displayEntity.value) return
   await submitCase(displayEntity.value.id)
+  close()
 }
 
 const handleApproveCase = async () => {
@@ -122,17 +123,77 @@ const handleRefreshEntity = async () => {
               >
                 Valider le dossier
               </UButton>
-              <UButton
+              <UModal
                 v-if="!isFollowerView && user?.role === Role.ENTITY && !displayEntity?.caseSubmittedAt"
-                :disabled="!!displayEntity?.caseSubmittedAt || !!displayEntity?.caseApprovedAt || submitCaseLoading"
-                :loading="submitCaseLoading"
-                @click="handleSubmitCase"
-                variant="solid"
-                size="md"
-                icon="i-lucide-upload"
+                title="Confirmer le dépôt du dossier"
+                :ui="{ footer: 'justify-end' }"
               >
-                Déposer le dossier
-              </UButton>
+                <UButton
+                  :disabled="!!displayEntity?.caseSubmittedAt || !!displayEntity?.caseApprovedAt || submitCaseLoading"
+                  :loading="submitCaseLoading"
+                  variant="solid"
+                  size="md"
+                  icon="i-lucide-upload"
+                >
+                  Déposer le dossier
+                </UButton>
+
+                <template #body>
+                  <div class="space-y-4">
+                    <!-- Mode appel d'offre (pas d'OE assigné) -->
+                    <template v-if="!displayEntity?.oe">
+                      <UAlert
+                        color="info"
+                        icon="i-lucide-megaphone"
+                        title="Mode appel d'offre"
+                        description="Aucun Organisme Évaluateur n'est assigné. Vous pourrez en choisir un après le dépôt du dossier."
+                      />
+                    </template>
+
+                    <!-- OE assigné -->
+                    <template v-else>
+                      <UAlert
+                        color="warning"
+                        icon="i-lucide-alert-triangle"
+                        title="Organisme Évaluateur assigné"
+                      >
+                        <template #description>
+                          <p>
+                            L'audit sera réalisé par <strong>{{ displayEntity.oe.name }}</strong>.
+                          </p>
+                          <p class="mt-2">
+                            Ce choix ne sera <strong>plus modifiable</strong> après le dépôt du dossier.
+                          </p>
+                          <p class="mt-2 text-sm">
+                            Pour modifier, allez dans l'onglet <strong>Contrats</strong> où vous pouvez changer d'OE ou passer en mode appel d'offre.
+                          </p>
+                        </template>
+                      </UAlert>
+                    </template>
+
+                    <p class="text-sm text-gray-600">
+                      Êtes-vous sûr de vouloir déposer le dossier ?
+                    </p>
+                  </div>
+                </template>
+
+                <template #footer="{ close }">
+                  <UButton
+                    label="Annuler"
+                    color="neutral"
+                    variant="outline"
+                    :disabled="submitCaseLoading"
+                    @click="close"
+                  />
+                  <UButton
+                    label="Confirmer le dépôt"
+                    color="primary"
+                    icon="i-lucide-upload"
+                    :loading="submitCaseLoading"
+                    @click="handleSubmitCaseAndClose(close)"
+                  />
+                </template>
+              </UModal>
 
               <AssignAccountManagerModal v-if="!isFollowerView" />
 
