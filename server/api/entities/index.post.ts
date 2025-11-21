@@ -16,13 +16,14 @@ interface CreateEntityBody {
 }
 
 export default defineEventHandler(async (event) => {
-  // Vérifier que l'utilisateur est authentifié et a le role FEEF
   const { user: currentUser } = await requireUserSession(event)
 
-  if (currentUser.role !== 'FEEF') {
+  // FEEF peut créer n'importe quelle entité
+  // ENTITY peut créer uniquement des entités suiveuses liées à son currentEntity
+  if (currentUser.role !== 'FEEF' && currentUser.role !== 'ENTITY') {
     throw createError({
       statusCode: 403,
-      message: 'Accès refusé. Seul le role FEEF peut créer des entités.'
+      message: 'Accès refusé.'
     })
   }
 
@@ -67,6 +68,84 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Variable pour stocker l'entité maître (utilisée plus bas pour le cas COMPANY -> GROUP)
+  let masterEntityForUpdate: { id: number; type: string; parentGroupId: number | null } | null = null
+
+  // Validation spécifique pour le rôle ENTITY
+  if (currentUser.role === 'ENTITY') {
+    // Doit avoir un currentEntityId
+    if (!currentUser.currentEntityId) {
+      throw createError({
+        statusCode: 403,
+        message: 'Vous devez être associé à une entité pour créer des suiveuses.'
+      })
+    }
+
+    // Doit créer en mode FOLLOWER
+    if (mode !== EntityMode.FOLLOWER) {
+      throw createError({
+        statusCode: 403,
+        message: 'Vous ne pouvez créer que des entités suiveuses.'
+      })
+    }
+
+    // Récupérer l'entité maître pour valider le type
+    const masterEntity = await db.query.entities.findFirst({
+      where: eq(entities.id, currentUser.currentEntityId),
+      columns: { id: true, type: true, parentGroupId: true },
+      with: { childEntities: { columns: { id: true, type: true } } }
+    })
+
+    if (!masterEntity) {
+      throw createError({
+        statusCode: 404,
+        message: 'Entité maître non trouvée.'
+      })
+    }
+
+    // Si master est GROUP → ne peut créer que COMPANY (parentGroupId doit pointer vers le GROUP)
+    // Si master est COMPANY → ne peut créer que GROUP (pas de parentGroupId, on met à jour la COMPANY après)
+    if (masterEntity.type === EntityType.GROUP) {
+      if (type !== EntityType.COMPANY) {
+        throw createError({
+          statusCode: 400,
+          message: 'Un groupe ne peut avoir que des entreprises suiveuses.'
+        })
+      }
+      // Vérifier que parentGroupId pointe bien vers le GROUP master
+      if (parentGroupId !== currentUser.currentEntityId) {
+        throw createError({
+          statusCode: 403,
+          message: 'Vous ne pouvez créer des suiveuses que pour votre groupe.'
+        })
+      }
+      const existingFollowers = masterEntity.childEntities?.length || 0
+      if (existingFollowers >= 10) {
+        throw createError({
+          statusCode: 400,
+          message: 'Limite de 10 entreprises suiveuses atteinte.'
+        })
+      }
+    } else {
+      // Master est COMPANY → créer un GROUP follower
+      if (type !== EntityType.GROUP) {
+        throw createError({
+          statusCode: 400,
+          message: 'Une entreprise ne peut être liée qu\'à un groupe.'
+        })
+      }
+      // Vérifier que la COMPANY n'a pas déjà un groupe lié
+      if (masterEntity.parentGroupId) {
+        throw createError({
+          statusCode: 400,
+          message: 'Cette entreprise est déjà liée à un groupe.'
+        })
+      }
+      // Stocker pour mise à jour après création du GROUP
+      masterEntityForUpdate = masterEntity
+    }
+  }
+
   // Validation : si type=COMPANY et mode=FOLLOWER, parentGroupId est obligatoire
   if (type === EntityType.COMPANY && mode === EntityMode.FOLLOWER && !parentGroupId) {
     throw createError({
@@ -75,8 +154,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Si parentGroupId est fourni, vérifier que le groupe parent existe et est bien un GROUP
-  if (parentGroupId) {
+  // Si parentGroupId est fourni par FEEF, vérifier que le parent existe et est bien un GROUP
+  // (Pour ENTITY, la validation est déjà faite plus haut avec des règles spécifiques)
+  if (parentGroupId && currentUser.role === 'FEEF') {
     const parentGroup = await db.query.entities.findFirst({
       where: eq(entities.id, parentGroupId),
       columns: {
@@ -114,6 +194,13 @@ export default defineEventHandler(async (event) => {
   if (accountManagerId !== undefined) insertData.accountManagerId = accountManagerId
 
   const [newEntity] = await db.insert(entities).values(forInsert(event, insertData)).returning()
+
+  // Si une COMPANY master a créé un GROUP follower, mettre à jour la COMPANY pour pointer vers le GROUP
+  if (masterEntityForUpdate && newEntity.type === EntityType.GROUP) {
+    await db.update(entities)
+      .set({ parentGroupId: newEntity.id })
+      .where(eq(entities.id, masterEntityForUpdate.id))
+  }
 
   // Récupérer tous les documents types avec autoAsk = true
   const autoAskDocuments = await db.query.documentsType.findMany({

@@ -281,6 +281,9 @@ function buildFilterConditions(
       // Support multiple values (OR condition)
       if (Array.isArray(value)) {
         conditions.push(inArray(column, value))
+      } else if (value === 'null') {
+        // Handle "null" string as SQL NULL
+        conditions.push(isNull(column))
       } else {
         conditions.push(sql`${column} = ${value}`)
       }

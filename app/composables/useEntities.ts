@@ -479,6 +479,36 @@ export const useEntities = () => {
     currentEntity.value = null
   }
 
+  /**
+   * Lier une entité suiveuse existante à une entité maître
+   */
+  const linkFollowerEntity = async (entityId: number, parentEntityId: number) => {
+    try {
+      await $fetch(`/api/entities/${entityId}/link`, {
+        method: 'PUT',
+        body: { parentEntityId },
+      })
+
+      toast.add({
+        title: 'Succès',
+        description: 'Entité liée avec succès',
+        color: 'success',
+      })
+
+      return { success: true }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la liaison'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    }
+  }
+
   return {
     // Liste des entités (readonly)
     entities: readonly(entities),
@@ -525,6 +555,7 @@ export const useEntities = () => {
     assignAccountManager,
     assignOe,
     markDocumentaryReviewReady,
+    linkFollowerEntity,
     refresh,
     reset,
   }

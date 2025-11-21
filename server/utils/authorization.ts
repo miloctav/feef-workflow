@@ -101,9 +101,41 @@ export async function verifyEntityAccessForUser(
     return false
   }
 
-  // ENTITY doit être lié via accountsToEntities
+  // ENTITY doit être lié via accountsToEntities OU être une suiveuse de currentEntity
   if (user.role === Role.ENTITY) {
-    return entity.accountsToEntities.length > 0
+    // Accès direct via accountsToEntities
+    if (entity.accountsToEntities.length > 0) {
+      return true
+    }
+
+    // Accès aux entités suiveuses de currentEntity
+    if (user.currentEntityId) {
+      // Récupérer l'entité maître de l'utilisateur
+      const masterEntity = await db.query.entities.findFirst({
+        where: and(
+          eq(entities.id, user.currentEntityId),
+          isNull(entities.deletedAt)
+        ),
+        columns: {
+          id: true,
+          type: true,
+          parentGroupId: true
+        }
+      })
+
+      if (masterEntity) {
+        // Si master est un GROUP : l'entité demandée doit avoir parentGroupId = masterEntity.id ET mode = FOLLOWER
+        if (masterEntity.type === 'GROUP' && entity.parentGroupId === masterEntity.id && entity.mode === 'FOLLOWER') {
+          return true
+        }
+        // Si master est une COMPANY : l'entité demandée doit être le parentGroup du master ET mode = FOLLOWER
+        if (masterEntity.type === 'COMPANY' && masterEntity.parentGroupId === entityId && entity.mode === 'FOLLOWER') {
+          return true
+        }
+      }
+    }
+
+    return false
   }
 
   // AUDITOR doit être l'auditeur de l'audit le plus récent (non supprimé)
