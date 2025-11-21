@@ -385,7 +385,7 @@ const handleFileSelect = async (event: Event) => {
 
   if (!file || !documentData.value || !documentType.value) return
 
-  const result = await createDocumentVersion(documentData.value.id, file, documentType.value)
+  const result = await createDocumentVersion(documentData.value.id, file, documentType.value, props.auditDocumentType)
 
   if (result.success && result.data) {
     // Sélectionner automatiquement la nouvelle version (la plus récente)

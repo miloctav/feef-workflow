@@ -1,111 +1,163 @@
 <template>
   <UCard class="mb-6">
     <template #header>
-      <div class="flex items-center gap-2">
-        <UIcon name="i-lucide-file-chart-column" class="w-5 h-5 text-purple-600" />
-        <h4 class="font-semibold">Rapports d'audit</h4>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <UIcon name="i-lucide-file-chart-column" class="w-5 h-5 text-purple-600" />
+          <h4 class="font-semibold">Rapports d'audit</h4>
+        </div>
+        
+        <!-- Bouton pour uploader/modifier le rapport dans le header -->
+        <div v-if="canUploadReport || canModifyReport" class="ml-auto">
+          <AuditReportModal
+            :audit-id="currentAudit!.id"
+            :has-existing-report="hasReport"
+            @uploaded="handleReportUploaded"
+          />
+        </div>
       </div>
     </template>
-    
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Rapport d'audit -->
-      <div class="text-center p-4 bg-purple-50 rounded-lg border border-purple-200 cursor-pointer transition-all hover:bg-purple-100 hover:shadow-md group"
-           @click="viewRapport"
-           :class="{ 'opacity-50 cursor-not-allowed': !rapport?.isAvailable }">
-        <UIcon name="i-lucide-file-text" class="w-6 h-6 text-purple-600 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-        <h5 class="text-sm font-medium text-gray-900 mb-1">Rapport d'audit</h5>
-        <div class="space-y-1">
-          <p class="text-xs font-medium text-purple-800">
-              {{ rapport.dateTransmission ? 
-                `Transmis le ${rapport.dateTransmission}, par Jean Martin` : 
-                'Non disponible' }}
-          </p>
-          <div v-if="rapport?.isAvailable" class="flex items-center justify-center gap-1 text-xs text-gray-600">
-            <span>Cliquer pour consulter</span>
-            <UIcon name="i-lucide-external-link" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <!-- Card 1: Rapport d'audit -->
+      <AuditStepCard
+        title="Rapport d'audit"
+        :state="hasReport ? 'success' : 'warning'"
+        icon-success="i-lucide-file-check"
+        icon-warning="i-lucide-file-x"
+        label-success="Disponible"
+        label-warning="À uploader"
+        color-scheme="green"
+        :clickable="hasReport || canUploadReport"
+        :clickable-text="hasReport ? 'Cliquer pour consulter le rapport' : 'Cliquer pour importer un rapport'"
+        @click="viewReport"
+      >
+        <template #actions>
+          <!-- Actions vides car le bouton est maintenant dans le header -->
+        </template>
+
+        <template #content>
+          <!-- Informations du rapport disponible -->
+          <div v-if="hasReport && lastReportVersion">
+            <p class="text-xs text-gray-700">
+              {{ formatVersionInfo(lastReportVersion) }}
+            </p>
+          </div>
+          <!-- Message quand pas de rapport disponible -->
+          <div v-else>
+            <p class="text-xs text-gray-600">
+              Aucun rapport d'audit uploadé pour le moment
+            </p>
+          </div>
+        </template>
+      </AuditStepCard>
+
+      <!-- Card 2: Score global -->
+      <AuditStepCard
+        title="Score global"
+        :state="score !== null && score !== undefined ? 'success' : 'warning'"
+        icon-success="i-lucide-target"
+        icon-warning="i-lucide-target"
+        label-success="Attribué"
+        label-warning="Non attribué"
+        color-scheme="blue"
+      >
+        <template #content>
+          <div v-if="score !== null && score !== undefined" class="space-y-2">
+            <div class="text-2xl font-bold text-green-600">
+              {{ score }}%
+            </div>
+            <UBadge
+              :color="score >= 80 ? 'success' :
+                     score >= 60 ? 'warning' : 'error'"
+              variant="soft"
+              size="xs"
+            >
+              {{ score >= 80 ? 'Excellent' :
+                 score >= 60 ? 'Satisfaisant' : 'À améliorer' }}
+            </UBadge>
           </div>
           <div v-else>
-            <p class="text-xs text-gray-500 mb-2">Rapport non disponible</p>
-            <!-- Bouton pour mettre en ligne en phase 0 -->
-            <div v-if="selectedPhase === 'phase0'">
-              <UButton 
-                v-if="props.role !== 'company'"
-                color="primary" 
-                size="xs"
-                icon="i-lucide-upload"
-                :disabled="props.role !== 'oe'"
-                class="w-full"
-              >
-                Mettre en ligne
-              </UButton>
-              <p v-if="props.role !== 'company'" class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
-            </div>
+            <p class="text-xs text-gray-600">
+              Le score sera attribué lors de l'upload du rapport
+            </p>
           </div>
-        </div>
-      </div>
-
-      <!-- Score global de performance -->
-      <div class="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
-        <UIcon name="i-lucide-target" class="w-6 h-6 text-green-600 mx-auto mb-2" />
-        <h5 class="text-sm font-medium text-gray-900 mb-1">Score global</h5>
-        <div class="space-y-1">
-          <div v-if="performanceGlobale" class="text-2xl font-bold text-green-600">
-            {{ performanceGlobale }}%
-          </div>
-          <UBadge 
-            v-if="performanceGlobale"
-            :color="performanceGlobale >= 80 ? 'success' : 
-                   performanceGlobale >= 60 ? 'warning' : 'error'"
-            variant="soft"
-            size="xs"
-          >
-            {{ performanceGlobale >= 80 ? 'Excellent' : 
-               performanceGlobale >= 60 ? 'Satisfaisant' : 'À améliorer' }}
-          </UBadge>
-          <p v-else class="text-xs text-gray-500">Score non attribué</p>
-          
-          <!-- Boutons d'action pour phase 0 -->
-          <div v-if="selectedPhase === 'phase0'" class="mt-2">
-            <UButton 
-              v-if="props.role !== 'company'"
-              color="primary" 
-              size="xs"
-              icon="i-lucide-edit"
-              :disabled="props.role !== 'oe'"
-              class="w-full"
-            >
-              Saisir le score
-            </UButton>
-            <p v-if="props.role !== 'company'" class="text-xs text-gray-500 mt-1">Action FEEF/OE</p>
-          </div>
-        </div>
-      </div>
+        </template>
+      </AuditStepCard>
     </div>
+
+    <!-- DocumentViewer pour consulter les rapports d'audit -->
+    <DocumentViewer
+      :audit="currentAudit!"
+      :audit-document-type="AuditDocumentType.REPORT"
+      v-model:open="showDocumentViewer"
+    />
   </UCard>
 </template>
 
 <script setup lang="ts">
-interface Props {
-  rapport: {
-    isAvailable?: boolean | undefined
-    dateTransmission?: string | null | undefined
-  } | undefined
-  performanceGlobale: number | undefined
-  selectedPhase: string
-  role?: 'oe' | 'feef' | 'company'
-}
+import { Role } from '#shared/types/roles'
+import { AuditStatus } from '#shared/types/enums'
+import { AuditDocumentType } from '~~/app/types/auditDocuments'
 
-const props = withDefaults(defineProps<Props>(), {
-  role: 'feef'
+const { user } = useAuth()
+const { currentAudit, fetchAudit } = useAudits()
+
+// Inject isAuditEditable from parent (DecisionTab)
+const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
+
+// État pour le DocumentViewer
+const showDocumentViewer = ref(false)
+
+// Computed depuis currentAudit
+const score = computed(() => currentAudit.value?.score ?? null)
+const auditStatus = computed(() => currentAudit.value?.status ?? null)
+
+// Dernière version du rapport depuis l'audit (pas d'appel API séparé)
+const lastReportVersion = computed(() => {
+  return currentAudit.value?.lastDocumentVersions?.REPORT ?? null
 })
 
-const emit = defineEmits<{
-  viewRapport: []
-}>()
+// Computed
+const hasReport = computed(() => {
+  return lastReportVersion.value !== null
+})
 
-function viewRapport() {
-  if (props.rapport?.isAvailable) {
-    emit('viewRapport')
+const canUploadReport = computed(() => {
+  // OE peut uploader si PENDING_REPORT et pas de rapport et audit modifiable
+  return user.value?.role === Role.OE && auditStatus.value === AuditStatus.PENDING_REPORT && !hasReport.value && isAuditEditable.value
+})
+
+const canModifyReport = computed(() => {
+  // OE peut modifier le rapport tant que l'audit n'est pas terminé
+  return user.value?.role === Role.OE &&
+    hasReport.value &&
+    isAuditEditable.value
+})
+
+// Méthodes
+function formatVersionInfo(version: any) {
+  if (!version) return ''
+  const date = new Date(version.uploadAt)
+  const formattedDate = date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+  const uploaderName = version.uploadByAccount
+    ? `${version.uploadByAccount.firstname} ${version.uploadByAccount.lastname}`
+    : 'Inconnu'
+  return `Transmis le ${formattedDate} par ${uploaderName}`
+}
+
+function viewReport() {
+  showDocumentViewer.value = true
+}
+
+async function handleReportUploaded() {
+  // Recharger l'audit pour mettre à jour lastDocumentVersions
+  if (currentAudit.value) {
+    await fetchAudit(currentAudit.value.id)
   }
 }
 </script>

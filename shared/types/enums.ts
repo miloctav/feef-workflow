@@ -133,6 +133,33 @@ export function getAuditTypeLabel(type: AuditTypeType): string {
   return AuditTypeLabels[type] || type
 }
 
+/**
+ * Statuts d'audit
+ */
+export const AuditStatus = {
+  PLANNING: 'PLANNING',
+  PENDING_REPORT: 'PENDING_REPORT',
+  PENDING_CORRECTIVE_PLAN: 'PENDING_CORRECTIVE_PLAN',
+  PENDING_CORRECTIVE_PLAN_VALIDATION: 'PENDING_CORRECTIVE_PLAN_VALIDATION',
+  PENDING_OE_OPINION: 'PENDING_OE_OPINION',
+  PENDING_FEEF_DECISION: 'PENDING_FEEF_DECISION',
+  COMPLETED: 'COMPLETED',
+} as const
+
+export type AuditStatusType = typeof AuditStatus[keyof typeof AuditStatus]
+
+/**
+ * Labels français pour les statuts d'audit
+ */
+export const AuditStatusLabels: Record<AuditStatusType, string> = {
+  [AuditStatus.PLANNING]: 'Planification',
+  [AuditStatus.PENDING_REPORT]: 'En attente du rapport',
+  [AuditStatus.PENDING_CORRECTIVE_PLAN]: 'En attente du plan correctif',
+  [AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION]: 'En attente de validation du plan',
+  [AuditStatus.PENDING_OE_OPINION]: 'En attente de l\'avis OE',
+  [AuditStatus.PENDING_FEEF_DECISION]: 'En attente de décision FEEF',
+  [AuditStatus.COMPLETED]: 'Terminé',
+}
 
 export const DocumentCategory = {
   LEGAL: 'LEGAL',

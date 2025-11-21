@@ -6,186 +6,205 @@
           <UIcon name="i-lucide-shield-check" class="w-5 h-5 text-purple-600" />
           <h4 class="font-semibold">Avis de l'Organisme Évaluateur</h4>
         </div>
-        <UBadge 
-          v-if="avis?.avis"
-          :color="avis.avis === 'favorable' ? 'success' : avis.avis === 'défavorable' ? 'error' : 'warning'"
-          variant="solid"
-          size="sm"
-        >
-          {{ avis.avis === 'favorable' ? 'Favorable' : avis.avis === 'défavorable' ? 'Défavorable' : 'En cours' }}
-        </UBadge>
+        
+        <!-- Bouton pour émettre/modifier l'avis dans le header -->
+        <div v-if="canSubmitOpinion || canModifyOpinion" class="ml-auto">
+          <OEOpinionModal
+            :audit-id="currentAudit!.id"
+            @submitted="handleOpinionSubmitted"
+          />
+        </div>
       </div>
     </template>
 
-    <!-- Contenu sur une seule ligne avec deux colonnes -->
-    <div class="grid grid-cols-2 gap-6">
-      <!-- Colonne 1: Date, points bloquants et argumentaire -->
-      <div class="space-y-3">
-        <!-- Informations sur la date et points bloquants -->
-        <div v-if="avis?.dateTransmission" class="p-3 bg-purple-50 rounded-lg border border-purple-200">
-          <div class="space-y-2">
-            <!-- Date de transmission -->
-            <div class="flex items-center gap-2 text-sm">
-              <UIcon name="i-lucide-calendar" class="w-4 h-4 text-purple-600" />
-              <span class="text-purple-900 font-medium">{{ avis.dateTransmission }}</span>
-            </div>
-            
-            <!-- Points bloquants -->
-            <div v-if="avis?.absencePointsBloquants !== undefined" class="flex items-center gap-2">
-              <UIcon 
-                :name="avis.absencePointsBloquants ? 'i-lucide-check-circle' : 'i-lucide-alert-triangle'"
-                class="w-4 h-4"
-                :class="avis.absencePointsBloquants ? 'text-green-600' : 'text-red-600'"
-              />
-              <span class="text-sm font-medium"
-                :class="avis.absencePointsBloquants ? 'text-green-800' : 'text-red-800'"
-              >
-                {{ avis.absencePointsBloquants ? 'Aucun point bloquant' : 'Points bloquants détectés' }}
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <div v-else class="space-y-2">
-            <div v-if="role === 'feef'" class="p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-clock" class="w-4 h-4 text-gray-600" />
-              <span class="text-gray-700">En attente de l'avis de l'OE</span>
-            </div>
-            </div>
-          
-          <!-- Phase 3 : affichage selon le rôle -->
-          <div v-if="selectedPhase === 'phase3'">
-            <template v-if="props.role === 'company'">
-              <p class="text-xs text-gray-500 text-center">En attente que l'OE rentre son avis.</p>
-            </template>
-            <template v-else>
-              <UButton 
-                color="primary" 
-                size="xs"
-                icon="i-lucide-edit"
-                class="w-full"
-                :disabled="props.role !== 'oe'"
-              >
-                Saisir l'avis OE
-              </UButton>
-              <UButton 
-                color="primary" 
-                size="xs"
-                icon="i-lucide-edit"
-                class="w-full"
-                :disabled="props.role !== 'oe'"
-              >
-                Mettre en ligne l'avis de labellisation
-              </UButton>
-              <p class="text-xs text-gray-500 text-center mt-1">Action OE</p>
-            </template>
-          </div>
-        </div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <!-- Card 1: Avis OE (75% de largeur) -->
+      <AuditStepCard
+        class="md:col-span-3"
+        title="Avis OE"
+        :state="opinionState"
+        icon-success="i-lucide-check-circle"
+        :icon-warning="hasOpinion ? 'i-lucide-alert-triangle' : 'i-lucide-file-pen'"
+        icon-error="i-lucide-x-circle"
+        icon-pending="i-lucide-clock"
+        :label-success="opinionLabel"
+        :label-warning="hasOpinion ? opinionLabel : 'À émettre'"
+        :label-error="opinionLabel"
+        label-pending="En attente"
+        color-scheme="gray"
+      >
 
-        <!-- Argumentaire de l'OE -->
-        <div v-if="avis?.argumentaire" class="p-3 bg-purple-50 rounded-lg border border-purple-200">
-          <h5 class="text-sm font-semibold text-purple-900 mb-2 flex items-center gap-2">
-            <UIcon name="i-lucide-message-square-text" class="w-4 h-4" />
-            Argumentaire
-          </h5>
-          <p class="text-sm text-purple-800 leading-relaxed">{{ avis.argumentaire }}</p>
-        </div>
-      </div>
-
-      <!-- Colonne 2: Avis de labellisation -->
-      <div class="space-y-3">
-        <!-- Avis de labellisation (si favorable) -->
-        <div v-if="avis?.avis === 'favorable' && avis?.avisLabellisation?.isAvailable" class="p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <div class="flex items-center gap-3 mb-2">
-            <UIcon name="i-lucide-certificate" class="w-4 h-4 text-blue-600" />
-            <span class="text-sm font-medium text-blue-900">Avis de labellisation</span>
-          </div>
-          <p class="text-xs text-blue-800 mb-2">
-            Document officiel de labellisation émis par l'Organisme Évaluateur suite à l'avis favorable.
-          </p>
-          
-          <!-- Date de dépôt -->
-          <div v-if="avis.avisLabellisation.dateTransmission" class="flex items-center gap-2 mb-3 text-xs text-blue-700">
-            <UIcon name="i-lucide-calendar-plus" class="w-3 h-3" />
-            <span>Émis le {{ avis.avisLabellisation.dateTransmission }} par Jean Dupont</span>
-          </div>
-          
-          <!-- Bouton pour consulter -->
-          <UButton 
-            @click="viewAvisLabellisation"
-            variant="outline" 
-            color="primary" 
-            size="xs"
-            icon="i-lucide-eye"
-            label="Consulter l'avis de labellisation"
-            class="w-full"
-          />
-        </div>
-        
-        <!-- Bouton pour ajouter avis de labellisation (phase 4 uniquement) -->
-        <div v-else-if="selectedPhase === 'phase4' && avis?.avis === 'favorable' && !avis?.avisLabellisation?.isAvailable" class="space-y-2">
-          <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <div class="flex items-center gap-3 mb-2">
-              <UIcon name="i-lucide-certificate" class="w-4 h-4 text-blue-600" />
-              <span class="text-sm font-medium text-blue-900">Avis de labellisation</span>
+        <template #content>
+          <div v-if="hasOpinion">
+            <p class="text-xs text-gray-700">
+              Transmis le {{ formatDate(transmittedAt) }}
+            </p>
+            <p class="text-xs text-gray-600 mt-1" v-if="transmittedByAccount">
+              Par {{ transmittedByAccount.firstname }} {{ transmittedByAccount.lastname }}
+            </p>
+            <!-- Argumentaire et Conditions côte à côte -->
+            <div class="mt-2 flex gap-2">
+              <!-- Argumentaire -->
+              <div v-if="argumentaire" :class="['p-2 bg-gray-50 rounded border border-gray-200', opinion === 'RESERVED' && conditions ? 'flex-1' : 'w-full']">
+                <p class="text-xs font-medium text-gray-700">Argumentaire :</p>
+                <p class="text-xs text-gray-600 mt-1 whitespace-pre-line">{{ argumentaire }}</p>
+              </div>
+              <!-- Conditions si avis réservé -->
+              <div v-if="opinion === 'RESERVED' && conditions" class="flex-1 p-2 bg-yellow-50 rounded border border-yellow-200">
+                <p class="text-xs font-medium text-yellow-800">Conditions :</p>
+                <p class="text-xs text-yellow-700 mt-1 whitespace-pre-line">{{ conditions }}</p>
+              </div>
             </div>
-            <p class="text-xs text-blue-800 mb-2">
-              Document officiel de labellisation à émettre suite à l'avis favorable.
+          </div>
+          <div v-else>
+            <p class="text-xs text-gray-600">
+              {{ canSubmitOpinion ? 'Prêt à émettre l\'avis' : 'En attente de l\'avis de l\'OE' }}
             </p>
           </div>
-          
-          <!-- Boutons pour phase 4 -->
-          <div class="space-y-2">
-            <UButton 
-              color="primary" 
-              size="xs"
-              icon="i-lucide-plus"
-              class="w-full"
-            >
-              Ajouter l'avis de labellisation
-            </UButton>
-            <UButton 
-              color="success" 
-              size="xs"
-              icon="i-lucide-upload"
-              class="w-full"
-            >
-              Mettre en ligne l'avis de labellisation
-            </UButton>
-            <p class="text-xs text-gray-500 text-center">Actions FEEF/OE</p>
+        </template>
+      </AuditStepCard>
+
+      <!-- Card 2: Document d'avis (25% de largeur) -->
+      <AuditStepCard
+        class="md:col-span-1"
+        title="Document d'avis"
+        :state="hasDocument ? 'success' : 'warning'"
+        icon-success="i-lucide-file-check"
+        icon-warning="i-lucide-file-x"
+        label-success="Disponible"
+        label-warning="À uploader"
+        color-scheme="gray"
+        :clickable="hasDocument || canSubmitOpinion"
+        :clickable-text="hasDocument ? 'Cliquer pour consulter le document' : 'Cliquer pour importer un document'"
+        @click="viewDocument"
+      >
+        <template #content>
+          <div v-if="hasDocument && lastDocumentVersion">
+            <p class="text-xs text-gray-700">
+              {{ formatVersionInfo(lastDocumentVersion) }}
+            </p>
           </div>
-        </div>
-      </div>
+          <div v-else>
+            <p class="text-xs text-gray-600">
+              Le document sera uploadé avec l'avis
+            </p>
+          </div>
+        </template>
+      </AuditStepCard>
     </div>
+
+    <!-- DocumentViewer pour consulter le document d'avis -->
+    <DocumentViewer
+      :audit="currentAudit!"
+      :audit-document-type="AuditDocumentType.OE_OPINION"
+      v-model:open="showDocumentViewer"
+    />
   </UCard>
 </template>
 
 <script setup lang="ts">
-interface Props {
-  avis: {
-    avis?: string | null | undefined
-    dateTransmission?: string | null | undefined
-    argumentaire?: string | null | undefined
-    absencePointsBloquants?: boolean | undefined
-    avisLabellisation?: {
-      isAvailable?: boolean | undefined
-      dateTransmission?: string | null | undefined
-    }
-  }
-  selectedPhase: string
-  role?: "oe" | "feef" | "company"
-}
+import { Role } from '#shared/types/roles'
+import { AuditStatus } from '#shared/types/enums'
+import { AuditDocumentType } from '~~/app/types/auditDocuments'
 
-const props = withDefaults(defineProps<Props>(), {
-  role: 'feef'
+const { user } = useAuth()
+const { currentAudit, fetchAudit } = useAudits()
+
+// Inject isAuditEditable from parent (DecisionTab)
+const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
+
+// État local
+const showDocumentViewer = ref(false)
+
+// Computed depuis currentAudit
+const opinion = computed(() => currentAudit.value?.oeOpinion ?? null)
+const argumentaire = computed(() => currentAudit.value?.oeOpinionArgumentaire ?? null)
+const conditions = computed(() => (currentAudit.value as any)?.oeOpinionConditions ?? null)
+const transmittedAt = computed(() => currentAudit.value?.oeOpinionTransmittedAt ?? null)
+const transmittedByAccount = computed(() => (currentAudit.value as any)?.oeOpinionTransmittedByAccount ?? null)
+const auditStatus = computed(() => currentAudit.value?.status ?? null)
+
+// Dernière version du document d'avis depuis l'audit (pas d'appel API séparé)
+const lastDocumentVersion = computed(() => {
+  return currentAudit.value?.lastDocumentVersions?.OE_OPINION ?? null
 })
 
-const emit = defineEmits<{
-  viewAvisLabellisation: []
-}>()
+// Computed
+const hasOpinion = computed(() => {
+  return opinion.value !== null && opinion.value !== undefined
+})
 
-function viewAvisLabellisation() {
-  emit('viewAvisLabellisation')
+const opinionState = computed(() => {
+  if (!hasOpinion.value) {
+    return canSubmitOpinion.value ? 'warning' : 'pending'
+  }
+  // Favorable = success (vert), Réservé = warning (orange), Défavorable = error (rouge)
+  if (opinion.value === 'FAVORABLE') return 'success'
+  if (opinion.value === 'RESERVED') return 'warning'
+  if (opinion.value === 'UNFAVORABLE') return 'error'
+  return 'success'
+})
+
+const hasDocument = computed(() => {
+  return lastDocumentVersion.value !== null
+})
+
+const canSubmitOpinion = computed(() => {
+  // L'OE peut émettre l'avis si PENDING_OE_OPINION et pas encore d'avis et audit modifiable
+  return user.value?.role === Role.OE && (auditStatus.value === AuditStatus.PENDING_OE_OPINION || auditStatus.value === AuditStatus.PENDING_FEEF_DECISION) && !hasOpinion.value && isAuditEditable.value
+})
+
+const canModifyOpinion = computed(() => {
+  // L'OE peut modifier l'avis tant que FEEF n'a pas pris de décision et audit modifiable
+  return user.value?.role === Role.OE &&
+    hasOpinion.value &&
+    (auditStatus.value === AuditStatus.PENDING_OE_OPINION || auditStatus.value === AuditStatus.PENDING_FEEF_DECISION) &&
+    isAuditEditable.value
+})
+
+const opinionLabel = computed(() => {
+  if (!opinion.value) return ''
+  const labels: Record<string, string> = {
+    'FAVORABLE': 'Favorable',
+    'UNFAVORABLE': 'Défavorable',
+    'RESERVED': 'Réservé'
+  }
+  return labels[opinion.value] || opinion.value
+})
+
+// Méthodes
+function formatDate(date: Date | string | null | undefined) {
+  if (!date) return ''
+  const d = new Date(date)
+  return d.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+}
+
+function formatVersionInfo(version: any) {
+  if (!version) return ''
+  const date = new Date(version.uploadAt)
+  const formattedDate = date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+  const uploaderName = version.uploadByAccount
+    ? `${version.uploadByAccount.firstname} ${version.uploadByAccount.lastname}`
+    : 'Inconnu'
+  return `Transmis le ${formattedDate} par ${uploaderName}`
+}
+
+function viewDocument() {
+  showDocumentViewer.value = true
+}
+
+async function handleOpinionSubmitted() {
+  // Recharger l'audit pour mettre à jour lastDocumentVersions
+  if (currentAudit.value) {
+    await fetchAudit(currentAudit.value.id)
+  }
 }
 </script>

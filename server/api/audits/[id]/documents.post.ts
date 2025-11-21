@@ -1,9 +1,11 @@
 import { db } from '~~/server/database'
-import { audits, documentVersions, entities } from '~~/server/database/schema'
+import { audits, documentVersions, entities, accountsToEntities } from '~~/server/database/schema'
 import { eq, and, isNull, isNotNull, desc } from 'drizzle-orm'
 import { uploadFile } from '~~/server/services/garage'
 import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
+import { handleAuditDocumentUpload } from '~~/server/utils/auditWorkflow'
 import { Role } from '#shared/types/roles'
+import type { AuditDocumentTypeType } from '~~/app/types/auditDocuments'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -53,7 +55,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Valider que le type de document est bien un des types attendus
-  const validTypes = ['PLAN', 'REPORT', 'CORRECTIVE_PLAN']
+  const validTypes = ['PLAN', 'REPORT', 'CORRECTIVE_PLAN', 'OE_OPINION']
   if (!validTypes.includes(auditDocumentType)) {
     throw createError({
       statusCode: 400,
@@ -94,30 +96,81 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Autorisation : FEEF, OE (qui gère l'audit), AUDITOR (assigné à l'audit)
+  // Autorisation selon le type de document
+  // PLAN et REPORT: FEEF, OE (qui gère l'audit), AUDITOR (assigné à l'audit)
+  // CORRECTIVE_PLAN: FEEF, OE, ENTITY (qui appartient à l'entité de l'audit)
   if (user.role === Role.FEEF) {
     // FEEF a accès à tout
-  } else if (user.role === Role.OE) {
-    // Vérifier que l'OE est bien celui qui gère l'audit
-    if (audit.oeId !== user.oeId) {
+  } else if (auditDocumentType === 'PLAN' || auditDocumentType === 'REPORT') {
+    // Pour PLAN et REPORT: OE ou AUDITOR uniquement
+    if (user.role === Role.OE) {
+      // Vérifier que l'OE est bien celui qui gère l'audit
+      if (audit.oeId !== user.oeId) {
+        throw createError({
+          statusCode: 403,
+          message: 'Seul l\'OE assigné à cet audit peut uploader ce document',
+        })
+      }
+    } else if (user.role === Role.AUDITOR) {
+      // Vérifier que l'auditeur est bien celui assigné à l'audit
+      if (audit.auditorId !== user.id) {
+        throw createError({
+          statusCode: 403,
+          message: 'Seul l\'auditeur assigné à cet audit peut uploader ce document',
+        })
+      }
+    } else {
       throw createError({
         statusCode: 403,
-        message: 'Vous n\'avez pas accès à cet audit',
+        message: 'Seuls OE et AUDITOR peuvent uploader le plan ou le rapport d\'audit',
       })
     }
-  } else if (user.role === Role.AUDITOR) {
-    // Vérifier que l'auditeur est bien celui assigné à l'audit
-    if (audit.auditorId !== user.id) {
+  } else if (auditDocumentType === 'CORRECTIVE_PLAN') {
+    // Pour CORRECTIVE_PLAN: ENTITY uniquement (celle de l'audit)
+    if (user.role === Role.ENTITY) {
+      // Vérifier que l'utilisateur appartient bien à l'entité de l'audit
+      const accountToEntity = await db.query.accountsToEntities.findFirst({
+        where: and(
+          eq(accountsToEntities.accountId, user.id),
+          eq(accountsToEntities.entityId, audit.entityId)
+        ),
+      })
+
+      if (!accountToEntity) {
+        throw createError({
+          statusCode: 403,
+          message: 'Vous n\'avez pas accès à cet audit',
+        })
+      }
+    } else if (user.role === Role.OE) {
+      // L'OE peut aussi uploader le plan correctif si besoin
+      if (audit.oeId !== user.oeId) {
+        throw createError({
+          statusCode: 403,
+          message: 'Vous n\'avez pas accès à cet audit',
+        })
+      }
+    } else {
       throw createError({
         statusCode: 403,
-        message: 'Vous n\'êtes pas assigné à cet audit',
+        message: 'Seule l\'entreprise peut uploader le plan d\'action correctif',
       })
     }
-  } else {
-    throw createError({
-      statusCode: 403,
-      message: 'Seuls FEEF, OE et AUDITOR peuvent créer des documents d\'audit',
-    })
+  } else if (auditDocumentType === 'OE_OPINION') {
+    // Pour OE_OPINION: OE uniquement (celui qui gère l'audit)
+    if (user.role === Role.OE) {
+      if (audit.oeId !== user.oeId) {
+        throw createError({
+          statusCode: 403,
+          message: 'Seul l\'OE assigné à cet audit peut uploader l\'avis',
+        })
+      }
+    } else {
+      throw createError({
+        statusCode: 403,
+        message: 'Seul l\'OE peut uploader l\'avis',
+      })
+    }
   }
 
   // Déterminer le type MIME du fichier
@@ -191,11 +244,13 @@ export default defineEventHandler(async (event) => {
     .set({ s3Key: uploadedS3Key })
     .where(eq(documentVersions.id, newVersion.id))
 
-  // TODO: Ajouter ici les actions particulières futures
-  // - Notifications aux parties prenantes
-  // - Mise à jour du workflow de l'audit
-  // - Logs d'activité
-  // - etc.
+  // Transition automatique du workflow si applicable
+  await handleAuditDocumentUpload(
+    auditId,
+    auditDocumentType as AuditDocumentTypeType,
+    audit.status,
+    user.id
+  )
 
   // Récupérer la version créée avec les infos de l'uploader
   const versionWithUploader = await db.query.documentVersions.findFirst({

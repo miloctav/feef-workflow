@@ -13,6 +13,12 @@ interface UpdateAuditBody {
   actualEndDate?: string | null
   score?: number | null
   labelingOpinion?: any | null
+  status?: string
+  oeOpinion?: string
+  oeOpinionArgumentaire?: string
+  oeOpinionConditions?: string | null
+  feefDecision?: string
+  labelExpirationDate?: string | null
 }
 
 /**
@@ -29,8 +35,12 @@ interface UpdateAuditBody {
  * - plannedEndDate: date de fin prévisionnelle (format: YYYY-MM-DD)
  * - actualStartDate: date de début réelle (format: YYYY-MM-DD)
  * - actualEndDate: date de fin réelle (format: YYYY-MM-DD)
- * - score: score de l'audit
+ * - score: score de l'audit (OE uniquement)
  * - labelingOpinion: avis de labellisation (JSON)
+ * - status: statut du workflow de l'audit
+ * - oeOpinion: avis de l'OE (FAVORABLE, UNFAVORABLE, RESERVED) - OE uniquement
+ * - oeOpinionArgumentaire: argumentaire de l'avis OE - OE uniquement
+ * - feefDecision: décision FEEF (PENDING, ACCEPTED, REJECTED) - FEEF uniquement
  *
  * Autorisations: FEEF et OE
  */
@@ -72,14 +82,37 @@ export default defineEventHandler(async (event) => {
   if (!existingAudit) {
     throw createError({
       statusCode: 404,
-      message: 'Audit non trouv�',
+      message: 'Audit non trouvé',
+    })
+  }
+
+  // Vérifier que l'audit n'est pas terminé
+  if (existingAudit.status === 'COMPLETED') {
+    throw createError({
+      statusCode: 403,
+      message: 'Impossible de modifier un audit terminé',
     })
   }
 
   // Récupérer les données du corps de la requête
   const body = await readBody<UpdateAuditBody>(event)
 
-  const { oeId, auditorId, plannedStartDate, plannedEndDate, actualStartDate, actualEndDate, score, labelingOpinion } = body
+  const {
+    oeId,
+    auditorId,
+    plannedStartDate,
+    plannedEndDate,
+    actualStartDate,
+    actualEndDate,
+    score,
+    labelingOpinion,
+    status,
+    oeOpinion,
+    oeOpinionArgumentaire,
+    oeOpinionConditions,
+    feefDecision,
+    labelExpirationDate,
+  } = body
 
   // Vérifier qu'au moins un champ est fourni
   if (
@@ -90,12 +123,34 @@ export default defineEventHandler(async (event) => {
     actualStartDate === undefined &&
     actualEndDate === undefined &&
     score === undefined &&
-    labelingOpinion === undefined
+    labelingOpinion === undefined &&
+    status === undefined &&
+    oeOpinion === undefined &&
+    oeOpinionArgumentaire === undefined &&
+    oeOpinionConditions === undefined &&
+    feefDecision === undefined &&
+    labelExpirationDate === undefined
   ) {
     throw createError({
       statusCode: 400,
       message: 'Au moins un champ doit être fourni pour la modification',
     })
+  }
+
+  // Vérifications de permissions selon le rôle
+  if (currentUser.role === Role.OE) {
+    // OE ne peut modifier que certains champs
+    if (feefDecision !== undefined) {
+      throw createError({
+        statusCode: 403,
+        message: 'Seul FEEF peut modifier la décision FEEF',
+      })
+    }
+    // OE peut modifier: score, oeOpinion, oeOpinionArgumentaire, status
+  } else if (currentUser.role === Role.FEEF) {
+    // FEEF peut tout modifier
+  } else {
+    // Autres rôles: pas d'accès (déjà géré par requireAuditAccess)
   }
 
   // Si oeId est fourni, v�rifier que l'OE existe
@@ -142,7 +197,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Préparer les données à mettre à jour
-  const updateData: Partial<UpdateAuditBody> = {}
+  const updateData: any = {}
 
   if (oeId !== undefined) updateData.oeId = oeId
   if (auditorId !== undefined) updateData.auditorId = auditorId
@@ -152,6 +207,32 @@ export default defineEventHandler(async (event) => {
   if (actualEndDate !== undefined) updateData.actualEndDate = actualEndDate
   if (score !== undefined) updateData.score = score
   if (labelingOpinion !== undefined) updateData.labelingOpinion = labelingOpinion
+  if (status !== undefined) updateData.status = status
+
+  // Gestion de l'avis OE avec timestamps automatiques
+  if (oeOpinion !== undefined) {
+    updateData.oeOpinion = oeOpinion
+    updateData.oeOpinionTransmittedAt = new Date()
+    updateData.oeOpinionTransmittedBy = currentUser.id
+    // Transition automatique vers PENDING_FEEF_DECISION si pas déjà fait
+    if (!status && existingAudit.status === 'PENDING_OE_OPINION') {
+      updateData.status = 'PENDING_FEEF_DECISION'
+    }
+  }
+  if (oeOpinionArgumentaire !== undefined) {
+    updateData.oeOpinionArgumentaire = oeOpinionArgumentaire
+  }
+  if (oeOpinionConditions !== undefined) {
+    updateData.oeOpinionConditions = oeOpinionConditions
+  }
+
+  // Gestion de la décision FEEF avec timestamps automatiques
+  if (feefDecision !== undefined) {
+    updateData.feefDecision = feefDecision
+    updateData.feefDecisionAt = new Date()
+    updateData.feefDecisionBy = currentUser.id
+  }
+  if (labelExpirationDate !== undefined) updateData.labelExpirationDate = labelExpirationDate
 
   // Mettre � jour l'audit
   const [updatedAudit] = await db

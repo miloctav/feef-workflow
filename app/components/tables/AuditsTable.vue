@@ -67,6 +67,8 @@ import {
   type AuditTypeType,
   getAuditTypeItems,
   getAuditTypeLabel,
+  AuditStatusLabels,
+  type AuditStatusType,
 } from '#shared/types/enums'
 
 const props = withDefaults(defineProps<{
@@ -182,6 +184,16 @@ const columns = computed(() => {
         }
         const color = colorMap[type] || 'neutral'
         return h(resolveComponent('UBadge'), { color, variant: 'soft', size: 'sm' }, () => label)
+      },
+    },
+    {
+      accessorKey: 'status',
+      header: 'Statut',
+      cell: ({ row }) => {
+        const status = row.original.status as AuditStatusType | null
+        if (!status) return '-'
+        const label = AuditStatusLabels[status] || status
+        return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'subtle', size: 'sm' }, () => label)
       },
     },
     {

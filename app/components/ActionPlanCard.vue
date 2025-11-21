@@ -1,5 +1,5 @@
 <template>
-  <UCard v-if="needsPlanAction" class="mb-6">
+  <UCard class="mb-6">
     <template #header>
       <div class="flex items-center gap-2">
         <UIcon name="i-lucide-clipboard-check" class="w-5 h-5 text-orange-500" />
@@ -7,111 +7,197 @@
       </div>
     </template>
 
-    <div class="space-y-4">
-      <!-- Plan d'action disponible ou en attente -->
-      <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-file-text" class="w-4 h-4 text-orange-600" />
-            <span class="text-sm font-medium text-orange-900">Plan d'action corrective</span>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Card 1: Plan d'action -->
+      <AuditStepCard
+        title="Plan d'action corrective"
+        :state="hasPlan ? 'success' : 'warning'"
+        icon-success="i-lucide-file-check"
+        icon-warning="i-lucide-file-x"
+        label-success="Disponible"
+        label-warning="À uploader"
+        color-scheme="orange"
+        :clickable="hasPlan || canUploadPlan"
+        :clickable-text="hasPlan ? 'Cliquer pour consulter le plan' : 'Cliquer pour importer un plan'"
+        @click="viewPlan"
+      >
+        <template #content>
+          <!-- Informations du plan disponible -->
+          <div v-if="hasPlan && lastPlanVersion">
+            <p class="text-xs text-gray-700">
+              {{ formatVersionInfo(lastPlanVersion) }}
+            </p>
           </div>
-        </div>
+        </template>
+      </AuditStepCard>
 
-        <p class="text-xs text-orange-800 mb-2">
-          Plan détaillant les mesures correctives suite à la performance insuffisante ({{ performanceGlobale }}%).
-        </p>
-
-        <!-- Informations selon l'état -->
-        <div class="space-y-2">
-          <!-- Plan d'action disponible -->
-          <div v-if="planAction?.isAvailable" class="space-y-2">
-            <!-- Date de transmission -->
-            <div class="flex items-center gap-2 text-xs text-orange-700">
-              <UIcon name="i-lucide-calendar-plus" class="w-3 h-3" />
-              <span>Déposé le {{ planAction.dateTransmission }}</span>
-            </div>
-
-            <!-- Validation OE -->
-            <div v-if="planAction?.valideParOE" class="flex items-center gap-2 text-xs text-green-700">
-              <UIcon name="i-lucide-check-circle" class="w-3 h-3" />
-              <span>Validé par l'OE le {{ planAction.dateValidation }}</span>
-            </div>
-            <div v-else-if="selectedPhase === 'phase2b'" class="space-y-2">
-              <div class="flex items-center gap-2 text-xs text-amber-700">
-                <UIcon name="i-lucide-clock" class="w-3 h-3" />
-                <span>En attente de validation par l'OE</span>
-              </div>
-              <div class="flex gap-2">
-                <UButton v-if="props.role === 'oe'" color="success" size="xs" icon="i-lucide-check" class="flex-1">
-                  Valider
-                </UButton>
-                <UButton v-if="props.role === 'oe'" color="error" size="xs" icon="i-lucide-x" class="flex-1">
-                  Refuser
-                </UButton>
-              </div>
-            </div>
-            <div v-else class="space-y-2">
-              <div class="flex items-center gap-2 text-xs text-amber-700">
-                <UIcon name="i-lucide-clock" class="w-3 h-3" />
-                <span>En cours d'examen par l'Organisme Évaluateur</span>
-              </div>
-              <UButton color="success" size="xs" icon="i-lucide-check" disabled class="w-full">
-                Valider le plan d'action
-              </UButton>
-              <p class="text-xs text-gray-500 text-center">Action OE</p>
-            </div>
-          </div>
-
-          <!-- Plan d'action non transmis -->
-          <div v-else class="space-y-2">
-            <div class="flex items-center gap-2 text-xs text-red-700">
-              <UIcon name="i-lucide-calendar-x" class="w-3 h-3" />
-              <span>À remettre avant le {{ planAction.dateLimiteDepot || '12/12/2025' }}</span>
-            </div>
-            <!-- Bouton pour déposer le plan d'action correctif pour company en phase 1 -->
-            <UButton v-if="selectedPhase === 'phase2' && props.role === 'company'" color="primary" size="xs"
-              icon="i-lucide-upload" class="w-full">
-              Déposer le plan d'action correctif
+      <!-- Card 2: Validation OE -->
+      <AuditStepCard
+        title="Validation OE"
+        :state="isValidated ? 'success' : (hasPlan ? 'pending' : 'disabled')"
+        icon-success="i-lucide-check-circle"
+        icon-pending="i-lucide-clock"
+        icon-disabled="i-lucide-lock"
+        label-success="Validé"
+        label-pending="En attente"
+        label-disabled="En attente du plan"
+        color-scheme="green"
+      >
+        <template #actions>
+          <!-- Bouton pour valider le plan (OE uniquement, si PENDING_CORRECTIVE_PLAN_VALIDATION) -->
+          <div v-if="canValidatePlan">
+            <UButton
+              @click="handleValidatePlan"
+              color="success"
+              size="xs"
+              icon="i-lucide-check"
+              :loading="validating"
+            >
+              Valider le plan
             </UButton>
-            <p v-if="(selectedPhase === 'phase1' && props.role === 'company') || (selectedPhase !== 'phase2' && !(selectedPhase === 'phase1' && props.role === 'company'))"
-              class="text-xs text-gray-500 text-center">Action Entreprise</p>
           </div>
-        </div>
+        </template>
 
-        <!-- Bouton pour consulter -->
-        <div v-if="planAction?.isAvailable" class="mt-3">
-          <UButton @click="viewPlanAction" variant="outline" color="primary" size="xs" icon="i-lucide-eye"
-            label="Consulter le plan d'action" class="w-full" />
-        </div>
-      </div>
+        <template #content>
+          <div v-if="isValidated">
+            <p class="text-xs text-gray-700">
+              Validé le {{ formatDate(validatedAt) }}
+            </p>
+            <p class="text-xs text-gray-600 mt-1" v-if="validatedByAccount">
+              Par {{ validatedByAccount.firstname }} {{ validatedByAccount.lastname }}
+            </p>
+          </div>
+          <div v-else-if="hasPlan">
+            <p class="text-xs text-gray-600">
+              En cours d'examen par l'Organisme Évaluateur
+            </p>
+          </div>
+          <div v-else>
+            <p class="text-xs text-gray-600">
+              En attente du dépôt du plan d'action
+            </p>
+          </div>
+        </template>
+      </AuditStepCard>
     </div>
+
+    <!-- DocumentViewer pour consulter le plan d'action -->
+    <DocumentViewer
+      :audit="currentAudit!"
+      :audit-document-type="AuditDocumentType.CORRECTIVE_PLAN"
+      v-model:open="showDocumentViewer"
+    />
   </UCard>
 </template>
 
 <script setup lang="ts">
-interface Props {
-  planAction: {
-    isAvailable?: boolean | undefined
-    dateTransmission?: string | null | undefined
-    valideParOE?: boolean | undefined
-    dateValidation?: string | null | undefined
-    dateLimiteDepot?: string | null | undefined
-  } | undefined
-  performanceGlobale: number | undefined
-  selectedPhase: string
-  needsPlanAction: boolean
-  role?: 'oe' | 'feef' | 'company'
-}
+import { Role } from '#shared/types/roles'
+import { AuditStatus } from '#shared/types/enums'
+import { AuditDocumentType } from '~~/app/types/auditDocuments'
 
-const props = withDefaults(defineProps<Props>(), {
-  role: 'feef'
+const { user } = useAuth()
+const { currentAudit, fetchAudit } = useAudits()
+
+// Inject isAuditEditable from parent (DecisionTab)
+const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
+
+// Composables
+const toast = useToast()
+
+// État local
+const validating = ref(false)
+const showDocumentViewer = ref(false)
+
+// Computed depuis currentAudit
+const auditStatus = computed(() => currentAudit.value?.status ?? null)
+const validatedAt = computed(() => currentAudit.value?.correctivePlanValidatedAt ?? null)
+const validatedByAccount = computed(() => (currentAudit.value as any)?.correctivePlanValidatedByAccount ?? null)
+
+// Dernière version du plan depuis l'audit (pas d'appel API séparé)
+const lastPlanVersion = computed(() => {
+  return currentAudit.value?.lastDocumentVersions?.CORRECTIVE_PLAN ?? null
 })
 
-const emit = defineEmits<{
-  viewPlanAction: []
-}>()
+// Computed
+const hasPlan = computed(() => {
+  return lastPlanVersion.value !== null
+})
 
-function viewPlanAction() {
-  emit('viewPlanAction')
+const isValidated = computed(() => {
+  return validatedAt.value !== null && validatedAt.value !== undefined
+})
+
+const canUploadPlan = computed(() => {
+  // L'entreprise peut uploader le plan si PENDING_CORRECTIVE_PLAN et audit modifiable
+  return user.value?.role === Role.ENTITY && auditStatus.value === AuditStatus.PENDING_CORRECTIVE_PLAN && isAuditEditable.value
+})
+
+const canValidatePlan = computed(() => {
+  // L'OE peut valider si PENDING_CORRECTIVE_PLAN_VALIDATION et audit modifiable
+  return user.value?.role === Role.OE && auditStatus.value === AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION && isAuditEditable.value
+})
+
+// Méthodes
+function formatVersionInfo(version: any) {
+  if (!version) return ''
+  const date = new Date(version.uploadAt)
+  const formattedDate = date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+  const uploaderName = version.uploadByAccount
+    ? `${version.uploadByAccount.firstname} ${version.uploadByAccount.lastname}`
+    : 'Inconnu'
+  return `Déposé le ${formattedDate} par ${uploaderName}`
+}
+
+function formatDate(date: Date | string | null | undefined) {
+  if (!date) return ''
+  const d = new Date(date)
+  return d.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+}
+
+function viewPlan() {
+  showDocumentViewer.value = true
+}
+
+async function handlePlanUploaded() {
+  // Recharger l'audit pour mettre à jour lastDocumentVersions
+  if (currentAudit.value) {
+    await fetchAudit(currentAudit.value.id)
+  }
+}
+
+async function handleValidatePlan() {
+  if (!currentAudit.value) return
+
+  validating.value = true
+  try {
+    await $fetch(`/api/audits/${currentAudit.value.id}/validate-corrective-plan`, {
+      method: 'PUT'
+    })
+
+    toast.add({
+      title: 'Succès',
+      description: 'Plan d\'action validé avec succès',
+      color: 'success'
+    })
+
+    // Recharger l'audit
+    await fetchAudit(currentAudit.value.id)
+  } catch (error: any) {
+    toast.add({
+      title: 'Erreur',
+      description: error.data?.message || 'Impossible de valider le plan',
+      color: 'error'
+    })
+  } finally {
+    validating.value = false
+  }
 }
 </script>

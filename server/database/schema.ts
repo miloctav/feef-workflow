@@ -22,13 +22,22 @@ export const accountEntityRoleEnum = pgEnum('account_entity_role', ['SIGNATORY',
 export const documentCategoryEnum = pgEnum('document_category', ['LEGAL', 'FINANCIAL', 'TECHNICAL', 'OTHER'])
 
 // Define audit document type enum
-export const auditDocumentTypeEnum = pgEnum('audit_document_type', ['PLAN', 'REPORT', 'CORRECTIVE_PLAN'])
+export const auditDocumentTypeEnum = pgEnum('audit_document_type', ['PLAN', 'REPORT', 'CORRECTIVE_PLAN', 'OE_OPINION'])
 
 // Define signature type enum
 export const signatureTypeEnum = pgEnum('signature_type', ['ENTITY_ONLY', 'ENTITY_AND_FEEF'])
 
 // Define signature status enum
 export const signatureStatusEnum = pgEnum('signature_status', ['DRAFT', 'PENDING_ENTITY', 'PENDING_FEEF', 'COMPLETED'])
+
+// Define audit status enum
+export const auditStatusEnum = pgEnum('audit_status', ['PLANNING', 'PENDING_REPORT', 'PENDING_CORRECTIVE_PLAN', 'PENDING_CORRECTIVE_PLAN_VALIDATION', 'PENDING_OE_OPINION', 'PENDING_FEEF_DECISION', 'COMPLETED'])
+
+// Define OE opinion enum
+export const oeOpinionEnum = pgEnum('oe_opinion', ['FAVORABLE', 'UNFAVORABLE', 'RESERVED'])
+
+// Define FEEF decision enum
+export const feefDecisionEnum = pgEnum('feef_decision', ['PENDING', 'ACCEPTED', 'REJECTED'])
 
 // ========================================
 // Import enum values and types from shared
@@ -92,6 +101,22 @@ export const audits = pgTable('audits', {
   actualEndDate: date('actual_end_date'),
   score: integer('score'),
   labelingOpinion: json('labeling_opinion'),
+  // Workflow status
+  status: auditStatusEnum('status').default('PLANNING'),
+  // OE Opinion fields
+  oeOpinion: oeOpinionEnum('oe_opinion'),
+  oeOpinionArgumentaire: text('oe_opinion_argumentaire'),
+  oeOpinionConditions: text('oe_opinion_conditions'),
+  oeOpinionTransmittedAt: timestamp('oe_opinion_transmitted_at'),
+  oeOpinionTransmittedBy: integer('oe_opinion_transmitted_by').references(() => accounts.id),
+  // Corrective plan validation
+  correctivePlanValidatedAt: timestamp('corrective_plan_validated_at'),
+  correctivePlanValidatedBy: integer('corrective_plan_validated_by').references(() => accounts.id),
+  // FEEF Decision fields
+  feefDecision: feefDecisionEnum('feef_decision'),
+  feefDecisionAt: timestamp('feef_decision_at'),
+  feefDecisionBy: integer('feef_decision_by').references(() => accounts.id),
+  labelExpirationDate: date('label_expiration_date'),
   createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
@@ -266,11 +291,41 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
     references: [entities.id],
   }),
   accountsToEntities: many(accountsToEntities),
-  audits: many(audits),
+  audits: many(audits, {
+    relationName: 'auditor',
+  }),
+  auditsOEOpinion: many(audits, {
+    relationName: 'oeOpinionTransmittedBy',
+  }),
+  auditsCorrectivePlan: many(audits, {
+    relationName: 'correctivePlanValidatedBy',
+  }),
+  auditsFEEFDecision: many(audits, {
+    relationName: 'feefDecisionBy',
+  }),
   auditorsToOE: many(auditorsToOE),
   documentaryReviews: many(documentaryReviews),
-  documentVersions: many(documentVersions),
-  contracts: many(contracts),
+  documentVersionsUploaded: many(documentVersions, {
+    relationName: 'documentVersionUploadBy',
+  }),
+  documentVersionsAsked: many(documentVersions, {
+    relationName: 'documentVersionAskedBy',
+  }),
+  documentVersionsUpdated: many(documentVersions, {
+    relationName: 'documentVersionUpdatedBy',
+  }),
+  contractsCreated: many(contracts, {
+    relationName: 'contractCreatedBy',
+  }),
+  contractsEntitySigned: many(contracts, {
+    relationName: 'contractEntitySignedBy',
+  }),
+  contractsFeefSigned: many(contracts, {
+    relationName: 'contractFeefSignedBy',
+  }),
+  contractsUpdated: many(contracts, {
+    relationName: 'contractUpdatedBy',
+  }),
   entityFieldVersions: many(entityFieldVersions),
 }))
 
@@ -330,14 +385,22 @@ export const contractsRelations = relations(contracts, ({ one, many }) => ({
   createdByAccount: one(accounts, {
     fields: [contracts.createdBy],
     references: [accounts.id],
+    relationName: 'contractCreatedBy',
   }),
   entitySignedByAccount: one(accounts, {
     fields: [contracts.entitySignedBy],
     references: [accounts.id],
+    relationName: 'contractEntitySignedBy',
   }),
   feefSignedByAccount: one(accounts, {
     fields: [contracts.feefSignedBy],
     references: [accounts.id],
+    relationName: 'contractFeefSignedBy',
+  }),
+  updatedByAccount: one(accounts, {
+    fields: [contracts.updatedBy],
+    references: [accounts.id],
+    relationName: 'contractUpdatedBy',
   }),
   documentVersions: many(documentVersions),
 }))
@@ -354,6 +417,22 @@ export const auditsRelations = relations(audits, ({ one, many }) => ({
   auditor: one(accounts, {
     fields: [audits.auditorId],
     references: [accounts.id],
+    relationName: 'auditor',
+  }),
+  oeOpinionTransmittedByAccount: one(accounts, {
+    fields: [audits.oeOpinionTransmittedBy],
+    references: [accounts.id],
+    relationName: 'oeOpinionTransmittedBy',
+  }),
+  correctivePlanValidatedByAccount: one(accounts, {
+    fields: [audits.correctivePlanValidatedBy],
+    references: [accounts.id],
+    relationName: 'correctivePlanValidatedBy',
+  }),
+  feefDecisionByAccount: one(accounts, {
+    fields: [audits.feefDecisionBy],
+    references: [accounts.id],
+    relationName: 'feefDecisionBy',
   }),
   documentVersions: many(documentVersions),
 }))
@@ -416,10 +495,17 @@ export const documentVersionsRelations = relations(documentVersions, ({ one }) =
   uploadByAccount: one(accounts, {
     fields: [documentVersions.uploadBy],
     references: [accounts.id],
+    relationName: 'documentVersionUploadBy',
   }),
   askedByAccount: one(accounts, {
     fields: [documentVersions.askedBy],
     references: [accounts.id],
+    relationName: 'documentVersionAskedBy',
+  }),
+  updatedByAccount: one(accounts, {
+    fields: [documentVersions.updatedBy],
+    references: [accounts.id],
+    relationName: 'documentVersionUpdatedBy',
   }),
 }))
 

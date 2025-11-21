@@ -1,0 +1,1 @@
+ALTER TABLE "audits" ADD COLUMN "label_expiration_date" date;

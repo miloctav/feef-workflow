@@ -78,9 +78,33 @@ export interface AuditAuditor {
   } | null
 }
 
-// Audit avec relations compl�tes
+// Dernière version d'un document d'audit
+export interface LastDocumentVersion {
+  id: number
+  uploadAt: Date | string
+  s3Key: string | null
+  filename: string | null
+  fileSize: number | null
+  mimeType: string | null
+  uploadByAccount: {
+    id: number
+    firstname: string
+    lastname: string
+  }
+}
+
+// Dernières versions par type de document
+export interface LastDocumentVersions {
+  PLAN?: LastDocumentVersion
+  REPORT?: LastDocumentVersion
+  CORRECTIVE_PLAN?: LastDocumentVersion
+  OE_OPINION?: LastDocumentVersion
+}
+
+// Audit avec relations complètes
 export interface AuditWithRelations extends AuditPublic {
   entity: AuditEntity
   oe?: AuditOE | null
   auditor?: AuditAuditor | null
+  lastDocumentVersions?: LastDocumentVersions
 }

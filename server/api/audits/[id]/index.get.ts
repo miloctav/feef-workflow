@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm'
+import { eq, and, desc, isNotNull } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { audits } from '~~/server/database/schema'
+import { audits, documentVersions } from '~~/server/database/schema'
 import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
 
 /**
@@ -107,7 +107,44 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Récupérer les dernières versions de chaque type de document d'audit
+  const documentTypes = ['PLAN','REPORT', 'CORRECTIVE_PLAN', 'OE_OPINION'] as const
+
+  const lastVersionsPromises = documentTypes.map(async (docType) => {
+    const lastVersion = await db.query.documentVersions.findFirst({
+      where: and(
+        eq(documentVersions.auditId, auditId),
+        eq(documentVersions.auditDocumentType, docType),
+        isNotNull(documentVersions.s3Key) // Exclure les demandes de MAJ en attente
+      ),
+      orderBy: [desc(documentVersions.uploadAt)],
+      with: {
+        uploadByAccount: {
+          columns: {
+            id: true,
+            firstname: true,
+            lastname: true,
+          },
+        },
+      },
+    })
+    return { type: docType, version: lastVersion }
+  })
+
+  const lastVersionsResults = await Promise.all(lastVersionsPromises)
+
+  // Construire un objet avec les dernières versions par type
+  const lastDocumentVersions: Record<string, any> = {}
+  for (const result of lastVersionsResults) {
+    if (result.version) {
+      lastDocumentVersions[result.type] = result.version
+    }
+  }
+
   return {
-    data: audit,
+    data: {
+      ...audit,
+      lastDocumentVersions,
+    },
   }
 })

@@ -228,7 +228,7 @@ const auditTypeBadgeColor = computed(() => {
 
         <template #audit>
           <div class="py-6">
-            <AuditTab
+            <AuditPlanificationTab
               v-if="currentAudit"
               :entity-id="currentAudit.entityId"
               :role="user?.role === Role.OE ? 'oe' : user?.role === Role.FEEF ? 'feef' : 'company'"
@@ -238,7 +238,7 @@ const auditTypeBadgeColor = computed(() => {
 
         <template #decision>
           <div class="py-6">
-            <!-- <DecisionTab v-if="currentAudit" /> -->
+            <DecisionTab v-if="currentAudit" />
           </div>
         </template>
       </UTabs>
