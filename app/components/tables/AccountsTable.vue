@@ -64,133 +64,172 @@
       </template>
 
       <template #form="{ item, isEditing }">
-        <UForm ref="form" :schema="schema" :state="state" class="space-y-4">
-          <UFormField label="Prénom" name="firstname" required>
-            <UInput
-              v-model="state.firstname"
-              placeholder="Ex: Jean"
-              icon="i-lucide-user"
-            />
-          </UFormField>
+        <UForm ref="form" :schema="schema" :state="state" class="space-y-6">
+          <!-- Informations personnelles -->
+          <div class="space-y-4">
+            <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <UIcon name="i-lucide-user" class="size-4" />
+              <span>Informations personnelles</span>
+            </div>
 
-          <UFormField label="Nom" name="lastname" required>
-            <UInput
-              v-model="state.lastname"
-              placeholder="Ex: Dupont"
-              icon="i-lucide-user"
-            />
-          </UFormField>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <UFormField label="Prénom" name="firstname" required>
+                <UInput
+                  v-model="state.firstname"
+                  placeholder="Jean"
+                  icon="i-lucide-user"
+                  size="lg"
+                  class="w-full"
+                />
+              </UFormField>
 
-          <UFormField label="Email" name="email" required>
-            <UInput
-              v-model="state.email"
-              type="email"
-              placeholder="Ex: jean.dupont@example.com"
-              icon="i-lucide-mail"
-            />
-          </UFormField>
+              <UFormField label="Nom" name="lastname" required>
+                <UInput
+                  v-model="state.lastname"
+                  placeholder="Dupont"
+                  icon="i-lucide-user"
+                  size="lg"
+                  class="w-full"
+                />
+              </UFormField>
+            </div>
 
-          <UFormField label="Rôle global" name="role" required>
-            <USelect
-              v-model="state.role"
-              :items="availableRoleOptions"
-              value-key="value"
-              placeholder="Sélectionner un rôle"
-              :disabled="!!forcedRole"
-            />
-          </UFormField>
-
-          <!-- Champs spécifiques au rôle OE -->
-          <template v-if="state.role === 'OE'">
-            <UFormField v-if="!oeId" label="Organisme Évaluateur" name="oeId" required>
-              <USelect
-                v-model="state.oeId"
-                :items="oesList"
-                value-key="value"
-                placeholder="Sélectionner un OE"
+            <UFormField label="Adresse email" name="email" required>
+              <UInput
+                v-model="state.email"
+                type="email"
+                placeholder="jean.dupont@example.com"
+                icon="i-lucide-mail"
+                size="lg"
+                class="w-full"
               />
             </UFormField>
+          </div>
 
-            <UFormField label="Rôle dans l'OE" name="oeRole" required>
+          <!-- Rôle et permissions -->
+          <div class="space-y-4">
+            <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <UIcon name="i-lucide-shield" class="size-4" />
+              <span>Rôle et permissions</span>
+            </div>
+
+            <UFormField label="Rôle global" name="role" required>
               <USelect
-                v-model="state.oeRole"
-                :items="oeRoleCreateOptions"
+                v-model="state.role"
+                :items="availableRoleOptions"
                 value-key="value"
                 placeholder="Sélectionner un rôle"
+                :disabled="!!forcedRole"
+                size="lg"
+                class="w-full"
               />
             </UFormField>
-          </template>
 
-          <!-- Champs spécifiques au rôle ENTITY -->
-          <template v-if="state.role === 'ENTITY'">
-            <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
-                  Entités associées
-                </label>
-                <UButton
-                  v-if="!entityId"
-                  size="xs"
-                  color="primary"
-                  variant="soft"
-                  icon="i-heroicons-plus"
-                  @click="addEntityRole"
-                >
-                  Ajouter une entité
-                </UButton>
+            <!-- Champs spécifiques au rôle OE -->
+            <template v-if="state.role === 'OE'">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <UFormField v-if="!oeId" label="Organisme Évaluateur" name="oeId" required>
+                  <USelect
+                    v-model="state.oeId"
+                    :items="oesList"
+                    value-key="value"
+                    placeholder="Sélectionner un OE"
+                    size="lg"
+                    class="w-full"
+                  />
+                </UFormField>
+
+                <UFormField label="Rôle dans l'OE" name="oeRole" required :class="!oeId ? '' : 'md:col-span-2'">
+                  <USelect
+                    v-model="state.oeRole"
+                    :items="oeRoleCreateOptions"
+                    value-key="value"
+                    placeholder="Sélectionner un rôle"
+                    size="lg"
+                    class="w-full"
+                  />
+                </UFormField>
               </div>
+            </template>
 
-              <div
-                v-for="(entityRole, index) in state.entityRoles"
-                :key="index"
-                class="flex items-center gap-2 p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
-              >
-                <div class="flex-1 grid grid-cols-2 gap-2">
-                  <UFormField :label="`Entité ${index + 1}`" :name="`entityRoles.${index}.entityId`" required>
-                    <USelect
-                      v-model="entityRole.entityId"
-                      :items="entitiesList"
-                      value-key="value"
-                      placeholder="Sélectionner une entité"
-                      :disabled="!!entityId"
-                    />
-                  </UFormField>
-
-                  <UFormField label="Rôle" :name="`entityRoles.${index}.role`" required>
-                    <USelect
-                      v-model="entityRole.role"
-                      :items="entityRoleCreateOptions"
-                      value-key="value"
-                      placeholder="Sélectionner un rôle"
-                    />
-                  </UFormField>
+            <!-- Champs spécifiques au rôle ENTITY -->
+            <template v-if="state.role === 'ENTITY'">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Entités associées
+                  </label>
+                  <UButton
+                    v-if="!entityId"
+                    size="xs"
+                    color="primary"
+                    variant="soft"
+                    icon="i-heroicons-plus"
+                    @click="addEntityRole"
+                  >
+                    Ajouter une entité
+                  </UButton>
                 </div>
 
-                <UButton
-                  v-if="!entityId && state.entityRoles && state.entityRoles.length > 1"
-                  size="sm"
-                  color="error"
-                  variant="ghost"
-                  icon="i-heroicons-trash"
-                  @click="removeEntityRole(index)"
-                />
-              </div>
-            </div>
-          </template>
+                <div
+                  v-for="(entityRole, index) in state.entityRoles"
+                  :key="index"
+                  class="flex items-start gap-2 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50"
+                >
+                  <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <UFormField :label="`Entité ${index + 1}`" :name="`entityRoles.${index}.entityId`" required>
+                      <USelect
+                        v-model="entityRole.entityId"
+                        :items="entitiesList"
+                        value-key="value"
+                        placeholder="Sélectionner une entité"
+                        :disabled="!!entityId"
+                        size="lg"
+                        class="w-full"
+                      />
+                    </UFormField>
 
-          <!-- Champs spécifiques au rôle AUDITOR -->
-          <template v-if="state.role === 'AUDITOR'">
-            <!-- En mode OE, l'OE est automatiquement lié (pas besoin de sélection) -->
-            <UFormField v-if="!oeId" label="Organismes Évaluateurs" name="oeIds" required>
-              <USelectMenu
-                v-model="state.oeIds"
-                :items="oesList"
-                value-key="value"
-                multiple
-                placeholder="Sélectionner un ou plusieurs OEs"
-              />
-            </UFormField>
-          </template>
+                    <UFormField label="Rôle" :name="`entityRoles.${index}.role`" required>
+                      <USelect
+                        v-model="entityRole.role"
+                        :items="entityRoleCreateOptions"
+                        value-key="value"
+                        placeholder="Sélectionner un rôle"
+                        size="lg"
+                        class="w-full"
+                      />
+                    </UFormField>
+                  </div>
+
+                  <UButton
+                    v-if="!entityId && state.entityRoles && state.entityRoles.length > 1"
+                    size="sm"
+                    color="error"
+                    variant="ghost"
+                    icon="i-heroicons-trash"
+                    class="mt-7"
+                    @click="removeEntityRole(index)"
+                  />
+                </div>
+              </div>
+            </template>
+
+            <!-- Champs spécifiques au rôle AUDITOR -->
+            <template v-if="state.role === 'AUDITOR'">
+              <!-- En mode OE, l'OE est automatiquement lié (pas besoin de sélection) -->
+              <UFormField v-if="!oeId" label="Organismes Évaluateurs" name="oeIds" required hint="Sélection multiple possible">
+                <USelectMenu
+                  v-model="state.oeIds"
+                  :items="oesList"
+                  value-key="value"
+                  multiple
+                  placeholder="Sélectionner un ou plusieurs OEs"
+                  size="lg"
+                  class="w-full"
+                />
+              </UFormField>
+            </template>
+          </div>
         </UForm>
       </template>
 

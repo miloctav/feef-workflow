@@ -22,13 +22,18 @@
         :get-item-name="(oe) => oe.name"
       >
         <template #form="{ item, isEditing }">
-          <UForm ref="form" :schema="schema" :state="formState" class="space-y-4">
-            <UFormField label="Nom de l'organisme évaluateur" name="name" required>
-              <UInput
-                v-model="formState.name"
-                icon="i-lucide-building"
-              />
-            </UFormField>
+          <UForm ref="form" :schema="schema" :state="formState" class="space-y-6">
+            <div class="space-y-4">
+              <UFormField label="Nom de l'organisme évaluateur" name="name" required hint="Nom complet de l'organisme">
+                <UInput
+                  v-model="formState.name"
+                  icon="i-lucide-building"
+                  placeholder="Nom"
+                  size="lg"
+                  class="w-full"
+                />
+              </UFormField>
+            </div>
           </UForm>
         </template>
 

@@ -62,38 +62,58 @@
             </UBadge>
           </template>
           <template #form="{ item, isEditing }">
-            <UForm ref="form" :schema="schema" :state="state" class="space-y-4">
-              <UFormField label="Titre du document" name="title" required>
-                <UInput
-                  v-model="state.title"
-                  placeholder="Ex: Attestation sur l'honneur"
-                  icon="i-lucide-file-text"
-                />
-              </UFormField>
+            <UForm ref="form" :schema="schema" :state="state" class="space-y-6">
+              <!-- Informations principales -->
+              <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <UFormField label="Titre du document" name="title" required>
+                    <UInput
+                      v-model="state.title"
+                      placeholder="Ex: Attestation sur l'honneur"
+                      icon="i-lucide-file-text"
+                      size="lg"
+                      class="w-full"
+                    />
+                  </UFormField>
 
-              <UFormField label="Description" name="description">
-                <UTextarea
-                  v-model="state.description"
-                  placeholder="Description du document..."
-                  :rows="3"
-                />
-              </UFormField>
+                  <UFormField label="Catégorie" name="category" required>
+                    <USelect
+                      v-model="state.category"
+                      :items="categoryOptions"
+                      value-key="value"
+                      placeholder="Sélectionner une catégorie"
+                      size="lg"
+                      class="w-full"
+                    />
+                  </UFormField>
+                </div>
 
-              <UFormField label="Catégorie" name="category" required>
-                <USelect
-                  v-model="state.category"
-                  :items="categoryOptions"
-                  value-key="value"
-                  placeholder="Sélectionner une catégorie"
-                />
-              </UFormField>
+                <UFormField label="Description" name="description" hint="Optionnel">
+                  <UTextarea
+                    v-model="state.description"
+                    placeholder="Décrivez le contenu et l'objectif de ce document..."
+                    :rows="4"
+                    size="lg"
+                    class="w-full"
+                  />
+                </UFormField>
+              </div>
 
-              <UFormField label="Demander automatiquement" name="autoAsk">
-                <UCheckbox
-                  v-model="state.autoAsk"
-                  label="Demander ce document automatiquement aux entreprises"
-                />
-              </UFormField>
+              <!-- Configuration -->
+              <div class="space-y-4">
+                <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <UIcon name="i-lucide-settings" class="size-4" />
+                  <span>Configuration</span>
+                </div>
+
+                <UFormField name="autoAsk">
+                  <UCheckbox
+                    v-model="state.autoAsk"
+                    label="Demander ce document automatiquement aux entreprises lors de la candidature"
+                    size="lg"
+                  />
+                </UFormField>
+              </div>
             </UForm>
           </template>
 

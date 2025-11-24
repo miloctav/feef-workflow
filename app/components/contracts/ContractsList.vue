@@ -197,8 +197,8 @@ onMounted(async () => {
   if (entityId.value) {
     await fetchContracts(entityId.value)
     // Charger les audits pour vérifier si on peut changer d'OE
+    // Le watch automatique de usePaginatedFetch déclenchera refreshAudits()
     setAuditFilters({ entityId: entityId.value })
-    await refreshAudits()
   }
 })
 

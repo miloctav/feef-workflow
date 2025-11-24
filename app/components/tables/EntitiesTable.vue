@@ -71,26 +71,41 @@
       </template>
 
       <template v-if="user?.role === Role.FEEF" #form="{ item, isEditing }">
-        <UForm ref="form" :schema="schema" :state="state" class="space-y-4">
-          <UFormField label="Nom de l'entité" name="name" required>
-            <UInput v-model="state.name" placeholder="Ex: Entreprise ABC" icon="i-lucide-building" />
-          </UFormField>
+        <UForm ref="form" :schema="schema" :state="state" class="space-y-6">
+          <!-- Informations générales -->
+          <div class="space-y-4">
+            <UFormField label="Nom de l'entité" name="name" required>
+              <UInput v-model="state.name" placeholder="Ex: Entreprise ABC" icon="i-lucide-building" size="lg" class="w-full" />
+            </UFormField>
 
-          <UFormField label="Type d'entité" name="type" required>
-            <USelect v-model="state.type" :items="createEntityTypeItems" placeholder="Sélectionner un type" />
-          </UFormField>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <UFormField label="Type d'entité" name="type" required>
+                <USelect v-model="state.type" :items="createEntityTypeItems" placeholder="Sélectionner un type" size="lg" class="w-full" />
+              </UFormField>
 
-          <UFormField label="Mode de labellisation" name="mode" required>
-            <USelect v-model="state.mode" :items="createEntityModeItems" placeholder="Sélectionner un mode" />
-          </UFormField>
+              <UFormField label="Mode de labellisation" name="mode" required>
+                <USelect v-model="state.mode" :items="createEntityModeItems" placeholder="Sélectionner un mode" size="lg" class="w-full" />
+              </UFormField>
+            </div>
+          </div>
 
-          <UFormField label="SIREN" name="siren">
-            <UInput v-model="state.siren" placeholder="123456789" icon="i-lucide-hash" />
-          </UFormField>
+          <!-- Identifiants légaux -->
+          <div class="space-y-4">
+            <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <UIcon name="i-lucide-file-text" class="size-4" />
+              <span>Identifiants légaux</span>
+            </div>
 
-          <UFormField label="SIRET" name="siret">
-            <UInput v-model="state.siret" placeholder="12345678901234" icon="i-lucide-hash" />
-          </UFormField>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <UFormField label="SIREN" name="siren" hint="9 chiffres">
+                <UInput v-model="state.siren" placeholder="123456789" icon="i-lucide-hash" size="lg" class="w-full" />
+              </UFormField>
+
+              <UFormField label="SIRET" name="siret" hint="14 chiffres">
+                <UInput v-model="state.siret" placeholder="12345678901234" icon="i-lucide-hash" size="lg" class="w-full" />
+              </UFormField>
+            </div>
+          </div>
         </UForm>
       </template>
 
