@@ -14,8 +14,7 @@ export interface CreateAuditData {
   type: AuditTypeType
   oeId: number
   auditorId: number
-  plannedStartDate?: string
-  plannedEndDate?: string
+  pannedDate?: string
   actualStartDate?: string
   actualEndDate?: string
   score?: number
@@ -27,8 +26,7 @@ export interface CreateAuditData {
 export interface UpdateAuditData {
   oeId?: number
   auditorId?: number
-  plannedStartDate?: string | null
-  plannedEndDate?: string | null
+  pannedDate?: string | null
   actualStartDate?: string | null
   actualEndDate?: string | null
   score?: number | null
@@ -78,6 +76,12 @@ export interface AuditAuditor {
   } | null
 }
 
+export interface AuditAccount {
+  id: number
+  firstname: string
+  lastname: string
+}
+
 // Dernière version d'un document d'audit
 export interface LastDocumentVersion {
   id: number
@@ -106,5 +110,7 @@ export interface AuditWithRelations extends AuditPublic {
   entity: AuditEntity
   oe?: AuditOE | null
   auditor?: AuditAuditor | null
+  caseSubmittedByAccount?: AuditAccount | null
+  caseApprovedByAccount?: AuditAccount | null
   lastDocumentVersions?: LastDocumentVersions
 }

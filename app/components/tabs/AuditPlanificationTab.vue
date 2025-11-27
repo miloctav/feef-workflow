@@ -78,8 +78,7 @@
               <div v-if="(user?.role === Role.OE || user?.role === Role.FEEF) && currentAudit && isEditable">
                 <AuditDatesModal
                   :audit-id="currentAudit.id"
-                  :initial-planned-start-date="currentAudit.plannedStartDate"
-                  :initial-planned-end-date="currentAudit.plannedEndDate"
+                  :initial-planned-date="currentAudit.plannedDate"
                   :initial-actual-start-date="currentAudit.actualStartDate"
                   :initial-actual-end-date="currentAudit.actualEndDate"
                   @saved="handleDatesSaved"
@@ -88,23 +87,23 @@
             </template>
 
             <template #content>
-              <!-- Affichage des dates programmées -->
-              <div v-if="plannedDatesSet && currentAudit">
+              <!-- Affichage des dates -->
+              <div v-if="(plannedDatesSet || actualDatesSet) && currentAudit">
                 <!-- Dates prévisionnelles -->
-                <div class="mb-3">
+                <div v-if="plannedDatesSet" class="mb-3">
                   <p class="text-xs font-semibold text-gray-900 mb-1">Dates prévisionnelles</p>
                   <p class="text-xs text-gray-700">
                     {{ formatDate(currentAudit.plannedStartDate) }} - {{ formatDate(currentAudit.plannedEndDate) }}
                   </p>
                 </div>
 
-                <!-- Dates réelles (si l'audit est terminé) -->
-                <div v-if="auditCompleted" class="mb-3 p-2 bg-green-50 rounded">
-                  <p class="text-xs font-semibold text-green-900 mb-1">Dates réelles</p>
-                  <p class="text-xs text-green-700">
+                <!-- Dates réelles (si elles sont renseignées) -->
+                <div v-if="actualDatesSet">
+                  <p class="text-xs font-semibold text-gray-900 mb-1">Dates réelles</p>
+                  <p class="text-xs text-gray-700">
                     {{ formatDate(currentAudit.actualStartDate) }} - {{ formatDate(currentAudit.actualEndDate) }}
                   </p>
-                  <UBadge color="success" size="xs" class="mt-1">Audit terminé</UBadge>
+                  <UBadge v-if="auditCompleted" color="success" size="xs" class="mt-1">Audit terminé</UBadge>
                 </div>
               </div>
             </template>
@@ -159,6 +158,11 @@ const documentsTransmitted = computed(() => {
 // Computed: Dates prévisionnelles renseignées
 const plannedDatesSet = computed(() => {
   return currentAudit.value?.plannedStartDate && currentAudit.value?.plannedEndDate
+})
+
+// Computed: Dates réelles renseignées
+const actualDatesSet = computed(() => {
+  return currentAudit.value?.actualStartDate && currentAudit.value?.actualEndDate
 })
 
 // Computed: Audit terminé

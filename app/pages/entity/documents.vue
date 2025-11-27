@@ -74,8 +74,8 @@ const canMarkAsReady = computed(() => {
   // Vérifier que l'entity est en mode MASTER
   if (currentEntity.value.mode !== EntityMode.MASTER) return false
 
-  // Vérifier que le dossier a été déposé (caseSubmittedAt n'est pas null)
-  if (!currentEntity.value.caseSubmittedAt) return false
+  // Vérifier que le dossier a été déposé (dernier audit soumis)
+  if (!currentEntity.value.audits?.[0]?.caseSubmittedAt) return false
 
   // Vérifier que la revue documentaire n'est pas déjà marquée comme prête
   if (currentEntity.value.documentaryReviewReadyAt) return false

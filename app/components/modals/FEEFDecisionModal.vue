@@ -86,14 +86,10 @@ const submitDecision = async (closeModal?: () => void) => {
   submitting.value = true
 
   try {
-    // Calculer la date d'expiration (1 an après)
-    const expirationDate = new Date()
-    expirationDate.setFullYear(expirationDate.getFullYear() + 1)
-
+    // La date d'expiration sera calculée automatiquement par le backend
     const result = await updateAudit(props.auditId, {
       feefDecision: 'ACCEPTED',
       status: 'COMPLETED',
-      labelExpirationDate: expirationDate.toISOString().split('T')[0], // Format YYYY-MM-DD
     })
 
     if (!result.success) {

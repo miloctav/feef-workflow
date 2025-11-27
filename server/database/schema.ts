@@ -60,10 +60,6 @@ export const entities = pgTable('entities', {
   siret: varchar('siret', { length: 14 }).unique(),
   type: entityTypeEnum('type').notNull(),
   mode: entityModeEnum('mode').notNull(),
-  caseSubmittedAt: timestamp('case_submitted_at'),
-  caseSubmittedBy: integer('case_submitted_by').references(() => accounts.id),
-  caseApprovedAt: timestamp('case_approved_at'),
-  caseApprovedBy: integer('case_approved_by').references(() => accounts.id),
   parentGroupId: integer('parent_group_id').references((): AnyPgColumn => entities.id),
   oeId: integer('oe_id').references(() => oes.id),
   accountManagerId: integer('account_manager_id').references(() => accounts.id),
@@ -95,14 +91,18 @@ export const audits = pgTable('audits', {
   oeId: integer('oe_id').references(() => oes.id),
   auditorId: integer('auditor_id').references(() => accounts.id),
   type: auditTypeEnum('type').notNull(),
-  plannedStartDate: date('planned_start_date'),
-  plannedEndDate: date('planned_end_date'),
+  plannedDate: date('planned_date'),
   actualStartDate: date('actual_start_date'),
   actualEndDate: date('actual_end_date'),
   score: integer('score'),
   labelingOpinion: json('labeling_opinion'),
   // Workflow status
   status: auditStatusEnum('status').default('PLANNING'),
+  // Case submission/approval fields
+  caseSubmittedAt: timestamp('case_submitted_at'),
+  caseSubmittedBy: integer('case_submitted_by').references(() => accounts.id),
+  caseApprovedAt: timestamp('case_approved_at'),
+  caseApprovedBy: integer('case_approved_by').references(() => accounts.id),
   // OE Opinion fields
   oeOpinion: oeOpinionEnum('oe_opinion'),
   oeOpinionArgumentaire: text('oe_opinion_argumentaire'),
@@ -294,6 +294,12 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
   audits: many(audits, {
     relationName: 'auditor',
   }),
+  auditsCaseSubmitted: many(audits, {
+    relationName: 'auditCaseSubmittedBy',
+  }),
+  auditsCaseApproved: many(audits, {
+    relationName: 'auditCaseApprovedBy',
+  }),
   auditsOEOpinion: many(audits, {
     relationName: 'oeOpinionTransmittedBy',
   }),
@@ -354,14 +360,6 @@ export const entitiesRelations = relations(entities, ({ one, many }) => ({
     fields: [entities.accountManagerId],
     references: [accounts.id],
   }),
-  caseSubmittedByAccount: one(accounts, {
-    fields: [entities.caseSubmittedBy],
-    references: [accounts.id],
-  }),
-  caseApprovedByAccount: one(accounts, {
-    fields: [entities.caseApprovedBy],
-    references: [accounts.id],
-  }),
   documentaryReviewReadyByAccount: one(accounts, {
     fields: [entities.documentaryReviewReadyBy],
     references: [accounts.id],
@@ -418,6 +416,16 @@ export const auditsRelations = relations(audits, ({ one, many }) => ({
     fields: [audits.auditorId],
     references: [accounts.id],
     relationName: 'auditor',
+  }),
+  caseSubmittedByAccount: one(accounts, {
+    fields: [audits.caseSubmittedBy],
+    references: [accounts.id],
+    relationName: 'auditCaseSubmittedBy',
+  }),
+  caseApprovedByAccount: one(accounts, {
+    fields: [audits.caseApprovedBy],
+    references: [accounts.id],
+    relationName: 'auditCaseApprovedBy',
   }),
   oeOpinionTransmittedByAccount: one(accounts, {
     fields: [audits.oeOpinionTransmittedBy],

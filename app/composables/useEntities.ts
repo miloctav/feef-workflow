@@ -3,6 +3,7 @@ import type {
   CreateEntityData,
   UpdateEntityData,
 } from '~~/app/types/entities'
+import type { AuditPublic } from '~~/app/types/audits'
 import type { PaginationParams } from '~~/app/types/pagination'
 import type { EntityModeType } from '#shared/types/enums'
 
@@ -235,21 +236,20 @@ export const useEntities = () => {
   /**
    * Soumettre le dossier d'une entité
    */
-  const submitCase = async (id: number) => {
+  const submitCase = async (id: number, plannedDate?: string | null) => {
     submitCaseLoading.value = true
 
     try {
-      const response = await $fetch<{ data: EntityWithRelations }>(`/api/entities/${id}/submit-case`, {
+      const response = await $fetch<{ data: AuditPublic }>(`/api/entities/${id}/submit-case`, {
         method: 'POST',
+        body: { plannedDate }
       })
 
-      // Rafraîchir la liste paginée pour refléter les changements
-      await refresh()
+      // Rafraîchir l'entity pour obtenir le nouvel audit
+      await fetchEntity(id)
 
-      // Mettre à jour l'entité courante si c'est celle-ci
-      if (currentEntity.value?.id === id) {
-        currentEntity.value = response.data
-      }
+      // Rafraîchir la liste paginée
+      await refresh()
 
       toast.add({
         title: 'Succès',
@@ -280,17 +280,15 @@ export const useEntities = () => {
     approveCaseLoading.value = true
 
     try {
-      const response = await $fetch<{ data: EntityWithRelations }>(`/api/entities/${id}/approve-case`, {
+      const response = await $fetch<{ data: AuditPublic }>(`/api/entities/${id}/approve-case`, {
         method: 'POST',
       })
 
-      // Rafraîchir la liste paginée pour refléter les changements
-      await refresh()
+      // Rafraîchir l'entity pour obtenir l'audit mis à jour
+      await fetchEntity(id)
 
-      // Mettre à jour l'entité courante si c'est celle-ci
-      if (currentEntity.value?.id === id) {
-        currentEntity.value = response.data
-      }
+      // Rafraîchir la liste paginée
+      await refresh()
 
       toast.add({
         title: 'Succès',

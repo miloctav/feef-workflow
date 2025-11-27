@@ -1,8 +1,7 @@
-import { eq } from 'drizzle-orm'
+import { eq, desc, isNull } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { entities } from '~~/server/database/schema'
+import { entities, audits } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
-import { createAuditForEntity } from '~~/server/utils/audit'
 
 export default defineEventHandler(async (event) => {
   // Vérifier que l'utilisateur est connecté
@@ -54,8 +53,24 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Récupérer le dernier audit de l'entité
+  const latestAudit = await db.query.audits.findFirst({
+    where: (audits, { eq, isNull, and }) => and(
+      eq(audits.entityId, entityIdInt),
+      isNull(audits.deletedAt)
+    ),
+    orderBy: (audits, { desc }) => [desc(audits.createdAt)],
+  })
+
+  if (!latestAudit) {
+    throw createError({
+      statusCode: 400,
+      message: 'Aucun audit trouvé pour cette entité',
+    })
+  }
+
   // Vérifier que le dossier a bien été soumis
-  if (!entity.caseSubmittedAt) {
+  if (!latestAudit.caseSubmittedAt) {
     throw createError({
       statusCode: 400,
       message: 'Le dossier doit être soumis avant de pouvoir être approuvé',
@@ -63,28 +78,25 @@ export default defineEventHandler(async (event) => {
   }
 
   // Vérifier que le dossier n'a pas déjà été approuvé
-  if (entity.caseApprovedAt) {
+  if (latestAudit.caseApprovedAt) {
     throw createError({
       statusCode: 400,
-      message: 'Le dossier a déjà été approuvé le ' + new Date(entity.caseApprovedAt).toLocaleDateString('fr-FR'),
+      message: 'Le dossier a déjà été approuvé le ' + new Date(latestAudit.caseApprovedAt).toLocaleDateString('fr-FR'),
     })
   }
 
-  // Créer automatiquement un audit pour l'entité
-  await createAuditForEntity(entityIdInt, event)
-
-  // Mettre à jour l'entité avec les informations d'approbation
-  const [updatedEntity] = await db
-    .update(entities)
+  // Mettre à jour l'audit avec les informations d'approbation
+  const [updatedAudit] = await db
+    .update(audits)
     .set(forUpdate(event, {
       caseApprovedAt: new Date(),
       caseApprovedBy: currentUser.id,
     }))
-    .where(eq(entities.id, entityIdInt))
+    .where(eq(audits.id, latestAudit.id))
     .returning()
 
-  // Retourner l'entité mise à jour
+  // Retourner l'audit mis à jour
   return {
-    data: updatedEntity,
+    data: updatedAudit,
   }
 })

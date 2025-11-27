@@ -12,35 +12,45 @@ onMounted(async () => {
   }
 })
 
-const selectedTab = ref('audit')
+const selectedTab = ref('documents')
 
 // Configuration des tabs
-const tabItems = computed(() => [
-  {
-    label: 'Documents',
-    icon: 'i-lucide-folder',
-    slot: 'documents',
-    value: 'documents'
-  },
-  {
-    label: 'Dossier',
-    icon: 'i-lucide-file-text',
-    slot: 'dossier',
-    value: 'dossier'
-  },
-  {
-    label: "Planification d'audit",
-    icon: 'i-lucide-search',
-    slot: 'audit',
-    value: 'audit'
-  },
-  {
-    label: 'Décision',
-    icon: 'i-lucide-scale',
-    slot: 'decision',
-    value: 'decision'
+const tabItems = computed(() => {
+  const tabs = [
+    {
+      label: 'Documents',
+      icon: 'i-lucide-folder',
+      slot: 'documents',
+      value: 'documents'
+    },
+    {
+      label: 'Dossier',
+      icon: 'i-lucide-file-text',
+      slot: 'dossier',
+      value: 'dossier'
+    }
+  ]
+
+  // Afficher les tabs "Planification d'audit" et "Décision" uniquement si un OE est affecté
+  if (currentAudit.value?.oeId) {
+    tabs.push(
+      {
+        label: "Planification d'audit",
+        icon: 'i-lucide-search',
+        slot: 'audit',
+        value: 'audit'
+      },
+      {
+        label: 'Décision',
+        icon: 'i-lucide-scale',
+        slot: 'decision',
+        value: 'decision'
+      }
+    )
   }
-])
+
+  return tabs
+})
 
 // Helper pour formater le type d'audit
 const auditTypeLabel = computed(() => {
@@ -72,19 +82,6 @@ const auditTypeBadgeColor = computed(() => {
 
 <template>
   <div v-if="currentAudit" class="space-y-6">
-    <!-- En-tête avec informations de l'audit -->
-    <div class="bg-white border-b">
-      <div class="px-6 py-4">
-        <div class="flex items-center gap-4">
-          <UIcon name="i-lucide-clipboard-check" class="w-10 h-10 text-primary" />
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">Audit {{ auditTypeLabel }}</h1>
-            <p class="text-sm text-gray-600">Entreprise: {{ currentAudit?.entity?.name }}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Card principale avec informations du dossier -->
     <div class="px-6">
       <UCard class="mb-6">

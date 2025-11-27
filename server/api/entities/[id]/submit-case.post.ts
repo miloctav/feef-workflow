@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { entities } from '~~/server/database/schema'
+import { entities, audits } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
+import { createAuditForEntity } from '~~/server/utils/audit'
 
 export default defineEventHandler(async (event) => {
   // Vérifier que l'utilisateur est connecté
@@ -76,26 +77,25 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Vérifier que le dossier n'a pas déjà été soumis
-  if (entity.caseSubmittedAt) {
-    throw createError({
-      statusCode: 400,
-      message: 'Le dossier a déjà été soumis le ' + new Date(entity.caseSubmittedAt).toLocaleDateString('fr-FR'),
-    })
-  }
+  // Récupérer la date prévisionnelle depuis le body (optionnelle)
+  const body = await readBody(event)
+  const plannedDate = body?.plannedDate || null
 
-  // Mettre à jour l'entité avec les informations de soumission
-  const [updatedEntity] = await db
-    .update(entities)
+  // Créer un nouvel audit pour l'entité
+  const audit = await createAuditForEntity(entityIdInt, event, plannedDate)
+
+  // Mettre à jour l'audit avec les informations de soumission
+  const [updatedAudit] = await db
+    .update(audits)
     .set(forUpdate(event, {
       caseSubmittedAt: new Date(),
       caseSubmittedBy: currentUser.id,
     }))
-    .where(eq(entities.id, entityIdInt))
+    .where(eq(audits.id, audit.id))
     .returning()
 
-  // Retourner l'entité mise à jour
+  // Retourner l'audit créé
   return {
-    data: updatedEntity,
+    data: updatedAudit,
   }
 })

@@ -1,4 +1,5 @@
-import type { Entity, EntityTypeType, EntityModeType } from '~~/server/database/schema'
+import type { Entity, EntityTypeType, EntityModeType, Audit } from '~~/server/database/schema'
+import type { AuditPublic } from './audits'
 
 /**
  * Types pour les entités (entreprises et groupes)
@@ -73,7 +74,6 @@ export interface EntityWithRelations extends EntityPublic {
   accountManager?: EntityAccountManager | null
   parentGroup?: EntityParentGroup | null
   childEntities?: EntityWithRelations[]
-  caseSubmittedByAccount?: EntityAccount | null
-  caseApprovedByAccount?: EntityAccount | null
   fields?: EntityField[]
+  audits?: AuditPublic[]
 }

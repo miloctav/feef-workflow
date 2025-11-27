@@ -92,18 +92,12 @@ export default defineEventHandler(async (event) => {
 
   // Ajouter les filtres spécifiques par rôle
   if (user.role === Role.OE) {
-    const oeCondition = or(
-      eq(entitiesTable.oeId, user.oeId),
-      and(
-        isNull(entitiesTable.oeId),
-        isNotNull(entitiesTable.caseApprovedAt)
-      )
-    )
+    // OE peut voir les entités qui lui sont assignées
+    whereConditions.push(eq(entitiesTable.oeId, user.oeId))
+
+    // Les account managers ne voient que leurs entités
     if( user.oeRole === OERole.ACCOUNT_MANAGER) {
       whereConditions.push(eq(entitiesTable.accountManagerId, user.id))
-    }
-    if (oeCondition) {
-      whereConditions.push(oeCondition)
     }
   }
 

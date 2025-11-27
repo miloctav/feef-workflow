@@ -1,4 +1,4 @@
-import { eq, and, isNull, desc } from 'drizzle-orm'
+import { eq, and, isNull, desc, ne } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { entities, oes, audits } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
@@ -130,6 +130,33 @@ export default defineEventHandler(async (event) => {
       }))
       .where(eq(entities.id, entityIdInt))
 
+    // Chercher si l'entité a un audit en cours (le plus récent non terminé)
+    const ongoingAudit = await db.query.audits.findFirst({
+      where: and(
+        eq(audits.entityId, entityIdInt),
+        ne(audits.status, AuditStatus.COMPLETED),
+        isNull(audits.deletedAt)
+      ),
+      orderBy: desc(audits.createdAt),
+      columns: {
+        id: true,
+        status: true,
+        type: true,
+      }
+    })
+
+    // Si un audit en cours existe, retirer l'OE
+    if (ongoingAudit) {
+      console.log(`Retrait de l'OE de l'audit en cours ID ${ongoingAudit.id}`)
+
+      await db
+        .update(audits)
+        .set(forUpdate(event, {
+          oeId: null
+        }))
+        .where(eq(audits.id, ongoingAudit.id))
+    }
+
     // Retourner l'entité mise à jour
     const entityWithRelations = await db.query.entities.findFirst({
       where: eq(entities.id, entityIdInt),
@@ -151,9 +178,13 @@ export default defineEventHandler(async (event) => {
       }
     })
 
+    const auditMessage = ongoingAudit
+      ? ' (audit en cours également affecté)'
+      : ''
+
     return {
       data: entityWithRelations,
-      message: `L'entité ${existingEntity.name} est maintenant en mode appel d'offre`,
+      message: `L'entité ${existingEntity.name} est maintenant en mode appel d'offre${auditMessage}`,
     }
   }
 
@@ -194,6 +225,33 @@ export default defineEventHandler(async (event) => {
     .where(eq(entities.id, entityIdInt))
     .returning()
 
+  // Chercher si l'entité a un audit en cours (le plus récent non terminé)
+  const ongoingAudit = await db.query.audits.findFirst({
+    where: and(
+      eq(audits.entityId, entityIdInt),
+      ne(audits.status, AuditStatus.COMPLETED),
+      isNull(audits.deletedAt)
+    ),
+    orderBy: desc(audits.createdAt),
+    columns: {
+      id: true,
+      status: true,
+      type: true,
+    }
+  })
+
+  // Si un audit en cours existe, assigner le nouvel OE
+  if (ongoingAudit) {
+    console.log(`Assignation de l'OE ID ${oeId} à l'audit en cours ID ${ongoingAudit.id}`)
+
+    await db
+      .update(audits)
+      .set(forUpdate(event, {
+        oeId: oeId
+      }))
+      .where(eq(audits.id, ongoingAudit.id))
+  }
+
   // Retourner l'entité mise à jour avec les relations
   const entityWithRelations = await db.query.entities.findFirst({
     where: eq(entities.id, entityIdInt),
@@ -215,8 +273,12 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  const auditMessage = ongoingAudit
+    ? ' et à l\'audit en cours'
+    : ''
+
   return {
     data: entityWithRelations,
-    message: `OE ${targetOe.name} assigné avec succès à l'entité ${existingEntity.name}`,
+    message: `OE ${targetOe.name} assigné avec succès à l'entité ${existingEntity.name}${auditMessage}`,
   }
 })

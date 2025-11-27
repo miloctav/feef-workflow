@@ -81,7 +81,7 @@ export async function verifyEntityAccessForUser(
     return false
   }
 
-  // OE : accès complet si entité assignée, ou lecture seule si candidature approuvée sans OE
+  // OE : accès complet si entité assignée
   if (user.role === Role.OE) {
     // Accès complet (read + write) si l'entité est assignée à l'OE
     if (entity.oeId === user.oeId) {
@@ -89,13 +89,6 @@ export async function verifyEntityAccessForUser(
         return false
       }
       return true
-    }
-
-    if (entity.oeId === null && entity.caseApprovedAt !== null) {
-      if(user.oeRole === OERole.ACCOUNT_MANAGER) {
-        return false 
-      }
-      return accessType === AccessType.READ
     }
 
     return false

@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// Ajout d'un champ date pour plannedDate si audit initial et d'un champ pour la date d'audit souhaitée si audits existent
+const plannedDate = ref<string | null>(null)
+const wishedAuditDate = ref<string | null>(null)
 import type { EntityWithRelations } from '~~/app/types/entities'
 
 const props = defineProps<{
@@ -23,6 +26,9 @@ const displayEntity = computed(() => props.followerEntity || currentEntity.value
 // Est-ce qu'on affiche une entité suiveuse ?
 const isFollowerView = computed(() => !!props.followerEntity)
 
+// Dernier audit de l'entité
+const latestAudit = computed(() => displayEntity.value?.audits?.[0] || null)
+
 // État pour le slideover d'édition des champs
 const isFieldEditorOpen = ref(false)
 const selectedFieldKey = ref<string | undefined>(undefined)
@@ -34,7 +40,8 @@ const openFieldEditor = (fieldKey: string) => {
 
 const handleSubmitCaseAndClose = async (close: () => void) => {
   if (!displayEntity.value) return
-  await submitCase(displayEntity.value.id)
+  await submitCase(displayEntity.value.id, plannedDate.value)
+  await handleRefreshEntity()
   close()
 }
 
@@ -113,23 +120,23 @@ const handleRefreshEntity = async () => {
             <h2 class="font-bold text-xl text-gray-900 mb-4">Actions</h2>
             <div class="space-y-3">
               <UButton
-                v-if="!isFollowerView && user?.role === Role.FEEF && (displayEntity?.caseSubmittedAt && !displayEntity?.caseApprovedAt)"
+                v-if="!isFollowerView && user?.role === Role.FEEF && (latestAudit?.caseSubmittedAt && !latestAudit?.caseApprovedAt)"
                 color="success"
                 variant="solid"
                 size="md"
                 icon="i-lucide-check"
-                :disabled="!!displayEntity?.caseApprovedAt || !displayEntity.caseSubmittedAt"
+                :disabled="!!latestAudit?.caseApprovedAt || !latestAudit?.caseSubmittedAt"
                 @click="handleApproveCase"
               >
                 Valider le dossier
               </UButton>
               <UModal
-                v-if="!isFollowerView && user?.role === Role.ENTITY && !displayEntity?.caseSubmittedAt"
+                v-if="!isFollowerView && user?.role === Role.ENTITY && !latestAudit?.caseSubmittedAt"
                 title="Confirmer le dépôt du dossier"
                 :ui="{ footer: 'justify-end' }"
               >
                 <UButton
-                  :disabled="!!displayEntity?.caseSubmittedAt || !!displayEntity?.caseApprovedAt || submitCaseLoading"
+                  :disabled="!!latestAudit?.caseSubmittedAt || !!latestAudit?.caseApprovedAt || submitCaseLoading"
                   :loading="submitCaseLoading"
                   variant="solid"
                   size="md"
@@ -140,6 +147,17 @@ const handleRefreshEntity = async () => {
 
                 <template #body>
                   <div class="space-y-4">
+                    <!-- Champ date si audit initial -->
+                    <template v-if="!displayEntity?.audits || displayEntity.audits.length === 0">
+                      <UFormField label="Date prévisionnelle de l'audit (optionnelle)">
+                        <UInput
+                          type="date"
+                          v-model="plannedDate"
+                          :disabled="submitCaseLoading"
+                        />
+                      </UFormField>
+                    </template>
+                  
                     <!-- Mode appel d'offre (pas d'OE assigné) -->
                     <template v-if="!displayEntity?.oe">
                       <UAlert
@@ -198,29 +216,29 @@ const handleRefreshEntity = async () => {
               <AssignAccountManagerModal v-if="!isFollowerView" />
 
               <!-- Informations de soumission -->
-              <div v-if="displayEntity?.caseSubmittedAt" class="text-sm text-gray-600 pt-2">
+              <div v-if="latestAudit?.caseSubmittedAt" class="text-sm text-gray-600 pt-2">
                 <div class="flex items-start gap-2">
                   <UIcon name="i-lucide-upload" class="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <div>
                     <span class="font-medium">Dossier déposé</span>
-                    <div v-if="displayEntity.caseSubmittedByAccount">
-                      par {{ displayEntity.caseSubmittedByAccount.firstname }} {{ displayEntity.caseSubmittedByAccount.lastname }}
+                    <div v-if="latestAudit.caseSubmittedByAccount">
+                      par {{ latestAudit.caseSubmittedByAccount.firstname }} {{ latestAudit.caseSubmittedByAccount.lastname }}
                     </div>
-                    <div>le {{ new Date(displayEntity.caseSubmittedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}</div>
+                    <div>le {{ new Date(latestAudit.caseSubmittedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}</div>
                   </div>
                 </div>
               </div>
 
               <!-- Informations d'approbation -->
-              <div v-if="displayEntity?.caseApprovedAt" class="text-sm text-gray-600 pt-1">
+              <div v-if="latestAudit?.caseApprovedAt" class="text-sm text-gray-600 pt-1">
                 <div class="flex items-start gap-2">
                   <UIcon name="i-lucide-check-circle" class="w-4 h-4 mt-0.5 flex-shrink-0 text-success" />
                   <div>
                     <span class="font-medium text-success">Dossier approuvé</span>
-                    <div v-if="displayEntity.caseApprovedByAccount">
-                      par {{ displayEntity.caseApprovedByAccount.firstname }} {{ displayEntity.caseApprovedByAccount.lastname }}
+                    <div v-if="latestAudit.caseApprovedByAccount">
+                      par {{ latestAudit.caseApprovedByAccount.firstname }} {{ latestAudit.caseApprovedByAccount.lastname }}
                     </div>
-                    <div>le {{ new Date(displayEntity.caseApprovedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}</div>
+                    <div>le {{ new Date(latestAudit.caseApprovedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}</div>
                   </div>
                 </div>
               </div>

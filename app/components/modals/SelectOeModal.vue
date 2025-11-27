@@ -96,7 +96,6 @@
 </template>
 
 <script setup lang="ts">
-import type { OEWithRelations } from '~~/app/types/oes'
 
 interface Props {
   entityId?: number

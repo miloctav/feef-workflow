@@ -1,6 +1,6 @@
 import { db } from "~~/server/database"
-import { entities, EntityType } from "~~/server/database/schema"
-import { eq } from "drizzle-orm"
+import { audits, entities, EntityType } from "~~/server/database/schema"
+import { eq, isNotNull, isNull } from "drizzle-orm"
 import { requireEntityAccess, AccessType } from "~~/server/utils/authorization"
 import { getFormattedEntityFields } from "~~/server/utils/entity-fields-formatter"
 
@@ -44,20 +44,35 @@ export default defineEventHandler(async (event) => {
           email: true,
         }
       },
-      caseSubmittedByAccount: {
+      audits: {
+        orderBy: (audits, { desc }) => [desc(audits.createdAt)],
+        where: isNull(audits.deletedAt),
+        limit: 1,
         columns: {
           id: true,
-          firstname: true,
-          lastname: true,
-          email: true,
-        }
-      },
-      caseApprovedByAccount: {
-        columns: {
-          id: true,
-          firstname: true,
-          lastname: true,
-          email: true,
+          type: true,
+          status: true,
+          labelExpirationDate: true,
+          caseSubmittedAt: true,
+          caseSubmittedBy: true,
+          caseApprovedAt: true,
+          caseApprovedBy: true,
+        },
+        with: {
+          caseSubmittedByAccount: {
+            columns: {
+              id: true,
+              firstname: true,
+              lastname: true,
+            }
+          },
+          caseApprovedByAccount: {
+            columns: {
+              id: true,
+              firstname: true,
+              lastname: true,
+            }
+          }
         }
       },
       parentGroup: true, // Si c'est une COMPANY, récupérer tous les détails du groupe parent

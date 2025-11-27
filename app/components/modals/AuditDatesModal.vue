@@ -8,72 +8,59 @@
   >
     <!-- Bouton déclencheur -->
     <UButton
-      v-if="!hasPlannedDates"
-      size="xs"
-      color="primary"
-      variant="outline"
-      icon="i-lucide-calendar"
-      label="Programmer les dates"
-    />
-    <UButton
-      v-else
       size="xs"
       color="neutral"
       variant="outline"
       icon="i-lucide-edit"
-      label="Modifier"
+      label="Modifier dates réelles"
     />
 
     <template #body>
       <div class="space-y-6">
-        <!-- Dates prévisionnelles -->
-        <div class="space-y-4">
-          <h4 class="font-medium text-gray-900">Dates prévisionnelles</h4>
-          
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Date de début prévue
-              </label>
-              <UInput
-                v-model="form.plannedStartDate"
-                type="date"
-                required
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Date de fin prévue
-              </label>
-              <UInput
-                v-model="form.plannedEndDate"
-                type="date"
-                :min="form.plannedStartDate"
-                required
-              />
-            </div>
+        <!-- Date prévisionnelle (lecture seule) -->
+        <div v-if="hasPlannedDate" class="space-y-4">
+          <div class="flex items-center gap-2">
+            <h4 class="font-medium text-gray-900">Date prévisionnelle</h4>
+            <UBadge size="xs" color="info">Lecture seule</UBadge>
           </div>
 
-          <div v-if="form.plannedStartDate" class="p-3 bg-blue-50 rounded-lg">
-            <div class="flex items-start gap-2">
-              <UIcon name="i-lucide-info" class="w-4 h-4 text-blue-600 mt-0.5" />
-              <div class="text-sm text-blue-800">
-                <p class="font-medium mb-1">Date limite de dépôt des documents</p>
-                <p>{{ depositDeadline }}</p>
-                <p class="text-xs text-blue-600 mt-1">
-                  (15 jours avant le début de l'audit)
-                </p>
+          <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div>
+              <label class="block text-xs font-medium text-blue-900 mb-1">
+                Date prévue
+              </label>
+              <p class="text-sm text-blue-800 font-semibold">
+                {{ formatDisplayDate(props.initialPlannedDate) }}
+              </p>
+            </div>
+
+            <div v-if="props.initialPlannedDate" class="mt-3 pt-3 border-t border-blue-200">
+              <div class="flex items-start gap-2">
+                <UIcon name="i-lucide-info" class="w-4 h-4 text-blue-600 mt-0.5" />
+                <div class="text-xs text-blue-800">
+                  <p class="font-medium">Date limite de dépôt des documents</p>
+                  <p>{{ depositDeadline }}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Dates réelles (optionnel si l'audit a déjà eu lieu) -->
-        <div v-if="showActualDates" class="space-y-4">
+        <div v-else class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <div class="flex items-start gap-2">
+            <UIcon name="i-lucide-alert-circle" class="w-4 h-4 text-gray-600 mt-0.5" />
+            <div class="text-sm text-gray-700">
+              <p class="font-medium">Aucune date prévisionnelle définie</p>
+              <p class="text-xs text-gray-600 mt-1">La date prévisionnelle sera calculée automatiquement lors de la création de l'audit.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dates réelles (modifiables) -->
+        <div class="space-y-4">
           <div class="flex items-center gap-2">
-            <h4 class="font-medium text-gray-900">Dates réelles</h4>
-            <UBadge size="xs" color="neutral">Optionnel</UBadge>
+            <h4 class="font-medium text-gray-900">Dates réelles de l'audit</h4>
+            <UBadge size="xs" color="success">Modifiable</UBadge>
           </div>
           
           <div class="grid grid-cols-2 gap-4">
@@ -99,26 +86,9 @@
             </div>
           </div>
 
-          <div v-if="form.actualStartDate && form.actualEndDate" class="p-3 bg-green-50 rounded-lg">
-            <div class="flex items-start gap-2">
-              <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-green-600 mt-0.5" />
-              <div class="text-sm text-green-800">
-                <p class="font-medium">Audit terminé</p>
-                <p>Durée : {{ auditDuration }} jours</p>
-              </div>
-            </div>
+          <div v-if="form.actualStartDate && form.actualEndDate" class="text-xs text-gray-600 mt-2">
+            <p>Durée : {{ auditDuration }} jours</p>
           </div>
-        </div>
-
-        <!-- Toggle pour afficher les dates réelles -->
-        <div class="flex items-center gap-3">
-          <UToggle
-            v-model="showActualDates"
-            :ui="{ active: 'bg-primary-500' }"
-          />
-          <label class="text-sm font-medium text-gray-700">
-            L'audit a déjà eu lieu (renseigner les dates réelles)
-          </label>
         </div>
 
         <div v-if="dateError" class="text-sm text-red-600">
@@ -135,10 +105,10 @@
         @click="close"
       />
       <UButton
-        label="Enregistrer les dates"
+        label="Enregistrer les dates réelles"
         icon="i-lucide-save"
         :loading="saving"
-        :disabled="!form.plannedStartDate || !form.plannedEndDate || !!dateError || saving"
+        :disabled="!!dateError || saving"
         @click="() => saveDates(close)"
       />
     </template>
@@ -148,15 +118,13 @@
 <script setup lang="ts">
 interface Props {
   auditId: number
-  initialPlannedStartDate?: string | null
-  initialPlannedEndDate?: string | null
+  initialPlannedDate?: string | null
   initialActualStartDate?: string | null
   initialActualEndDate?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  initialPlannedStartDate: null,
-  initialPlannedEndDate: null,
+  initialPlannedDate: null,
   initialActualStartDate: null,
   initialActualEndDate: null,
 })
@@ -171,40 +139,26 @@ const toast = useToast()
 
 // État local
 const saving = ref(false)
-const showActualDates = ref(false)
 
-// Computed pour savoir si des dates sont déjà renseignées
-const hasPlannedDates = computed(() => {
-  return !!(props.initialPlannedStartDate && props.initialPlannedEndDate)
+// Computed pour savoir si une date prévisionnelle existe
+const hasPlannedDate = computed(() => {
+  return !!props.initialPlannedDate
 })
 
-// Formulaire
+// Formulaire (uniquement les dates réelles)
 const form = reactive({
-  plannedStartDate: '',
-  plannedEndDate: '',
   actualStartDate: '',
   actualEndDate: '',
 })
 
-// Dates minimum et maximum
-const minDate = computed(() => {
-  const today = new Date()
-  return today.toISOString().split('T')[0]
-})
-
-const todayDate = computed(() => {
-  const today = new Date()
-  return today.toISOString().split('T')[0]
-})
-
-// Date limite de dépôt (15 jours avant le début)
+// Date limite de dépôt (15 jours avant la date prévue)
 const depositDeadline = computed(() => {
-  if (!form.plannedStartDate) return ''
-  
-  const startDate = new Date(form.plannedStartDate)
-  const deadline = new Date(startDate)
+  if (!props.initialPlannedDate) return ''
+
+  const plannedDate = new Date(props.initialPlannedDate)
+  const deadline = new Date(plannedDate)
   deadline.setDate(deadline.getDate() - 15)
-  
+
   return deadline.toLocaleDateString('fr-FR', {
     weekday: 'long',
     year: 'numeric',
@@ -225,44 +179,39 @@ const auditDuration = computed(() => {
   return diffDays + 1 // +1 pour inclure le jour de début
 })
 
-// Erreur de validation des dates
+// Erreur de validation des dates réelles
 const dateError = computed(() => {
-  // Vérifier les dates prévisionnelles
-  if (form.plannedStartDate && form.plannedEndDate) {
-    const plannedStart = new Date(form.plannedStartDate)
-    const plannedEnd = new Date(form.plannedEndDate)
-    
-    if (plannedEnd <= plannedStart) {
-      return 'La date de fin prévue doit être postérieure à la date de début prévue'
-    }
-  }
-
-  // Vérifier les dates réelles si elles sont renseignées
-  if (showActualDates.value && form.actualStartDate && form.actualEndDate) {
+  // Vérifier les dates réelles si elles sont toutes deux renseignées
+  if (form.actualStartDate && form.actualEndDate) {
     const actualStart = new Date(form.actualStartDate)
     const actualEnd = new Date(form.actualEndDate)
-    
-    if (actualEnd <= actualStart) {
-      return 'La date de fin réelle doit être postérieure à la date de début réelle'
+
+    if (actualEnd < actualStart) {
+      return 'La date de fin réelle ne peut pas être antérieure à la date de début réelle'
     }
   }
 
   return null
 })
 
-// Initialiser le formulaire avec les valeurs existantes
+// Initialiser le formulaire avec les valeurs existantes (uniquement dates réelles)
 const initForm = () => {
-  form.plannedStartDate = props.initialPlannedStartDate ? 
-    new Date(props.initialPlannedStartDate).toISOString().split('T')[0] || '' : ''
-  form.plannedEndDate = props.initialPlannedEndDate ? 
-    new Date(props.initialPlannedEndDate).toISOString().split('T')[0] || '' : ''
-  form.actualStartDate = props.initialActualStartDate ? 
+  form.actualStartDate = props.initialActualStartDate ?
     new Date(props.initialActualStartDate).toISOString().split('T')[0] || '' : ''
-  form.actualEndDate = props.initialActualEndDate ? 
+  form.actualEndDate = props.initialActualEndDate ?
     new Date(props.initialActualEndDate).toISOString().split('T')[0] || '' : ''
-  
-  // Afficher les dates réelles si elles existent déjà
-  showActualDates.value = !!(props.initialActualStartDate && props.initialActualEndDate)
+}
+
+// Formater une date pour l'affichage en lecture seule
+const formatDisplayDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return 'Non définie'
+
+  const date = new Date(dateString)
+  return date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  })
 }
 
 // Initialiser le formulaire au montage
@@ -270,24 +219,15 @@ onMounted(() => {
   initForm()
 })
 
-// Sauvegarder les dates
+// Sauvegarder les dates réelles
 const saveDates = async (closeModal?: () => void) => {
   saving.value = true
 
   try {
+    // Envoyer uniquement les dates réelles (peuvent être null)
     const updateData: any = {
-      plannedStartDate: form.plannedStartDate,
-      plannedEndDate: form.plannedEndDate,
-    }
-
-    // Ajouter les dates réelles si elles sont renseignées
-    if (showActualDates.value && form.actualStartDate && form.actualEndDate) {
-      updateData.actualStartDate = form.actualStartDate
-      updateData.actualEndDate = form.actualEndDate
-    } else {
-      // Réinitialiser les dates réelles si le toggle est désactivé
-      updateData.actualStartDate = null
-      updateData.actualEndDate = null
+      actualStartDate: form.actualStartDate || null,
+      actualEndDate: form.actualEndDate || null,
     }
 
     const result = await updateAudit(props.auditId, updateData)
@@ -299,15 +239,15 @@ const saveDates = async (closeModal?: () => void) => {
       }
       toast.add({
         title: 'Succès',
-        description: 'Dates d\'audit enregistrées avec succès',
+        description: 'Dates réelles enregistrées avec succès',
         color: 'success',
       })
     }
   } catch (error) {
-    console.error('Erreur sauvegarde dates:', error)
+    console.error('Erreur sauvegarde dates réelles:', error)
     toast.add({
       title: 'Erreur',
-      description: 'Impossible d\'enregistrer les dates',
+      description: 'Impossible d\'enregistrer les dates réelles',
       color: 'error',
     })
   } finally {

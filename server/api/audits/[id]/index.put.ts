@@ -3,12 +3,11 @@ import { db } from '~~/server/database'
 import { audits, oes, accounts } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
 import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
+import { executeStatusActions } from '~~/server/utils/auditStatusHandlers'
 
 interface UpdateAuditBody {
   oeId?: number
   auditorId?: number
-  plannedStartDate?: string | null
-  plannedEndDate?: string | null
   actualStartDate?: string | null
   actualEndDate?: string | null
   score?: number | null
@@ -26,13 +25,12 @@ interface UpdateAuditBody {
  *
  * Met à jour un audit existant
  *
- * IMPORTANT: entityId et type NE PEUVENT PAS être modifiés
+ * IMPORTANT: entityId, type, plannedStartDate et plannedEndDate NE PEUVENT PAS être modifiés
+ * Les dates prévisionnelles sont calculées automatiquement lors de la création de l'audit
  *
  * Champs modifiables:
  * - oeId: ID de l'OE
  * - auditorId: ID de l'auditeur (doit avoir le rôle AUDITOR)
- * - plannedStartDate: date de début prévisionnelle (format: YYYY-MM-DD)
- * - plannedEndDate: date de fin prévisionnelle (format: YYYY-MM-DD)
  * - actualStartDate: date de début réelle (format: YYYY-MM-DD)
  * - actualEndDate: date de fin réelle (format: YYYY-MM-DD)
  * - score: score de l'audit (OE uniquement)
@@ -100,8 +98,6 @@ export default defineEventHandler(async (event) => {
   const {
     oeId,
     auditorId,
-    plannedStartDate,
-    plannedEndDate,
     actualStartDate,
     actualEndDate,
     score,
@@ -111,15 +107,13 @@ export default defineEventHandler(async (event) => {
     oeOpinionArgumentaire,
     oeOpinionConditions,
     feefDecision,
-    labelExpirationDate,
+    // labelExpirationDate n'est plus accepté du frontend - sera calculé automatiquement par le backend si nécessaire
   } = body
 
   // Vérifier qu'au moins un champ est fourni
   if (
     oeId === undefined &&
     auditorId === undefined &&
-    plannedStartDate === undefined &&
-    plannedEndDate === undefined &&
     actualStartDate === undefined &&
     actualEndDate === undefined &&
     score === undefined &&
@@ -128,8 +122,7 @@ export default defineEventHandler(async (event) => {
     oeOpinion === undefined &&
     oeOpinionArgumentaire === undefined &&
     oeOpinionConditions === undefined &&
-    feefDecision === undefined &&
-    labelExpirationDate === undefined
+    feefDecision === undefined
   ) {
     throw createError({
       statusCode: 400,
@@ -201,8 +194,6 @@ export default defineEventHandler(async (event) => {
 
   if (oeId !== undefined) updateData.oeId = oeId
   if (auditorId !== undefined) updateData.auditorId = auditorId
-  if (plannedStartDate !== undefined) updateData.plannedStartDate = plannedStartDate
-  if (plannedEndDate !== undefined) updateData.plannedEndDate = plannedEndDate
   if (actualStartDate !== undefined) updateData.actualStartDate = actualStartDate
   if (actualEndDate !== undefined) updateData.actualEndDate = actualEndDate
   if (score !== undefined) updateData.score = score
@@ -232,9 +223,19 @@ export default defineEventHandler(async (event) => {
     updateData.feefDecisionAt = new Date()
     updateData.feefDecisionBy = currentUser.id
   }
-  if (labelExpirationDate !== undefined) updateData.labelExpirationDate = labelExpirationDate
 
-  // Mettre � jour l'audit
+  // Exécuter les actions automatiques associées au changement de statut
+  if (status !== undefined) {
+    const statusUpdates = await executeStatusActions(existingAudit, status, event)
+
+    if (statusUpdates) {
+      // Fusionner les mises à jour générées par le handler avec updateData
+      Object.assign(updateData, statusUpdates)
+      console.log('[PUT /api/audits/:id] Mises à jour automatiques appliquées suite au changement de statut')
+    }
+  }
+
+  // Mettre à jour l'audit
   const [updatedAudit] = await db
     .update(audits)
     .set(forUpdate(event, updateData))
