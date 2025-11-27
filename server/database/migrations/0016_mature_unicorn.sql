@@ -1,0 +1,1 @@
+ALTER TABLE "audit_notation" DROP COLUMN "theme_key";

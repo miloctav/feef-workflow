@@ -94,7 +94,7 @@ export const audits = pgTable('audits', {
   plannedDate: date('planned_date'),
   actualStartDate: date('actual_start_date'),
   actualEndDate: date('actual_end_date'),
-  score: integer('score'),
+  globalScore: integer('global_score'),
   labelingOpinion: json('labeling_opinion'),
   // Workflow status
   status: auditStatusEnum('status').default('PLANNING'),
@@ -110,6 +110,7 @@ export const audits = pgTable('audits', {
   oeOpinionTransmittedAt: timestamp('oe_opinion_transmitted_at'),
   oeOpinionTransmittedBy: integer('oe_opinion_transmitted_by').references(() => accounts.id),
   // Corrective plan validation
+  needsCorrectivePlan: boolean('needs_corrective_plan').default(false),
   correctivePlanValidatedAt: timestamp('corrective_plan_validated_at'),
   correctivePlanValidatedBy: integer('corrective_plan_validated_by').references(() => accounts.id),
   // FEEF Decision fields
@@ -208,6 +209,16 @@ export const contracts = pgTable('contracts', {
   deletedAt: timestamp('deleted_at'),
 })
 
+export const auditNotation = pgTable('audit_notation', {
+  id: serial('id').primaryKey(),
+  auditId: integer('audit_id').notNull().references(() => audits.id),
+  criterionKey: integer('criterion_key').notNull(),
+  description: text('description').notNull(),
+  score: integer('score').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at'),
+})
+
 // Junction table for many-to-many relationship between accounts and entities
 export const accountsToEntities = pgTable('accounts_to_entities', {
   accountId: integer('account_id').notNull().references(() => accounts.id),
@@ -276,6 +287,10 @@ export type NewContract = typeof contracts.$inferInsert
 // Type pour EntityFieldVersion
 export type EntityFieldVersion = typeof entityFieldVersions.$inferSelect
 export type NewEntityFieldVersion = typeof entityFieldVersions.$inferInsert
+
+// Type pour AuditNotation
+export type AuditNotation = typeof auditNotation.$inferSelect
+export type NewAuditNotation = typeof auditNotation.$inferInsert
 
 // ========================================
 // Relations Drizzle pour les queries relationnelles
@@ -443,6 +458,7 @@ export const auditsRelations = relations(audits, ({ one, many }) => ({
     relationName: 'feefDecisionBy',
   }),
   documentVersions: many(documentVersions),
+  notations: many(auditNotation),
 }))
 
 export const accountsToEntitiesRelations = relations(accountsToEntities, ({ one }) => ({
@@ -525,5 +541,12 @@ export const entityFieldVersionsRelations = relations(entityFieldVersions, ({ on
   createdByAccount: one(accounts, {
     fields: [entityFieldVersions.createdBy],
     references: [accounts.id],
+  }),
+}))
+
+export const auditNotationRelations = relations(auditNotation, ({ one }) => ({
+  audit: one(audits, {
+    fields: [auditNotation.auditId],
+    references: [audits.id],
   }),
 }))

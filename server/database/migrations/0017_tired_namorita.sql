@@ -1,0 +1,1 @@
+ALTER TABLE "audits" ADD COLUMN "needs_corrective_plan" boolean DEFAULT false;

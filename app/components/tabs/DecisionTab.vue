@@ -12,7 +12,7 @@
     <AuditReportsCard v-if="currentAudit" />
 
     <!-- Plan d'action corrective -->
-    <ActionPlanCard v-if="currentAudit && needsPlanAction" />
+    <ActionPlanCard v-if="currentAudit && currentAudit.needsCorrectivePlan" />
 
     <!-- Avis de l'Organisme Évaluateur -->
     <OEOpinionCard v-if="currentAudit" />
@@ -45,9 +45,4 @@ const isAuditEditable = computed(() => {
 // Provide isEditable aux composants enfants
 provide('isAuditEditable', isAuditEditable)
 
-// Computed: Un plan d'action est-il nécessaire?
-const needsPlanAction = computed(() => {
-  // Toujours affiché pour l'instant
-  return true
-})
 </script>

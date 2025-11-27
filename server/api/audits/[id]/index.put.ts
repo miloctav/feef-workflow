@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { audits, oes, accounts } from '~~/server/database/schema'
+import { audits, oes, accounts, auditNotation } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
 import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
 import { executeStatusActions } from '~~/server/utils/auditStatusHandlers'
@@ -100,7 +100,7 @@ export default defineEventHandler(async (event) => {
     auditorId,
     actualStartDate,
     actualEndDate,
-    score,
+    globalScore,
     labelingOpinion,
     status,
     oeOpinion,
@@ -116,7 +116,7 @@ export default defineEventHandler(async (event) => {
     auditorId === undefined &&
     actualStartDate === undefined &&
     actualEndDate === undefined &&
-    score === undefined &&
+    globalScore === undefined &&
     labelingOpinion === undefined &&
     status === undefined &&
     oeOpinion === undefined &&
@@ -196,9 +196,26 @@ export default defineEventHandler(async (event) => {
   if (auditorId !== undefined) updateData.auditorId = auditorId
   if (actualStartDate !== undefined) updateData.actualStartDate = actualStartDate
   if (actualEndDate !== undefined) updateData.actualEndDate = actualEndDate
-  if (score !== undefined) updateData.score = score
   if (labelingOpinion !== undefined) updateData.labelingOpinion = labelingOpinion
   if (status !== undefined) updateData.status = status
+
+  // Si globalScore est modifié, recalculer needsCorrectivePlan
+  if (globalScore !== undefined) {
+    updateData.globalScore = globalScore
+
+    // Récupérer les notations pour calculer needsCorrectivePlan
+    const notations = await db.query.auditNotation.findMany({
+      where: eq(auditNotation.auditId, auditIdInt),
+      columns: { score: true },
+    })
+
+    const hasLowGlobalScore = globalScore < 65
+    const hasBadNotation = notations.some(n => n.score >= 3)
+
+    updateData.needsCorrectivePlan = hasLowGlobalScore || hasBadNotation
+
+    console.log(`📊 needsCorrectivePlan calculated: ${updateData.needsCorrectivePlan} (globalScore: ${globalScore}, hasBadNotation: ${hasBadNotation})`)
+  }
 
   // Gestion de l'avis OE avec timestamps automatiques
   if (oeOpinion !== undefined) {

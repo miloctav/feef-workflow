@@ -6,15 +6,6 @@
           <UIcon name="i-lucide-file-chart-column" class="w-5 h-5 text-purple-600" />
           <h4 class="font-semibold">Rapports d'audit</h4>
         </div>
-        
-        <!-- Bouton pour uploader/modifier le rapport dans le header -->
-        <div v-if="canUploadReport || canModifyReport" class="ml-auto">
-          <AuditReportModal
-            :audit-id="currentAudit!.id"
-            :has-existing-report="hasReport"
-            @uploaded="handleReportUploaded"
-          />
-        </div>
       </div>
     </template>
 
@@ -55,26 +46,29 @@
       <!-- Card 2: Score global -->
       <AuditStepCard
         title="Score global"
-        :state="score !== null && score !== undefined ? 'success' : 'warning'"
+        :state="hasGlobalScore ? 'success' : 'warning'"
         icon-success="i-lucide-target"
         icon-warning="i-lucide-target"
         label-success="Attribué"
         label-warning="Non attribué"
         color-scheme="blue"
+        :clickable="true"
+        clickable-text="Cliquer pour gérer la notation"
+        @click="showScoreViewer = true"
       >
         <template #content>
-          <div v-if="score !== null && score !== undefined" class="space-y-2">
+          <div v-if="hasGlobalScore" class="space-y-2">
             <div class="text-2xl font-bold text-green-600">
-              {{ score }}%
+              {{ globalScore }}%
             </div>
             <UBadge
-              :color="score >= 80 ? 'success' :
-                     score >= 60 ? 'warning' : 'error'"
+              :color="globalScore >= 80 ? 'success' :
+                     globalScore >= 60 ? 'warning' : 'error'"
               variant="soft"
               size="xs"
             >
-              {{ score >= 80 ? 'Excellent' :
-                 score >= 60 ? 'Satisfaisant' : 'À améliorer' }}
+              {{ globalScore >= 80 ? 'Excellent' :
+                 globalScore >= 60 ? 'Satisfaisant' : 'À améliorer' }}
             </UBadge>
           </div>
           <div v-else>
@@ -91,6 +85,13 @@
       :audit="currentAudit!"
       :audit-document-type="AuditDocumentType.REPORT"
       v-model:open="showDocumentViewer"
+    />
+
+    <!-- AuditScoreViewer pour gérer la notation RSE -->
+    <AuditScoreViewer
+      v-if="currentAudit"
+      :audit="currentAudit"
+      v-model:open="showScoreViewer"
     />
   </UCard>
 </template>
@@ -109,8 +110,12 @@ const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
 // État pour le DocumentViewer
 const showDocumentViewer = ref(false)
 
+// État pour le AuditScoreViewer
+const showScoreViewer = ref(false)
+
 // Computed depuis currentAudit
-const score = computed(() => currentAudit.value?.score ?? null)
+const globalScore = computed(() => currentAudit.value?.globalScore ?? null)
+const hasGlobalScore = computed(() => globalScore.value !== null && globalScore.value !== undefined)
 const auditStatus = computed(() => currentAudit.value?.status ?? null)
 
 // Dernière version du rapport depuis l'audit (pas d'appel API séparé)
