@@ -131,12 +131,11 @@ const handleRefreshEntity = async () => {
                 Valider le dossier
               </UButton>
               <UModal
-                v-if="!isFollowerView && user?.role === Role.ENTITY && !latestAudit?.caseSubmittedAt"
+                v-if="!isFollowerView && user?.role === Role.ENTITY && (!latestAudit?.caseSubmittedAt || latestAudit.status===AuditStatus.COMPLETED)"
                 title="Confirmer le dépôt du dossier"
                 :ui="{ footer: 'justify-end' }"
               >
                 <UButton
-                  :disabled="!!latestAudit?.caseSubmittedAt || !!latestAudit?.caseApprovedAt || submitCaseLoading"
                   :loading="submitCaseLoading"
                   variant="solid"
                   size="md"
@@ -216,7 +215,7 @@ const handleRefreshEntity = async () => {
               <AssignAccountManagerModal v-if="!isFollowerView" />
 
               <!-- Informations de soumission -->
-              <div v-if="latestAudit?.caseSubmittedAt" class="text-sm text-gray-600 pt-2">
+              <div v-if="latestAudit?.caseSubmittedAt  && latestAudit.status!==AuditStatus.COMPLETED" class="text-sm text-gray-600 pt-2">
                 <div class="flex items-start gap-2">
                   <UIcon name="i-lucide-upload" class="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <div>
@@ -230,7 +229,7 @@ const handleRefreshEntity = async () => {
               </div>
 
               <!-- Informations d'approbation -->
-              <div v-if="latestAudit?.caseApprovedAt" class="text-sm text-gray-600 pt-1">
+              <div v-if="latestAudit?.caseApprovedAt && latestAudit.status!==AuditStatus.COMPLETED" class="text-sm text-gray-600 pt-1">
                 <div class="flex items-start gap-2">
                   <UIcon name="i-lucide-check-circle" class="w-4 h-4 mt-0.5 flex-shrink-0 text-success" />
                   <div>
