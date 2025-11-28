@@ -1,18 +1,46 @@
 <script setup lang="ts">
+import { getAuditTypeLabel, getAuditTypeColor, getAuditStatusLabel, getAuditStatusColor } from '#shared/types/enums'
+
 const { user } = useAuth()
 
 // Récupérer l'audit courant depuis le composable
 const { currentAudit } = useAudits()
 const { currentEntity, fetchEntity } = useEntities()
 
-onMounted(async () => {
-  if (currentAudit.value) {
-    console.log('Fetching entity for audit:', currentAudit.value)
-    await fetchEntity(currentAudit.value.entityId)
+// Sélectionner l'onglet initial en fonction du statut de l'audit
+const getInitialTab = () => {
+  if (!currentAudit.value?.status) {
+    return 'dossier' // Par défaut si pas de statut
   }
-})
 
-const selectedTab = ref('documents')
+  const status = currentAudit.value.status
+
+  // Si statut PENDING_CASE_APPROVAL ou PENDING_OE_CHOICE → onglet dossier
+  if (status === AuditStatus.PENDING_CASE_APPROVAL || status === AuditStatus.PENDING_OE_CHOICE) {
+    return 'dossier'
+  }
+
+  // Si statut PLANNING → onglet planification d'audit
+  if (status === AuditStatus.PLANNING) {
+    return 'audit'
+  }
+
+  // Sinon → onglet décision
+  return 'decision'
+}
+
+const selectedTab = ref('dossier')
+
+// Watcher pour charger l'entité et sélectionner l'onglet dès que l'audit est disponible
+watch(currentAudit, async (audit) => {
+  if (audit?.entityId) {
+    console.log('Fetching entity for audit:', audit)
+    await fetchEntity(audit.entityId)
+
+    // Sélectionner l'onglet en fonction du statut
+    selectedTab.value = getInitialTab()
+  }
+}, { immediate: true })
 
 // Configuration des tabs
 const tabItems = computed(() => {
@@ -55,27 +83,44 @@ const tabItems = computed(() => {
 // Helper pour formater le type d'audit
 const auditTypeLabel = computed(() => {
   if (!currentAudit.value) return 'Initial'
-
-  const typeLabels = {
-    'INITIAL': 'Initial',
-    'RENEWAL': 'Renouvellement',
-    'MONITORING': 'Suivi'
-  }
-
-  return typeLabels[currentAudit.value.type] || currentAudit.value.type
+  return getAuditTypeLabel(currentAudit.value.type)
 })
 
 // Helper pour la couleur du badge
 const auditTypeBadgeColor = computed(() => {
   if (!currentAudit.value) return 'primary'
+  return getAuditTypeColor(currentAudit.value.type)
+})
 
-  const colorMapping = {
-    [AuditType.INITIAL]: 'primary',
-    [AuditType.RENEWAL]: 'warning',
-    [AuditType.MONITORING]: 'info'
+// Générer l'URL de la page entité en fonction du rôle
+const getEntityPageUrl = () => {
+  if (!currentAudit.value?.entity?.id) return '#'
+
+  const entityId = currentAudit.value.entity.id
+
+  // Redirection selon le rôle
+  switch (user.value?.role) {
+    case Role.FEEF:
+      return `/feef/entities/${entityId}`
+    case Role.OE:
+      return `/oe/entities/${entityId}`
+    case Role.ENTITY:
+      return `/company/case`
+    default:
+      return '#'
   }
+}
 
-  return colorMapping[currentAudit.value.type] || 'primary'
+// Helper pour le label du statut
+const auditStatusLabel = computed(() => {
+  if (!currentAudit.value?.status) return 'En attente'
+  return getAuditStatusLabel(currentAudit.value.status)
+})
+
+// Helper pour la couleur du badge statut
+const auditStatusBadgeColor = computed(() => {
+  if (!currentAudit.value?.status) return 'neutral'
+  return getAuditStatusColor(currentAudit.value.status)
 })
 
 </script>
@@ -86,7 +131,7 @@ const auditTypeBadgeColor = computed(() => {
     <div class="px-6">
       <UCard class="mb-6">
         <div class="flex items-start gap-6">
-          <!-- Icône dossier à gauche avec badge type -->
+          <!-- Icône dossier à gauche avec badges type et statut -->
           <div class="flex-shrink-0 flex flex-col items-center gap-3">
             <UIcon
               name="i-lucide-folder-check"
@@ -99,6 +144,13 @@ const auditTypeBadgeColor = computed(() => {
             >
               {{ auditTypeLabel }}
             </UBadge>
+            <UBadge
+              variant="soft"
+              :color="auditStatusBadgeColor"
+              size="md"
+            >
+              {{ auditStatusLabel }}
+            </UBadge>
           </div>
 
           <!-- Informations principales -->
@@ -110,9 +162,16 @@ const auditTypeBadgeColor = computed(() => {
               <div class="space-y-3">
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-gray-600">Nom:</span>
-                  <NuxtLink :to="`/entity/${currentAudit?.entity?.id}`" class="text-gray-900 font-medium hover:text-primary hover:underline cursor-pointer">
+                  <NuxtLink
+                    v-if="user?.role !== Role.AUDITOR"
+                    :to="getEntityPageUrl()"
+                    class="text-gray-900 font-medium hover:text-primary hover:underline cursor-pointer"
+                  >
                     {{ currentAudit?.entity?.name }}
                   </NuxtLink>
+                  <span v-else class="text-gray-900 font-medium">
+                    {{ currentAudit?.entity?.name }}
+                  </span>
                 </div>
 
                 <div class="flex items-center gap-2">

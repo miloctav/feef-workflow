@@ -95,6 +95,15 @@ export const AuditTypeLabels: Record<AuditTypeType, string> = {
 }
 
 /**
+ * Couleurs de badge pour les types d'audit (pour Nuxt UI)
+ */
+export const AuditTypeColors: Record<AuditTypeType, 'primary' | 'warning' | 'info'> = {
+  [AuditType.INITIAL]: 'primary',
+  [AuditType.RENEWAL]: 'warning',
+  [AuditType.MONITORING]: 'info'
+}
+
+/**
  * Obtenir la liste des types d'audit avec labels
  */
 export function getAuditTypeItems(includeAll: true): Array<{ label: string; value: AuditTypeType | null }>
@@ -134,6 +143,13 @@ export function getAuditTypeLabel(type: AuditTypeType): string {
 }
 
 /**
+ * Obtenir la couleur du badge d'un type d'audit
+ */
+export function getAuditTypeColor(type: AuditTypeType): 'primary' | 'warning' | 'info' {
+  return AuditTypeColors[type] || 'primary'
+}
+
+/**
  * Statuts d'audit
  */
 export const AuditStatus = {
@@ -163,6 +179,35 @@ export const AuditStatusLabels: Record<AuditStatusType, string> = {
   [AuditStatus.COMPLETED]: 'Terminé',
   [AuditStatus.PENDING_CASE_APPROVAL]: "En attente d'approbation du dossier",
   [AuditStatus.PENDING_OE_CHOICE]: "En attente du choix de l'OE"
+}
+
+/**
+ * Couleurs de badge pour les statuts d'audit (pour Nuxt UI)
+ */
+export const AuditStatusColors: Record<AuditStatusType, 'primary' | 'warning' | 'success' | 'info' | 'neutral'> = {
+  [AuditStatus.PENDING_CASE_APPROVAL]: 'warning',
+  [AuditStatus.PENDING_OE_CHOICE]: 'warning',
+  [AuditStatus.PLANNING]: 'info',
+  [AuditStatus.PENDING_REPORT]: 'warning',
+  [AuditStatus.PENDING_CORRECTIVE_PLAN]: 'warning',
+  [AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION]: 'warning',
+  [AuditStatus.PENDING_OE_OPINION]: 'warning',
+  [AuditStatus.PENDING_FEEF_DECISION]: 'primary',
+  [AuditStatus.COMPLETED]: 'success'
+}
+
+/**
+ * Obtenir le label d'un statut d'audit
+ */
+export function getAuditStatusLabel(status: AuditStatusType): string {
+  return AuditStatusLabels[status] || status
+}
+
+/**
+ * Obtenir la couleur du badge d'un statut d'audit
+ */
+export function getAuditStatusColor(status: AuditStatusType): 'primary' | 'warning' | 'success' | 'info' | 'neutral' {
+  return AuditStatusColors[status] || 'neutral'
 }
 
 export const DocumentCategory = {
