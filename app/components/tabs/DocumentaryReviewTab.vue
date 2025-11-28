@@ -235,8 +235,13 @@
 </template>
 
 <script setup lang="ts">
-import type { DocumentaryReview, DocumentCategoryType } from '~~/app/types/documentaryReviews'
-import { DocumentCategoryLabels, DocumentCategoryIcons, DocumentCategoryColors } from '~~/app/types/documentaryReviews'
+import type { DocumentaryReview } from '~~/app/types/documentaryReviews'
+import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
+import {
+  DocumentaryReviewCategoryLabels,
+  DocumentaryReviewCategoryIcons,
+  DocumentaryReviewCategoryColors
+} from '#shared/types/enums'
 import AddDocumentaryReviewModal from '~/components/modals/AddDocumentaryReviewModal.vue'
 
 const { user } = useAuth()
@@ -318,10 +323,9 @@ const showEnableAccessButton = computed(() => {
 
 // Organiser les documents par catégorie
 const documentsByCategory = computed(() => {
-  const categories: Record<DocumentCategoryType, DocumentaryReview[]> = {
-    LEGAL: [],
-    FINANCIAL: [],
-    TECHNICAL: [],
+  const categories: Record<DocumentaryReviewCategoryType, DocumentaryReview[]> = {
+    CANDIDACY: [],
+    AUDIT: [],
     OTHER: [],
   }
 
@@ -335,10 +339,10 @@ const documentsByCategory = computed(() => {
 // Préparer les items pour l'accordion
 const accordionItems = computed(() => {
   return Object.entries(documentsByCategory.value).map(([categoryKey, documents]) => ({
-    title: DocumentCategoryLabels[categoryKey as keyof typeof DocumentCategoryLabels],
-    icon: DocumentCategoryIcons[categoryKey as keyof typeof DocumentCategoryIcons],
+    title: DocumentaryReviewCategoryLabels[categoryKey as keyof typeof DocumentaryReviewCategoryLabels],
+    icon: DocumentaryReviewCategoryIcons[categoryKey as keyof typeof DocumentaryReviewCategoryIcons],
     iconColor: getCategoryIconColor(categoryKey),
-    badgeColor: DocumentCategoryColors[categoryKey as keyof typeof DocumentCategoryColors],
+    badgeColor: DocumentaryReviewCategoryColors[categoryKey as keyof typeof DocumentaryReviewCategoryColors],
     value: categoryKey,
     documents: documents,
   }))
@@ -347,9 +351,8 @@ const accordionItems = computed(() => {
 // Fonctions utilitaires
 function getCategoryIconColor(categoryKey: string): string {
   const colors: Record<string, string> = {
-    LEGAL: 'text-blue-500',
-    FINANCIAL: 'text-green-500',
-    TECHNICAL: 'text-orange-500',
+    CANDIDACY: 'text-blue-500',
+    AUDIT: 'text-green-500',
     OTHER: 'text-gray-500',
   }
   return colors[categoryKey] || 'text-gray-500'
@@ -359,7 +362,6 @@ function getCategoryBackgroundClass(color: string): string {
   const colorMap: Record<string, string> = {
     'primary': 'bg-blue-100',
     'success': 'bg-green-100',
-    'warning': 'bg-orange-100',
     'neutral': 'bg-gray-100',
   }
   return colorMap[color] || 'bg-gray-100'

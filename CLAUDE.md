@@ -153,7 +153,7 @@ The application uses **Drizzle ORM** with PostgreSQL for data persistence:
 - `oes` - Evaluation organizations (Organismes Évaluateurs)
 - `entities` - Companies and groups applying for certification
 - `audits` - Audit records linking entities, OEs, and auditors
-- `documents_type` - Document type definitions with categories (LEGAL, FINANCIAL, TECHNICAL, OTHER)
+- `documents_type` - Document type definitions with categories (CANDIDACY, AUDIT, OTHER)
 - `documentary_reviews` - Document instances associated with entities
 - `document_versions` - Version history for documents with Garage (S3) file references
 - `accounts_to_entities` - Many-to-many junction table for account-entity relationships

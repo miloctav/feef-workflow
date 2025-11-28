@@ -59,6 +59,8 @@
 </template>
 
 <script setup lang="ts">
+import { EntityMode } from '#shared/types/enums'
+
 definePageMeta({
   layout: 'dashboard-entity'
 })

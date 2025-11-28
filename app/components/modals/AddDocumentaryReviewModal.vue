@@ -81,11 +81,17 @@
 
 <script setup lang="ts">
 import type { CreateDocumentaryReviewData } from '~~/app/types/documentaryReviews'
-import { DocumentCategoryLabels, DocumentCategoryIcons, DocumentCategoryColors } from '~~/app/types/documentaryReviews'
+import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
+import {
+  DocumentaryReviewCategoryLabels,
+  DocumentaryReviewCategoryIcons,
+  DocumentaryReviewCategoryColors,
+  getDocumentaryReviewCategoryItems
+} from '#shared/types/enums'
 
 interface Props {
   entityId: number
-  category?: 'LEGAL' | 'FINANCIAL' | 'TECHNICAL' | 'OTHER'
+  category?: DocumentaryReviewCategoryType
 }
 
 const props = defineProps<Props>()
@@ -100,7 +106,7 @@ const creationMode = ref<'manual' | 'template'>('manual')
 const form = reactive<{
   title: string
   description: string
-  category: 'LEGAL' | 'FINANCIAL' | 'TECHNICAL' | 'OTHER' | ''
+  category: DocumentaryReviewCategoryType | ''
   documentTypeId: number | null
 }>({
   title: '',
@@ -109,13 +115,8 @@ const form = reactive<{
   documentTypeId: null,
 })
 
-// Options pour les catégories
-const categoryOptions = [
-  { label: 'Juridique', value: 'LEGAL' },
-  { label: 'Financier', value: 'FINANCIAL' },
-  { label: 'Technique', value: 'TECHNICAL' },
-  { label: 'Autre', value: 'OTHER' },
-]
+// Options pour les catégories (utiliser la fonction centralisée)
+const categoryOptions = getDocumentaryReviewCategoryItems()
 
 // Charger les types de documents disponibles
 const documentTypesLoading = ref(false)
@@ -163,7 +164,7 @@ const handleSubmit = async (close: () => void) => {
   if (creationMode.value === 'manual') {
     data.title = form.title
     data.description = form.description || undefined
-    data.category = form.category as 'LEGAL' | 'FINANCIAL' | 'TECHNICAL' | 'OTHER'
+    data.category = form.category as DocumentaryReviewCategoryType
   } else {
     data.documentTypeId = form.documentTypeId!
   }
@@ -193,14 +194,14 @@ const resetForm = () => {
 
 // Utilitaires pour les catégories
 const getCategoryLabel = (category: string) => {
-  return DocumentCategoryLabels[category as keyof typeof DocumentCategoryLabels] || category
+  return DocumentaryReviewCategoryLabels[category as keyof typeof DocumentaryReviewCategoryLabels] || category
 }
 
 const getCategoryIcon = (category: string) => {
-  return DocumentCategoryIcons[category as keyof typeof DocumentCategoryIcons] || 'i-lucide-folder'
+  return DocumentaryReviewCategoryIcons[category as keyof typeof DocumentaryReviewCategoryIcons] || 'i-lucide-folder'
 }
 
 const getCategoryColor = (category: string) => {
-  return DocumentCategoryColors[category as keyof typeof DocumentCategoryColors] || 'neutral'
+  return DocumentaryReviewCategoryColors[category as keyof typeof DocumentaryReviewCategoryColors] || 'neutral'
 }
 </script>

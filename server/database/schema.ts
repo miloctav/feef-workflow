@@ -19,7 +19,7 @@ export const oeRoleEnum = pgEnum('oe_role', ['ADMIN', 'ACCOUNT_MANAGER'])
 // Define account-entity role enum
 export const accountEntityRoleEnum = pgEnum('account_entity_role', ['SIGNATORY', 'PROCESS_MANAGER'])
 
-export const documentCategoryEnum = pgEnum('document_category', ['LEGAL', 'FINANCIAL', 'TECHNICAL', 'OTHER'])
+export const documentCategoryEnum = pgEnum('document_category', ['CANDIDACY', 'AUDIT', 'OTHER'])
 
 // Define audit document type enum
 export const auditDocumentTypeEnum = pgEnum('audit_document_type', ['PLAN', 'REPORT', 'CORRECTIVE_PLAN', 'OE_OPINION'])

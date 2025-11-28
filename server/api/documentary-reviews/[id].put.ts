@@ -3,6 +3,8 @@ import { documentaryReviews } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { forUpdate } from '~~/server/utils/tracking'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
+import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
+import { DocumentaryReviewCategory } from '#shared/types/enums'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -58,7 +60,7 @@ export default defineEventHandler(async (event) => {
   const updateData: {
     title?: string
     description?: string | null
-    category?: 'LEGAL' | 'FINANCIAL' | 'TECHNICAL' | 'OTHER'
+    category?: DocumentaryReviewCategoryType
   } = {}
 
   // Validation et ajout du title si fourni
@@ -79,7 +81,7 @@ export default defineEventHandler(async (event) => {
 
   // Validation et ajout de la category si fournie
   if (body.category !== undefined) {
-    const validCategories = ['LEGAL', 'FINANCIAL', 'TECHNICAL', 'OTHER']
+    const validCategories = Object.values(DocumentaryReviewCategory)
     if (!validCategories.includes(body.category)) {
       throw createError({
         statusCode: 400,

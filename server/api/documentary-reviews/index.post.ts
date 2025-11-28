@@ -2,6 +2,8 @@ import { db } from '~~/server/database'
 import { documentaryReviews, documentsType, entities } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { forInsert } from '~~/server/utils/tracking'
+import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
+import { DocumentaryReviewCategory } from '#shared/types/enums'
 
 export default defineEventHandler(async (event) => {
   // Authentification et vérification du rôle FEEF
@@ -42,7 +44,7 @@ export default defineEventHandler(async (event) => {
   let documentData: {
     title: string
     description?: string
-    category: 'LEGAL' | 'FINANCIAL' | 'TECHNICAL' | 'OTHER'
+    category: DocumentaryReviewCategoryType
   }
 
   // Cas 1: Création depuis un documentTypeId
@@ -88,7 +90,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Validation de la catégorie
-    const validCategories = ['LEGAL', 'FINANCIAL', 'TECHNICAL', 'OTHER']
+    const validCategories = Object.values(DocumentaryReviewCategory)
     if (!validCategories.includes(body.category)) {
       throw createError({
         statusCode: 400,

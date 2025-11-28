@@ -135,6 +135,12 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
 import type { DocumentTypeWithRelations } from '~~/app/types/documents-type'
+import {
+  DocumentaryReviewCategory,
+  DocumentaryReviewCategoryLabels,
+  DocumentaryReviewCategoryColors,
+  getDocumentaryReviewCategoryItems
+} from '#shared/types/enums'
 import { z } from 'zod'
 import { h, resolveComponent } from 'vue'
 
@@ -143,6 +149,9 @@ definePageMeta({
 })
 
 const UBadge = resolveComponent('UBadge')
+
+// Options de catégories pour les selects
+const categoryOptions = getDocumentaryReviewCategoryItems()
 
 // Composable pour gérer les documents types
 const {
@@ -164,13 +173,6 @@ onMounted(() => {
   fetchDocumentsType()
 })
 
-// Options de catégories pour le formulaire de création
-const categoryOptions = [
-  { value: 'LEGAL', label: 'Légal' },
-  { value: 'FINANCIAL', label: 'Financier' },
-  { value: 'TECHNICAL', label: 'Technique' },
-  { value: 'OTHER', label: 'Autre' },
-]
 
 // Options de catégories pour les filtres (avec option "Tous")
 const categoryFilterOptions = [
@@ -185,27 +187,11 @@ const autoAskFilterOptions = [
   { value: 'false', label: 'Non' },
 ]
 
-// Map pour afficher les catégories en français
-const categoryLabels: Record<string, string> = {
-  LEGAL: 'Légal',
-  FINANCIAL: 'Financier',
-  TECHNICAL: 'Technique',
-  OTHER: 'Autre',
-}
-
-// Map pour les couleurs des badges de catégorie
-const categoryColors: Record<string, string> = {
-  LEGAL: 'primary',
-  FINANCIAL: 'success',
-  TECHNICAL: 'warning',
-  OTHER: 'neutral',
-}
-
 // Schéma de validation pour le formulaire
 const schema = z.object({
   title: z.string().min(1, 'Le titre est requis').min(3, 'Le titre doit contenir au moins 3 caractères'),
   description: z.string().optional(),
-  category: z.enum(['LEGAL', 'FINANCIAL', 'TECHNICAL', 'OTHER'], {
+  category: z.enum(['CANDIDACY', 'AUDIT', 'OTHER'], {
     message: 'La catégorie est requise',
   }),
   autoAsk: z.boolean().optional(),
@@ -217,7 +203,7 @@ type Schema = z.output<typeof schema>
 const state = reactive<Schema>({
   title: '',
   description: '',
-  category: 'LEGAL',
+  category: 'CANDIDACY',
   autoAsk: false,
 })
 
@@ -229,7 +215,7 @@ const handleFormReset = () => {
   // Réinitialiser le formulaire pour la création
   state.title = ''
   state.description = ''
-  state.category = 'LEGAL'
+  state.category = 'CANDIDACY'
   state.autoAsk = false
 }
 
@@ -261,7 +247,7 @@ const handleEdit = async (doc: DocumentTypeWithRelations | null, close: () => vo
     // Réinitialiser le formulaire
     state.title = ''
     state.description = ''
-    state.category = 'LEGAL'
+    state.category = 'CANDIDACY'
     state.autoAsk = false
     close()
   }
@@ -285,7 +271,7 @@ const handleCreate = async (close: () => void) => {
     // Réinitialiser le formulaire
     state.title = ''
     state.description = ''
-    state.category = 'LEGAL'
+    state.category = 'CANDIDACY'
     state.autoAsk = false
     close()
   }
@@ -313,9 +299,9 @@ const columns: TableColumn<DocumentTypeWithRelations>[] = [
       const category = row.original.category
       return h(UBadge, {
         variant: 'subtle',
-        color: categoryColors[category] || 'neutral',
+        color: DocumentaryReviewCategoryColors[category] || 'neutral',
         size: 'sm'
-      }, () => categoryLabels[category] || category)
+      }, () => DocumentaryReviewCategoryLabels[category] || category)
     },
   },
   {
@@ -344,6 +330,6 @@ const handleFiltersChange = (newFilters: Record<string, any>) => {
 // Obtenir le label d'une catégorie pour l'affichage
 const getCategoryLabel = (category: string | null): string => {
   if (!category) return ''
-  return categoryLabels[category] || category
+  return DocumentaryReviewCategoryLabels[category] || category
 }
 </script>

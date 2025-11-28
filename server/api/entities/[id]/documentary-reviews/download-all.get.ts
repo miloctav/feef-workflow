@@ -4,7 +4,7 @@ import { eq, and, isNull, isNotNull, desc } from 'drizzle-orm'
 import { getSignedUrl } from '~~/server/services/garage'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 import { Role } from '#shared/types/roles'
-import { DocumentCategoryLabels } from '~~/app/types/documentaryReviews'
+import { DocumentaryReviewCategoryLabels } from '#shared/types/enums'
 import archiver from 'archiver'
 
 export default defineEventHandler(async (event) => {
@@ -138,7 +138,7 @@ export default defineEventHandler(async (event) => {
         const buffer = Buffer.from(arrayBuffer)
 
         // Déterminer le nom du dossier de catégorie
-        const categoryFolder = DocumentCategoryLabels[doc.category] || 'AUTRE'
+        const categoryFolder = DocumentaryReviewCategoryLabels[doc.category] || 'AUTRE'
 
         // Extraire l'extension du nom de fichier original
         const originalFilename = latestVersion.s3Key.split('/').pop() || 'document'

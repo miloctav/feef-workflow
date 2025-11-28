@@ -1,11 +1,13 @@
 import { db } from "~~/server/database"
 import { documentsType } from "~~/server/database/schema"
 import { forInsert } from "~~/server/utils/tracking"
+import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
+import { DocumentaryReviewCategory } from '#shared/types/enums'
 
 interface CreateDocumentTypeBody {
   title: string
   description?: string
-  category: 'LEGAL' | 'FINANCIAL' | 'TECHNICAL' | 'OTHER'
+  category: DocumentaryReviewCategoryType
   autoAsk?: boolean
 }
 
@@ -47,11 +49,11 @@ export default defineEventHandler(async (event) => {
   }
 
   // Validation de la catégorie
-  const validCategories = ['LEGAL', 'FINANCIAL', 'TECHNICAL', 'OTHER']
+  const validCategories = Object.values(DocumentaryReviewCategory)
   if (!validCategories.includes(category)) {
     throw createError({
       statusCode: 400,
-      message: 'Catégorie invalide. Les valeurs acceptées sont: LEGAL, FINANCIAL, TECHNICAL, OTHER.'
+      message: 'Catégorie invalide. Les valeurs acceptées sont: CANDIDACY, AUDIT, OTHER.'
     })
   }
 

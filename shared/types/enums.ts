@@ -210,9 +210,71 @@ export function getAuditStatusColor(status: AuditStatusType): 'primary' | 'warni
   return AuditStatusColors[status] || 'neutral'
 }
 
-export const DocumentCategory = {
-  LEGAL: 'LEGAL',
-  FINANCIAL: 'FINANCIAL',
-  TECHNICAL: 'TECHNICAL',
+/**
+ * Catégories de documents de revue documentaire
+ */
+export const DocumentaryReviewCategory = {
+  CANDIDACY: 'CANDIDACY',
+  AUDIT: 'AUDIT',
   OTHER: 'OTHER',
 } as const
+
+export type DocumentaryReviewCategoryType = typeof DocumentaryReviewCategory[keyof typeof DocumentaryReviewCategory]
+
+/**
+ * Labels français pour les catégories de revue documentaire
+ */
+export const DocumentaryReviewCategoryLabels: Record<DocumentaryReviewCategoryType, string> = {
+  [DocumentaryReviewCategory.CANDIDACY]: 'Documents de candidature',
+  [DocumentaryReviewCategory.AUDIT]: 'Documents d\'audits',
+  [DocumentaryReviewCategory.OTHER]: 'Autres',
+}
+
+/**
+ * Icônes pour les catégories de revue documentaire (Lucide icons)
+ */
+export const DocumentaryReviewCategoryIcons: Record<DocumentaryReviewCategoryType, string> = {
+  [DocumentaryReviewCategory.CANDIDACY]: 'i-lucide-file-check',
+  [DocumentaryReviewCategory.AUDIT]: 'i-lucide-clipboard-check',
+  [DocumentaryReviewCategory.OTHER]: 'i-lucide-file',
+}
+
+/**
+ * Couleurs de badge pour les catégories (pour Nuxt UI)
+ */
+export const DocumentaryReviewCategoryColors: Record<DocumentaryReviewCategoryType, 'primary' | 'success' | 'neutral'> = {
+  [DocumentaryReviewCategory.CANDIDACY]: 'primary',
+  [DocumentaryReviewCategory.AUDIT]: 'success',
+  [DocumentaryReviewCategory.OTHER]: 'neutral',
+}
+
+/**
+ * Obtenir le label d'une catégorie de revue documentaire
+ */
+export function getDocumentaryReviewCategoryLabel(category: DocumentaryReviewCategoryType): string {
+  return DocumentaryReviewCategoryLabels[category] || category
+}
+
+/**
+ * Obtenir l'icône d'une catégorie de revue documentaire
+ */
+export function getDocumentaryReviewCategoryIcon(category: DocumentaryReviewCategoryType): string {
+  return DocumentaryReviewCategoryIcons[category] || 'i-lucide-file'
+}
+
+/**
+ * Obtenir la couleur du badge d'une catégorie
+ */
+export function getDocumentaryReviewCategoryColor(category: DocumentaryReviewCategoryType): 'primary' | 'success' | 'neutral' {
+  return DocumentaryReviewCategoryColors[category] || 'neutral'
+}
+
+/**
+ * Obtenir la liste des catégories avec labels
+ */
+export function getDocumentaryReviewCategoryItems(): Array<{ label: string; value: DocumentaryReviewCategoryType }> {
+  return Object.entries(DocumentaryReviewCategory).map(([_, value]) => ({
+    label: DocumentaryReviewCategoryLabels[value as DocumentaryReviewCategoryType],
+    value: value as DocumentaryReviewCategoryType,
+  }))
+}
