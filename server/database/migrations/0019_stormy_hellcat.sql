@@ -1,0 +1,1 @@
+ALTER TABLE "entities" ADD COLUMN "allow_oe_documents_access" boolean DEFAULT false NOT NULL;

@@ -55,12 +55,31 @@
           {{ oesError }}
         </p>
 
-        <div v-if="selectedOeId" class="p-4 bg-green-50 rounded-lg">
-          <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-green-500" />
-            <span class="text-sm text-green-700">
-              {{ getSelectedOeName() }}
-            </span>
+        <div v-if="selectedOeId" class="space-y-4">
+          <div class="p-4 bg-green-50 rounded-lg">
+            <div class="flex items-center gap-2">
+              <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-green-500" />
+              <span class="text-sm text-green-700">
+                {{ getSelectedOeName() }}
+              </span>
+            </div>
+          </div>
+
+          <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <UCheckbox
+              v-model="allowOeAccess"
+              label="Autoriser l'OE à consulter mes documents"
+              :disabled="assignOeLoading"
+            >
+              <template #label>
+                <div class="flex flex-col gap-1">
+                  <span class="font-medium text-gray-900">Autoriser l'OE à consulter mes documents</span>
+                  <span class="text-xs text-gray-600">
+                    En activant cette option, l'OE pourra accéder à l'ensemble de vos documents de la revue documentaire
+                  </span>
+                </div>
+              </template>
+            </UCheckbox>
           </div>
         </div>
       </div>
@@ -118,6 +137,7 @@ const toast = useToast()
 
 // État local
 const selectedOeId = ref<number | undefined>(undefined)
+const allowOeAccess = ref(false)
 const oesLoading = ref(false)
 const oesError = ref<string | null>(null)
 const oeItems = ref<Array<{ label: string; value: number }>>([])
@@ -143,6 +163,8 @@ onMounted(() => {
   loadOes()
   // Pré-sélectionner l'OE actuel s'il existe
   selectedOeId.value = props.currentEntityOe?.id || undefined
+  // Par défaut, le partage est désactivé
+  allowOeAccess.value = false
 })
 
 // Obtenir le nom de l'OE sélectionné
@@ -158,13 +180,14 @@ const handleConfirm = async (close: () => void) => {
   }
 
   try {
-    const result = await assignOe(props.entityId, selectedOeId.value)
+    const result = await assignOe(props.entityId, selectedOeId.value, allowOeAccess.value)
 
     if (result.success) {
       emit('updated')
 
       // Réinitialiser le formulaire
       selectedOeId.value = props.currentEntityOe?.id || undefined
+      allowOeAccess.value = false
 
       // Fermer le modal
       close()

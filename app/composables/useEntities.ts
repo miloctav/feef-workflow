@@ -43,6 +43,7 @@ export const useEntities = () => {
   const assignAccountManagerLoading = useState('entities:assignAccountManagerLoading', () => false)
   const assignOeLoading = useState('entities:assignOeLoading', () => false)
   const markDocumentaryReviewReadyLoading = useState('entities:markDocumentaryReviewReadyLoading', () => false)
+  const toggleDocumentsAccessLoading = useState('entities:toggleDocumentsAccessLoading', () => false)
 
   // Loading state dérivé de fetchStatus
   const fetchLoading = computed(() => fetchStatus.value === 'pending')
@@ -357,13 +358,13 @@ export const useEntities = () => {
   /**
    * Assigner un OE à une entité
    */
-  const assignOe = async (id: number, oeId: number | null) => {
+  const assignOe = async (id: number, oeId: number | null, allowOeDocumentsAccess?: boolean) => {
     assignOeLoading.value = true
 
     try {
       const response = await $fetch<{ data: EntityWithRelations; message: string }>(`/api/entities/${id}/assign-oe`, {
         method: 'POST',
-        body: { oeId },
+        body: { oeId, allowOeDocumentsAccess },
       })
 
       // Rafraîchir la liste paginée pour refléter les changements
@@ -422,6 +423,47 @@ export const useEntities = () => {
       return { success: false, error: errorMessage }
     } finally {
       markDocumentaryReviewReadyLoading.value = false
+    }
+  }
+
+  /**
+   * Toggle l'accès aux documents pour l'OE assigné
+   */
+  const toggleDocumentsAccess = async (id: number) => {
+    toggleDocumentsAccessLoading.value = true
+
+    try {
+      const response = await $fetch<{ data: EntityWithRelations; message: string }>(`/api/entities/${id}/documents-access`, {
+        method: 'PUT',
+      })
+
+      // Rafraîchir la liste paginée pour refléter les changements
+      await refresh()
+
+      // Mettre à jour l'entité courante si c'est celle-ci
+      if (currentEntity.value?.id === id) {
+        currentEntity.value = response.data
+      }
+
+      toast.add({
+        title: 'Succès',
+        description: response.message || 'Accès aux documents modifié avec succès',
+        color: 'success',
+      })
+
+      return { success: true, data: response.data }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la modification de l\'accès aux documents'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    } finally {
+      toggleDocumentsAccessLoading.value = false
     }
   }
 
@@ -531,6 +573,7 @@ export const useEntities = () => {
     assignAccountManagerLoading: readonly(assignAccountManagerLoading),
     assignOeLoading: readonly(assignOeLoading),
     markDocumentaryReviewReadyLoading: readonly(markDocumentaryReviewReadyLoading),
+    toggleDocumentsAccessLoading: readonly(toggleDocumentsAccessLoading),
 
     // Actions de pagination
     nextPage,
@@ -553,6 +596,7 @@ export const useEntities = () => {
     assignAccountManager,
     assignOe,
     markDocumentaryReviewReady,
+    toggleDocumentsAccess,
     linkFollowerEntity,
     refresh,
     reset,

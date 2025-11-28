@@ -6,6 +6,7 @@ import { AuditStatus, AuditStatusType, AuditType } from '~~/shared/types/enums'
 
 interface AssignOeBody {
   oeId: number | null
+  allowOeDocumentsAccess?: boolean
 }
 
 export default defineEventHandler(async (event) => {
@@ -103,7 +104,7 @@ export default defineEventHandler(async (event) => {
   // Récupérer les données du corps de la requête
   const body = await readBody<AssignOeBody>(event)
 
-  const { oeId } = body
+  const { oeId, allowOeDocumentsAccess } = body
 
   // Valider que oeId est soit null soit un nombre
   if (oeId !== null && typeof oeId !== 'number') {
@@ -125,11 +126,12 @@ export default defineEventHandler(async (event) => {
 
     console.log(`Passage en mode appel d'offre pour l'entité ID ${entityIdInt} par l'utilisateur ID ${currentUser.id}`)
 
-    // Mettre à jour l'entité pour retirer l'OE
+    // Mettre à jour l'entité pour retirer l'OE et désactiver le partage documentaire
     await db
       .update(entities)
       .set(forUpdate(event, {
-        oeId: null
+        oeId: null,
+        allowOeDocumentsAccess: false // Force à false en mode appel d'offre
       }))
       .where(eq(entities.id, entityIdInt))
 
@@ -219,11 +221,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Mettre à jour l'entité avec le nouvel OE
+  // Mettre à jour l'entité avec le nouvel OE et le paramètre de partage documentaire
   const [updatedEntity] = await db
     .update(entities)
     .set(forUpdate(event, {
-      oeId: oeId
+      oeId: oeId,
+      allowOeDocumentsAccess: allowOeDocumentsAccess ?? false // Utilise la valeur fournie ou false par défaut
     }))
     .where(eq(entities.id, entityIdInt))
     .returning()

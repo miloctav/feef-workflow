@@ -63,6 +63,7 @@ export const entities = pgTable('entities', {
   parentGroupId: integer('parent_group_id').references((): AnyPgColumn => entities.id),
   oeId: integer('oe_id').references(() => oes.id),
   accountManagerId: integer('account_manager_id').references(() => accounts.id),
+  allowOeDocumentsAccess: boolean('allow_oe_documents_access').notNull().default(false),
   documentaryReviewReadyAt: timestamp('documentary_review_ready_at'),
   documentaryReviewReadyBy: integer('documentary_review_ready_by').references(() => accounts.id),
   createdBy: integer('created_by').references(() => accounts.id),

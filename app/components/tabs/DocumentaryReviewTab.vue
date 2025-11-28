@@ -52,7 +52,38 @@
         </div>
       </div>
 
-      <UCard v-for="category in accordionItems" :key="category.value" class="overflow-hidden">
+      <!-- Bouton pour activer l'accès aux documents (visible uniquement pour ENTITY si OE assigné et accès désactivé) -->
+      <UAlert
+        v-if="showEnableAccessButton"
+        color="warning"
+        variant="soft"
+        title="Accès aux documents désactivé"
+        description="Votre OE n'a pas encore accès à vos documents. Activez le partage pour permettre à l'OE de consulter votre revue documentaire."
+      >
+        <template #actions>
+          <UButton
+            color="warning"
+            variant="solid"
+            icon="i-lucide-unlock"
+            :loading="toggleDocumentsAccessLoading"
+            @click="handleEnableAccess"
+          >
+            Autoriser l'accès
+          </UButton>
+        </template>
+      </UAlert>
+
+      <!-- Message pour OE sans accès -->
+      <UAlert
+        v-if="user?.role === Role.OE && !canViewDocuments"
+        color="info"
+        variant="soft"
+        title="Accès aux documents non autorisé"
+        description="L'entité n'a pas encore autorisé l'accès à sa revue documentaire. Veuillez contacter l'entité pour demander l'accès."
+        icon="i-lucide-lock"
+      />
+
+      <UCard v-if="canViewDocuments" v-for="category in accordionItems" :key="category.value" class="overflow-hidden">
         <UAccordion
           type="single"
           :items="[category]"
@@ -207,6 +238,8 @@ const {
   deleteDocumentaryReview,
 } = useDocumentaryReviews()
 
+const { toggleDocumentsAccess, toggleDocumentsAccessLoading } = useEntities()
+
 // État pour tracker les documents avec demandes en attente
 const documentsWithPendingRequests = ref<Set<number>>(new Set())
 
@@ -245,6 +278,24 @@ onMounted(async () => {
 // Vérifier si l'utilisateur peut voir le statut de la revue documentaire (OE ou FEEF)
 const showDocumentaryReviewStatus = computed(() => {
   return user.value?.role === Role.FEEF || user.value?.role === Role.OE
+})
+
+// Vérifier si l'utilisateur peut voir les documents
+const canViewDocuments = computed(() => {
+  if (user.value?.role === Role.OE) {
+    return currentEntity.value?.allowOeDocumentsAccess === true
+  }
+  // FEEF et ENTITY peuvent toujours voir
+  return true
+})
+
+// Afficher le bouton pour activer le partage (uniquement pour ENTITY)
+const showEnableAccessButton = computed(() => {
+  return (
+    user.value?.role === Role.ENTITY &&
+    currentEntity.value?.oeId &&
+    !currentEntity.value?.allowOeDocumentsAccess
+  )
 })
 
 // Organiser les documents par catégorie
@@ -339,5 +390,18 @@ async function handleUpdateRequested(documentId: number) {
 // Vérifier si un document a une demande en attente
 function hasPendingRequest(documentId: number): boolean {
   return documentsWithPendingRequests.value.has(documentId)
+}
+
+// Gérer l'activation de l'accès aux documents pour l'OE
+async function handleEnableAccess() {
+  if (!currentEntity.value?.id) {
+    return
+  }
+
+  const result = await toggleDocumentsAccess(currentEntity.value.id)
+
+  if (result.success) {
+    // L'entité a déjà été mise à jour par le composable
+  }
 }
 </script>
