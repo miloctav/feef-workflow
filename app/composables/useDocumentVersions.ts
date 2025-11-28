@@ -204,13 +204,6 @@ export const useDocumentVersions = () => {
     mimeType: string | null | undefined
   ): Promise<void> => {
     try {
-      // Récupérer l'URL signée
-      const url = await getVersionUrl(versionId)
-
-      if (!url) {
-        throw new Error('Impossible de récupérer l\'URL du fichier')
-      }
-
       // Formater la date
       const date = new Date(uploadDate)
       const formattedDate = date.toLocaleDateString('fr-FR', {
@@ -223,18 +216,13 @@ export const useDocumentVersions = () => {
       const extension = getExtensionFromMimeType(mimeType)
       const filename = `${documentTitle} - v${versionNumber} - ${formattedDate}.${extension}`
 
-      // Télécharger via fetch et créer un blob
-      const response = await fetch(url)
-      const blob = await response.blob()
-
-      // Créer un lien temporaire et le cliquer pour télécharger
+      // Télécharger via la route API proxy (pas de CORS)
       const link = document.createElement('a')
-      link.href = URL.createObjectURL(blob)
+      link.href = `/api/documents-versions/${versionId}/download-file?filename=${encodeURIComponent(filename)}`
       link.download = filename
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      URL.revokeObjectURL(link.href)
 
       toast.add({
         title: 'Succès',

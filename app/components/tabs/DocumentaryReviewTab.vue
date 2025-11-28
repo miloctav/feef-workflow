@@ -24,10 +24,25 @@
           <h2 class="text-lg font-semibold text-gray-900">Revue documentaire</h2>
           <p class="text-sm text-gray-600 mt-1">Gérez les documents de l'entité</p>
         </div>
-        <AddDocumentaryReviewModal
-          v-if="user?.role === Role.FEEF && currentEntity"
-          :entity-id="currentEntity.id"
-        />
+        <div class="flex items-center gap-2">
+          <!-- Bouton télécharger tout -->
+          <UButton
+            v-if="canViewDocuments && documentaryReviews.length > 0"
+            color="primary"
+            variant="outline"
+            icon="i-lucide-download"
+            :loading="downloadAllLoading"
+            @click="handleDownloadAll"
+          >
+            Télécharger tout
+          </UButton>
+
+          <!-- Bouton ajouter document -->
+          <AddDocumentaryReviewModal
+            v-if="user?.role === Role.FEEF && currentEntity"
+            :entity-id="currentEntity.id"
+          />
+        </div>
       </div>
 
       <!-- Info sur la revue documentaire prête (visible uniquement pour OE et FEEF) -->
@@ -243,6 +258,9 @@ const { toggleDocumentsAccess, toggleDocumentsAccessLoading } = useEntities()
 // État pour tracker les documents avec demandes en attente
 const documentsWithPendingRequests = ref<Set<number>>(new Set())
 
+// État de chargement pour le téléchargement groupé
+const downloadAllLoading = ref(false)
+
 // Fonction pour vérifier si un document a une demande en attente
 async function checkPendingRequest(documentId: number) {
   try {
@@ -402,6 +420,51 @@ async function handleEnableAccess() {
 
   if (result.success) {
     // L'entité a déjà été mise à jour par le composable
+  }
+}
+
+// Fonction pour télécharger tous les documents
+async function handleDownloadAll() {
+  if (!currentEntity.value?.id) return
+
+  downloadAllLoading.value = true
+
+  try {
+    // Formater la date pour le nom de fichier
+    const date = new Date()
+    const formattedDate = date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).replace(/\//g, '-')
+
+    const entityName = currentEntity.value.name.replace(/[^a-zA-Z0-9]/g, '_')
+    const filename = `Revue_documentaire_${entityName}_${formattedDate}.zip`
+
+    // Télécharger via la route API
+    const link = document.createElement('a')
+    link.href = `/api/entities/${currentEntity.value.id}/documentary-reviews/download-all`
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    // Toast de succès
+    const toast = useToast()
+    toast.add({
+      title: 'Succès',
+      description: 'Téléchargement de l\'archive démarré',
+      color: 'success',
+    })
+  } catch (error: any) {
+    const toast = useToast()
+    toast.add({
+      title: 'Erreur',
+      description: error.message || 'Erreur lors du téléchargement de l\'archive',
+      color: 'error',
+    })
+  } finally {
+    downloadAllLoading.value = false
   }
 }
 </script>
