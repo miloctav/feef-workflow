@@ -189,7 +189,10 @@ const canChangeOe = computed(() => {
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )
   const lastAudit = sortedAudits[0]
-  return lastAudit.status === AuditStatus.COMPLETED && lastAudit.type === AuditType.MONITORING
+
+  if(lastAudit.type === AuditType.MONITORING) return (lastAudit.status === AuditStatus.COMPLETED)
+  
+  return lastAudit.status === AuditStatus.PENDING_OE_CHOICE || lastAudit.status === AuditStatus.PENDING_CASE_APPROVAL
 })
 
 // Charger les contrats et audits au montage

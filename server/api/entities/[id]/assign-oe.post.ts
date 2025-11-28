@@ -2,7 +2,7 @@ import { eq, and, isNull, desc, ne } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { entities, oes, audits } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
-import { AuditStatus, AuditType } from '~~/shared/types/enums'
+import { AuditStatus, AuditStatusType, AuditType } from '~~/shared/types/enums'
 
 interface AssignOeBody {
   oeId: number | null
@@ -87,7 +87,10 @@ export default defineEventHandler(async (event) => {
     })
 
     if (lastAudit) {
-      const canChangeOe = lastAudit.status === AuditStatus.COMPLETED && lastAudit.type === AuditType.MONITORING
+      const canChangeOe =
+        lastAudit.type === AuditType.MONITORING
+          ? lastAudit.status === AuditStatus.COMPLETED
+          : lastAudit.status === AuditStatus.PENDING_OE_CHOICE || lastAudit.status === AuditStatus.PENDING_CASE_APPROVAL
       if (!canChangeOe) {
         throw createError({
           statusCode: 400,
@@ -240,15 +243,19 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // Si un audit en cours existe, assigner le nouvel OE
+
   if (ongoingAudit) {
     console.log(`Assignation de l'OE ID ${oeId} à l'audit en cours ID ${ongoingAudit.id}`)
-
+    // Déterminer les champs à mettre à jour pour l'audit en cours
+    const auditUpdate: { oeId: number | null; status?: AuditStatusType } = {
+      oeId: oeId
+    }
+    if (ongoingAudit.status === AuditStatus.PENDING_OE_CHOICE) {
+      auditUpdate.status = AuditStatus.PLANNING
+    }
     await db
       .update(audits)
-      .set(forUpdate(event, {
-        oeId: oeId
-      }))
+      .set(forUpdate(event, auditUpdate))
       .where(eq(audits.id, ongoingAudit.id))
   }
 

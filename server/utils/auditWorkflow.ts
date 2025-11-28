@@ -11,7 +11,7 @@ import { AuditDocumentType, type AuditDocumentTypeType } from '~~/app/types/audi
  */
 const transitionRules: Partial<Record<AuditDocumentTypeType, Partial<Record<AuditStatusType, AuditStatusType>>>> = {
   [AuditDocumentType.REPORT]: {
-    [AuditStatus.PENDING_REPORT]: AuditStatus.PENDING_CORRECTIVE_PLAN
+    [AuditStatus.PENDING_REPORT]: AuditStatus.PENDING_OE_OPINION
   },
   [AuditDocumentType.CORRECTIVE_PLAN]: {
     [AuditStatus.PENDING_CORRECTIVE_PLAN]: AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION

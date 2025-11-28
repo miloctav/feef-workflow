@@ -32,7 +32,7 @@ const tabItems = computed(() => {
   ]
 
   // Afficher les tabs "Planification d'audit" et "Décision" uniquement si un OE est affecté
-  if (currentAudit.value?.oeId) {
+  if (currentAudit.value?.status !== AuditStatus.PENDING_OE_CHOICE && currentAudit.value?.status !== AuditStatus.PENDING_CASE_APPROVAL) {
     tabs.push(
       {
         label: "Planification d'audit",

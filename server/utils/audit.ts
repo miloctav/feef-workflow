@@ -3,7 +3,7 @@ import type { H3Event } from 'h3'
 import { db } from '../database'
 import { Audit, audits, entities } from '../database/schema'
 import { forInsert } from './tracking'
-import { AuditTypeType } from '~~/shared/types/enums'
+import { AuditStatusType, AuditTypeType } from '~~/shared/types/enums'
 
 /**
  * Crée automatiquement un audit pour une entité
@@ -43,18 +43,22 @@ export async function createAuditForEntity(entityId: number, event: H3Event, pla
   }
 
   let auditType: AuditTypeType
+  let auditStatus: AuditStatusType
   let nextPlannedDate: string | null = null
 
   const lastAudit = entity.audits[0]
 
   if (!lastAudit) {
     auditType = AuditType.INITIAL
+    auditStatus = AuditStatus.PENDING_CASE_APPROVAL
     nextPlannedDate = plannedDate ?? null
   } else if (lastAudit.type === AuditType.INITIAL || lastAudit.type === AuditType.RENEWAL) {
     auditType = AuditType.MONITORING
     nextPlannedDate = lastAudit.labelExpirationDate ?? null
+    auditStatus = AuditStatus.PLANNING
   } else if (lastAudit.type === AuditType.MONITORING) {
     auditType = AuditType.RENEWAL
+    auditStatus = AuditStatus.PENDING_CASE_APPROVAL
     nextPlannedDate = lastAudit.labelExpirationDate ?? null
   } else {
     throw new Error('Type d’audit précédent inconnu')
@@ -64,6 +68,7 @@ export async function createAuditForEntity(entityId: number, event: H3Event, pla
     entityId,
     type: auditType,
     oeId: entity.oeId,
+    status: auditStatus,
     plannedDate: nextPlannedDate,
   }
 

@@ -137,6 +137,8 @@ export function getAuditTypeLabel(type: AuditTypeType): string {
  * Statuts d'audit
  */
 export const AuditStatus = {
+  PENDING_CASE_APPROVAL: 'PENDING_CASE_APPROVAL',
+  PENDING_OE_CHOICE: 'PENDING_OE_CHOICE',
   PLANNING: 'PLANNING',
   PENDING_REPORT: 'PENDING_REPORT',
   PENDING_CORRECTIVE_PLAN: 'PENDING_CORRECTIVE_PLAN',
@@ -159,6 +161,8 @@ export const AuditStatusLabels: Record<AuditStatusType, string> = {
   [AuditStatus.PENDING_OE_OPINION]: 'En attente de l\'avis OE',
   [AuditStatus.PENDING_FEEF_DECISION]: 'En attente de décision FEEF',
   [AuditStatus.COMPLETED]: 'Terminé',
+  [AuditStatus.PENDING_CASE_APPROVAL]: "En attente d'approbation du dossier",
+  [AuditStatus.PENDING_OE_CHOICE]: "En attente du choix de l'OE"
 }
 
 export const DocumentCategory = {

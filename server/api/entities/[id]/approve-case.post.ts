@@ -91,6 +91,7 @@ export default defineEventHandler(async (event) => {
     .set(forUpdate(event, {
       caseApprovedAt: new Date(),
       caseApprovedBy: currentUser.id,
+      status: entity.oeId ? AuditStatus.PLANNING : AuditStatus.PENDING_OE_CHOICE,
     }))
     .where(eq(audits.id, latestAudit.id))
     .returning()
