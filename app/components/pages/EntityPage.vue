@@ -111,15 +111,4 @@ const tabs = computed(() => {
 
   return baseTabs
 })
-
-// Actions
-function addAccount() {
-  console.log('Ajouter un compte')
-  // TODO: Implémenter l'ajout de compte
-}
-
-function addLabelingCase() {
-  console.log('Ajouter un audit')
-  // TODO: Implémenter l'ajout d'audit
-}
 </script>

@@ -31,6 +31,7 @@ export const useAudits = (options?: { entityId?: number }) => {
     key: cacheKey,
     defaultLimit: 25,
     immediate: false,
+    initialParams: options?.entityId ? { entityId: options.entityId } : {},
   })
 
   // State pour un audit individuel
