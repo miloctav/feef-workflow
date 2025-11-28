@@ -11,6 +11,15 @@ export default defineNuxtConfig({
       pathPrefix: false,
     }
   ],
+  nitro: {
+    experimental: {
+      tasks: true
+    },
+    scheduledTasks: {
+      // S'exécute à 0h UTC = 1h Paris (hiver) / 2h Paris (été)
+      '0 0 * * *': ['audits:update-status']
+    }
+  },
   runtimeConfig: {
     // Variables privées (server-side uniquement)
     // Nuxt récupère automatiquement les variables d'environnement avec le préfixe NUXT_

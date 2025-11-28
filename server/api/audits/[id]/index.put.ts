@@ -10,7 +10,7 @@ interface UpdateAuditBody {
   auditorId?: number
   actualStartDate?: string | null
   actualEndDate?: string | null
-  score?: number | null
+  globalScore?: number | null
   labelingOpinion?: any | null
   status?: string
   oeOpinion?: string
@@ -223,8 +223,8 @@ export default defineEventHandler(async (event) => {
     updateData.oeOpinionTransmittedAt = new Date()
     updateData.oeOpinionTransmittedBy = currentUser.id
     // Transition automatique vers PENDING_FEEF_DECISION si pas déjà fait
-    if (!status && existingAudit.status === 'PENDING_OE_OPINION') {
-      updateData.status = 'PENDING_FEEF_DECISION'
+    if (!status && existingAudit.status === AuditStatus.PENDING_OE_OPINION) {
+      updateData.status = AuditStatus.PENDING_FEEF_DECISION
     }
   }
   if (oeOpinionArgumentaire !== undefined) {
@@ -249,6 +249,21 @@ export default defineEventHandler(async (event) => {
       // Fusionner les mises à jour générées par le handler avec updateData
       Object.assign(updateData, statusUpdates)
       console.log('[PUT /api/audits/:id] Mises à jour automatiques appliquées suite au changement de statut')
+    }
+  }
+
+  console.log('Données de mise à jour avant vérifications finales:', updateData)
+  if (actualEndDate && !status) {
+    console.log('Vérification de la transition automatique basée sur actualEndDate')
+    const today = new Date()
+    const endDate = new Date(actualEndDate)
+    // Ignore time part for comparison
+    today.setHours(0, 0, 0, 0)
+    endDate.setHours(0, 0, 0, 0)
+    console.log(`actualEndDate: ${endDate.toISOString().split('T')[0]}, today: ${today.toISOString().split('T')[0]}`)
+    console.log(`Statut actuel de l'audit: ${existingAudit.status}`)
+    if (endDate <= today && existingAudit.status === AuditStatus.PLANNING) {
+      updateData.status = AuditStatus.PENDING_REPORT
     }
   }
 
