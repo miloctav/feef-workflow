@@ -11,7 +11,6 @@ const props = defineProps<{
       id: number
       name: string
       type: 'COMPANY' | 'GROUP'
-      siren?: string | null
       mode?: 'MASTER' | 'FOLLOWER'
       oe?: { readonly id: number; readonly name: string } | null
     } | null
@@ -19,7 +18,7 @@ const props = defineProps<{
       id: number
       name: string
       type: 'COMPANY' | 'GROUP'
-      siren?: string | null
+      
       oe?: { readonly id: number; readonly name: string } | null
     }[]
   }
@@ -127,9 +126,6 @@ const handleCreated = async () => {
               >
                 {{ getEntityTypeLabel(follower.type) }}
               </UBadge>
-              <div v-if="follower.siren" class="text-xs text-gray-500">
-                SIREN: {{ follower.siren }}
-              </div>
               <div v-if="follower.oe" class="text-xs text-gray-500">
                 OE: {{ follower.oe.name }}
               </div>

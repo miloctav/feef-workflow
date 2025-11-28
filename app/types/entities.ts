@@ -13,7 +13,6 @@ export interface CreateEntityData {
   name: string
   type: EntityTypeType
   mode: EntityModeType
-  siren?: string
   siret?: string
   parentGroupId?: number
   oeId?: number
@@ -23,7 +22,6 @@ export interface CreateEntityData {
 // Données pour mettre à jour une entité
 export interface UpdateEntityData {
   name?: string
-  siren?: string
   siret?: string
   type?: EntityTypeType
   mode?: EntityModeType

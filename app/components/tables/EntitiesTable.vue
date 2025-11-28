@@ -14,7 +14,7 @@
       :on-search="setSearch"
       add-button-text='Créer une nouvelle entité'
       :has-add-button="user?.role === Role.FEEF"
-      search-placeholder="Rechercher par nom, SIREN, SIRET..."
+      search-placeholder="Rechercher par nom, SIRET..."
       :on-row-click="handleRowClick"
       :on-delete="user?.role === Role.FEEF ? handleDelete : undefined"
       :on-create="user?.role === Role.FEEF ? handleFormReset : undefined"
@@ -97,10 +97,6 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UFormField label="SIREN" name="siren" hint="9 chiffres">
-                <UInput v-model="state.siren" placeholder="123456789" icon="i-lucide-hash" size="lg" class="w-full" />
-              </UFormField>
-
               <UFormField label="SIRET" name="siret" hint="14 chiffres">
                 <UInput v-model="state.siret" placeholder="12345678901234" icon="i-lucide-hash" size="lg" class="w-full" />
               </UFormField>
@@ -235,7 +231,6 @@ const schema = z.object({
   name: z.string().min(1, 'Le nom est requis').min(3, 'Le nom doit contenir au moins 3 caractères'),
   type: z.enum(['COMPANY', 'GROUP']),
   mode: z.enum(['MASTER', 'FOLLOWER']),
-  siren: z.string().length(9, 'Le SIREN doit contenir 9 chiffres').optional().or(z.literal('')),
   siret: z.string().length(14, 'Le SIRET doit contenir 14 chiffres').optional().or(z.literal('')),
 })
 
@@ -246,7 +241,6 @@ const state = reactive<Schema>({
   name: '',
   type: EntityType.COMPANY,
   mode: EntityMode.MASTER,
-  siren: '',
   siret: '',
 })
 
@@ -259,7 +253,6 @@ const handleFormReset = () => {
   state.name = ''
   state.type = EntityType.COMPANY
   state.mode = EntityMode.MASTER
-  state.siren = ''
   state.siret = ''
 }
 
@@ -282,7 +275,6 @@ const handleCreate = async (close: () => void) => {
     mode: state.mode,
   }
 
-  if (state.siren) data.siren = state.siren
   if (state.siret) data.siret = state.siret
 
   const result = await createEntity(data)
@@ -293,7 +285,6 @@ const handleCreate = async (close: () => void) => {
     state.name = ''
     state.type = EntityType.COMPANY
     state.mode = EntityMode.MASTER
-    state.siren = ''
     state.siret = ''
     close()
   }
@@ -305,11 +296,6 @@ const columns: TableColumn<EntityWithRelations>[] = [
     accessorKey: 'name',
     header: 'Nom',
     cell: ({ row }) => row.original.name,
-  },
-  {
-    accessorKey: 'siren',
-    header: 'SIREN',
-    cell: ({ row }) => row.original.siren || '-',
   },
   {
     accessorKey: 'siret',

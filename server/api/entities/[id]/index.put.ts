@@ -5,7 +5,6 @@ import { forUpdate } from '~~/server/utils/tracking'
 
 interface UpdateEntityBody {
   name?: string
-  siren?: string
   siret?: string
   type?: typeof EntityType[keyof typeof EntityType]
   mode?: typeof EntityMode[keyof typeof EntityMode]
@@ -59,12 +58,11 @@ export default defineEventHandler(async (event) => {
   // Récupérer les données du corps de la requête
   const body = await readBody<UpdateEntityBody>(event)
 
-  const { name, siren, siret, type, mode, parentGroupId, oeId, accountManagerId } = body
+  const { name, siret, type, mode, parentGroupId, oeId, accountManagerId } = body
 
   // Vérifier qu'au moins un champ est fourni
   if (
     name === undefined &&
-    siren === undefined &&
     siret === undefined &&
     type === undefined &&
     mode === undefined &&
@@ -93,21 +91,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Si le SIREN est modifié, vérifier qu'il n'est pas déjà utilisé par une autre entité
-  if (siren && siren !== existingEntity.siren) {
-    const [sirenExists] = await db
-      .select()
-      .from(entities)
-      .where(eq(entities.siren, siren))
-      .limit(1)
-
-    if (sirenExists) {
-      throw createError({
-        statusCode: 409,
-        message: 'Une entité avec ce SIREN existe déjà',
-      })
-    }
-  }
 
   // Si le SIRET est modifié, vérifier qu'il n'est pas déjà utilisé par une autre entité
   if (siret && siret !== existingEntity.siret) {
@@ -167,7 +150,6 @@ export default defineEventHandler(async (event) => {
   const updateData: Partial<UpdateEntityBody> = {}
 
   if (name !== undefined) updateData.name = name
-  if (siren !== undefined) updateData.siren = siren
   if (siret !== undefined) updateData.siret = siret
   if (type !== undefined) updateData.type = type
   if (mode !== undefined) updateData.mode = mode

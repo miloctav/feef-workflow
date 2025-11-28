@@ -18,7 +18,7 @@ import { Role } from '#shared/types/roles'
  * Query params:
  * - page: numéro de page (défaut: 1)
  * - limit: items par page (défaut: 25, max: 100, -1 = tous)
- * - search: recherche globale sur name, siren, siret
+ * - search: recherche globale sur name, siret
  * - sort: tri (ex: createdAt:desc, name:asc, oe.name:asc, accountManager.lastname:asc)
  * - type: filtre par type (COMPANY, GROUP) - support multiple: type=COMPANY,GROUP
  * - mode: filtre par mode (MASTER, FOLLOWER)
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
   // Configuration de la pagination
   const config = {
     table: entitiesTable,
-    searchFields: ['name', 'siren', 'siret'],
+    searchFields: ['name', 'siret'],
     allowedFilters: {
       local: ['type', 'mode', 'oeId', 'accountManagerId', 'parentGroupId'],
     },

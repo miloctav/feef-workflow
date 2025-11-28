@@ -8,7 +8,6 @@ interface CreateEntityBody {
   name: string
   type: typeof EntityType[keyof typeof EntityType]
   mode: typeof EntityMode[keyof typeof EntityMode]
-  siren?: string
   siret?: string
   parentGroupId?: number
   oeId?: number
@@ -29,7 +28,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<CreateEntityBody>(event)
 
-  const { name, type, mode, siren, siret, parentGroupId, oeId, accountManagerId } = body
+  const { name, type, mode, siret, parentGroupId, oeId, accountManagerId } = body
 
   // Validation des champs requis
   if (!name) {
@@ -187,7 +186,6 @@ export default defineEventHandler(async (event) => {
     mode,
   }
 
-  if (siren !== undefined) insertData.siren = siren
   if (siret !== undefined) insertData.siret = siret
   if (parentGroupId !== undefined) insertData.parentGroupId = parentGroupId
   if (oeId !== undefined) insertData.oeId = oeId

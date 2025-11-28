@@ -109,7 +109,6 @@ export default defineEventHandler(async (event) => {
           name: true,
           type: true,
           mode: true,
-          siren: true,
           siret: true,
         },
         with: {

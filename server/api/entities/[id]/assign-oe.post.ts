@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
         status: true,
         type: true,
       }
-    })
+      })
 
     if (lastAudit) {
       const canChangeOe =

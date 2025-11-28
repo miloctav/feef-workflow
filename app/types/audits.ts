@@ -40,7 +40,6 @@ export interface AuditEntity {
   name: string
   type: string
   mode: string
-  siren: string | null
   siret: string | null
   oe?: {
     id: number

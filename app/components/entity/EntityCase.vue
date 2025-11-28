@@ -92,10 +92,6 @@ const handleRefreshEntity = async () => {
             <h1 class="font-bold text-xl text-gray-900 mb-4">Raison sociale</h1>
             <div class="space-y-3">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-gray-600">SIREN:</span>
-                <span class="text-gray-900">{{ displayEntity.siren }}</span>
-              </div>
-              <div class="flex items-center gap-2">
                 <UIcon name="i-lucide-phone" class="w-4 h-4 text-gray-500" />
                 <div class="text-gray-900">00000000</div>
               </div>

@@ -115,11 +115,6 @@ const auditTypeBadgeColor = computed(() => {
                   </NuxtLink>
                 </div>
 
-                <div v-if="currentAudit?.entity?.siren" class="flex items-center gap-2">
-                  <span class="text-sm font-medium text-gray-600">SIREN:</span>
-                  <span class="text-gray-900">{{ currentAudit?.entity?.siren }}</span>
-                </div>
-
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-gray-600">Localisation:</span>
                   <span class="text-gray-900">Paris, Île-de-France</span>

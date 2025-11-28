@@ -7,7 +7,6 @@
           <UIcon name="i-lucide-building-2" class="w-10 h-10 text-primary" />
           <div>
             <h1 class="text-2xl font-bold text-gray-900">{{ currentEntity.name }}</h1>
-            <p class="text-sm text-gray-600">SIREN: {{ currentEntity.siren }}</p>
           </div>
         </div>
       </div>

@@ -38,7 +38,7 @@ const limitMessage = computed(() => {
 })
 
 // --- Mode sélection (FEEF) ---
-const availableEntities = ref<Array<{ id: number; name: string; siren?: string | null }>>([])
+const availableEntities = ref<Array<{ id: number; name: string }>>([])
 const selectedEntityId = ref<number | undefined>(undefined)
 const loadingEntities = ref(false)
 
@@ -57,7 +57,7 @@ const loadAvailableEntities = async () => {
       params.append('parentGroupId', 'null')
     }
 
-    const response = await $fetch<{ data: Array<{ id: number; name: string; siren?: string | null; parentGroupId?: number | null }> }>(
+    const response = await $fetch<{ data: Array<{ id: number; name: string; parentGroupId?: number | null }> }>(
       `/api/entities?${params.toString()}`
     )
 
@@ -77,7 +77,6 @@ const loadAvailableEntities = async () => {
 
 const entityItems = computed(() =>
   availableEntities.value.map(e => ({
-    label: e.siren ? `${e.name} (${e.siren})` : e.name,
     value: e.id
   }))
 )
@@ -85,7 +84,6 @@ const entityItems = computed(() =>
 // --- Mode création (ENTITY) ---
 const schema = z.object({
   name: z.string().min(1, 'Le nom est requis').min(3, 'Le nom doit contenir au moins 3 caractères'),
-  siren: z.string().length(9, 'Le SIREN doit contenir 9 chiffres').optional().or(z.literal('')),
   siret: z.string().length(14, 'Le SIRET doit contenir 14 chiffres').optional().or(z.literal('')),
 })
 
@@ -93,7 +91,6 @@ type Schema = z.output<typeof schema>
 
 const state = reactive<Schema>({
   name: '',
-  siren: '',
   siret: '',
 })
 
@@ -102,7 +99,6 @@ const loading = ref(false)
 
 const resetForm = () => {
   state.name = ''
-  state.siren = ''
   state.siret = ''
   selectedEntityId.value = undefined
 }
@@ -138,7 +134,6 @@ const handleSubmit = async () => {
       data.parentGroupId = props.entityId
     }
 
-    if (state.siren) data.siren = state.siren
     if (state.siret) data.siret = state.siret
 
     result = await createEntity(data)
@@ -236,10 +231,6 @@ watch(mode, (newMode) => {
         <UForm v-if="mode === 'create'" ref="form" :schema="schema" :state="state" class="space-y-4">
           <UFormField label="Nom" name="name" required>
             <UInput v-model="state.name" :placeholder="entityType === 'GROUP' ? 'Nom de l\'entreprise' : 'Nom du groupe'" icon="i-lucide-building" />
-          </UFormField>
-
-          <UFormField label="SIREN" name="siren">
-            <UInput v-model="state.siren" placeholder="123456789" icon="i-lucide-hash" />
           </UFormField>
 
           <UFormField label="SIRET" name="siret">
