@@ -59,11 +59,25 @@ export interface EntityAccount {
 export interface EntityField {
   key: string
   label: string
-  type: 'string' | 'number' | 'boolean' | 'date'
+  type: 'string' | 'number' | 'boolean' | 'date' | 'text'
   value: string | number | boolean | Date | null
   unit?: string
+  required?: boolean
+  description?: string
   lastUpdatedAt?: Date
   lastUpdatedBy?: number
+}
+
+// Type pour les clés de groupe
+export type EntityFieldGroupKey = 'employee_info' | 'general_info' | 'production_info'
+
+// Interface pour un groupe de champs (pour l'affichage)
+export interface EntityFieldGroup {
+  key: EntityFieldGroupKey
+  label: string
+  description: string
+  icon: string
+  fields: EntityField[]  // Les champs du groupe avec leurs valeurs actuelles
 }
 
 // Entity avec relations complètes

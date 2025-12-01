@@ -2,7 +2,7 @@
 // Ajout d'un champ date pour plannedDate si audit initial et d'un champ pour la date d'audit souhaitée si audits existent
 const plannedDate = ref<string | null>(null)
 const wishedAuditDate = ref<string | null>(null)
-import type { EntityWithRelations } from '~~/app/types/entities'
+import type { EntityWithRelations, EntityFieldGroupKey } from '~~/app/types/entities'
 
 const props = defineProps<{
   followerEntity?: EntityWithRelations
@@ -19,6 +19,7 @@ const {
 } = useEntities()
 
 const { user } = useAuth()
+const { buildFieldGroups } = useEntityFieldGroups()
 
 // Entité à afficher : followerEntity (si fourni) ou currentEntity
 const displayEntity = computed(() => props.followerEntity || currentEntity.value)
@@ -29,6 +30,12 @@ const isFollowerView = computed(() => !!props.followerEntity)
 // Dernier audit de l'entité
 const latestAudit = computed(() => displayEntity.value?.audits?.[0] || null)
 
+// Groupes de champs
+const fieldGroups = computed(() => {
+  if (!displayEntity.value?.fields) return []
+  return buildFieldGroups(displayEntity.value.fields)
+})
+
 // État pour le slideover d'édition des champs
 const isFieldEditorOpen = ref(false)
 const selectedFieldKey = ref<string | undefined>(undefined)
@@ -36,6 +43,15 @@ const selectedFieldKey = ref<string | undefined>(undefined)
 const openFieldEditor = (fieldKey: string) => {
   selectedFieldKey.value = fieldKey
   isFieldEditorOpen.value = true
+}
+
+// État pour le slideover d'édition des groupes de champs
+const isFieldGroupEditorOpen = ref(false)
+const selectedGroupKey = ref<EntityFieldGroupKey | undefined>(undefined)
+
+const openFieldGroupEditor = (groupKey: EntityFieldGroupKey) => {
+  selectedGroupKey.value = groupKey
+  isFieldGroupEditorOpen.value = true
 }
 
 const handleSubmitCaseAndClose = async (close: () => void) => {
@@ -256,76 +272,67 @@ const handleRefreshEntity = async () => {
         </div>
       </div>
 
-      <!-- Informations complémentaires (champs versionnés) -->
-      <div v-if="displayEntity?.fields && displayEntity.fields.length > 0" class="mt-6 pt-6 border-t border-gray-200">
-        <div class="flex items-start gap-3">
-          <UIcon name="i-lucide-info" class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-          <div class="flex-1">
-            <h3 class="font-semibold text-gray-900 mb-4">Informations complémentaires</h3>
-            <div class="grid grid-cols-2 gap-4">
-              <div
-                v-for="field in displayEntity.fields"
-                v-if="user?.role === Role.FEEF || user?.role === Role.ENTITY"
-                :key="field.key"
-                class="space-y-1 cursor-pointer hover:bg-gray-50 rounded-md p-2 -m-2 transition-colors"
-                @click="openFieldEditor(field.key)"
-              >
-                <div class="text-sm font-medium text-gray-600">{{ field.label }}</div>
-                <div class="text-gray-900">
-                  <template v-if="field.value === null || field.value === undefined">
-                    <span class="text-gray-400 italic">Non défini</span>
-                  </template>
-                  <template v-else-if="field.type === 'date'">
-                    {{ new Date(field.value).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}
-                  </template>
-                  <template v-else-if="field.type === 'boolean'">
-                    {{ field.value ? 'Oui' : 'Non' }}
-                  </template>
-                  <template v-else-if="field.type === 'number' && field.unit">
-                    {{ field.value }} {{ field.unit }}
-                  </template>
-                  <template v-else-if="field.type === 'text'">
-                    <span class="line-clamp-2">{{ field.value }}</span>
-                  </template>
-                  <template v-else>
-                    {{ field.value }}
-                  </template>
-                </div>
+    </UCard>
+
+    <!-- Groupes de champs (Informations complémentaires) -->
+    <div v-if="fieldGroups.length > 0" class="space-y-4 mt-6">
+      <div
+        v-for="group in fieldGroups"
+        :key="group.key"
+        :class="[
+          'cursor-pointer hover:shadow-md transition-shadow',
+          { 'pointer-events-none': user?.role !== Role.FEEF && user?.role !== Role.ENTITY }
+        ]"
+        @click="user?.role === Role.FEEF || user?.role === Role.ENTITY ? openFieldGroupEditor(group.key) : undefined"
+      >
+        <UCard>
+          <div class="flex items-start gap-3">
+            <UIcon :name="group.icon" class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+            <div class="flex-1">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold text-gray-900">{{ group.label }}</h3>
+                <UIcon
+                  v-if="user?.role === Role.FEEF || user?.role === Role.ENTITY"
+                  name="i-lucide-pencil"
+                  class="w-4 h-4 text-gray-400"
+                />
               </div>
-              <!-- Affichage non cliquable pour les autres rôles -->
-              <div
-                v-else
-                v-for="field in displayEntity.fields"
-                :key="field.key"
-                class="space-y-1"
-              >
-                <div class="text-sm font-medium text-gray-600">{{ field.label }}</div>
-                <div class="text-gray-900">
-                  <template v-if="field.value === null || field.value === undefined">
-                    <span class="text-gray-400 italic">Non défini</span>
-                  </template>
-                  <template v-else-if="field.type === 'date'">
-                    {{ new Date(field.value).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}
-                  </template>
-                  <template v-else-if="field.type === 'boolean'">
-                    {{ field.value ? 'Oui' : 'Non' }}
-                  </template>
-                  <template v-else-if="field.type === 'number' && field.unit">
-                    {{ field.value }} {{ field.unit }}
-                  </template>
-                  <template v-else-if="field.type === 'text'">
-                    <span class="line-clamp-2">{{ field.value }}</span>
-                  </template>
-                  <template v-else>
-                    {{ field.value }}
-                  </template>
+              <p class="text-sm text-gray-600 mb-4">{{ group.description }}</p>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div
+                  v-for="field in group.fields"
+                  :key="field.key"
+                  class="space-y-1"
+                >
+                  <div class="text-sm font-medium text-gray-600">{{ field.label }}</div>
+                  <div class="text-gray-900">
+                    <template v-if="field.value === null || field.value === undefined">
+                      <span class="text-gray-400 italic">Non défini</span>
+                    </template>
+                    <template v-else-if="field.type === 'date'">
+                      {{ new Date(field.value).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) }}
+                    </template>
+                    <template v-else-if="field.type === 'boolean'">
+                      {{ field.value ? 'Oui' : 'Non' }}
+                    </template>
+                    <template v-else-if="field.type === 'number' && field.unit">
+                      {{ field.value }} {{ field.unit }}
+                    </template>
+                    <template v-else-if="field.type === 'text'">
+                      <span class="line-clamp-2">{{ field.value }}</span>
+                    </template>
+                    <template v-else>
+                      {{ field.value }}
+                    </template>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </UCard>
       </div>
-    </UCard>
+    </div>
 
     <!-- Section entreprises suiveuses (masquée en vue suiveuse) -->
     <EntityFollowers
@@ -344,5 +351,15 @@ const handleRefreshEntity = async () => {
       :entity-id="displayEntity.id"
       :fields="displayEntity.fields || []"
       :initial-field-key="selectedFieldKey"
+    />
+
+    <!-- Slideover d'édition des groupes de champs -->
+    <EntityFieldGroupEditor
+      v-if="displayEntity"
+      v-model:open="isFieldGroupEditorOpen"
+      :entity-id="displayEntity.id"
+      :group-key="selectedGroupKey"
+      :fields="displayEntity.fields || []"
+      @updated="handleRefreshEntity"
     />
 </template>

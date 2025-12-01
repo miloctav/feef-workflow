@@ -148,6 +148,42 @@ export const useEntityFields = () => {
     }
   }
 
+  /**
+   * Récupère l'historique de plusieurs champs en une passe
+   * Ne modifie PAS l'état global fieldHistory
+   * Utilisé par EntityFieldGroupEditor pour charger tous les historiques d'un groupe
+   */
+  const fetchMultipleFieldHistories = async (
+    entityId: number,
+    fieldKeys: string[]
+  ): Promise<Record<string, any[]>> => {
+    const histories: Record<string, any[]> = {}
+
+    try {
+      // Charger tous les historiques en parallèle
+      const results = await Promise.all(
+        fieldKeys.map(key =>
+          $fetch<{ data: any[] }>(`/api/entities/${entityId}/fields/${key}/history`)
+            .then(response => ({ key, data: response.data }))
+            .catch(error => {
+              console.error(`Erreur chargement historique pour ${key}:`, error)
+              return { key, data: [] }
+            })
+        )
+      )
+
+      // Assembler le résultat
+      for (const { key, data } of results) {
+        histories[key] = data
+      }
+
+      return histories
+    } catch (error: any) {
+      console.error('Erreur lors du chargement des historiques:', error)
+      return {}
+    }
+  }
+
   return {
     // États de chargement
     updateFieldLoading: readonly(updateFieldLoading),
@@ -161,5 +197,6 @@ export const useEntityFields = () => {
     updateEntityField,
     updateEntityFields,
     fetchEntityFieldHistory,
+    fetchMultipleFieldHistories,
   }
 }
