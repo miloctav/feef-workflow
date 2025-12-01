@@ -2,20 +2,15 @@
   <UDashboardGroup>
     <UDashboardSidebar collapsible resizable :ui="{ footer: 'lg:border-t lg:border-default' }">
       <template #header="{ collapsed }">
-        <NuxtLink to="/">
-          <img 
-            v-if="!collapsed"
-            class="w-[150px] h-auto cursor-pointer" 
-            alt="Fédération des Entreprises et Entrepreneurs de France" 
-            src="https://www.feef.org/wp-content/uploads/2025/01/logo_feef.svg"
-          >
-          <img 
-            v-else
-            class="h-8 w-8 mx-auto cursor-pointer" 
-            alt="FEEF" 
-            src="https://www.feef.org/wp-content/uploads/2025/01/logo_feef.svg"
-          >
-        </NuxtLink>
+        <div class="w-full flex justify-center items-center pt-2">
+          <NuxtLink to="/">
+            <img v-if="!collapsed" class="max-w-[70px] h-auto cursor-pointer mx-auto"
+              alt="PME+ Engagé"
+              src="~/assets/images/Logo-PMEplus.png">
+            <img v-else class="h-8 w-8 cursor-pointer object-contain mx-auto" alt="PME+"
+              src="~/assets/images/Logo-PMEplus.png">
+          </NuxtLink>
+        </div>
       </template>
 
       <template #default="{ collapsed }">
