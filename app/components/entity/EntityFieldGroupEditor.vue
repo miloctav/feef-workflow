@@ -2,25 +2,11 @@
   <USlideover
     v-model:open="isOpen"
     :title="currentGroup?.label || 'Groupe de champs'"
-    side="right"
+    :description="currentGroup?.description"
     class="w-full max-w-3xl"
-    close-icon="i-lucide-arrow-right"
+    close-icon="i-lucide-x"
+    :dismissible="false"
   >
-    <template #header>
-      <div class="flex flex-col space-y-2">
-        <div class="flex items-center gap-3">
-          <UIcon v-if="currentGroup" :name="currentGroup.icon" class="w-6 h-6 text-primary" />
-          <div class="flex-1">
-            <h2 class="text-lg font-semibold text-gray-900">
-              {{ currentGroup?.label }}
-            </h2>
-            <p v-if="currentGroup?.description" class="text-sm text-gray-600">
-              {{ currentGroup.description }}
-            </p>
-          </div>
-        </div>
-      </div>
-    </template>
 
     <template #body>
       <div class="flex flex-col h-full space-y-8">
@@ -30,11 +16,11 @@
             Modifier les informations
           </h3>
 
-          <div class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div
               v-for="field in currentGroupFields"
               :key="field.key"
-              class="space-y-2"
+              :class="['space-y-2', field.type === 'text' ? 'md:col-span-2' : '']"
             >
               <label class="block">
                 <span class="text-sm font-medium text-gray-700">
@@ -62,6 +48,7 @@
                     :placeholder="`Entrer ${field.label.toLowerCase()}`"
                     size="md"
                     resize
+                    class="w-full"
                   />
 
                   <!-- Number -->
@@ -74,12 +61,10 @@
                   />
 
                   <!-- Boolean -->
-                  <div v-else-if="field.type === 'boolean'" class="flex items-center gap-3">
-                    <UToggle v-model="editValues[field.key]" />
-                    <span class="text-gray-700">
-                      {{ editValues[field.key] ? 'Oui' : 'Non' }}
-                    </span>
-                  </div>
+                  <USwitch
+                    v-else-if="field.type === 'boolean'"
+                    v-model="editValues[field.key]"
+                  />
 
                   <!-- Date -->
                   <UInput
@@ -360,6 +345,9 @@ const handleSave = async () => {
       }
 
       emit('updated')
+
+      // Fermer le slideover après la sauvegarde
+      isOpen.value = false
     }
   } finally {
     isSaving.value = false
