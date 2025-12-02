@@ -52,7 +52,7 @@ const items = [
   { label: 'Mon dossier', icon: 'i-lucide-home', to: `/entity` },
   { label: 'Mon espace documentaire', icon: 'i-lucide-folder-open', to: `/entity/documents` },
   { label: 'Mes contrats', icon: 'i-lucide-file-signature', to: `/entity/contracts` },
-  { label: 'Mes audits', icon: 'i-lucide-clipboard-list', to: `/entity/audits` }
+  { label: 'Mes audits', icon: 'i-lucide-clipboard-list', to: `/entity/audits` },
 ]
 
 const { fetchEntity } = useEntities()

@@ -55,8 +55,8 @@
 <script setup lang="ts">
 const items = [
   { label: 'Dashboard', icon: 'i-lucide-home', to: '/feef' },
-  { label: 'Entités', icon: 'i-lucide-users', to: '/feef/entities' },
-  { label: 'Audits', icon: 'i-lucide-folder', to: '/feef/audits' },
+  { label: 'Entités', icon: 'i-lucide-building', to: '/feef/entities' },
+  { label: 'Audits', icon: 'i-lucide-clipboard-list', to: '/feef/audits' },
   { label: 'Organismes Évaluateurs', icon: 'i-lucide-shield-check', to: '/feef/oes' },
   {
     label: 'Paramètres',

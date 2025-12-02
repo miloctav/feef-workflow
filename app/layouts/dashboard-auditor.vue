@@ -44,6 +44,6 @@
 
 <script setup lang="ts">
 const items = [
-  { label: 'Mes Audits', icon: 'i-lucide-folder', to: '/auditor' },
+  { label: 'Mes Audits', icon: 'i-lucide-clipboard-list', to: '/auditor' },
 ]
 </script>

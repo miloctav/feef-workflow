@@ -51,8 +51,8 @@ const { user } = useAuth()
 const items = computed(() => {
   const baseItems = [
     { label: 'Dashboard', icon: 'i-lucide-home', to: '/oe' },
-    { label: 'Entités', icon: 'i-lucide-users', to: '/oe/entities' },
-    { label: 'Audits', icon: 'i-lucide-folder', to: '/oe/audits' },
+    { label: 'Entités', icon: 'i-lucide-building', to: '/oe/entities' },
+    { label: 'Audits', icon: 'i-lucide-clipboard-list', to: '/oe/audits' },
   ]
 
   // Ajouter "Gestion des comptes" uniquement pour les OE ADMIN
