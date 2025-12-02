@@ -316,6 +316,68 @@ export const useAccounts = () => {
   }
 
   /**
+   * Ajouter une association entre un compte et une entité
+   */
+  const addAccountToEntity = async (accountId: number, entityId: number, role: string) => {
+    try {
+      await $fetch('/api/accounts-to-entities', {
+        method: 'POST',
+        body: {
+          accountId,
+          entityId,
+          role,
+        },
+      })
+
+      // Rafraîchir la liste paginée
+      await refresh()
+
+      return { success: true }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de l\'ajout de l\'association'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  /**
+   * Mettre à jour le rôle d'une association compte-entité existante
+   */
+  const updateAccountEntityRole = async (accountId: number, entityId: number, role: string) => {
+    try {
+      await $fetch('/api/accounts-to-entities', {
+        method: 'PUT',
+        body: {
+          accountId,
+          entityId,
+          role,
+        },
+      })
+
+      // Rafraîchir la liste paginée
+      await refresh()
+
+      return { success: true }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la modification du rôle'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  /**
    * Supprimer l'association entre un compte et une entité
    */
   const removeAccountFromEntity = async (accountId: number, entityId: number) => {
@@ -352,6 +414,66 @@ export const useAccounts = () => {
       return { success: false, error: errorMessage }
     } finally {
       deleteLoading.value = false
+    }
+  }
+
+  /**
+   * Ajouter une association entre un auditeur et un OE
+   */
+  const addAuditorToOE = async (auditorId: number, oeId: number) => {
+    try {
+      await $fetch('/api/auditors-to-oe', {
+        method: 'POST',
+        body: {
+          auditorId,
+          oeId,
+        },
+      })
+
+      // Rafraîchir la liste paginée
+      await refresh()
+
+      return { success: true }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de l\'ajout de l\'association auditeur-OE'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  /**
+   * Supprimer l'association entre un auditeur et un OE
+   */
+  const removeAuditorFromOE = async (auditorId: number, oeId: number) => {
+    try {
+      await $fetch('/api/auditors-to-oe', {
+        method: 'DELETE',
+        query: {
+          auditorId,
+          oeId,
+        },
+      })
+
+      // Rafraîchir la liste paginée
+      await refresh()
+
+      return { success: true }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la suppression de l\'association auditeur-OE'
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
     }
   }
 
@@ -401,7 +523,11 @@ export const useAccounts = () => {
     createAccount,
     updateAccount,
     deleteAccount,
+    addAccountToEntity,
+    updateAccountEntityRole,
     removeAccountFromEntity,
+    addAuditorToOE,
+    removeAuditorFromOE,
     refresh,
     reset,
   }

@@ -6,7 +6,6 @@ import { forUpdate } from '~~/server/utils/tracking'
 interface UpdateAccountBody {
   firstname?: string
   lastname?: string
-  email?: string
 }
 
 export default defineEventHandler(async (event) => {
@@ -83,30 +82,14 @@ export default defineEventHandler(async (event) => {
   // Récupérer les données du corps de la requête
   const body = await readBody<UpdateAccountBody>(event)
 
-  const { firstname, lastname, email } = body
+  const { firstname, lastname } = body
 
   // Vérifier qu'au moins un champ est fourni
-  if (!firstname && !lastname && !email) {
+  if (!firstname && !lastname) {
     throw createError({
       statusCode: 400,
       message: 'Au moins un champ doit être fourni pour la modification',
     })
-  }
-
-  // Si l'email est modifié, vérifier qu'il n'est pas déjà utilisé par un autre compte
-  if (email && email !== existingAccount.email) {
-    const [emailExists] = await db
-      .select()
-      .from(accounts)
-      .where(eq(accounts.email, email))
-      .limit(1)
-
-    if (emailExists) {
-      throw createError({
-        statusCode: 409,
-        message: 'Un compte avec cet email existe déjà',
-      })
-    }
   }
 
   console.log('[Accounts API] Mise à jour du compte', accountIdInt)
@@ -116,7 +99,6 @@ export default defineEventHandler(async (event) => {
 
   if (firstname !== undefined) updateData.firstname = firstname
   if (lastname !== undefined) updateData.lastname = lastname
-  if (email !== undefined) updateData.email = email
 
   // Mettre à jour le compte
   const [updatedAccount] = await db

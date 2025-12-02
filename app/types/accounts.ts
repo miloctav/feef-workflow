@@ -28,18 +28,11 @@ export interface CreateAccountData {
 }
 
 // Données pour mettre à jour un compte
+// Note: L'email et le rôle global ne sont pas modifiables
+// Les associations (entityRoles, oeIds) sont gérées via des endpoints dédiés
 export interface UpdateAccountData {
   firstname?: string
   lastname?: string
-  email?: string
-  password?: string
-  // Autres champs selon le rôle
-  oeId?: number
-  oeRole?: typeof OERole[keyof typeof OERole]
-  entityRoles?: Array<{
-    entityId: number
-    role: typeof EntityRole[keyof typeof EntityRole]
-  }>
 }
 
 // Compte avec relations (retourné par l'API)

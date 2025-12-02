@@ -169,21 +169,14 @@ watch(mode, (newMode) => {
 
 <template>
   <UModal v-model:open="isOpen">
-    <UButton
-      v-if="canAdd"
-      icon="i-lucide-plus"
-      variant="outline"
-      size="sm"
-    >
-      Ajouter {{ entityType === 'GROUP' ? 'une entreprise' : 'un groupe' }}
-    </UButton>
+    <UButton icon="i-lucide-plus" size="xs" color="neutral" variant="ghost" />
 
     <template #content>
       <UCard>
         <template #header>
           <div class="flex items-center justify-between">
             <h3 class="text-lg font-semibold">
-              {{ mode === 'link' ? 'Lier' : 'Créer' }} {{ entityType === 'GROUP' ? 'une entreprise suiveuse' : 'un groupe' }}
+              {{ mode === 'link' ? 'Lier' : 'Créer' }} {{ entityType === EntityType.GROUP ? 'une entreprise suiveuse' : 'un groupe' }}
             </h3>
             <UBadge variant="subtle" color="neutral" size="sm">
               {{ limitMessage }}
@@ -193,18 +186,10 @@ watch(mode, (newMode) => {
 
         <!-- Toggle pour FEEF -->
         <div v-if="isFEEF" class="flex gap-2 mb-4">
-          <UButton
-            :variant="mode === 'create' ? 'solid' : 'outline'"
-            size="sm"
-            @click="mode = 'create'"
-          >
+          <UButton :variant="mode === 'create' ? 'solid' : 'outline'" size="sm" @click="mode = 'create'">
             Créer
           </UButton>
-          <UButton
-            :variant="mode === 'link' ? 'solid' : 'outline'"
-            size="sm"
-            @click="mode = 'link'"
-          >
+          <UButton :variant="mode === 'link' ? 'solid' : 'outline'" size="sm" @click="mode = 'link'">
             Lier existante
           </UButton>
         </div>
@@ -212,15 +197,8 @@ watch(mode, (newMode) => {
         <!-- Mode liaison -->
         <div v-if="mode === 'link'" class="space-y-4">
           <UFormField :label="entityType === 'GROUP' ? 'Entreprise suiveuse' : 'Groupe suiveur'">
-            <USelectMenu
-              v-model="selectedEntityId"
-              :items="entityItems"
-              :loading="loadingEntities"
-              value-key="value"
-              placeholder="Sélectionner une entité..."
-              searchable
-              class="w-full"
-            />
+            <USelectMenu v-model="selectedEntityId" :items="entityItems" :loading="loadingEntities" value-key="value"
+              placeholder="Sélectionner une entité..." searchable class="w-full" />
           </UFormField>
           <p v-if="entityItems.length === 0 && !loadingEntities" class="text-sm text-gray-500">
             Aucune entité suiveuse disponible
@@ -230,7 +208,9 @@ watch(mode, (newMode) => {
         <!-- Mode création -->
         <UForm v-if="mode === 'create'" ref="form" :schema="schema" :state="state" class="space-y-4">
           <UFormField label="Nom" name="name" required>
-            <UInput v-model="state.name" :placeholder="entityType === 'GROUP' ? 'Nom de l\'entreprise' : 'Nom du groupe'" icon="i-lucide-building" />
+            <UInput v-model="state.name"
+              :placeholder="entityType === 'GROUP' ? 'Nom de l\'entreprise' : 'Nom du groupe'"
+              icon="i-lucide-building" />
           </UFormField>
 
           <UFormField label="SIRET" name="siret" required>
@@ -241,13 +221,8 @@ watch(mode, (newMode) => {
         <template #footer>
           <div class="flex justify-end gap-2">
             <UButton label="Annuler" color="neutral" variant="outline" @click="isOpen = false" />
-            <UButton
-              :label="mode === 'link' ? 'Lier' : 'Créer'"
-              color="primary"
-              :loading="loading"
-              :disabled="mode === 'link' && !selectedEntityId"
-              @click="handleSubmit"
-            />
+            <UButton :label="mode === 'link' ? 'Lier' : 'Créer'" color="primary" :loading="loading"
+              :disabled="mode === 'link' && !selectedEntityId" @click="handleSubmit" />
           </div>
         </template>
       </UCard>

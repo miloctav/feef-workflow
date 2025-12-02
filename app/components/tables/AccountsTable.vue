@@ -17,6 +17,8 @@
       :search-placeholder="searchPlaceholder"
       :on-delete="allowDelete ? handleDelete : undefined"
       :on-create="handleFormReset"
+      :on-update="loadAccountInForm"
+      :can-edit="true"
       :get-item-name="(account) => `${account.firstname} ${account.lastname}`"
     >
       <template #filters="{ filters, updateFilter }">
@@ -102,6 +104,7 @@
                 icon="i-lucide-mail"
                 size="lg"
                 class="w-full"
+                :disabled="isEditingMode"
               />
             </UFormField>
           </div>
@@ -119,7 +122,7 @@
                 :items="availableRoleOptions"
                 value-key="value"
                 placeholder="Sélectionner un rôle"
-                :disabled="!!forcedRole"
+                :disabled="!!forcedRole || isEditingMode"
                 size="lg"
                 class="w-full"
               />
@@ -239,7 +242,7 @@
           :label="isEditing ? 'Modifier' : 'Créer'"
           color="primary"
           :loading="createLoading"
-          @click="handleCreate(close)"
+          @click="handleCreate(close, item, isEditing)"
         />
       </template>
     </PaginatedTable>
@@ -285,6 +288,11 @@ const {
   deleteAccount,
   removeAccountFromEntity,
   createAccount,
+  updateAccount,
+  addAccountToEntity,
+  updateAccountEntityRole,
+  addAuditorToOE,
+  removeAuditorFromOE,
   fetchAccounts,
 } = useAccounts()
 
@@ -544,13 +552,19 @@ const forcedRole = computed(() => {
   return null
 })
 
-// Schéma de validation pour le formulaire (dynamique selon le rôle)
+// Schéma de validation pour le formulaire (dynamique selon le rôle et le mode)
 const schema = computed(() => {
-  const baseSchema = {
+  const baseSchema: Record<string, any> = {
     firstname: z.string().min(1, 'Le prénom est requis').min(2, 'Le prénom doit contenir au moins 2 caractères'),
     lastname: z.string().min(1, 'Le nom est requis').min(2, 'Le nom doit contenir au moins 2 caractères'),
-    email: z.string().min(1, 'L\'email est requis').email('L\'email doit être valide'),
     role: z.string().min(1, 'Le rôle est requis'),
+  }
+
+  // Email uniquement requis en mode création (pas en édition)
+  if (!isEditingMode.value) {
+    baseSchema.email = z.string().min(1, 'L\'email est requis').email('L\'email doit être valide')
+  } else {
+    baseSchema.email = z.string().optional()
   }
 
   const selectedRole = forcedRole.value || state.role
@@ -662,6 +676,8 @@ watch(() => state.role, (newRole, oldRole) => {
 
 const createLoading = ref(false)
 const form = ref()
+const isEditingMode = ref(false)
+const editingItem = ref<AccountWithRelations | null>(null)
 
 // Ajouter une entité au tableau
 const addEntityRole = () => {
@@ -681,9 +697,35 @@ const removeEntityRole = (index: number) => {
   }
 }
 
+// Charger les données d'un compte dans le formulaire pour édition
+const loadAccountInForm = (account: AccountWithRelations) => {
+  isEditingMode.value = true
+  editingItem.value = account
+
+  state.firstname = account.firstname
+  state.lastname = account.lastname
+  state.email = account.email
+  state.role = account.role
+
+  if (account.role === Role.ENTITY) {
+    state.entityRoles = (account.accountsToEntities || []).map((a) => ({
+      entityId: a.entityId,
+      role: a.role,
+    }))
+  } else if (account.role === Role.AUDITOR) {
+    state.oeIds = (account.auditorsToOE || []).map((a) => a.oeId)
+  } else if (account.role === Role.OE) {
+    state.oeId = account.oeId
+    state.oeRole = account.oeRole || ''
+  }
+}
+
 // Réinitialiser le formulaire (fonction appelée par PaginatedTable pour la création)
 const handleFormReset = () => {
   // Réinitialiser le formulaire pour la création
+  isEditingMode.value = false
+  editingItem.value = null
+
   state.firstname = ''
   state.lastname = ''
   state.email = ''
@@ -694,18 +736,96 @@ const handleFormReset = () => {
   state.entityRoles = props.entityId ? [{ entityId: props.entityId, role: '' }] : []
 }
 
-// Créer un compte
-const handleCreate = async (close: () => void) => {
-  // Valider le formulaire avant de soumettre
-  try {
-    await form.value.validate()
-  } catch (error) {
-    // Si le formulaire n'est pas valide, arrêter ici
+// Mettre à jour les associations entité pour un compte ENTITY
+const updateEntityAssociations = async (item: AccountWithRelations) => {
+  const existingAssociations = item.accountsToEntities || []
+  const newAssociations = state.entityRoles || []
+
+  // Associations à supprimer (dans existing mais pas dans new)
+  for (const existing of existingAssociations) {
+    const stillExists = newAssociations.find(
+      (a) => a.entityId === existing.entityId
+    )
+    if (!stillExists) {
+      await removeAccountFromEntity(item.id, existing.entityId)
+    }
+  }
+
+  // Associations à ajouter ou modifier
+  for (const newAssoc of newAssociations) {
+    if (!newAssoc.entityId) continue // Skip si entityId est null
+
+    const existing = existingAssociations.find(
+      (a) => a.entityId === newAssoc.entityId
+    )
+
+    if (!existing) {
+      // AJOUTER : appeler POST /api/accounts-to-entities
+      await addAccountToEntity(item.id, newAssoc.entityId, newAssoc.role)
+    } else if (existing.role !== newAssoc.role) {
+      // MODIFIER LE RÔLE : appeler PUT /api/accounts-to-entities
+      await updateAccountEntityRole(item.id, newAssoc.entityId, newAssoc.role)
+    }
+  }
+}
+
+// Mettre à jour les associations OE pour un compte AUDITOR
+const updateAuditorAssociations = async (item: AccountWithRelations) => {
+  const existingOeIds = (item.auditorsToOE || []).map((a) => a.oeId)
+  const newOeIds = state.oeIds || []
+
+  // OE à supprimer
+  for (const oeId of existingOeIds) {
+    if (!newOeIds.includes(oeId)) {
+      await removeAuditorFromOE(item.id, oeId)
+    }
+  }
+
+  // OE à ajouter
+  for (const oeId of newOeIds) {
+    if (!existingOeIds.includes(oeId)) {
+      await addAuditorToOE(item.id, oeId)
+    }
+  }
+}
+
+// Gérer la mise à jour d'un compte existant
+const handleUpdate = async (item: AccountWithRelations, close: () => void) => {
+  // 1. Mettre à jour les champs de base (firstname, lastname)
+  const basicUpdate = await updateAccount(item.id, {
+    firstname: state.firstname,
+    lastname: state.lastname,
+  })
+
+  if (!basicUpdate.success) {
+    createLoading.value = false
     return
   }
 
-  createLoading.value = true
+  // 2. Gérer les associations selon le rôle
+  if (state.role === Role.ENTITY) {
+    await updateEntityAssociations(item)
+  } else if (state.role === Role.AUDITOR) {
+    await updateAuditorAssociations(item)
+  }
 
+  createLoading.value = false
+
+  // Réinitialiser le formulaire
+  state.firstname = ''
+  state.lastname = ''
+  state.email = ''
+  state.role = forcedRole.value || ''
+  state.oeId = props.oeId
+  state.oeRole = ''
+  state.oeIds = props.oeId ? [props.oeId] : []
+  state.entityRoles = props.entityId ? [{ entityId: props.entityId, role: '' }] : []
+
+  close()
+}
+
+// Créer un nouveau compte
+const handleCreateNew = async (close: () => void) => {
   // Préparer les données avec entityRoles ou oeId/oeRole au format attendu par l'API
   const accountData: any = {
     firstname: state.firstname,
@@ -744,6 +864,27 @@ const handleCreate = async (close: () => void) => {
     state.oeIds = props.oeId ? [props.oeId] : []
     state.entityRoles = props.entityId ? [{ entityId: props.entityId, role: '' }] : []
     close()
+  }
+}
+
+// Créer ou modifier un compte (point d'entrée appelé par le bouton du formulaire)
+const handleCreate = async (close: () => void, item?: AccountWithRelations, isEditing = false) => {
+  // Valider le formulaire avant de soumettre
+  try {
+    await form.value.validate()
+  } catch (error) {
+    // Si le formulaire n'est pas valide, arrêter ici
+    return
+  }
+
+  createLoading.value = true
+
+  if (isEditing && item) {
+    // MODE ÉDITION
+    await handleUpdate(item, close)
+  } else {
+    // MODE CRÉATION
+    await handleCreateNew(close)
   }
 }
 
