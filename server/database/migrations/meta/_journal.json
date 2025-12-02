@@ -162,6 +162,13 @@
       "when": 1764664708556,
       "tag": "0022_special_the_santerians",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1764672709911,
+      "tag": "0023_purple_triton",
+      "breakpoints": true
     }
   ]
 }

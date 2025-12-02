@@ -8,7 +8,7 @@ interface CreateEntityBody {
   name: string
   type: typeof EntityType[keyof typeof EntityType]
   mode: typeof EntityMode[keyof typeof EntityMode]
-  siret?: string
+  siret: string
   parentGroupId?: number
   oeId?: number
   accountManagerId?: number
@@ -49,6 +49,13 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       message: 'Le mode est requis.'
+    })
+  }
+
+  if(!siret) {
+    throw createError({
+      statusCode: 400,
+      message: 'Le SIRET est requis.'
     })
   }
 
@@ -179,14 +186,26 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const existingEntityWithSiret = await db.query.entities.findFirst({
+    where: eq(entities.siret, siret),
+    columns: { id: true }
+  })
+
+  if (existingEntityWithSiret) {
+    throw createError({
+      statusCode: 400,
+      message: 'Une entité avec ce SIRET existe déjà.'
+    })
+  }
+
   // Construire l'objet de création en n'incluant que les champs fournis
   const insertData: any = {
     name,
     type,
     mode,
+    siret,
   }
 
-  if (siret !== undefined) insertData.siret = siret
   if (parentGroupId !== undefined) insertData.parentGroupId = parentGroupId
   if (oeId !== undefined) insertData.oeId = oeId
   if (accountManagerId !== undefined) insertData.accountManagerId = accountManagerId

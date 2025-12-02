@@ -1,0 +1,1 @@
+ALTER TABLE "entities" ALTER COLUMN "siret" SET NOT NULL;

@@ -218,6 +218,21 @@ const hasActions = computed(() => {
                 </div>
               </UBadge>
 
+              <!-- Badge OE -->
+              <UBadge
+                :color="displayEntity.oe ? 'info' : 'neutral'"
+                variant="subtle"
+                size="sm"
+              >
+                <div class="flex items-center gap-1.5">
+                  <UIcon
+                    :name="displayEntity.oe ? 'i-lucide-shield-check' : 'i-lucide-shield-off'"
+                    class="w-3 h-3"
+                  />
+                  <span>{{ displayEntity.oe ? displayEntity.oe.name : 'Aucun OE' }}</span>
+                </div>
+              </UBadge>
+
               <!-- Badge Type d'entité -->
               <UBadge
                 :color="displayEntity.type === EntityType.GROUP ? 'primary' : 'neutral'"
@@ -583,40 +598,7 @@ const hasActions = computed(() => {
         </UCard>
       </div>
 
-      <!-- Groupe Revenue (inchangé) -->
-      <UCard
-        :class="[
-          'cursor-pointer hover:shadow-md transition-shadow',
-          { 'pointer-events-none': user?.role !== Role.FEEF && user?.role !== Role.ENTITY }
-        ]"
-        @click="user?.role === Role.FEEF || user?.role === Role.ENTITY ? openFieldGroupEditor('revenue') : undefined"
-      >
-        <template #header>
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <UIcon :name="getGroupIcon('revenue')" class="w-6 h-6 text-primary" />
-              <h2 class="font-bold text-xl">{{ getGroupLabel('revenue') }}</h2>
-            </div>
-            <UIcon
-              v-if="user?.role === Role.FEEF || user?.role === Role.ENTITY"
-              name="i-lucide-pencil"
-              class="w-4 h-4 text-gray-400"
-            />
-          </div>
-        </template>
-        <div class="grid grid-cols-2 gap-4">
-          <div v-for="field in fieldGroups.find(g => g.key === 'revenue')?.fields || []" :key="field.key">
-            <label class="text-sm font-medium text-gray-600">{{ field.label }}</label>
-            <div class="text-gray-900 font-semibold">
-              {{ formatFieldValue(field) }}
-            </div>
-          </div>
-        </div>
-      </UCard>
-
-      
-
-      <!-- Groupe 6: Labeling Scope (avec alerte conditionnelle) -->
+       <!-- Groupe 6: Labeling Scope (avec alerte conditionnelle) -->
       <UCard
         :class="[
           'cursor-pointer hover:shadow-md transition-shadow',
@@ -665,6 +647,37 @@ const hasActions = computed(() => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </UCard>
+
+      <!-- Groupe Revenue (inchangé) -->
+      <UCard
+        :class="[
+          'cursor-pointer hover:shadow-md transition-shadow',
+          { 'pointer-events-none': user?.role !== Role.FEEF && user?.role !== Role.ENTITY }
+        ]"
+        @click="user?.role === Role.FEEF || user?.role === Role.ENTITY ? openFieldGroupEditor('revenue') : undefined"
+      >
+        <template #header>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <UIcon :name="getGroupIcon('revenue')" class="w-6 h-6 text-primary" />
+              <h2 class="font-bold text-xl">{{ getGroupLabel('revenue') }}</h2>
+            </div>
+            <UIcon
+              v-if="user?.role === Role.FEEF || user?.role === Role.ENTITY"
+              name="i-lucide-pencil"
+              class="w-4 h-4 text-gray-400"
+            />
+          </div>
+        </template>
+        <div class="grid grid-cols-2 gap-4">
+          <div v-for="field in fieldGroups.find(g => g.key === 'revenue')?.fields || []" :key="field.key">
+            <label class="text-sm font-medium text-gray-600">{{ field.label }}</label>
+            <div class="text-gray-900 font-semibold">
+              {{ formatFieldValue(field) }}
             </div>
           </div>
         </div>

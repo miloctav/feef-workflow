@@ -84,7 +84,7 @@ const entityItems = computed(() =>
 // --- Mode création (ENTITY) ---
 const schema = z.object({
   name: z.string().min(1, 'Le nom est requis').min(3, 'Le nom doit contenir au moins 3 caractères'),
-  siret: z.string().length(14, 'Le SIRET doit contenir 14 chiffres').optional().or(z.literal('')),
+  siret: z.string().length(14, 'Le SIRET doit contenir 14 chiffres'),
 })
 
 type Schema = z.output<typeof schema>
@@ -233,7 +233,7 @@ watch(mode, (newMode) => {
             <UInput v-model="state.name" :placeholder="entityType === 'GROUP' ? 'Nom de l\'entreprise' : 'Nom du groupe'" icon="i-lucide-building" />
           </UFormField>
 
-          <UFormField label="SIRET" name="siret">
+          <UFormField label="SIRET" name="siret" required>
             <UInput v-model="state.siret" placeholder="12345678901234" icon="i-lucide-hash" />
           </UFormField>
         </UForm>
