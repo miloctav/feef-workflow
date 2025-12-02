@@ -246,19 +246,6 @@ const auditStatusBadgeColor = computed(() => {
           </div>
         </div>
 
-        <!-- Périmètre de labellisation -->
-        <div class="mt-6 pt-4 border-t border-gray-200">
-          <div class="flex items-start gap-3">
-            <UIcon name="i-lucide-target" class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 class="font-semibold text-gray-900 mb-2">Périmètre de labellisation</h3>
-              <p class="text-gray-700 text-sm leading-relaxed">
-                Production et distribution de produits alimentaires locaux, incluant la transformation, le conditionnement et la logistique associée.
-              </p>
-            </div>
-          </div>
-        </div>
-
       </UCard>
     </div>
 

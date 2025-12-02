@@ -11,16 +11,22 @@ interface UpdateEntityBody {
   parentGroupId?: number | null
   oeId?: number | null
   accountManagerId?: number | null
+  address?: string | null
+  addressComplement?: string | null
+  postalCode?: string | null
+  city?: string | null
+  region?: string | null
+  phoneNumber?: string | null
 }
 
 export default defineEventHandler(async (event) => {
-  // Vérifier que l'utilisateur connecté est FEEF
+  // Vérifier que l'utilisateur connecté est FEEF ou ENTITY
   const { user: currentUser } = await requireUserSession(event)
 
-  if (currentUser.role !== Role.FEEF) {
+  if (currentUser.role !== Role.FEEF && currentUser.role !== Role.ENTITY) {
     throw createError({
       statusCode: 403,
-      message: 'Seul un administrateur FEEF peut modifier des entités',
+      message: 'Seul un administrateur FEEF ou une entité peut modifier des entités',
     })
   }
 
@@ -58,7 +64,7 @@ export default defineEventHandler(async (event) => {
   // Récupérer les données du corps de la requête
   const body = await readBody<UpdateEntityBody>(event)
 
-  const { name, siret, type, mode, parentGroupId, oeId, accountManagerId } = body
+  const { name, siret, type, mode, parentGroupId, oeId, accountManagerId, address, addressComplement, postalCode, city, region, phoneNumber } = body
 
   // Vérifier qu'au moins un champ est fourni
   if (
@@ -68,7 +74,13 @@ export default defineEventHandler(async (event) => {
     mode === undefined &&
     parentGroupId === undefined &&
     oeId === undefined &&
-    accountManagerId === undefined
+    accountManagerId === undefined &&
+    address === undefined &&
+    addressComplement === undefined &&
+    postalCode === undefined &&
+    city === undefined &&
+    region === undefined &&
+    phoneNumber === undefined
   ) {
     throw createError({
       statusCode: 400,
@@ -156,6 +168,12 @@ export default defineEventHandler(async (event) => {
   if (parentGroupId !== undefined) updateData.parentGroupId = parentGroupId
   if (oeId !== undefined) updateData.oeId = oeId
   if (accountManagerId !== undefined) updateData.accountManagerId = accountManagerId
+  if (address !== undefined) updateData.address = address
+  if (addressComplement !== undefined) updateData.addressComplement = addressComplement
+  if (postalCode !== undefined) updateData.postalCode = postalCode
+  if (city !== undefined) updateData.city = city
+  if (region !== undefined) updateData.region = region
+  if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber
 
   // Mettre à jour l'entité
   const [updatedEntity] = await db

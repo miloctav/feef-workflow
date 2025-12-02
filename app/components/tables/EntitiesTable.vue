@@ -231,7 +231,10 @@ const schema = z.object({
   name: z.string().min(1, 'Le nom est requis').min(3, 'Le nom doit contenir au moins 3 caractères'),
   type: z.enum(['COMPANY', 'GROUP']),
   mode: z.enum(['MASTER', 'FOLLOWER']),
-  siret: z.string().length(14, 'Le SIRET doit contenir 14 chiffres').optional().or(z.literal('')),
+  siret: z.string()
+    .min(14, 'Le SIRET doit contenir 14 chiffres')
+    .max(14, 'Le SIRET doit contenir 14 chiffres')
+    .regex(/^\d{14}$/, 'Le SIRET doit contenir uniquement 14 chiffres'),
 })
 
 type Schema = z.output<typeof schema>

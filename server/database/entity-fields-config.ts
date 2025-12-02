@@ -107,13 +107,7 @@ export interface EntityFieldDefinition {
 
 // Configuration des groupes de champs
 export const entityFieldGroups: EntityFieldGroup[] = [
-  {
-    key: 'sites',
-    label: 'Sites',
-    description: 'Informations sur les sites',
-    icon: 'i-lucide-building',
-    fields: ['sitesCount', 'sitesRevenue'],
-  },
+  // Groupe 'sites' supprimé, 'sitesCount' devient un champ indépendant
   {
     key: 'revenue',
     label: 'Chiffre d\'affaires',
@@ -236,9 +230,9 @@ export const entityFieldGroups: EntityFieldGroup[] = [
 
 // Configuration complète des champs d'entité
 export const entityFieldsConfig: EntityFieldDefinition[] = [
-  // Sites
-  { key: 'sitesCount', label: 'Nombre de site', type: 'number', required: true, group: 'sites' },
-  { key: 'sitesRevenue', label: 'Chiffres', type: 'number', required: false, group: 'sites' },
+  // Sites (champ indépendant)
+  { key: 'sitesCount', label: 'Nombre de sites', type: 'number', required: true, group: undefined },
+  // { key: 'sitesRevenue', label: 'Chiffres', type: 'number', required: false, group: undefined }, // supprimé
 
   // Chiffre d'affaires
   { key: 'revenueAmount', label: 'CA', type: 'number', required: true, group: 'revenue', unit: '€' },

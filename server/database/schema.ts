@@ -65,6 +65,13 @@ export const entities = pgTable('entities', {
   allowOeDocumentsAccess: boolean('allow_oe_documents_access').notNull().default(false),
   documentaryReviewReadyAt: timestamp('documentary_review_ready_at'),
   documentaryReviewReadyBy: integer('documentary_review_ready_by').references(() => accounts.id),
+  // Address and contact fields
+  address: varchar('address', { length: 255 }),
+  addressComplement: varchar('address_complement', { length: 255 }),
+  postalCode: varchar('postal_code', { length: 10 }),
+  city: varchar('city', { length: 100 }),
+  region: varchar('region', { length: 100 }),
+  phoneNumber: varchar('phone_number', { length: 20 }),
   createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
