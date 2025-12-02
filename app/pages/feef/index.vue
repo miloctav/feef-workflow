@@ -11,7 +11,7 @@ definePageMeta({
       <NavBar />
     </template>
     <template #body>
-      <DashboardPage />
+      <!-- <DashboardPage /> -->
     </template>
   </UDashboardPanel>
 </template>

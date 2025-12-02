@@ -1,7 +1,7 @@
 <template>
   <div v-if="currentEntity" class="space-y-6">
     <!-- En-tête avec le nom de l'entreprise -->
-    <div class="bg-white border-b">
+    <div class="bg-white">
       <div class="px-6 py-4">
         <div class="flex items-center gap-4">
           <UIcon name="i-lucide-building-2" class="w-10 h-10 text-primary" />
