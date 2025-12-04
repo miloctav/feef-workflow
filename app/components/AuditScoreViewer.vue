@@ -4,32 +4,32 @@
     title="Notation de l'audit RSE"
     side="right"
     class="w-full max-w-5xl"
+    close-icon="i-lucide-x"
+    :dismissible="false"
+    :close="true"
   >
-    <template #header>
-      <div class="flex flex-col space-y-3">
-        <div class="flex items-start gap-12">
-          <div class="flex-1">
-            <h2 class="text-lg font-semibold text-gray-900">Notation de l'audit RSE</h2>
-            <p class="text-sm text-gray-600">
-              {{ audit.entity.name }} - {{ audit.type }}
-            </p>
-          </div>
-
-          <!-- Bouton Enregistrer (OE uniquement) -->
-          <UButton
-            v-if="canEdit"
-            @click="handleSave"
-            color="primary"
-            icon="i-lucide-save"
-            label="Enregistrer"
-            :loading="updateLoading"
-            :disabled="!hasChanges || updateLoading"
-          />
-        </div>
-      </div>
-    </template>
-
     <template #body>
+      <!-- Header avec info audit et bouton enregistrer -->
+      <div class="flex items-start justify-between gap-4 mb-6 pb-4 border-b border-gray-200">
+        <div class="flex-1">
+          <p class="text-sm text-gray-600">
+            {{ audit.entity.name }} - {{ audit.type }}
+          </p>
+        </div>
+
+        <!-- Bouton Enregistrer (OE uniquement) -->
+        <UButton
+          v-if="canEdit"
+          @click="handleSave"
+          color="primary"
+          icon="i-lucide-save"
+          label="Enregistrer"
+          :loading="updateLoading"
+          :disabled="!hasChanges || updateLoading"
+        />
+      </div>
+
+      <!-- Contenu principal -->
       <div class="flex flex-col space-y-6 pb-20">
         <!-- Score global sur 100 (en premier, bien visible) -->
         <UCard>
@@ -73,9 +73,9 @@
               :items="[{
                 label: getThemeLabel(theme),
                 icon: 'i-lucide-chevron-right',
-                defaultOpen: openAccordions.has(theme),
                 slot: `theme-${theme}`
               }]"
+              default-value="0"
             >
               <template #[`theme-${theme}`]>
                 <div class="space-y-6 py-4">
@@ -83,39 +83,42 @@
                   <div
                     v-for="criterion in criteria"
                     :key="criterion.key"
-                    class="border-b border-gray-200 last:border-0 pb-6 last:pb-0"
+                    class="border-b border-gray-200 last:border-0 pb-4 last:pb-0"
                   >
-                    <!-- Description du critère -->
-                    <p class="text-sm text-gray-700 mb-3">
-                      {{ criterion.description }}
-                    </p>
+                    <!-- Layout horizontal : description + radio buttons -->
+                    <div class="flex items-start gap-4">
+                      <!-- Description du critère -->
+                      <p class="text-sm text-gray-700 flex-1">
+                        {{ criterion.description }}
+                      </p>
 
-                    <!-- Boutons radio A/B/C/D (OE) -->
-                    <div v-if="canEdit" class="flex gap-2">
-                      <UButton
-                        v-for="scoreLetter in ['A', 'B', 'C', 'D']"
-                        :key="scoreLetter"
-                        @click="setScore(criterion.key, scoreLetterToValue[scoreLetter])"
-                        :color="localScores[criterion.key] === scoreLetterToValue[scoreLetter] ? 'primary' : 'neutral'"
-                        :variant="localScores[criterion.key] === scoreLetterToValue[scoreLetter] ? 'solid' : 'outline'"
-                        size="lg"
-                        class="flex-1"
-                      >
-                        {{ scoreLetter }}
-                      </UButton>
-                    </div>
+                      <!-- Boutons radio A/B/C/D (OE) -->
+                      <URadioGroup
+                        v-if="canEdit"
+                        :model-value="localScores[criterion.key]"
+                        @update:model-value="setScore(criterion.key, $event)"
+                        :items="[
+                          { value: scoreLetterToValue['A'], label: 'A' },
+                          { value: scoreLetterToValue['B'], label: 'B' },
+                          { value: scoreLetterToValue['C'], label: 'C' },
+                          { value: scoreLetterToValue['D'], label: 'D' }
+                        ]"
+                        orientation="horizontal"
+                        class="shrink-0"
+                      />
 
-                    <!-- Affichage lecture seule -->
-                    <div v-else class="flex justify-center">
-                      <UBadge
-                        v-if="localScores[criterion.key]"
-                        :color="getScoreColor(localScores[criterion.key])"
-                        size="lg"
-                        variant="soft"
-                      >
-                        {{ scoreValueToLetter[localScores[criterion.key]] }}
-                      </UBadge>
-                      <span v-else class="text-gray-400 text-sm">Non attribué</span>
+                      <!-- Affichage lecture seule -->
+                      <div v-else class="shrink-0">
+                        <UBadge
+                          v-if="localScores[criterion.key]"
+                          :color="getScoreColor(localScores[criterion.key])"
+                          size="md"
+                          variant="soft"
+                        >
+                          {{ scoreValueToLetter[localScores[criterion.key]] }}
+                        </UBadge>
+                        <span v-else class="text-gray-400 text-sm">Non attribué</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -123,23 +126,6 @@
             </UAccordion>
           </div>
         </div>
-
-        <!-- Indicateur de progression (OE uniquement) -->
-        <UCard v-if="canEdit">
-          <div class="flex items-center gap-4">
-            <UIcon name="i-lucide-list-checks" class="w-5 h-5 text-gray-600" />
-            <div class="flex-1">
-              <div class="flex justify-between text-sm mb-1">
-                <span class="text-gray-700">Critères évalués</span>
-                <span class="font-medium">{{ scoredCriteriaCount }} / 21</span>
-              </div>
-              <UProgress
-                :value="(scoredCriteriaCount / 21) * 100"
-                :color="isComplete ? 'success' : 'primary'"
-              />
-            </div>
-          </div>
-        </UCard>
       </div>
     </template>
   </USlideover>
@@ -179,7 +165,6 @@ const isOpen = defineModel<boolean>('open', { default: false })
 const localScores = ref<Record<number, number>>({})
 const localGlobalScore = ref<number | null>(null)
 const hasChanges = ref(false)
-const openAccordions = ref<Set<number>>(new Set())
 
 // Loading consolidé
 const updateLoading = computed(() => notationUpdateLoading.value || auditUpdateLoading.value)
@@ -271,6 +256,9 @@ async function handleSave() {
   if (success) {
     await fetchAudit(props.audit.id)
     hasChanges.value = false
+    
+    // Fermer le slideover après la sauvegarde
+    isOpen.value = false
   }
 }
 
