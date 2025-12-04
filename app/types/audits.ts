@@ -102,6 +102,7 @@ export interface LastDocumentVersions {
   REPORT?: LastDocumentVersion
   CORRECTIVE_PLAN?: LastDocumentVersion
   OE_OPINION?: LastDocumentVersion
+  ATTESTATION?: LastDocumentVersion
 }
 
 // Audit avec relations complètes

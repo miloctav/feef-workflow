@@ -252,6 +252,34 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Régénération d'attestation si l'audit est déjà COMPLETED et est mis à jour
+  if (existingAudit.status === AuditStatus.COMPLETED && !status) {
+    console.log('[PUT /api/audits/:id] Audit déjà COMPLETED, régénération de l\'attestation')
+
+    try {
+      const { AttestationGenerator } = await import('~~/server/services/documentGeneration/AttestationGenerator')
+
+      const generator = new AttestationGenerator()
+
+      await generator.generate(
+        {
+          event,
+          data: { auditId: existingAudit.id },
+        },
+        {
+          auditId: existingAudit.id,
+          auditDocumentType: 'ATTESTATION',
+          entityId: existingAudit.entityId,
+        }
+      )
+
+      console.log('[PUT /api/audits/:id] Attestation régénérée avec succès')
+    } catch (error) {
+      console.error('[PUT /api/audits/:id] Erreur lors de la régénération de l\'attestation:', error)
+      // Ne pas bloquer la mise à jour de l'audit
+    }
+  }
+
   console.log('Données de mise à jour avant vérifications finales:', updateData)
   if (actualEndDate && !status) {
     console.log('Vérification de la transition automatique basée sur actualEndDate')

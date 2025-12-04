@@ -89,7 +89,7 @@ const submitDecision = async (closeModal?: () => void) => {
     // La date d'expiration sera calculée automatiquement par le backend
     const result = await updateAudit(props.auditId, {
       feefDecision: 'ACCEPTED',
-      status: 'COMPLETED',
+      status: AuditStatus.COMPLETED,
     })
 
     if (!result.success) {

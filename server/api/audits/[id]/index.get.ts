@@ -108,7 +108,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Récupérer les dernières versions de chaque type de document d'audit
-  const documentTypes = ['PLAN','REPORT', 'CORRECTIVE_PLAN', 'OE_OPINION'] as const
+  const documentTypes = ['PLAN','REPORT', 'CORRECTIVE_PLAN', 'OE_OPINION', 'ATTESTATION'] as const
 
   const lastVersionsPromises = documentTypes.map(async (docType) => {
     const lastVersion = await db.query.documentVersions.findFirst({

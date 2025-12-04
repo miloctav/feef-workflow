@@ -1,0 +1,1 @@
+ALTER TYPE "public"."audit_document_type" ADD VALUE 'ATTESTATION';

@@ -5,6 +5,21 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
+# Install Chromium and Puppeteer dependencies
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    nodejs \
+    yarn
+
+# Tell Puppeteer to use installed Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 # Copy package files and install dependencies
 COPY package.json package-lock.json* ./
 RUN npm ci
@@ -30,6 +45,19 @@ RUN npm run build && \
 # Production Stage
 FROM node:20-alpine
 WORKDIR /app
+
+# Install Chromium and Puppeteer dependencies (production)
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Tell Puppeteer to use installed Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Copy package files and install production dependencies (including tsx)
 COPY --from=build /app/package.json /app/package-lock.json* ./

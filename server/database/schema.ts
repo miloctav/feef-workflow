@@ -22,7 +22,7 @@ export const accountEntityRoleEnum = pgEnum('account_entity_role', ['SIGNATORY',
 export const documentCategoryEnum = pgEnum('document_category', ['CANDIDACY', 'AUDIT', 'OTHER'])
 
 // Define audit document type enum
-export const auditDocumentTypeEnum = pgEnum('audit_document_type', ['PLAN', 'REPORT', 'CORRECTIVE_PLAN', 'OE_OPINION'])
+export const auditDocumentTypeEnum = pgEnum('audit_document_type', ['PLAN', 'REPORT', 'CORRECTIVE_PLAN', 'OE_OPINION', 'ATTESTATION'])
 
 // Define signature type enum
 export const signatureTypeEnum = pgEnum('signature_type', ['ENTITY_ONLY', 'ENTITY_AND_FEEF'])

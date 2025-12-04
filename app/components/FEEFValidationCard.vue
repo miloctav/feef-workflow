@@ -58,6 +58,9 @@
         label-warning="Refusé"
         label-disabled="En attente de décision"
         color-scheme="green"
+        :clickable="hasDecision && feefDecision === 'ACCEPTED' && hasAttestation"
+        clickable-text="Cliquer pour voir l'attestation"
+        @click="handleResultCardClick"
       >
         <template #content>
           <div v-if="hasDecision">
@@ -83,12 +86,22 @@
         </template>
       </AuditStepCard>
     </div>
+
+    <!-- DocumentViewer pour l'attestation -->
+    <DocumentViewer
+      v-if="currentAudit"
+      :audit="currentAudit"
+      :audit-document-type="AuditDocumentType.ATTESTATION"
+      v-model:open="showAttestationViewer"
+      :can-upload="false"
+    />
   </UCard>
 </template>
 
 <script setup lang="ts">
 import { Role } from '#shared/types/roles'
 import { AuditStatus } from '#shared/types/enums'
+import { AuditDocumentType } from '~/types/auditDocuments'
 
 const { user } = useAuth()
 const { currentAudit, fetchAudit } = useAudits()
@@ -96,12 +109,23 @@ const { currentAudit, fetchAudit } = useAudits()
 // Inject isAuditEditable from parent (DecisionTab)
 const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
 
+// État pour DocumentViewer
+const showAttestationViewer = ref(false)
+
 // Computed depuis currentAudit
 const feefDecision = computed(() => currentAudit.value?.feefDecision ?? null)
 const decisionAt = computed(() => currentAudit.value?.feefDecisionAt ?? null)
 const decisionByAccount = computed(() => (currentAudit.value as any)?.feefDecisionByAccount ?? null)
 const labelExpirationDate = computed(() => currentAudit.value?.labelExpirationDate ?? null)
 const auditStatus = computed(() => currentAudit.value?.status ?? null)
+
+// Computed: Attestation disponible
+const hasAttestation = computed(() => {
+  console.log('hasAttestation - currentAudit:', currentAudit.value)
+  console.log('hasAttestation - lastDocumentVersions:', currentAudit.value?.lastDocumentVersions)
+  console.log('hasAttestation - ATTESTATION:', currentAudit.value?.lastDocumentVersions?.ATTESTATION)
+  return !!currentAudit.value?.lastDocumentVersions?.ATTESTATION
+})
 
 // Computed
 const hasDecision = computed(() => {
@@ -137,6 +161,21 @@ function formatDate(date: Date | string | null | undefined) {
 async function handleDecisionSubmitted() {
   if (currentAudit.value) {
     await fetchAudit(currentAudit.value.id)
+  }
+}
+
+// Méthode pour ouvrir l'attestation au clic sur la carte
+function handleResultCardClick() {
+  console.log('handleResultCardClick appelé')
+  console.log('hasDecision:', hasDecision.value)
+  console.log('feefDecision:', feefDecision.value)
+  console.log('hasAttestation:', hasAttestation.value)
+
+  if (hasDecision.value && feefDecision.value === 'ACCEPTED' && hasAttestation.value) {
+    console.log('Ouverture du DocumentViewer')
+    showAttestationViewer.value = true
+  } else {
+    console.log('Conditions non remplies pour ouvrir le DocumentViewer')
   }
 }
 </script>

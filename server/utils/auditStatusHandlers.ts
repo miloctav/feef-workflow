@@ -4,6 +4,7 @@ import { entities } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
 import { AuditStatus } from '~~/shared/types/enums'
 import type { H3Event } from 'h3'
+import { AttestationGenerator } from '~~/server/services/documentGeneration/AttestationGenerator'
 
 /**
  * Type pour les handlers de statut d'audit
@@ -44,6 +45,31 @@ const handleCompletedStatus: StatusHandler = async (audit, event) => {
       .where(eq(entities.id, audit.entityId))
 
     console.log(`[AuditStatusHandler] Champs de workflow réinitialisés pour l'entité ID ${audit.entityId}`)
+  }
+
+  // 3. Générer l'attestation de labellisation
+  try {
+    console.log(`[AuditStatusHandler] Génération de l'attestation de labellisation pour l'audit ID ${audit.id}`)
+
+    const generator = new AttestationGenerator()
+
+    await generator.generate(
+      {
+        event,
+        data: { auditId: audit.id },
+      },
+      {
+        auditId: audit.id,
+        auditDocumentType: 'ATTESTATION',
+        entityId: audit.entityId,
+      }
+    )
+
+    console.log(`[AuditStatusHandler] Attestation générée avec succès pour l'audit ID ${audit.id}`)
+  } catch (error) {
+    console.error(`[AuditStatusHandler] Erreur lors de la génération de l'attestation :`, error)
+    // Ne pas bloquer le changement de statut en cas d'erreur de génération
+    // L'attestation peut être regénérée manuellement plus tard
   }
 
   // Retourner les mises à jour à appliquer à l'audit
