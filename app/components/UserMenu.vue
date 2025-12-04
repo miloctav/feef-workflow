@@ -17,8 +17,9 @@ const items = computed<DropdownMenuItem[][]>(() => ([[{
     label: userItem.value.name,
     icon: userItem.value.icon,
 }], [{
-    label: 'Profile',
-    icon: 'i-lucide-user'
+    label: 'Mon compte',
+    icon: 'i-lucide-user',
+    onSelect: () => navigateTo('/my-account')
 },
 {
     label: 'Déconnexion',

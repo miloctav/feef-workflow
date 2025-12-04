@@ -72,10 +72,12 @@ export default defineEventHandler(async (event) => {
         message: 'Vous ne pouvez modifier que les comptes de votre propre OE',
       })
     }
+  } else if (currentUser.id === accountIdInt) {
+    // Un utilisateur peut modifier son propre compte
   } else {
     throw createError({
       statusCode: 403,
-      message: 'Vous n\'êtes pas autorisé à modifier des comptes',
+      message: 'Vous n\'êtes pas autorisé à modifier ce compte',
     })
   }
 
