@@ -32,7 +32,7 @@ export interface EntityFieldHistoryEntry {
 /**
  * Extrait la valeur typée d'une version de champ
  */
-function extractValue(version: EntityFieldVersion): EntityFieldValue {
+export function extractValue(version: EntityFieldVersion): EntityFieldValue {
   if (version.valueString !== null) return version.valueString
   if (version.valueNumber !== null) return Number(version.valueNumber)
   if (version.valueBoolean !== null) return version.valueBoolean
@@ -295,4 +295,33 @@ export async function areRequiredFieldsFilled(entityId: number): Promise<boolean
   }
 
   return true
+}
+
+/**
+ * Récupère la dernière valeur d'un champ depuis un tableau de fieldVersions
+ * Utile quand on a déjà chargé les fieldVersions via une relation Drizzle
+ *
+ * @param fieldVersions - Tableau des versions de champs (ex: entity.fieldVersions)
+ * @param fieldKey - Clé du champ à récupérer
+ * @returns La valeur actuelle ou null si le champ n'a pas de valeur
+ */
+export function getLatestFieldValueFromVersions(
+  fieldVersions: EntityFieldVersion[],
+  fieldKey: EntityFieldKey
+): EntityFieldValue {
+  if (!fieldVersions || fieldVersions.length === 0) {
+    return null
+  }
+
+  // Filtrer les versions pour ce champ et trier par date de création décroissante
+  const matchingVersions = fieldVersions
+    .filter((v) => v.fieldKey === fieldKey)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+  if (matchingVersions.length === 0) {
+    return null
+  }
+
+  // Extraire la valeur typée de la dernière version
+  return extractValue(matchingVersions[0])
 }

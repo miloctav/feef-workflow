@@ -4,11 +4,15 @@ import { entities } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
 import { AuditStatus } from '~~/shared/types/enums'
 import type { H3Event } from 'h3'
-import { AttestationGenerator } from '~~/server/services/documentGeneration/AttestationGenerator'
 
 /**
  * Type pour les handlers de statut d'audit
- * Chaque handler reçoit l'audit et l'event H3, et retourne des mises à jour optionnelles
+ *
+ * Chaque handler reçoit l'audit et l'event H3, et retourne des mises à jour optionnelles.
+ *
+ * Les handlers doivent UNIQUEMENT retourner des mises à jour de données.
+ * Les effets de bord complexes (génération de documents, etc.) doivent être gérés
+ * dans l'endpoint API après la mise à jour de la base de données.
  */
 type StatusHandler = (audit: any, event: H3Event) => Promise<Record<string, any> | null>
 
@@ -18,9 +22,10 @@ type StatusHandler = (audit: any, event: H3Event) => Promise<Record<string, any>
  * Actions effectuées :
  * - Calcule automatiquement labelExpirationDate (date actuelle + 1 an)
  * - Réinitialise les champs de workflow de l'entité pour préparer le prochain cycle :
- *   - caseSubmittedAt/By
- *   - caseApprovedAt/By
  *   - documentaryReviewReadyAt/By
+ *
+ * Note : L'attestation de labellisation est générée dans l'endpoint API
+ * après que l'audit ait été mis à jour en base de données.
  */
 const handleCompletedStatus: StatusHandler = async (audit, event) => {
   console.log(`[AuditStatusHandler] Exécution des actions pour le statut COMPLETED de l'audit ID ${audit.id}`)
@@ -47,30 +52,8 @@ const handleCompletedStatus: StatusHandler = async (audit, event) => {
     console.log(`[AuditStatusHandler] Champs de workflow réinitialisés pour l'entité ID ${audit.entityId}`)
   }
 
-  // 3. Générer l'attestation de labellisation
-  try {
-    console.log(`[AuditStatusHandler] Génération de l'attestation de labellisation pour l'audit ID ${audit.id}`)
-
-    const generator = new AttestationGenerator()
-
-    await generator.generate(
-      {
-        event,
-        data: { auditId: audit.id },
-      },
-      {
-        auditId: audit.id,
-        auditDocumentType: 'ATTESTATION',
-        entityId: audit.entityId,
-      }
-    )
-
-    console.log(`[AuditStatusHandler] Attestation générée avec succès pour l'audit ID ${audit.id}`)
-  } catch (error) {
-    console.error(`[AuditStatusHandler] Erreur lors de la génération de l'attestation :`, error)
-    // Ne pas bloquer le changement de statut en cas d'erreur de génération
-    // L'attestation peut être regénérée manuellement plus tard
-  }
+  // Note: L'attestation de labellisation est générée dans l'endpoint API
+  // après que l'audit ait été mis à jour en base de données avec labelExpirationDate
 
   // Retourner les mises à jour à appliquer à l'audit
   return {

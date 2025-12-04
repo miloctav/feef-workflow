@@ -17,7 +17,6 @@ interface UpdateAuditBody {
   oeOpinionArgumentaire?: string
   oeOpinionConditions?: string | null
   feefDecision?: string
-  labelExpirationDate?: string | null
 }
 
 /**
@@ -301,6 +300,34 @@ export default defineEventHandler(async (event) => {
     .set(forUpdate(event, updateData))
     .where(eq(audits.id, auditIdInt))
     .returning()
+
+  // Générer l'attestation si le statut vient de passer à COMPLETED
+  if (status === AuditStatus.COMPLETED && existingAudit.status !== AuditStatus.COMPLETED) {
+    console.log(`[PUT /api/audits/:id] Génération de l'attestation pour l'audit ID ${auditIdInt}`)
+
+    try {
+      const { AttestationGenerator } = await import('~~/server/services/documentGeneration/AttestationGenerator')
+
+      const generator = new AttestationGenerator()
+
+      await generator.generate(
+        {
+          event,
+          data: { auditId: auditIdInt },
+        },
+        {
+          auditId: auditIdInt,
+          auditDocumentType: 'ATTESTATION',
+          entityId: updatedAudit.entityId,
+        }
+      )
+
+      console.log(`[PUT /api/audits/:id] Attestation générée avec succès pour l'audit ID ${auditIdInt}`)
+    } catch (error) {
+      console.error('[PUT /api/audits/:id] Erreur lors de la génération de l\'attestation:', error)
+      // Non-blocking: ne pas empêcher le changement de statut de réussir
+    }
+  }
 
   // Retourner l'audit mis � jour
   return {

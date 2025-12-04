@@ -4,6 +4,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { audits } from '~~/server/database/schema'
+import { getLatestFieldValueFromVersions } from '~~/server/utils/entity-fields'
 import { DocumentGenerator } from './DocumentGenerator'
 import type { DocumentGenerationContext, DocumentGenerationResult } from './types'
 
@@ -64,25 +65,6 @@ export class AttestationGenerator extends DocumentGenerator {
     // OE optionnel (peut être null pour certains audits)
   }
 
-  /**
-   * Récupère la dernière version d'un champ de l'entité
-   */
-  private getLatestFieldValue(entity: any, fieldKey: string): any {
-    if (!entity.fieldVersions || entity.fieldVersions.length === 0) {
-      return null
-    }
-
-    // Filtrer les versions pour ce champ et trier par date de création décroissante
-    const fieldVersions = entity.fieldVersions
-      .filter((v: any) => v.fieldKey === fieldKey)
-      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-
-    if (fieldVersions.length === 0) {
-      return null
-    }
-
-    return fieldVersions[0].value
-  }
 
   /**
    * Génère le PDF de l'attestation en remplissant le template
@@ -204,7 +186,7 @@ export class AttestationGenerator extends DocumentGenerator {
     })
 
     // Récupérer la dernière version du champ labelingScopeRequestedScope
-    const activity = this.getLatestFieldValue(entity, 'labelingScopeRequestedScope') || entity.activity || entity.description || ''
+    const activity = getLatestFieldValueFromVersions(entity.fieldVersions, 'labelingScopeRequestedScope') || entity.activity || entity.description || ''
 
     // Fonction pour découper le texte en lignes selon la largeur max
     const wrapText = (text: string, maxWidth: number, fontSize: number, fontToUse: any): string[] => {
