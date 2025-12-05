@@ -96,6 +96,21 @@ export default defineEventHandler(async (event) => {
     .where(eq(audits.id, latestAudit.id))
     .returning()
 
+  // Déclencher la complétion des actions liées à l'approbation du dossier
+  const { detectAndCompleteActionsForAuditField, createActionsForAuditStatus } = await import('~~/server/services/actions')
+  await detectAndCompleteActionsForAuditField(
+    updatedAudit,
+    'caseApprovedAt',
+    currentUser.id,
+    event
+  )
+  // Créer les actions pour le nouveau statut d'audit
+  await createActionsForAuditStatus(
+    updatedAudit,
+    updatedAudit.status,
+    event
+  )
+
   // Retourner l'audit mis à jour
   return {
     data: updatedAudit,

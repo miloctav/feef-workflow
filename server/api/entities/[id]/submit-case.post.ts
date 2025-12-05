@@ -94,6 +94,15 @@ export default defineEventHandler(async (event) => {
     .where(eq(audits.id, audit.id))
     .returning()
 
+  // Déclencher la complétion des actions liées à la soumission du dossier
+  const { detectAndCompleteActionsForAuditField } = await import('~~/server/services/actions')
+  await detectAndCompleteActionsForAuditField(
+    updatedAudit,
+    'caseSubmittedAt',
+    currentUser.id,
+    event
+  )
+
   // Retourner l'audit créé
   return {
     data: updatedAudit,

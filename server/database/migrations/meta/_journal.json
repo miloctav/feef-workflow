@@ -176,6 +176,20 @@
       "when": 1764757764430,
       "tag": "0024_dizzy_sleeper",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1764925001757,
+      "tag": "0025_daily_reptil",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1764928246140,
+      "tag": "0026_loose_madelyne_pryor",
+      "breakpoints": true
     }
   ]
 }

@@ -197,9 +197,18 @@ export default defineEventHandler(async (event) => {
     updateData.signatureStatus = 'COMPLETED'
   }
 
+
   await db.update(contracts)
     .set(updateData)
     .where(eq(contracts.id, contractId))
+
+  // Déclencher la complétion des actions liées à la signature du contrat
+  const { detectAndCompleteActionsForContractSign } = await import('~~/server/services/actions')
+  await detectAndCompleteActionsForContractSign(
+    { ...contract, ...updateData },
+    user.id,
+    event
+  )
 
   // Récupérer le contrat mis à jour avec toutes les relations
   const updatedContract = await db.query.contracts.findFirst({

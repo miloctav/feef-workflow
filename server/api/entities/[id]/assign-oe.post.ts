@@ -114,6 +114,25 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+
+  // Chercher si l'entité a un audit en cours (le plus récent non terminé)
+  let ongoingAudit = await db.query.audits.findFirst({
+    where: and(
+      eq(audits.entityId, entityIdInt),
+      ne(audits.status, AuditStatus.COMPLETED),
+      isNull(audits.deletedAt)
+    ),
+    orderBy: desc(audits.createdAt),
+    columns: {
+      id: true,
+      status: true,
+      type: true,
+      entityId: true,
+      oeId: true,
+      auditorId: true,
+    }
+  })
+
   // Mode appel d'offre : désassigner l'OE (oeId = null)
   if (oeId === null) {
     // Vérifier que l'entité a un OE assigné
@@ -134,21 +153,6 @@ export default defineEventHandler(async (event) => {
         allowOeDocumentsAccess: false // Force à false en mode appel d'offre
       }))
       .where(eq(entities.id, entityIdInt))
-
-    // Chercher si l'entité a un audit en cours (le plus récent non terminé)
-    const ongoingAudit = await db.query.audits.findFirst({
-      where: and(
-        eq(audits.entityId, entityIdInt),
-        ne(audits.status, AuditStatus.COMPLETED),
-        isNull(audits.deletedAt)
-      ),
-      orderBy: desc(audits.createdAt),
-      columns: {
-        id: true,
-        status: true,
-        type: true,
-      }
-    })
 
     // Si un audit en cours existe, retirer l'OE
     if (ongoingAudit) {
@@ -221,6 +225,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+
   // Mettre à jour l'entité avec le nouvel OE et le paramètre de partage documentaire
   const [updatedEntity] = await db
     .update(entities)
@@ -231,23 +236,13 @@ export default defineEventHandler(async (event) => {
     .where(eq(entities.id, entityIdInt))
     .returning()
 
-  // Chercher si l'entité a un audit en cours (le plus récent non terminé)
-  const ongoingAudit = await db.query.audits.findFirst({
-    where: and(
-      eq(audits.entityId, entityIdInt),
-      ne(audits.status, AuditStatus.COMPLETED),
-      isNull(audits.deletedAt)
-    ),
-    orderBy: desc(audits.createdAt),
-    columns: {
-      id: true,
-      status: true,
-      type: true,
-    }
-  })
 
-
+  // Créer les actions pour l'assignation OE
+  const { createActionsForOeAssignment, detectAndCompleteActionsForAuditField } = await import('~~/server/services/actions')
   if (ongoingAudit) {
+    await createActionsForOeAssignment(ongoingAudit, event)
+    // Détecter la complétion des actions liées à l'audit (champ oeId)
+    await detectAndCompleteActionsForAuditField(ongoingAudit, 'oeId', currentUser.id, event)
     console.log(`Assignation de l'OE ID ${oeId} à l'audit en cours ID ${ongoingAudit.id}`)
     // Déterminer les champs à mettre à jour pour l'audit en cours
     const auditUpdate: { oeId: number | null; status?: AuditStatusType } = {

@@ -72,13 +72,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Vérifier que caseSubmittedAt n'est pas null
-  if (!entity.caseSubmittedAt) {
-    throw createError({
-      statusCode: 400,
-      message: 'Le dossier doit être déposé avant de marquer la revue documentaire comme prête',
-    })
-  }
+
+  // (Vérification retirée : caseSubmittedAt n'existe pas sur entity)
 
   // Vérifier que documentaryReviewReadyAt est null (pas déjà marqué)
   if (entity.documentaryReviewReadyAt) {
@@ -87,6 +82,7 @@ export default defineEventHandler(async (event) => {
       message: 'La revue documentaire a déjà été marquée comme prête',
     })
   }
+
 
   // Mettre à jour l'entité
   const [updatedEntity] = await db
@@ -99,6 +95,15 @@ export default defineEventHandler(async (event) => {
     })
     .where(eq(entities.id, entityIdInt))
     .returning()
+
+  // Déclencher la complétion des actions liées à la revue documentaire prête
+  const { detectAndCompleteActionsForEntityField } = await import('~~/server/services/actions')
+  await detectAndCompleteActionsForEntityField(
+    { ...entity, ...updatedEntity },
+    'documentaryReviewReadyAt',
+    currentUser.id,
+    event
+  )
 
   // Récupérer l'entité mise à jour avec les relations pour l'account
   const entityWithRelations = await db.query.entities.findFirst({

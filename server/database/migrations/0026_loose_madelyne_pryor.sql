@@ -1,0 +1,6 @@
+ALTER TABLE "actions" ALTER COLUMN "type" SET DATA TYPE text;--> statement-breakpoint
+DROP TYPE "public"."action_type";--> statement-breakpoint
+CREATE TYPE "public"."action_type" AS ENUM('FEEF_VALIDATE_CASE_SUBMISSION', 'FEEF_VALIDATE_LABELING_DECISION', 'ENTITY_SUBMIT_CASE', 'ENTITY_MARK_DOCUMENTARY_REVIEW_READY', 'ENTITY_CHOOSE_OE', 'ENTITY_UPLOAD_REQUESTED_DOCUMENTS', 'ENTITY_UPDATE_CASE_INFORMATION', 'ENTITY_SIGN_FEEF_CONTRACT', 'ENTITY_UPLOAD_CORRECTIVE_PLAN', 'ACCEPT_AUDIT', 'UPLOAD_AUDIT_PLAN', 'UPLOAD_AUDIT_REPORT', 'VALIDATE_CORRECTIVE_PLAN', 'UPLOAD_LABELING_OPINION');--> statement-breakpoint
+ALTER TABLE "actions" ALTER COLUMN "type" SET DATA TYPE "public"."action_type" USING "type"::"public"."action_type";--> statement-breakpoint
+ALTER TABLE "actions" ADD COLUMN "assigned_roles" text[] NOT NULL;--> statement-breakpoint
+ALTER TABLE "actions" DROP COLUMN "assigned_role";

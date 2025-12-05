@@ -3,6 +3,7 @@ import { db } from '~~/server/database'
 import { entities } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
 import { AuditStatus } from '~~/shared/types/enums'
+import { createActionsForAuditStatus } from '~~/server/services/actions'
 import type { H3Event } from 'h3'
 
 /**
@@ -123,6 +124,14 @@ export async function executeStatusActions(
     console.log(`[AuditStatusHandler] Mises à jour générées par le handler :`, Object.keys(updates))
   } else {
     console.log(`[AuditStatusHandler] Aucune mise à jour générée par le handler`)
+  }
+
+  // Create actions for the new status
+  try {
+    await createActionsForAuditStatus(currentAudit, newStatus, event)
+  } catch (error) {
+    console.error(`[AuditStatusHandler] Error creating actions for status ${newStatus}:`, error)
+    // Don't fail the handler if action creation fails
   }
 
   return updates

@@ -4,6 +4,7 @@ import { audits, oes, accounts, auditNotation } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
 import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
 import { executeStatusActions } from '~~/server/utils/auditStatusHandlers'
+import { detectAndCompleteActionsForAuditField, detectAndCompleteActionsForAuditStatus } from '~~/server/services/actions'
 
 interface UpdateAuditBody {
   oeId?: number
@@ -300,6 +301,25 @@ export default defineEventHandler(async (event) => {
     .set(forUpdate(event, updateData))
     .where(eq(audits.id, auditIdInt))
     .returning()
+
+  // Detect and complete actions based on field changes
+  if (actualStartDate !== undefined) {
+    await detectAndCompleteActionsForAuditField(updatedAudit, 'actualStartDate', currentUser.id, event)
+  }
+  if (actualEndDate !== undefined) {
+    await detectAndCompleteActionsForAuditField(updatedAudit, 'actualEndDate', currentUser.id, event)
+  }
+  if (oeOpinion !== undefined) {
+    await detectAndCompleteActionsForAuditField(updatedAudit, 'oeOpinionTransmittedAt', currentUser.id, event)
+  }
+  if (feefDecision !== undefined) {
+    await detectAndCompleteActionsForAuditField(updatedAudit, 'feefDecisionAt', currentUser.id, event)
+  }
+
+  // Detect and complete actions based on status change
+  if (status !== undefined && updatedAudit.status !== existingAudit.status) {
+    await detectAndCompleteActionsForAuditStatus(updatedAudit, updatedAudit.status, currentUser.id, event)
+  }
 
   // Générer l'attestation si le statut vient de passer à COMPLETED
   if (status === AuditStatus.COMPLETED && existingAudit.status !== AuditStatus.COMPLETED) {

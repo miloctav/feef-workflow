@@ -4,6 +4,7 @@ import { eq, and, isNull, isNotNull, desc } from 'drizzle-orm'
 import { uploadFile } from '~~/server/services/garage'
 import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
 import { handleAuditDocumentUpload } from '~~/server/utils/auditWorkflow'
+import { detectAndCompleteActionsForDocumentUpload } from '~~/server/services/actions'
 import { Role } from '#shared/types/roles'
 import type { AuditDocumentTypeType } from '~~/app/types/auditDocuments'
 
@@ -250,6 +251,14 @@ export default defineEventHandler(async (event) => {
     auditDocumentType as AuditDocumentTypeType,
     audit.status,
     user.id
+  )
+
+  // Detect and complete actions for document upload
+  await detectAndCompleteActionsForDocumentUpload(
+    audit,
+    auditDocumentType,
+    user.id,
+    event
   )
 
   // Récupérer la version créée avec les infos de l'uploader

@@ -39,6 +39,35 @@ export const oeOpinionEnum = pgEnum('oe_opinion', ['FAVORABLE', 'UNFAVORABLE', '
 // Define FEEF decision enum
 export const feefDecisionEnum = pgEnum('feef_decision', ['PENDING', 'ACCEPTED', 'REJECTED'])
 
+// Define action type enum
+export const actionTypeEnum = pgEnum('action_type', [
+  // FEEF
+  'FEEF_VALIDATE_CASE_SUBMISSION',
+  'FEEF_VALIDATE_LABELING_DECISION',
+  // ENTITY
+  'ENTITY_SUBMIT_CASE',
+  'ENTITY_MARK_DOCUMENTARY_REVIEW_READY',
+  'ENTITY_CHOOSE_OE',
+  'ENTITY_UPLOAD_REQUESTED_DOCUMENTS',
+  'ENTITY_UPDATE_CASE_INFORMATION',
+  'ENTITY_SIGN_FEEF_CONTRACT',
+  'ENTITY_UPLOAD_CORRECTIVE_PLAN',
+  // Actions partagées OE/AUDITOR (fusionnées)
+  'ACCEPT_AUDIT',
+  'UPLOAD_AUDIT_PLAN',
+  'UPLOAD_AUDIT_REPORT',
+  'VALIDATE_CORRECTIVE_PLAN',
+  'UPLOAD_LABELING_OPINION',
+])
+
+// Define action status enum
+export const actionStatusEnum = pgEnum('action_status', [
+  'PENDING',
+  'COMPLETED',
+  'OVERDUE',
+  'CANCELLED'
+])
+
 // ========================================
 // Import enum values and types from shared
 // ========================================
@@ -245,6 +274,42 @@ export const auditorsToOE = pgTable('auditors_to_oe', {
   pk: primaryKey({ columns: [table.auditorId, table.oeId] })
 }))
 
+// Actions table for workflow task management
+export const actions = pgTable('actions', {
+  id: serial('id').primaryKey(),
+
+  // Type d'action
+  type: actionTypeEnum('type').notNull(),
+
+  // Liaisons contextuelles
+  entityId: integer('entity_id').notNull().references(() => entities.id),
+  auditId: integer('audit_id').references(() => audits.id), // Nullable pour actions entity-level
+
+  // Assignation de rôles multiples (nouveau)
+  assignedRoles: text('assigned_roles').array().notNull(), // Array natif PostgreSQL
+  assignedOeId: integer('assigned_oe_id').references(() => oes.id), // Pour filtrage OE
+  assignedAuditorId: integer('assigned_auditor_id').references(() => accounts.id), // Pour filtrage AUDITOR
+
+  // Statut et timing
+  status: actionStatusEnum('status').notNull().default('PENDING'),
+  durationDays: integer('duration_days').notNull(), // Durée spécifique
+  deadline: timestamp('deadline').notNull(), // Calculé: createdAt + durationDays
+
+  // Tracking de complétion
+  completedAt: timestamp('completed_at'),
+  completedBy: integer('completed_by').references(() => accounts.id),
+
+  // Métadonnées flexibles (JSON)
+  metadata: json('metadata'),
+
+  // Audit trail standard
+  createdBy: integer('created_by').references(() => accounts.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedBy: integer('updated_by').references(() => accounts.id),
+  updatedAt: timestamp('updated_at'),
+  deletedAt: timestamp('deleted_at'), // Soft delete / annulation
+})
+
 // ========================================
 // Types inférés depuis le schéma Drizzle
 // ========================================
@@ -298,6 +363,10 @@ export type NewEntityFieldVersion = typeof entityFieldVersions.$inferInsert
 // Type pour AuditNotation
 export type AuditNotation = typeof auditNotation.$inferSelect
 export type NewAuditNotation = typeof auditNotation.$inferInsert
+
+// Type pour Action
+export type Action = typeof actions.$inferSelect
+export type NewAction = typeof actions.$inferInsert
 
 // ========================================
 // Relations Drizzle pour les queries relationnelles
@@ -355,6 +424,15 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
     relationName: 'contractUpdatedBy',
   }),
   entityFieldVersions: many(entityFieldVersions),
+  actionsAssignedAsAuditor: many(actions, {
+    relationName: 'actionAssignedAuditor',
+  }),
+  actionsCompleted: many(actions, {
+    relationName: 'actionCompletedBy',
+  }),
+  actionsCreated: many(actions, {
+    relationName: 'actionCreatedBy',
+  }),
 }))
 
 export const oeRelations = relations(oes, ({ many }) => ({
@@ -363,6 +441,7 @@ export const oeRelations = relations(oes, ({ many }) => ({
   audits: many(audits),
   auditorsToOE: many(auditorsToOE),
   contracts: many(contracts),
+  actions: many(actions),
 }))
 
 export const entitiesRelations = relations(entities, ({ one, many }) => ({
@@ -391,6 +470,7 @@ export const entitiesRelations = relations(entities, ({ one, many }) => ({
   documentaryReviews: many(documentaryReviews),
   contracts: many(contracts),
   fieldVersions: many(entityFieldVersions),
+  actions: many(actions),
 }))
 
 export const contractsRelations = relations(contracts, ({ one, many }) => ({
@@ -466,6 +546,7 @@ export const auditsRelations = relations(audits, ({ one, many }) => ({
   }),
   documentVersions: many(documentVersions),
   notations: many(auditNotation),
+  actions: many(actions),
 }))
 
 export const accountsToEntitiesRelations = relations(accountsToEntities, ({ one }) => ({
@@ -555,5 +636,35 @@ export const auditNotationRelations = relations(auditNotation, ({ one }) => ({
   audit: one(audits, {
     fields: [auditNotation.auditId],
     references: [audits.id],
+  }),
+}))
+
+export const actionsRelations = relations(actions, ({ one }) => ({
+  entity: one(entities, {
+    fields: [actions.entityId],
+    references: [entities.id],
+  }),
+  audit: one(audits, {
+    fields: [actions.auditId],
+    references: [audits.id],
+  }),
+  assignedOe: one(oes, {
+    fields: [actions.assignedOeId],
+    references: [oes.id],
+  }),
+  assignedAuditor: one(accounts, {
+    fields: [actions.assignedAuditorId],
+    references: [accounts.id],
+    relationName: 'actionAssignedAuditor',
+  }),
+  completedByAccount: one(accounts, {
+    fields: [actions.completedBy],
+    references: [accounts.id],
+    relationName: 'actionCompletedBy',
+  }),
+  createdByAccount: one(accounts, {
+    fields: [actions.createdBy],
+    references: [accounts.id],
+    relationName: 'actionCreatedBy',
   }),
 }))

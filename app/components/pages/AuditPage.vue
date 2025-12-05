@@ -123,6 +123,14 @@ const auditStatusBadgeColor = computed(() => {
   return getAuditStatusColor(currentAudit.value.status)
 })
 
+
+
+import ActionsList from '~/components/actions/ActionsList.vue'
+import { useActions } from '~/composables/useActions'
+
+// Actions liées à l'audit courant (réactif sur currentAudit)
+const { actions, fetchLoading, fetchError } = useActions({ auditId: computed(() => currentAudit.value?.id) })
+
 </script>
 
 <template>
@@ -247,6 +255,16 @@ const auditStatusBadgeColor = computed(() => {
         </div>
 
       </UCard>
+
+    </div>
+
+    <!-- Liste des actions liées à l'audit -->
+    <div class="px-6">
+      <ActionsList
+        :actions="actions"
+        :loading="fetchLoading"
+        :error="fetchError"
+      />
     </div>
 
     <!-- Tabs pour les différentes sections -->

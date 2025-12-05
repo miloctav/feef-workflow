@@ -17,7 +17,9 @@ export default defineNuxtConfig({
     },
     scheduledTasks: {
       // S'exécute à 0h UTC = 1h Paris (hiver) / 2h Paris (été)
-      '0 0 * * *': ['audits:update-status']
+      '0 0 * * *': ['audits:update-status'],
+      // S'exécute à 2h UTC = 3h Paris (hiver) / 4h Paris (été)
+      '0 2 * * *': ['actions:mark-overdue'],
     }
   },
   runtimeConfig: {
