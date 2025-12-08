@@ -1,0 +1,4 @@
+CREATE INDEX IF NOT EXISTS "idx_actions_audit_id" ON "actions" USING btree ("audit_id") WHERE "actions"."deleted_at" IS NULL;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_actions_entity_id" ON "actions" USING btree ("entity_id") WHERE "actions"."deleted_at" IS NULL;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_actions_status_deadline" ON "actions" USING btree ("status","deadline") WHERE "actions"."deleted_at" IS NULL;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_actions_entity_audit_status" ON "actions" USING btree ("entity_id","audit_id","status") WHERE "actions"."deleted_at" IS NULL;

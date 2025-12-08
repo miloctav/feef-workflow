@@ -35,6 +35,9 @@ export const useActions = (options?: { auditId?: number | Ref<number | undefined
         ...(newEntityId ? { entityId: newEntityId } : {}),
       })
       paginated.refresh()
+    } else {
+      // Reset data when both IDs are undefined to prevent stale data
+      paginated.reset()
     }
   }, { immediate: true })
 
@@ -66,7 +69,7 @@ export const useActions = (options?: { auditId?: number | Ref<number | undefined
   }
 
   return {
-    actions: readonly(paginated.data),
+    actions: paginated.data,
     pagination: paginated.pagination,
     params: paginated.params,
     fetchLoading: readonly(fetchLoading),

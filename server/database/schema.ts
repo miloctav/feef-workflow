@@ -1,5 +1,5 @@
-import { pgTable, serial, varchar, timestamp, pgEnum, json, integer, date, primaryKey, type AnyPgColumn, boolean, text, numeric } from 'drizzle-orm/pg-core'
-import { relations } from 'drizzle-orm'
+import { pgTable, serial, varchar, timestamp, pgEnum, json, integer, date, primaryKey, type AnyPgColumn, boolean, text, numeric, index } from 'drizzle-orm/pg-core'
+import { relations, sql } from 'drizzle-orm'
 
 // Define role enum
 export const roleEnum = pgEnum('role', ['FEEF', 'OE', 'AUDITOR', 'ENTITY'])
@@ -287,8 +287,6 @@ export const actions = pgTable('actions', {
 
   // Assignation de rôles multiples (nouveau)
   assignedRoles: text('assigned_roles').array().notNull(), // Array natif PostgreSQL
-  assignedOeId: integer('assigned_oe_id').references(() => oes.id), // Pour filtrage OE
-  assignedAuditorId: integer('assigned_auditor_id').references(() => accounts.id), // Pour filtrage AUDITOR
 
   // Statut et timing
   status: actionStatusEnum('status').notNull().default('PENDING'),
@@ -308,7 +306,27 @@ export const actions = pgTable('actions', {
   updatedBy: integer('updated_by').references(() => accounts.id),
   updatedAt: timestamp('updated_at'),
   deletedAt: timestamp('deleted_at'), // Soft delete / annulation
-})
+}, (table) => [
+  // Index pour filtrage par audit (critique pour le JOIN avec audits.oeId/auditorId)
+  index('idx_actions_audit_id')
+    .on(table.auditId)
+    .where(sql`${table.deletedAt} IS NULL`),
+
+  // Index pour filtrage par entité (utilisé par le rôle ENTITY)
+  index('idx_actions_entity_id')
+    .on(table.entityId)
+    .where(sql`${table.deletedAt} IS NULL`),
+
+  // Index composite pour tri par deadline (actions pending triées par échéance)
+  index('idx_actions_status_deadline')
+    .on(table.status, table.deadline)
+    .where(sql`${table.deletedAt} IS NULL`),
+
+  // Index composite pour détection de complétion (entity + audit + status)
+  index('idx_actions_entity_audit_status')
+    .on(table.entityId, table.auditId, table.status)
+    .where(sql`${table.deletedAt} IS NULL`),
+])
 
 // ========================================
 // Types inférés depuis le schéma Drizzle
@@ -424,9 +442,6 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
     relationName: 'contractUpdatedBy',
   }),
   entityFieldVersions: many(entityFieldVersions),
-  actionsAssignedAsAuditor: many(actions, {
-    relationName: 'actionAssignedAuditor',
-  }),
   actionsCompleted: many(actions, {
     relationName: 'actionCompletedBy',
   }),
@@ -441,7 +456,6 @@ export const oeRelations = relations(oes, ({ many }) => ({
   audits: many(audits),
   auditorsToOE: many(auditorsToOE),
   contracts: many(contracts),
-  actions: many(actions),
 }))
 
 export const entitiesRelations = relations(entities, ({ one, many }) => ({
@@ -647,15 +661,6 @@ export const actionsRelations = relations(actions, ({ one }) => ({
   audit: one(audits, {
     fields: [actions.auditId],
     references: [audits.id],
-  }),
-  assignedOe: one(oes, {
-    fields: [actions.assignedOeId],
-    references: [oes.id],
-  }),
-  assignedAuditor: one(accounts, {
-    fields: [actions.assignedAuditorId],
-    references: [accounts.id],
-    relationName: 'actionAssignedAuditor',
   }),
   completedByAccount: one(accounts, {
     fields: [actions.completedBy],

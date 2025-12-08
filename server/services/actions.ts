@@ -52,8 +52,6 @@ export async function createAction(
   event: H3Event,
   options: {
     auditId?: number
-    assignedOeId?: number
-    assignedAuditorId?: number
     metadata?: any
     customDuration?: number
   } = {},
@@ -82,8 +80,6 @@ export async function createAction(
     entityId,
     auditId: options.auditId || null,
     assignedRoles: definition.assignedRoles,
-    assignedOeId: options.assignedOeId || null,
-    assignedAuditorId: options.assignedAuditorId || null,
     status: 'PENDING',
     durationDays: duration,
     deadline,
@@ -114,8 +110,6 @@ export async function createActionsForAuditStatus(
         event,
         {
           auditId: audit.id,
-          assignedOeId: audit.oeId || undefined,
-          assignedAuditorId: audit.auditorId || undefined,
         },
       )
     }
@@ -201,7 +195,6 @@ export async function createActionsForOeAssignment(
     event,
     {
       auditId: audit.id,
-      assignedOeId: audit.oeId,
     },
   )
 }
@@ -222,8 +215,6 @@ export async function createActionsForAuditorAssignment(
     event,
     {
       auditId: audit.id,
-      assignedOeId: audit.oeId || undefined,
-      assignedAuditorId: audit.auditorId,
     },
   )
 }

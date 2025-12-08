@@ -44,18 +44,20 @@ export default defineEventHandler(async (event) => {
           type: true,
           status: true,
         },
-      },
-      assignedOe: {
-        columns: {
-          id: true,
-          name: true,
-        },
-      },
-      assignedAuditor: {
-        columns: {
-          id: true,
-          firstname: true,
-          lastname: true,
+        with: {
+          oe: {
+            columns: {
+              id: true,
+              name: true,
+            },
+          },
+          auditor: {
+            columns: {
+              id: true,
+              firstname: true,
+              lastname: true,
+            },
+          },
         },
       },
       completedByAccount: {

@@ -50,28 +50,44 @@ export async function buildActionsWhereForUser(
     }
   }
   else if (user.role === Role.OE) {
-    // OE sees actions assigned to their OE
+    // OE sees actions assigned to their OE via audit.oeId
     if (!user.oeId) {
       conditions.push(sql`1 = 0`)
     }
     else {
-      conditions.push(
-        and(
-          sql`'OE' = ANY(${actions.assignedRoles})`,
-          eq(actions.assignedOeId, user.oeId),
-        )!,
-      )
+      // Récupérer tous les audits assignés à cet OE
+      const oeAudits = await db.query.audits.findMany({
+        where: and(
+          eq(audits.oeId, user.oeId),
+          isNull(audits.deletedAt),
+        ),
+        columns: { id: true },
+      })
+
+      const auditIds = oeAudits.map(a => a.id)
+
+      if (auditIds.length === 0) {
+        conditions.push(sql`1 = 0`)
+      }
+      else {
+        conditions.push(
+          and(
+            sql`'OE' = ANY(${actions.assignedRoles})`,
+            inArray(actions.auditId, auditIds),
+          )!,
+        )
+      }
     }
   }
   else if (user.role === Role.AUDITOR) {
     // AUDITOR sees:
     // 1. Actions assigned to AUDITOR role for their audits
-    // 2. Actions assigned to their affiliated OEs
+    // 2. Actions assigned to OE role for audits of their affiliated OEs
     if (!user.id) {
       conditions.push(sql`1 = 0`)
     }
     else {
-      // Get audits where this auditor is assigned
+      // Audits où cet auditeur est assigné
       const auditorAudits = await db.query.audits.findMany({
         where: and(
           eq(audits.auditorId, user.id),
@@ -80,9 +96,9 @@ export async function buildActionsWhereForUser(
         columns: { id: true },
       })
 
-      const auditIds = auditorAudits.map(a => a.id)
+      const auditorAuditIds = auditorAudits.map(a => a.id)
 
-      // Get OEs this auditor is affiliated with
+      // OE affiliés
       const oeAffiliations = await db.query.auditorsToOE.findMany({
         where: eq(auditorsToOE.auditorId, user.id),
         columns: { oeId: true },
@@ -90,24 +106,37 @@ export async function buildActionsWhereForUser(
 
       const oeIds = oeAffiliations.map(a => a.oeId)
 
+      // Audits des OE affiliés
+      let oeAuditIds: number[] = []
+      if (oeIds.length > 0) {
+        const oeAudits = await db.query.audits.findMany({
+          where: and(
+            inArray(audits.oeId, oeIds),
+            isNull(audits.deletedAt),
+          ),
+          columns: { id: true },
+        })
+        oeAuditIds = oeAudits.map(a => a.id)
+      }
+
       const auditorConditions: SQL[] = []
 
-      // Actions assigned to AUDITOR for their audits
-      if (auditIds.length > 0) {
+      // Actions AUDITOR pour ses audits
+      if (auditorAuditIds.length > 0) {
         auditorConditions.push(
           and(
             sql`'AUDITOR' = ANY(${actions.assignedRoles})`,
-            inArray(actions.auditId, auditIds),
+            inArray(actions.auditId, auditorAuditIds),
           )!,
         )
       }
 
-      // Actions assigned to OE for their affiliated OEs
-      if (oeIds.length > 0) {
+      // Actions OE pour les audits des OE affiliés
+      if (oeAuditIds.length > 0) {
         auditorConditions.push(
           and(
             sql`'OE' = ANY(${actions.assignedRoles})`,
-            inArray(actions.assignedOeId, oeIds),
+            inArray(actions.auditId, oeAuditIds),
           )!,
         )
       }

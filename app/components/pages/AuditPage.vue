@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { getAuditTypeLabel, getAuditTypeColor, getAuditStatusLabel, getAuditStatusColor } from '#shared/types/enums'
+import {
+  getAuditTypeLabel,
+  getAuditTypeColor,
+  getAuditStatusLabel,
+  getAuditStatusColor,
+} from '#shared/types/enums'
 
 const { user } = useAuth()
 
@@ -32,15 +37,19 @@ const getInitialTab = () => {
 const selectedTab = ref('dossier')
 
 // Watcher pour charger l'entité et sélectionner l'onglet dès que l'audit est disponible
-watch(currentAudit, async (audit) => {
-  if (audit?.entityId) {
-    console.log('Fetching entity for audit:', audit)
-    await fetchEntity(audit.entityId)
+watch(
+  currentAudit,
+  async (audit) => {
+    if (audit?.entityId) {
+      console.log('Fetching entity for audit:', audit)
+      await fetchEntity(audit.entityId)
 
-    // Sélectionner l'onglet en fonction du statut
-    selectedTab.value = getInitialTab()
-  }
-}, { immediate: true })
+      // Sélectionner l'onglet en fonction du statut
+      selectedTab.value = getInitialTab()
+    }
+  },
+  { immediate: true }
+)
 
 // Configuration des tabs
 const tabItems = computed(() => {
@@ -49,30 +58,33 @@ const tabItems = computed(() => {
       label: 'Documents',
       icon: 'i-lucide-folder',
       slot: 'documents',
-      value: 'documents'
+      value: 'documents',
     },
     {
       label: 'Dossier',
       icon: 'i-lucide-file-text',
       slot: 'dossier',
-      value: 'dossier'
-    }
+      value: 'dossier',
+    },
   ]
 
   // Afficher les tabs "Planification d'audit" et "Décision" uniquement si un OE est affecté
-  if (currentAudit.value?.status !== AuditStatus.PENDING_OE_CHOICE && currentAudit.value?.status !== AuditStatus.PENDING_CASE_APPROVAL) {
+  if (
+    currentAudit.value?.status !== AuditStatus.PENDING_OE_CHOICE &&
+    currentAudit.value?.status !== AuditStatus.PENDING_CASE_APPROVAL
+  ) {
     tabs.push(
       {
         label: "Planification d'audit",
         icon: 'i-lucide-search',
         slot: 'audit',
-        value: 'audit'
+        value: 'audit',
       },
       {
         label: 'Décision',
         icon: 'i-lucide-scale',
         slot: 'decision',
-        value: 'decision'
+        value: 'decision',
       }
     )
   }
@@ -123,18 +135,23 @@ const auditStatusBadgeColor = computed(() => {
   return getAuditStatusColor(currentAudit.value.status)
 })
 
-
-
 import ActionsList from '~/components/actions/ActionsList.vue'
 import { useActions } from '~/composables/useActions'
 
 // Actions liées à l'audit courant (réactif sur currentAudit)
-const { actions, fetchLoading, fetchError } = useActions({ auditId: computed(() => currentAudit.value?.id) })
+const { actions, fetchLoading, fetchError } = useActions({
+  auditId: computed(() => currentAudit.value?.id),
+})
 
+// S'assurer que actions est toujours un tableau
+const safeActions = computed(() => actions.value || [])
 </script>
 
 <template>
-  <div v-if="currentAudit" class="space-y-6">
+  <div
+    v-if="currentAudit"
+    class="space-y-6"
+  >
     <!-- Card principale avec informations du dossier -->
     <div class="px-6">
       <UCard class="mb-6">
@@ -177,7 +194,10 @@ const { actions, fetchLoading, fetchError } = useActions({ auditId: computed(() 
                   >
                     {{ currentAudit?.entity?.name }}
                   </NuxtLink>
-                  <span v-else class="text-gray-900 font-medium">
+                  <span
+                    v-else
+                    class="text-gray-900 font-medium"
+                  >
                     {{ currentAudit?.entity?.name }}
                   </span>
                 </div>
@@ -205,13 +225,22 @@ const { actions, fetchLoading, fetchError } = useActions({ auditId: computed(() 
                 </div>
 
                 <div class="flex items-center gap-2">
-                  <UIcon name="i-lucide-phone" class="w-4 h-4 text-gray-500" />
+                  <UIcon
+                    name="i-lucide-phone"
+                    class="w-4 h-4 text-gray-500"
+                  />
                   <span class="text-gray-900">01 23 45 67 89</span>
                 </div>
 
                 <div class="flex items-center gap-2">
-                  <UIcon name="i-lucide-mail" class="w-4 h-4 text-gray-500" />
-                  <a href="mailto:jean.dupont@example.com" class="text-primary hover:underline">
+                  <UIcon
+                    name="i-lucide-mail"
+                    class="w-4 h-4 text-gray-500"
+                  />
+                  <a
+                    href="mailto:jean.dupont@example.com"
+                    class="text-primary hover:underline"
+                  >
                     jean.dupont@example.com
                   </a>
                 </div>
@@ -223,20 +252,35 @@ const { actions, fetchLoading, fetchError } = useActions({ auditId: computed(() 
               <h2 class="font-bold text-xl text-gray-900 mb-4">Organisme Évaluateur</h2>
 
               <div class="space-y-3">
-                <div v-if="currentAudit?.oe" class="flex items-center gap-2">
+                <div
+                  v-if="currentAudit?.oe"
+                  class="flex items-center gap-2"
+                >
                   <span class="text-sm font-medium text-gray-600">OE:</span>
                   <span class="text-gray-900 font-medium">{{ currentAudit?.oe?.name }}</span>
                 </div>
-                <div v-else class="flex items-center gap-2">
+                <div
+                  v-else
+                  class="flex items-center gap-2"
+                >
                   <span class="text-sm font-medium text-gray-600">OE:</span>
                   <span class="text-gray-500 italic">Non assigné</span>
                 </div>
 
-                <div v-if="currentAudit?.auditor" class="flex items-center gap-2">
+                <div
+                  v-if="currentAudit?.auditor"
+                  class="flex items-center gap-2"
+                >
                   <span class="text-sm font-medium text-gray-600">Auditeur:</span>
-                  <span class="text-gray-900">{{ currentAudit?.auditor?.firstname }} {{ currentAudit?.auditor?.lastname }}</span>
+                  <span class="text-gray-900"
+                    >{{ currentAudit?.auditor?.firstname }}
+                    {{ currentAudit?.auditor?.lastname }}</span
+                  >
                 </div>
-                <div v-else class="flex items-center gap-2">
+                <div
+                  v-else
+                  class="flex items-center gap-2"
+                >
                   <span class="text-sm font-medium text-gray-600">Auditeur:</span>
                   <span class="text-gray-500 italic">Non assigné</span>
                 </div>
@@ -245,7 +289,11 @@ const { actions, fetchLoading, fetchError } = useActions({ auditId: computed(() 
                   v-if="user?.role === Role.OE && currentAudit?.oeId"
                   :audit-id="currentAudit?.id"
                   :current-auditor-id="currentAudit?.auditorId"
-                  :current-auditor-name="currentAudit?.auditor ? `${currentAudit.auditor.firstname} ${currentAudit.auditor.lastname}` : null"
+                  :current-auditor-name="
+                    currentAudit?.auditor
+                      ? `${currentAudit.auditor.firstname} ${currentAudit.auditor.lastname}`
+                      : null
+                  "
                   :oe-id="currentAudit?.oeId"
                   class="mt-3"
                 />
@@ -253,15 +301,18 @@ const { actions, fetchLoading, fetchError } = useActions({ auditId: computed(() 
             </div>
           </div>
         </div>
-
       </UCard>
-
     </div>
 
     <!-- Liste des actions liées à l'audit -->
-    <div class="px-6">
+    <div
+      v-if="currentAudit?.id"
+      class="px-6"
+    >
       <ActionsList
-        :actions="actions"
+        v-if="currentAudit.id"
+        :key="`actions-list-${currentAudit.id}`"
+        :actions="safeActions"
         :loading="fetchLoading"
         :error="fetchError"
       />
@@ -269,10 +320,16 @@ const { actions, fetchLoading, fetchError } = useActions({ auditId: computed(() 
 
     <!-- Tabs pour les différentes sections -->
     <div class="px-6">
-      <UTabs v-model="selectedTab" :items="tabItems">
+      <UTabs
+        v-model="selectedTab"
+        :items="tabItems"
+      >
         <template #documents>
           <div class="py-6">
-            <DocumentaryReviewTab v-if="currentAudit" :entity-id="currentAudit.entityId" />
+            <DocumentaryReviewTab
+              v-if="currentAudit"
+              :entity-id="currentAudit.entityId"
+            />
           </div>
         </template>
 
