@@ -1,6 +1,8 @@
-import { eq } from 'drizzle-orm'
+import { eq, and, isNotNull } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { audits, auditNotation } from '~~/server/database/schema'
+import { audits, auditNotation, documentVersions } from '~~/server/database/schema'
+import { AuditStatus } from '#shared/types/enums'
+import { AuditDocumentType } from '~~/app/types/auditDocuments'
 
 /**
  * Calcule si un audit nécessite un plan correctif
@@ -46,6 +48,27 @@ export async function calculateNeedsCorrectivePlan(auditId: number): Promise<boo
 }
 
 /**
+ * Vérifie si un plan correctif a déjà été uploadé pour cet audit
+ *
+ * @param auditId - ID de l'audit
+ * @returns boolean - true si un plan correctif existe (avec s3Key non null)
+ */
+export async function correctivePlanExists(auditId: number): Promise<boolean> {
+  const correctivePlanDoc = await db.query.documentVersions.findFirst({
+    where: and(
+      eq(documentVersions.auditId, auditId),
+      eq(documentVersions.auditDocumentType, AuditDocumentType.CORRECTIVE_PLAN),
+      isNotNull(documentVersions.s3Key) // Document uploadé (pas en attente)
+    ),
+    columns: {
+      id: true,
+    },
+  })
+
+  return !!correctivePlanDoc
+}
+
+/**
  * Met à jour le champ needsCorrectivePlan d'un audit
  * en le recalculant automatiquement
  *
@@ -76,18 +99,33 @@ export async function updateNeedsCorrectivePlan(auditId: number, currentUserId?:
     updateData.status = AuditStatus.PENDING_OE_OPINION
   }
 
-  // Si le plan correctif devient nécessaire et le status est PENDING_OE_OPINION, repasser à PENDING_CORRECTIVE_PLAN
+  // Si le plan correctif devient nécessaire et le status est PENDING_OE_OPINION
   if (
     needsCorrectivePlan &&
     audit &&
     audit.status === AuditStatus.PENDING_OE_OPINION
   ) {
-    updateData.status = AuditStatus.PENDING_CORRECTIVE_PLAN
+    // NOUVEAU: Vérifier si un plan correctif existe déjà
+    const planExists = await correctivePlanExists(auditId)
+
+    if (planExists) {
+      console.log(`⚠️ [auditCorrectivePlan] Plan correctif nécessaire pour audit ${auditId}, mais un plan existe déjà. Pas de changement de statut.`)
+      // Ne pas changer le statut si un plan existe déjà
+    } else {
+      // Aucun plan n'existe encore, transition vers PENDING_CORRECTIVE_PLAN
+      updateData.status = AuditStatus.PENDING_CORRECTIVE_PLAN
+      console.log(`✅ [auditCorrectivePlan] Transition PENDING_OE_OPINION → PENDING_CORRECTIVE_PLAN pour audit ${auditId}`)
+    }
   }
 
   if (currentUserId) {
     updateData.updatedBy = currentUserId
     updateData.updatedAt = new Date()
+  }
+
+  // NOUVEAU: Avertissement si plan validé et needsCorrectivePlan change
+  if (audit && audit.correctivePlanValidatedAt && needsCorrectivePlan !== audit.needsCorrectivePlan) {
+    console.warn(`⚠️ [auditCorrectivePlan] Attention: audit ${auditId} a un plan correctif déjà validé, mais needsCorrectivePlan a changé (${audit.needsCorrectivePlan} → ${needsCorrectivePlan}). Vérifier manuellement.`)
   }
 
   await db.update(audits)

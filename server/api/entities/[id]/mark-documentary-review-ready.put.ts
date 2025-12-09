@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
 
 
   // Mettre à jour l'entité
-  const [updatedEntity] = await db
+  await db
     .update(entities)
     .set({
       documentaryReviewReadyAt: new Date(),
@@ -94,16 +94,6 @@ export default defineEventHandler(async (event) => {
       updatedAt: new Date(),
     })
     .where(eq(entities.id, entityIdInt))
-    .returning()
-
-  // Déclencher la complétion des actions liées à la revue documentaire prête
-  const { detectAndCompleteActionsForEntityField } = await import('~~/server/services/actions')
-  await detectAndCompleteActionsForEntityField(
-    { ...entity, ...updatedEntity },
-    'documentaryReviewReadyAt',
-    currentUser.id,
-    event
-  )
 
   // Récupérer l'entité mise à jour avec les relations pour l'account
   const entityWithRelations = await db.query.entities.findFirst({
@@ -118,6 +108,17 @@ export default defineEventHandler(async (event) => {
       },
     },
   })
+
+  if (!entityWithRelations) {
+    throw createError({
+      statusCode: 500,
+      message: 'Erreur lors de la récupération de l\'entité mise à jour',
+    })
+  }
+
+  // Check and complete all pending entity-level actions
+  const { checkAndCompleteAllPendingActionsForEntity } = await import('~~/server/services/actions')
+  await checkAndCompleteAllPendingActionsForEntity(entityWithRelations, currentUser.id, event)
 
   // Retourner l'entité mise à jour
   return {

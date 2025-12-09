@@ -45,13 +45,28 @@
       </template>
 
       <template #filter-badges="{ filters }">
-        <UBadge v-if="filters.type !== null" variant="subtle" color="primary" size="sm">
+        <UBadge
+          v-if="filters.type !== null"
+          variant="subtle"
+          color="primary"
+          size="sm"
+        >
           Type: {{ getFilterLabel('type', filters.type) }}
         </UBadge>
-        <UBadge v-if="filters.oeId !== null" variant="subtle" color="info" size="sm">
+        <UBadge
+          v-if="filters.oeId !== null"
+          variant="subtle"
+          color="info"
+          size="sm"
+        >
           OE: {{ getFilterLabel('oeId', filters.oeId) }}
         </UBadge>
-        <UBadge v-if="filters.auditorId !== null && user?.role !== Role.AUDITOR" variant="subtle" color="success" size="sm">
+        <UBadge
+          v-if="filters.auditorId !== null && user?.role !== Role.AUDITOR"
+          variant="subtle"
+          color="success"
+          size="sm"
+        >
           Auditeur: {{ getFilterLabel('auditorId', filters.auditorId) }}
         </UBadge>
       </template>
@@ -71,12 +86,15 @@ import {
   type AuditStatusType,
 } from '#shared/types/enums'
 
-const props = withDefaults(defineProps<{
-  hasFilters?: boolean
-  entityId?: number
-}>(), {
-  hasFilters: true
-})
+const props = withDefaults(
+  defineProps<{
+    hasFilters?: boolean
+    entityId?: number
+  }>(),
+  {
+    hasFilters: true,
+  }
+)
 
 const { user } = useAuth()
 
@@ -101,8 +119,12 @@ const { fetchOesForSelect } = useOes()
 // Items pour les filtres avec labels en français
 const auditTypeItems = getAuditTypeItems(true) // true = inclure "Tous les types"
 
-const oeItems = ref<Array<{ label: string; value: number | null }>>([{ label: 'Tous les OE', value: null }])
-const auditorItems = ref<Array<{ label: string; value: number | null }>>([{ label: 'Tous les auditeurs', value: null }])
+const oeItems = ref<Array<{ label: string; value: number | null }>>([
+  { label: 'Tous les OE', value: null },
+])
+const auditorItems = ref<Array<{ label: string; value: number | null }>>([
+  { label: 'Tous les auditeurs', value: null },
+])
 
 // Charger les OEs pour le filtre
 const loadOEs = async () => {
@@ -120,7 +142,7 @@ onMounted(() => {
   // Note: Si entityId est fourni en props, il est déjà dans initialParams et sera utilisé automatiquement
   fetchAudits()
 
-  if( props.hasFilters ){
+  if (props.hasFilters) {
     loadOEs()
     // Ne charger les auditeurs que si l'utilisateur n'est pas un AUDITOR
     if (user.value?.role !== Role.AUDITOR) {
@@ -150,18 +172,20 @@ const getFilterLabel = (filterName: string, filterValue: AuditTypeType | number 
     return getAuditTypeLabel(filterValue as AuditTypeType)
   }
   if (filterName === 'oeId') {
-    const oe = oeItems.value.find(item => item.value === filterValue)
+    const oe = oeItems.value.find((item) => item.value === filterValue)
     return oe?.label || String(filterValue)
   }
   if (filterName === 'auditorId') {
-    const auditor = auditorItems.value.find(item => item.value === filterValue)
+    const auditor = auditorItems.value.find((item) => item.value === filterValue)
     return auditor?.label || String(filterValue)
   }
   return String(filterValue)
 }
 
 // Vérifier les permissions
-const canDeleteAudit = computed(() => user.value?.role === Role.FEEF || user.value?.role === Role.OE)
+const canDeleteAudit = computed(
+  () => user.value?.role === Role.FEEF || user.value?.role === Role.OE
+)
 
 // Colonnes du tableau (dynamiques selon les props)
 const columns = computed(() => {
@@ -173,7 +197,7 @@ const columns = computed(() => {
     },
     {
       accessorKey: 'type',
-      header: 'Type d\'audit',
+      header: "Type d'audit",
       cell: ({ row }) => {
         const type = row.original.type
         const label = getAuditTypeLabel(type)
@@ -193,7 +217,11 @@ const columns = computed(() => {
         const status = row.original.status as AuditStatusType | null
         if (!status) return '-'
         const label = AuditStatusLabels[status] || status
-        return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'subtle', size: 'sm' }, () => label)
+        return h(
+          resolveComponent('UBadge'),
+          { color: 'neutral', variant: 'subtle', size: 'sm' },
+          () => label
+        )
       },
     },
     {
@@ -212,7 +240,7 @@ const columns = computed(() => {
     {
       accessorKey: 'plannedDate',
       header: 'Date planifiée',
-      cell: ({ row }) => row.original.plannedDate ? formatDate(row.original.plannedDate) : '-',
+      cell: ({ row }) => (row.original.plannedDate ? formatDate(row.original.plannedDate) : '-'),
     },
     {
       accessorKey: 'score',
@@ -227,14 +255,37 @@ const columns = computed(() => {
         else if (score >= 60) color = 'warning'
         else color = 'error'
 
-        return h(resolveComponent('UBadge'), { color, variant: 'soft', size: 'sm' }, () => `${score}%`)
+        return h(
+          resolveComponent('UBadge'),
+          { color, variant: 'soft', size: 'sm' },
+          () => `${score}%`
+        )
+      },
+    },
+    {
+      accessorKey: 'pendingActionsCount',
+      header: 'Actions',
+      cell: ({ row }) => {
+        const count = row.original.pendingActionsCount || 0
+        if (count === 0) return '-'
+
+        // Déterminer la couleur en fonction du nombre d'actions
+        let color = 'info'
+        if (count >= 5) color = 'error'
+        else if (count >= 3) color = 'warning'
+
+        return h(
+          resolveComponent('UBadge'),
+          { color, variant: 'soft', size: 'sm' },
+          () => `${count} action${count > 1 ? 's' : ''}`
+        )
       },
     },
   ]
 
   // Si entityId est fourni, on retire la colonne "Entité"
   if (props.entityId) {
-    return allColumns.filter(col => col.accessorKey !== 'entity')
+    return allColumns.filter((col) => col.accessorKey !== 'entity')
   }
 
   return allColumns

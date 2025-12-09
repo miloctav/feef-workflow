@@ -113,4 +113,5 @@ export interface AuditWithRelations extends AuditPublic {
   caseSubmittedByAccount?: AuditAccount | null
   caseApprovedByAccount?: AuditAccount | null
   lastDocumentVersions?: LastDocumentVersions
+  pendingActionsCount?: number
 }

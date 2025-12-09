@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Mettre à jour l'audit avec la validation
-  const [updatedAudit] = await db
+  await db
     .update(audits)
     .set({
       correctivePlanValidatedAt: new Date(),
@@ -80,7 +80,6 @@ export default defineEventHandler(async (event) => {
       updatedAt: new Date(),
     })
     .where(eq(audits.id, auditId))
-    .returning()
 
   // Récupérer l'audit mis à jour avec toutes ses relations
   const auditWithRelations = await db.query.audits.findFirst({
@@ -105,6 +104,20 @@ export default defineEventHandler(async (event) => {
       },
     },
   })
+
+  if (!auditWithRelations) {
+    throw createError({
+      statusCode: 500,
+      message: 'Erreur lors de la récupération de l\'audit mis à jour',
+    })
+  }
+
+  // Create actions for the new status
+  const { createActionsForAuditStatus, checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
+  await createActionsForAuditStatus(auditWithRelations, 'PENDING_OE_OPINION', event)
+
+  // Check and complete all pending actions based on audit state
+  await checkAndCompleteAllPendingActions(auditWithRelations, user.id, event)
 
   return {
     data: auditWithRelations,

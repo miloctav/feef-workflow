@@ -86,30 +86,33 @@ export default defineEventHandler(async (event) => {
   }
 
   // Mettre à jour l'audit avec les informations d'approbation
-  const [updatedAudit] = await db
+  const newStatus = entity.oeId ? AuditStatus.PLANNING : AuditStatus.PENDING_OE_CHOICE
+
+  await db
     .update(audits)
     .set(forUpdate(event, {
       caseApprovedAt: new Date(),
       caseApprovedBy: currentUser.id,
-      status: entity.oeId ? AuditStatus.PLANNING : AuditStatus.PENDING_OE_CHOICE,
+      status: newStatus,
     }))
     .where(eq(audits.id, latestAudit.id))
-    .returning()
 
-  // Déclencher la complétion des actions liées à l'approbation du dossier
-  const { detectAndCompleteActionsForAuditField, createActionsForAuditStatus } = await import('~~/server/services/actions')
-  await detectAndCompleteActionsForAuditField(
-    updatedAudit,
-    'caseApprovedAt',
-    currentUser.id,
-    event
-  )
-  // Créer les actions pour le nouveau statut d'audit
-  await createActionsForAuditStatus(
-    updatedAudit,
-    updatedAudit.status,
-    event
-  )
+  // Récupérer l'audit mis à jour
+  const updatedAudit = await db.query.audits.findFirst({
+    where: eq(audits.id, latestAudit.id),
+  })
+
+  if (!updatedAudit) {
+    throw createError({
+      statusCode: 500,
+      message: 'Erreur lors de la récupération de l\'audit mis à jour',
+    })
+  }
+
+  // Créer les actions pour le nouveau statut d'audit et compléter les actions en attente
+  const { createActionsForAuditStatus, checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
+  await createActionsForAuditStatus(updatedAudit, updatedAudit.status, event)
+  await checkAndCompleteAllPendingActions(updatedAudit, currentUser.id, event)
 
   // Retourner l'audit mis à jour
   return {

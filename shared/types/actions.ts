@@ -26,7 +26,7 @@ export const ActionType = {
   ENTITY_UPLOAD_CORRECTIVE_PLAN: 'ENTITY_UPLOAD_CORRECTIVE_PLAN',
 
   // OE/AUDITOR Actions fusionnées (multi-rôles)
-  ACCEPT_AUDIT: 'ACCEPT_AUDIT',
+  SET_AUDIT_DATES: 'SET_AUDIT_DATES',
   UPLOAD_AUDIT_PLAN: 'UPLOAD_AUDIT_PLAN',
   UPLOAD_AUDIT_REPORT: 'UPLOAD_AUDIT_REPORT',
   VALIDATE_CORRECTIVE_PLAN: 'VALIDATE_CORRECTIVE_PLAN',
@@ -169,7 +169,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
       field: 'caseSubmittedAt', // audits.caseSubmittedAt
     },
     triggers: {
-      customTrigger: 'createOnNewAudit', // Quand un audit est créé
+      // Pas de trigger automatique pour le moment
     },
     icon: 'i-lucide-send',
     color: 'primary',
@@ -185,7 +185,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
       field: 'documentaryReviewReadyAt', // entities.documentaryReviewReadyAt
     },
     triggers: {
-      customTrigger: 'createAfterCaseApproval',
+      onAuditStatus: [AuditStatus.PLANNING],
     },
     icon: 'i-lucide-check-circle',
     color: 'success',
@@ -217,7 +217,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
       customCheck: 'checkDocumentVersionUploaded',
     },
     triggers: {
-      onDocumentRequest: true,
+      // Pas de trigger automatique pour le moment
     },
     icon: 'i-lucide-upload',
     color: 'warning',
@@ -233,7 +233,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
       customCheck: 'checkEntityFieldUpdated',
     },
     triggers: {
-      customTrigger: 'createOnFieldUpdateRequest',
+      // Pas de trigger automatique pour le moment
     },
     icon: 'i-lucide-edit',
     color: 'info',
@@ -275,34 +275,33 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
   // OE ACTIONS (certaines partagées avec AUDITOR)
   // ============================================
 
-
-  [ActionType.ACCEPT_AUDIT]: {
-    key: ActionType.ACCEPT_AUDIT,
-    titleFr: 'Accepter l\'audit',
-    descriptionFr: 'Confirmer la prise en charge de cet audit',
+  [ActionType.SET_AUDIT_DATES]: {
+    key: ActionType.SET_AUDIT_DATES,
+    titleFr: 'Définir les dates d\'audit',
+    descriptionFr: 'Définir les dates de début et de fin de l\'audit',
     assignedRoles: [Role.OE, Role.AUDITOR],
-    defaultDurationDays: 5,
+    defaultDurationDays: 10,
     completionCriteria: {
-      customCheck: 'checkAuditAccepted',
+      customCheck: 'checkAuditDatesSet',
     },
     triggers: {
-      customTrigger: 'createWhenOeAssigned',
+      onAuditStatus: [AuditStatus.PLANNING],
     },
-    icon: 'i-lucide-handshake',
+    icon: 'i-lucide-calendar',
     color: 'primary',
   },
 
   [ActionType.UPLOAD_AUDIT_PLAN]: {
     key: ActionType.UPLOAD_AUDIT_PLAN,
-    titleFr: 'Mettre en ligne le plan et les dates d\'audit',
-    descriptionFr: 'Téléverser le plan d\'audit et définir les dates d\'intervention',
+    titleFr: 'Mettre en ligne le plan d\'audit',
+    descriptionFr: 'Téléverser le plan d\'audit détaillé',
     assignedRoles: [Role.OE, Role.AUDITOR],
     defaultDurationDays: 15,
     completionCriteria: {
       documentType: 'PLAN',
     },
     triggers: {
-      customTrigger: 'createAfterOeAcceptance',
+      onAuditStatus: [AuditStatus.PLANNING],
     },
     icon: 'i-lucide-calendar-check',
     color: 'primary',

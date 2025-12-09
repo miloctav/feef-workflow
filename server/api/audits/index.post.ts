@@ -154,6 +154,10 @@ export default defineEventHandler(async (event) => {
 
   const [newAudit] = await db.insert(audits).values(forInsert(event, insertData)).returning()
 
+  // Créer les actions pour le statut initial de l'audit (par défaut: PLANNING)
+  const { createActionsForAuditStatus } = await import('~~/server/services/actions')
+  await createActionsForAuditStatus(newAudit, newAudit.status, event)
+
   return {
     data: newAudit,
   }

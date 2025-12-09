@@ -6,6 +6,16 @@
           <UIcon name="i-lucide-file-chart-column" class="w-5 h-5 text-purple-600" />
           <h4 class="font-semibold">Rapports d'audit</h4>
         </div>
+
+        <!-- Badge de statut de l'étape -->
+        <UBadge
+          v-if="auditStatus === AuditStatus.PENDING_REPORT"
+          :color="stepStatusBadge.color"
+          :icon="stepStatusBadge.icon"
+          variant="soft"
+        >
+          {{ stepStatusBadge.label }}
+        </UBadge>
       </div>
     </template>
 
@@ -80,6 +90,16 @@
       </AuditStepCard>
     </div>
 
+    <!-- Message d'alerte si étape incomplète -->
+    <UAlert
+      v-if="auditStatus === AuditStatus.PENDING_REPORT && incompleteMessage"
+      :icon="stepStatusBadge.icon"
+      :color="stepStatusBadge.color"
+      variant="soft"
+      :title="incompleteMessage"
+      class="mt-4"
+    />
+
     <!-- DocumentViewer pour consulter les rapports d'audit -->
     <DocumentViewer
       :audit="currentAudit!"
@@ -138,6 +158,49 @@ const canModifyReport = computed(() => {
   return user.value?.role === Role.OE &&
     hasReport.value &&
     isAuditEditable.value
+})
+
+// Computed pour déterminer si l'étape rapport est complète
+const isReportStepComplete = computed(() => {
+  return hasReport.value && hasGlobalScore.value
+})
+
+// Computed pour identifier les éléments manquants
+const missingItems = computed(() => {
+  const missing: string[] = []
+  if (!hasReport.value) missing.push('rapport d\'audit')
+  if (!hasGlobalScore.value) missing.push('score global')
+  return missing
+})
+
+// Computed pour le message d'alerte
+const incompleteMessage = computed(() => {
+  if (isReportStepComplete.value) return null
+
+  const missing = missingItems.value
+  if (missing.length === 2) {
+    return 'Pour finaliser l\'étape du rapport, veuillez uploader le rapport d\'audit et saisir le score global'
+  }
+  if (missing.includes('rapport d\'audit')) {
+    return 'Pour finaliser l\'étape du rapport, veuillez également uploader le rapport d\'audit'
+  }
+  return 'Pour finaliser l\'étape du rapport, veuillez également saisir le score global'
+})
+
+// Computed pour le statut du badge
+const stepStatusBadge = computed(() => {
+  if (isReportStepComplete.value) {
+    return {
+      label: 'Complet',
+      color: 'success' as const,
+      icon: 'i-lucide-check-circle',
+    }
+  }
+  return {
+    label: 'Incomplet',
+    color: 'warning' as const,
+    icon: 'i-lucide-alert-circle',
+  }
 })
 
 // Méthodes

@@ -18,6 +18,7 @@ export async function buildActionsWhereForUser(
 ): Promise<SQL[]> {
   const conditions: SQL[] = [
     isNull(actions.deletedAt),
+    eq(actions.status, 'PENDING'), // Default: only show pending actions
     ...additionalConditions,
   ]
 

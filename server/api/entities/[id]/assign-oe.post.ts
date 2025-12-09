@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
         status: true,
         type: true,
       }
-      })
+    })
 
     if (lastAudit) {
       const canChangeOe =
@@ -237,24 +237,42 @@ export default defineEventHandler(async (event) => {
     .returning()
 
 
-  // Créer les actions pour l'assignation OE
-  const { createActionsForOeAssignment, detectAndCompleteActionsForAuditField } = await import('~~/server/services/actions')
+  // Gérer l'assignation OE à l'audit en cours
   if (ongoingAudit) {
-    await createActionsForOeAssignment(ongoingAudit, event)
-    // Détecter la complétion des actions liées à l'audit (champ oeId)
-    await detectAndCompleteActionsForAuditField(ongoingAudit, 'oeId', currentUser.id, event)
     console.log(`Assignation de l'OE ID ${oeId} à l'audit en cours ID ${ongoingAudit.id}`)
     // Déterminer les champs à mettre à jour pour l'audit en cours
     const auditUpdate: { oeId: number | null; status?: AuditStatusType } = {
       oeId: oeId
     }
-    if (ongoingAudit.status === AuditStatus.PENDING_OE_CHOICE) {
+
+    const statusChanged = ongoingAudit.status === AuditStatus.PENDING_OE_CHOICE
+    if (statusChanged) {
       auditUpdate.status = AuditStatus.PLANNING
     }
+
     await db
       .update(audits)
       .set(forUpdate(event, auditUpdate))
       .where(eq(audits.id, ongoingAudit.id))
+
+    // Récupérer l'audit mis à jour
+    const updatedAudit = await db.query.audits.findFirst({
+      where: eq(audits.id, ongoingAudit.id),
+    })
+
+    if (!updatedAudit) {
+      throw createError({
+        statusCode: 500,
+        message: 'Erreur lors de la récupération de l\'audit mis à jour',
+      })
+    }
+
+    // Create actions if status changed and complete pending actions
+    const { createActionsForAuditStatus, checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
+    if (statusChanged) {
+      await createActionsForAuditStatus(updatedAudit, AuditStatus.PLANNING, event)
+    }
+    await checkAndCompleteAllPendingActions(updatedAudit, currentUser.id, event)
   }
 
   // Retourner l'entité mise à jour avec les relations

@@ -140,84 +140,11 @@ export async function createActionsForContractStatus(
   }
 }
 
-/**
- * Create action when document is requested
- */
-export async function createActionForDocumentRequest(
-  entityId: number,
-  documentaryReviewId: number,
-  event: H3Event,
-): Promise<void> {
-  console.log(`[Actions] Creating action for document request: ${documentaryReviewId}`)
 
-  await createAction(
-    ActionType.ENTITY_UPLOAD_REQUESTED_DOCUMENTS,
-    entityId,
-    event,
-    {
-      metadata: { documentaryReviewId },
-    },
-  )
-}
 
-/**
- * Create actions when new audit is created
- */
-export async function createActionsForNewAudit(
-  audit: any,
-  event: H3Event,
-): Promise<void> {
-  console.log(`[Actions] Creating initial actions for new audit: ${audit.id}`)
 
-  // Create "Submit case" action
-  await createAction(
-    ActionType.ENTITY_SUBMIT_CASE,
-    audit.entityId,
-    event,
-    {
-      auditId: audit.id,
-    },
-  )
-}
 
-/**
- * Create action when OE is assigned to audit
- */
-export async function createActionsForOeAssignment(
-  audit: any,
-  event: H3Event,
-): Promise<void> {
-  console.log(`[Actions] Creating actions for OE assignment to audit: ${audit.id}`)
 
-  await createAction(
-    ActionType.ACCEPT_AUDIT,
-    audit.entityId,
-    event,
-    {
-      auditId: audit.id,
-    },
-  )
-}
-
-/**
- * Create action when auditor is assigned
- */
-export async function createActionsForAuditorAssignment(
-  audit: any,
-  event: H3Event,
-): Promise<void> {
-  console.log(`[Actions] Creating actions for auditor assignment to audit: ${audit.id}`)
-
-  // Auditor assignment usually means planning can start
-  await createAction(
-    ActionType.UPLOAD_AUDIT_PLAN,
-    audit.entityId,
-    event,
-    {
-      auditId: audit.id,
-    },
-  )
-}
 
 /**
  * Complete an action
@@ -283,6 +210,124 @@ export async function detectAndCompleteActionsForAuditField(
     if (definition?.completionCriteria.field === fieldName) {
       await completeAction(action.id, completedBy, event)
     }
+  }
+}
+
+/**
+ * Check and complete ALL pending actions for an audit
+ * This is a comprehensive check that evaluates all completion criteria
+ */
+export async function checkAndCompleteAllPendingActions(
+  audit: any,
+  completedBy: number,
+  event: H3Event,
+): Promise<void> {
+  console.log(`[Actions] Checking all pending actions for audit ${audit.id} (entity ${audit.entityId})`)
+
+  // Get entity data for entity-level field checks
+  const entity = await db.query.entities.findFirst({
+    where: eq(entities.id, audit.entityId),
+  })
+
+  if (!entity) {
+    console.error(`[Actions] Entity ${audit.entityId} not found`)
+    return
+  }
+
+  // Find all pending actions for this audit/entity
+  const pendingActions = await db.query.actions.findMany({
+    where: and(
+      eq(actions.entityId, audit.entityId),
+      audit.id ? eq(actions.auditId, audit.id) : isNull(actions.auditId),
+      isNull(actions.deletedAt),
+      eq(actions.status, 'PENDING'),
+    ),
+  })
+
+  console.log(`[Actions] Found ${pendingActions.length} pending actions to check`)
+
+  for (const action of pendingActions) {
+    const definition = ACTION_TYPE_REGISTRY[action.type as ActionTypeType]
+
+    if (!definition) {
+      console.warn(`[Actions] No definition found for action type: ${action.type}`)
+      continue
+    }
+
+    let shouldComplete = false
+
+    // Check field-based completion (check both audit and entity fields)
+    if (definition.completionCriteria.field) {
+      // Check audit field first
+      let fieldValue = audit[definition.completionCriteria.field]
+
+      // If not found in audit, check entity field
+      if (fieldValue === null || fieldValue === undefined) {
+        fieldValue = entity[definition.completionCriteria.field]
+      }
+
+      if (fieldValue !== null && fieldValue !== undefined) {
+        console.log(`[Actions] Action ${action.type} (${action.id}): Field ${definition.completionCriteria.field} is set`)
+        shouldComplete = true
+      }
+    }
+
+    // Check status-based completion
+    if (definition.completionCriteria.auditStatus) {
+      if (audit.status === definition.completionCriteria.auditStatus) {
+        console.log(`[Actions] Action ${action.type} (${action.id}): Status matches ${audit.status}`)
+        shouldComplete = true
+      }
+    }
+
+    // Check document-based completion
+    if (definition.completionCriteria.documentType) {
+      const document = await db.query.documentVersions.findFirst({
+        where: and(
+          eq(documentVersions.auditId, audit.id),
+          eq(documentVersions.auditDocumentType, definition.completionCriteria.documentType as any),
+          isNotNull(documentVersions.s3Key),
+        ),
+      })
+
+      if (document) {
+        console.log(`[Actions] Action ${action.type} (${action.id}): Document ${definition.completionCriteria.documentType} exists`)
+        shouldComplete = true
+      }
+    }
+
+    // Check custom completion criteria
+    if (definition.completionCriteria.customCheck) {
+      const customCheckResult = await evaluateCustomCheck(definition.completionCriteria.customCheck, action)
+      if (customCheckResult) {
+        console.log(`[Actions] Action ${action.type} (${action.id}): Custom check ${definition.completionCriteria.customCheck} passed`)
+        shouldComplete = true
+      }
+    }
+
+    // Complete the action if criteria met
+    if (shouldComplete) {
+      await completeAction(action.id, completedBy, event)
+    }
+  }
+}
+
+/**
+ * Evaluate custom completion check
+ */
+async function evaluateCustomCheck(checkName: string, action: any): Promise<boolean> {
+  switch (checkName) {
+    case 'checkDocumentVersionUploaded':
+      return await checkDocumentVersionUploaded(action)
+    case 'checkEntityFieldUpdated':
+      return await checkEntityFieldUpdated(action)
+    case 'checkContractEntitySigned':
+      return await checkContractEntitySigned(action)
+    case 'checkAuditDatesSet':
+      return await checkAuditDatesSet(action)
+    default:
+      console.warn(`[Actions] Unknown custom check: ${checkName}`)
+      return false
   }
 }
 
@@ -368,6 +413,65 @@ export async function detectAndCompleteActionsForEntityField(
     const definition = ACTION_TYPE_REGISTRY[action.type as ActionTypeType]
 
     if (definition?.completionCriteria.field === fieldName) {
+      await completeAction(action.id, completedBy, event)
+    }
+  }
+}
+
+/**
+ * Check and complete ALL pending actions for an entity
+ * This checks all entity-level actions (without auditId)
+ */
+export async function checkAndCompleteAllPendingActionsForEntity(
+  entity: any,
+  completedBy: number,
+  event: H3Event,
+): Promise<void> {
+  console.log(`[Actions] Checking all pending actions for entity ${entity.id}`)
+
+  // Find all pending entity-level actions (no auditId)
+  const pendingActions = await db.query.actions.findMany({
+    where: and(
+      eq(actions.entityId, entity.id),
+      isNull(actions.auditId), // Entity-level actions only
+      isNull(actions.deletedAt),
+      eq(actions.status, 'PENDING'),
+    ),
+  })
+
+  console.log(`[Actions] Found ${pendingActions.length} pending entity-level actions to check`)
+
+  for (const action of pendingActions) {
+    const definition = ACTION_TYPE_REGISTRY[action.type as ActionTypeType]
+
+    if (!definition) {
+      console.warn(`[Actions] No definition found for action type: ${action.type}`)
+      continue
+    }
+
+    let shouldComplete = false
+
+    // Check field-based completion (entity fields only)
+    if (definition.completionCriteria.field) {
+      const fieldValue = entity[definition.completionCriteria.field]
+
+      if (fieldValue !== null && fieldValue !== undefined) {
+        console.log(`[Actions] Action ${action.type} (${action.id}): Entity field ${definition.completionCriteria.field} is set`)
+        shouldComplete = true
+      }
+    }
+
+    // Check custom completion criteria
+    if (definition.completionCriteria.customCheck) {
+      const customCheckResult = await evaluateCustomCheck(definition.completionCriteria.customCheck, action)
+      if (customCheckResult) {
+        console.log(`[Actions] Action ${action.type} (${action.id}): Custom check ${definition.completionCriteria.customCheck} passed`)
+        shouldComplete = true
+      }
+    }
+
+    // Complete the action if criteria met
+    if (shouldComplete) {
       await completeAction(action.id, completedBy, event)
     }
   }
@@ -474,9 +578,9 @@ export async function checkContractEntitySigned(
 }
 
 /**
- * Custom completion check: Audit accepted by OE
+ * Custom completion check: Audit dates set
  */
-export async function checkAuditAccepted(
+export async function checkAuditDatesSet(
   action: any,
 ): Promise<boolean> {
   if (!action.auditId) return false
@@ -484,12 +588,13 @@ export async function checkAuditAccepted(
   const audit = await db.query.audits.findFirst({
     where: eq(audits.id, action.auditId),
     columns: {
-      status: true,
+      actualStartDate: true,
+      actualEndDate: true,
     },
   })
 
-  // Consider accepted if audit moved past PLANNING status
-  return audit?.status !== 'PLANNING' && audit?.status !== 'PENDING_OE_CHOICE'
+  // Both dates must be set
+  return !!(audit?.actualStartDate && audit?.actualEndDate)
 }
 
 /**

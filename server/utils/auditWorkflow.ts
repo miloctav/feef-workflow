@@ -3,16 +3,19 @@ import { audits } from '~~/server/database/schema'
 import { eq } from 'drizzle-orm'
 import { AuditStatus, type AuditStatusType } from '#shared/types/enums'
 import { AuditDocumentType, type AuditDocumentTypeType } from '~~/app/types/auditDocuments'
+import { checkAndTransitionToPendingOEOpinion } from './auditReportTransition'
 
 /**
  * Règles de transition automatique du status d'audit lors de l'upload d'un document
  *
  * Format: documentType → { currentStatus → newStatus }
+ *
+ * IMPORTANT: La transition PENDING_REPORT → PENDING_OE_OPINION pour le type REPORT
+ * est maintenant conditionnelle et gérée par checkAndTransitionToPendingOEOpinion()
  */
 const transitionRules: Partial<Record<AuditDocumentTypeType, Partial<Record<AuditStatusType, AuditStatusType>>>> = {
-  [AuditDocumentType.REPORT]: {
-    [AuditStatus.PENDING_REPORT]: AuditStatus.PENDING_OE_OPINION
-  },
+  // SUPPRIMÉ: [AuditDocumentType.REPORT]: { [AuditStatus.PENDING_REPORT]: AuditStatus.PENDING_OE_OPINION }
+  // La transition pour REPORT est maintenant conditionnelle (voir handleAuditDocumentUpload)
   [AuditDocumentType.CORRECTIVE_PLAN]: {
     [AuditStatus.PENDING_CORRECTIVE_PLAN]: AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION
   },
@@ -38,6 +41,12 @@ export async function handleAuditDocumentUpload(
 ): Promise<AuditStatusType | null> {
   if (!currentStatus) return null
 
+  // Cas spécial: upload de REPORT nécessite une vérification conditionnelle
+  if (documentType === AuditDocumentType.REPORT && currentStatus === AuditStatus.PENDING_REPORT) {
+    return await checkAndTransitionToPendingOEOpinion(auditId, currentStatus, userId)
+  }
+
+  // Autres transitions (règles standard)
   const newStatus = transitionRules[documentType]?.[currentStatus]
   if (!newStatus) return null
 

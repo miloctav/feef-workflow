@@ -246,20 +246,33 @@ export default defineEventHandler(async (event) => {
     .where(eq(documentVersions.id, newVersion.id))
 
   // Transition automatique du workflow si applicable
-  await handleAuditDocumentUpload(
+  const newStatus = await handleAuditDocumentUpload(
     auditId,
     auditDocumentType as AuditDocumentTypeType,
     audit.status,
     user.id
   )
 
-  // Detect and complete actions for document upload
-  await detectAndCompleteActionsForDocumentUpload(
-    audit,
-    auditDocumentType,
-    user.id,
-    event
-  )
+  // If status changed, create actions for the new status
+  if (newStatus) {
+    const { createActionsForAuditStatus } = await import('~~/server/services/actions')
+    await createActionsForAuditStatus(
+      { ...audit, id: auditId, status: newStatus },
+      newStatus,
+      event
+    )
+  }
+
+  // Get updated audit to check all pending actions
+  const updatedAudit = await db.query.audits.findFirst({
+    where: eq(audits.id, auditId),
+  })
+
+  if (updatedAudit) {
+    // Check and complete all pending actions based on audit state
+    const { checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
+    await checkAndCompleteAllPendingActions(updatedAudit, user.id, event)
+  }
 
   // Récupérer la version créée avec les infos de l'uploader
   const versionWithUploader = await db.query.documentVersions.findFirst({

@@ -9,6 +9,7 @@ import {
   formatPaginatedResponse,
 } from '~~/server/utils/pagination'
 import { Role, OERole } from '#shared/types/roles'
+import { getActionCountsForUser } from '~~/server/utils/getActionCountsForUser'
 
 /**
  * GET /api/audits
@@ -56,7 +57,7 @@ export default defineEventHandler(async (event) => {
     defaultSort: 'createdAt:desc',
   }
 
-  if(user.role === Role.AUDITOR) {
+  if (user.role === Role.AUDITOR) {
     query.auditorId = String(user.id)
   }
 
@@ -161,7 +162,15 @@ export default defineEventHandler(async (event) => {
   // 5. Compter le total
   const total = await buildCountQuery(whereConditions, config)
 
+  // 6. Enrichir les données avec le nombre d'actions en attente pour l'utilisateur
+  const auditIds = data.map(audit => audit.id)
+  const actionCounts = await getActionCountsForUser(user, { auditIds })
 
-  // 6. Retourner la réponse paginée
-  return formatPaginatedResponse(data, params, total)
+  const enrichedData = data.map(audit => ({
+    ...audit,
+    pendingActionsCount: actionCounts[audit.id] || 0,
+  }))
+
+  // 7. Retourner la réponse paginée
+  return formatPaginatedResponse(enrichedData, params, total)
 })

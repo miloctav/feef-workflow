@@ -84,24 +84,33 @@ export default defineEventHandler(async (event) => {
   // Créer un nouvel audit pour l'entité
   const audit = await createAuditForEntity(entityIdInt, event, plannedDate)
 
+  // Créer les actions pour le statut initial de l'audit
+  const { createActionsForAuditStatus, checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
+  await createActionsForAuditStatus(audit, audit.status, event)
+
   // Mettre à jour l'audit avec les informations de soumission
-  const [updatedAudit] = await db
+  await db
     .update(audits)
     .set(forUpdate(event, {
       caseSubmittedAt: new Date(),
       caseSubmittedBy: currentUser.id,
     }))
     .where(eq(audits.id, audit.id))
-    .returning()
 
-  // Déclencher la complétion des actions liées à la soumission du dossier
-  const { detectAndCompleteActionsForAuditField } = await import('~~/server/services/actions')
-  await detectAndCompleteActionsForAuditField(
-    updatedAudit,
-    'caseSubmittedAt',
-    currentUser.id,
-    event
-  )
+  // Récupérer l'audit mis à jour
+  const updatedAudit = await db.query.audits.findFirst({
+    where: eq(audits.id, audit.id),
+  })
+
+  if (!updatedAudit) {
+    throw createError({
+      statusCode: 500,
+      message: 'Erreur lors de la récupération de l\'audit mis à jour',
+    })
+  }
+
+  // Check and complete all pending actions based on audit state
+  await checkAndCompleteAllPendingActions(updatedAudit, currentUser.id, event)
 
   // Retourner l'audit créé
   return {

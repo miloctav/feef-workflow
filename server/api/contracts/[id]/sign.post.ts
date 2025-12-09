@@ -202,14 +202,6 @@ export default defineEventHandler(async (event) => {
     .set(updateData)
     .where(eq(contracts.id, contractId))
 
-  // Déclencher la complétion des actions liées à la signature du contrat
-  const { detectAndCompleteActionsForContractSign } = await import('~~/server/services/actions')
-  await detectAndCompleteActionsForContractSign(
-    { ...contract, ...updateData },
-    user.id,
-    event
-  )
-
   // Récupérer le contrat mis à jour avec toutes les relations
   const updatedContract = await db.query.contracts.findFirst({
     where: eq(contracts.id, contractId),
@@ -249,6 +241,21 @@ export default defineEventHandler(async (event) => {
       },
     },
   })
+
+  if (!updatedContract) {
+    throw createError({
+      statusCode: 500,
+      message: 'Erreur lors de la récupération du contrat mis à jour',
+    })
+  }
+
+  // Déclencher la complétion des actions liées à la signature du contrat
+  const { detectAndCompleteActionsForContractSign } = await import('~~/server/services/actions')
+  await detectAndCompleteActionsForContractSign(
+    updatedContract,
+    user.id,
+    event
+  )
 
   return {
     data: updatedContract,

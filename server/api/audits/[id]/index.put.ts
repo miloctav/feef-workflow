@@ -199,22 +199,25 @@ export default defineEventHandler(async (event) => {
   if (labelingOpinion !== undefined) updateData.labelingOpinion = labelingOpinion
   if (status !== undefined) updateData.status = status
 
-  // Si globalScore est modifié, recalculer needsCorrectivePlan
+  // Si globalScore est modifié, mettre à jour et recalculer needsCorrectivePlan via fonction dédiée
   if (globalScore !== undefined) {
     updateData.globalScore = globalScore
 
-    // Récupérer les notations pour calculer needsCorrectivePlan
-    const notations = await db.query.auditNotation.findMany({
-      where: eq(auditNotation.auditId, auditIdInt),
-      columns: { score: true },
-    })
+    // Vérifier si la transition PENDING_REPORT → PENDING_OE_OPINION est possible
+    // Cela se produit quand le score vient d'être défini et qu'un rapport existe déjà
+    if (existingAudit.status === AuditStatus.PENDING_REPORT && !status) {
+      const { checkAndTransitionToPendingOEOpinion } = await import('~~/server/utils/auditReportTransition')
+      const transitionedStatus = await checkAndTransitionToPendingOEOpinion(
+        auditIdInt,
+        existingAudit.status,
+        currentUser.id
+      )
 
-    const hasLowGlobalScore = globalScore < 65
-    const hasBadNotation = notations.some(n => n.score >= 3)
-
-    updateData.needsCorrectivePlan = hasLowGlobalScore || hasBadNotation
-
-    console.log(`📊 needsCorrectivePlan calculated: ${updateData.needsCorrectivePlan} (globalScore: ${globalScore}, hasBadNotation: ${hasBadNotation})`)
+      if (transitionedStatus) {
+        updateData.status = transitionedStatus
+        console.log(`✅ [PUT /api/audits/:id] Transition automatique vers ${transitionedStatus} après mise à jour du score`)
+      }
+    }
   }
 
   // Gestion de l'avis OE avec timestamps automatiques
@@ -242,6 +245,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Exécuter les actions automatiques associées au changement de statut
+  let statusChanged = false
   if (status !== undefined) {
     const statusUpdates = await executeStatusActions(existingAudit, status, event)
 
@@ -249,6 +253,16 @@ export default defineEventHandler(async (event) => {
       // Fusionner les mises à jour générées par le handler avec updateData
       Object.assign(updateData, statusUpdates)
       console.log('[PUT /api/audits/:id] Mises à jour automatiques appliquées suite au changement de statut')
+    }
+    statusChanged = true
+  }
+
+  // Si le statut a changé automatiquement via oeOpinion, exécuter aussi les actions
+  if (!statusChanged && oeOpinion !== undefined && existingAudit.status === AuditStatus.PENDING_OE_OPINION && updateData.status === AuditStatus.PENDING_FEEF_DECISION) {
+    const statusUpdates = await executeStatusActions(existingAudit, AuditStatus.PENDING_FEEF_DECISION, event)
+    if (statusUpdates) {
+      Object.assign(updateData, statusUpdates)
+      console.log('[PUT /api/audits/:id] Mises à jour automatiques appliquées suite au changement de statut automatique (oeOpinion)')
     }
   }
 
@@ -292,34 +306,59 @@ export default defineEventHandler(async (event) => {
     console.log(`Statut actuel de l'audit: ${existingAudit.status}`)
     if (endDate <= today && existingAudit.status === AuditStatus.PLANNING) {
       updateData.status = AuditStatus.PENDING_REPORT
+      statusChanged = true
     }
   }
 
   // Mettre à jour l'audit
-  const [updatedAudit] = await db
+  await db
     .update(audits)
     .set(forUpdate(event, updateData))
     .where(eq(audits.id, auditIdInt))
-    .returning()
 
-  // Detect and complete actions based on field changes
-  if (actualStartDate !== undefined) {
-    await detectAndCompleteActionsForAuditField(updatedAudit, 'actualStartDate', currentUser.id, event)
-  }
-  if (actualEndDate !== undefined) {
-    await detectAndCompleteActionsForAuditField(updatedAudit, 'actualEndDate', currentUser.id, event)
-  }
-  if (oeOpinion !== undefined) {
-    await detectAndCompleteActionsForAuditField(updatedAudit, 'oeOpinionTransmittedAt', currentUser.id, event)
-  }
-  if (feefDecision !== undefined) {
-    await detectAndCompleteActionsForAuditField(updatedAudit, 'feefDecisionAt', currentUser.id, event)
+  // Récupérer l'audit mis à jour
+  let updatedAudit = await db.query.audits.findFirst({
+    where: eq(audits.id, auditIdInt),
+  })
+
+  if (!updatedAudit) {
+    throw createError({
+      statusCode: 500,
+      message: 'Erreur lors de la récupération de l\'audit mis à jour',
+    })
   }
 
-  // Detect and complete actions based on status change
-  if (status !== undefined && updatedAudit.status !== existingAudit.status) {
-    await detectAndCompleteActionsForAuditStatus(updatedAudit, updatedAudit.status, currentUser.id, event)
+  // Si globalScore a été modifié, recalculer needsCorrectivePlan et gérer transitions intelligentes
+  if (globalScore !== undefined) {
+    const previousStatus = updatedAudit.status
+    const { updateNeedsCorrectivePlan } = await import('~~/server/utils/auditCorrectivePlan')
+    await updateNeedsCorrectivePlan(auditIdInt, currentUser.id)
+
+    // Récupérer l'audit après updateNeedsCorrectivePlan pour voir si le statut a changé
+    const auditAfterCorrectivePlan = await db.query.audits.findFirst({
+      where: eq(audits.id, auditIdInt),
+    })
+
+    // Si le statut a changé suite à updateNeedsCorrectivePlan, créer les actions
+    if (auditAfterCorrectivePlan && auditAfterCorrectivePlan.status !== previousStatus) {
+      const { createActionsForAuditStatus, checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
+      await createActionsForAuditStatus(auditAfterCorrectivePlan, auditAfterCorrectivePlan.status, event)
+      await checkAndCompleteAllPendingActions(auditAfterCorrectivePlan, currentUser.id, event)
+
+      // Mettre à jour updatedAudit pour la suite
+      updatedAudit = auditAfterCorrectivePlan
+    }
   }
+
+  // If status changed, create actions for the new status
+  if (updatedAudit.status !== existingAudit.status) {
+    const { createActionsForAuditStatus } = await import('~~/server/services/actions')
+    await createActionsForAuditStatus(updatedAudit, updatedAudit.status, event)
+  }
+
+  // Check and complete all pending actions based on audit state
+  const { checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
+  await checkAndCompleteAllPendingActions(updatedAudit, currentUser.id, event)
 
   // Générer l'attestation si le statut vient de passer à COMPLETED
   if (status === AuditStatus.COMPLETED && existingAudit.status !== AuditStatus.COMPLETED) {
