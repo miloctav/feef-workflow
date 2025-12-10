@@ -1,47 +1,39 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
-import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+import { ref, onMounted, watch } from 'vue'
+import {
+  Chart,
+  BarController,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+} from 'chart.js'
 // @ts-ignore
-import ChartDataLabels from 'chartjs-plugin-datalabels';
-import type { SelectItem } from '@nuxt/ui';
+import ChartDataLabels from 'chartjs-plugin-datalabels'
 
-Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, ChartDataLabels);
+Chart.register(
+  BarController,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+  ChartDataLabels
+)
 
-const chartRef = ref<HTMLCanvasElement | null>(null);
-const chartInstance = ref<Chart<'bar', number[], string> | null>(null);
+// Use dashboard overview composable
+const { scheduledAuditsChartData, loading } = useDashboardOverview()
 
-// Années disponibles et sélection
-const yearsList = [2023, 2024, 2025];
-const selectedYear = ref<number>(yearsList[yearsList.length - 1]);
-
-function prevYear() {
-  const idx = yearsList.indexOf(selectedYear.value ?? yearsList[0]);
-  if (idx > 0) selectedYear.value = yearsList[idx - 1];
-}
-function nextYear() {
-  const idx = yearsList.indexOf(selectedYear.value ?? yearsList[0]);
-  if (idx < yearsList.length - 1) selectedYear.value = yearsList[idx + 1];
-}
-
-
-// Données fictives par année et par type (Initial/Renouvellement)
-const auditsDataInitialByYear: Record<number, number[]> = {
-  2023: [1, 1, 1, 2, 1, 2, 3, 2, 1, 2, 1, 1],
-  2024: [1, 2, 2, 3, 2, 3, 4, 3, 2, 3, 2, 1],
-  2025: [2, 2, 3, 3, 2, 4, 5, 3, 2, 4, 2, 2],
-};
-const auditsDataRenouvByYear: Record<number, number[]> = {
-  2023: [0, 1, 1, 1, 1, 2, 2, 1, 1, 2, 1, 0],
-  2024: [1, 1, 2, 2, 1, 3, 3, 2, 2, 3, 1, 1],
-  2025: [1, 2, 2, 3, 2, 3, 3, 3, 3, 3, 2, 1],
-};
-
-const labels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-
+const chartRef = ref<HTMLCanvasElement | null>(null)
+const chartInstance = ref<Chart<'bar', number[], string> | null>(null)
 
 function renderChart() {
-  if (!chartRef.value) return;
-  if (chartInstance.value) chartInstance.value.destroy();
+  if (!chartRef.value || !scheduledAuditsChartData.value) return
+  if (chartInstance.value) chartInstance.value.destroy()
+
+  const { labels, initial, renewal, monitoring } = scheduledAuditsChartData.value
+
   chartInstance.value = new Chart(chartRef.value, {
     type: 'bar',
     data: {
@@ -49,7 +41,7 @@ function renderChart() {
       datasets: [
         {
           label: 'Initial',
-          data: auditsDataInitialByYear[selectedYear.value ?? yearsList[0]] ?? [],
+          data: initial,
           backgroundColor: 'rgba(59, 130, 246, 0.7)',
           borderColor: 'rgba(59, 130, 246, 1)',
           borderWidth: 2,
@@ -58,14 +50,23 @@ function renderChart() {
         },
         {
           label: 'Renouvellement',
-          data: auditsDataRenouvByYear[selectedYear.value ?? yearsList[0]] ?? [],
+          data: renewal,
           backgroundColor: 'rgba(16, 185, 129, 0.7)',
           borderColor: 'rgba(16, 185, 129, 1)',
           borderWidth: 2,
           borderRadius: 6,
           stack: 'Stack 0',
-        }
-      ]
+        },
+        {
+          label: 'Surveillance',
+          data: monitoring,
+          backgroundColor: 'rgba(245, 158, 11, 0.7)',
+          borderColor: 'rgba(245, 158, 11, 1)',
+          borderWidth: 2,
+          borderRadius: 6,
+          stack: 'Stack 0',
+        },
+      ],
     },
     options: {
       responsive: true,
@@ -79,8 +80,10 @@ function renderChart() {
           align: 'center',
           color: '#fff',
           font: { weight: 'bold', size: 14 },
-          formatter: function(value: number) { return value; }
-        } as any
+          formatter: function (value: number) {
+            return value || ''
+          },
+        } as any,
       },
       scales: {
         x: {
@@ -94,37 +97,36 @@ function renderChart() {
           title: { display: true, text: 'Audits prévus', font: { size: 12 } },
           ticks: { font: { size: 12 } },
           stacked: true,
-        }
-      }
-    }
-  });
+        },
+      },
+    },
+  })
 }
 
 onMounted(() => {
-  renderChart();
-});
+  renderChart()
+})
 
-// Mettre à jour le graphique quand l'année change
-watch(selectedYear, () => {
-  renderChart();
-});
-
-
+// Re-render when data changes
+watch(scheduledAuditsChartData, () => {
+  renderChart()
+})
 </script>
 
 <template>
-  <div class="w-full flex flex-col items-center py-4" style="height: 350px;">
+  <div
+    class="w-full flex flex-col items-center py-4"
+    style="height: 350px"
+  >
     <!-- Graphique -->
-    <div style="height: 300px; width: 100%;" class="flex justify-center items-center">
-      <canvas ref="chartRef" style="width: 100%; height: 100%;"></canvas>
-    </div>
-    <!-- Sélecteur d'année sous le graphique -->
-    <div class="flex justify-center w-full">
-      <div class="flex items-center gap-2">
-        <UButton icon="i-lucide-chevron-left" @click="prevYear" :disabled="selectedYear === yearsList[0]" variant="outline" color="neutral" />
-        <span class="font-semibold text-lg w-16 text-center">{{ selectedYear }}</span>
-        <UButton icon="i-heroicons-chevron-right" @click="nextYear" :disabled="selectedYear === yearsList[yearsList.length-1]" variant="outline" color="neutral" />
-      </div>
+    <div
+      style="height: 300px; width: 100%"
+      class="flex justify-center items-center"
+    >
+      <canvas
+        ref="chartRef"
+        style="width: 100%; height: 100%"
+      ></canvas>
     </div>
   </div>
 </template>

@@ -4,10 +4,24 @@ import type { SelectItem } from '@nuxt/ui'
 // Use dashboard stats composable
 const { dashboardCategories, categoryTotals, loading, error, fetchStats } = useDashboardStats()
 
+// Use dashboard overview composable for top stats and charts
+const {
+  data,
+  loading: overviewLoading,
+  error: overviewError,
+  fetchOverview,
+  formattedEntityCount,
+  formattedAvgAuditGap,
+  formattedAvgProcessDuration,
+  scheduledAuditsChartData,
+  labeledEntitiesChartData,
+} = useDashboardOverview()
+
 // Fetch stats and actions on mount
 onMounted(() => {
   fetchStats()
   fetchActions()
+  fetchOverview()
 })
 
 const dossiersFinalisesParAn = [
@@ -23,32 +37,60 @@ const selectedAnnee = ref(
     : 0
 )
 
-// Données fictives pour la barre de progression détaillée
-const dossierStats = {
-  // En attente
-  depotDossier: 5,
-  validationFeef: 4,
-  signatureDevis: 5,
-  // En cours
-  planification: 8,
-  audit: 9,
-  finalisation: 5,
-}
+// Progress bar data from composable
+const dossierStats = computed(
+  () =>
+    data.value?.progressBarStats || {
+      depotDossier: 0,
+      validationFeef: 0,
+      planification: 0,
+      audit: 0,
+      finalisation: 0,
+    }
+)
 
-const totalDossiers = Object.values(dossierStats).reduce((sum, val) => sum + val, 0)
+const totalDossiers = computed(() => {
+  const stats = dossierStats.value
+  return (
+    stats.depotDossier +
+    stats.validationFeef +
+    stats.planification +
+    stats.audit +
+    stats.finalisation
+  )
+})
 
 // Calcul des pourcentages pour chaque étape
-const depotPct = Math.round((dossierStats.depotDossier / totalDossiers) * 100)
-const validationPct = Math.round((dossierStats.validationFeef / totalDossiers) * 100)
-const devisPct = Math.round((dossierStats.signatureDevis / totalDossiers) * 100)
-const planificationPct = Math.round((dossierStats.planification / totalDossiers) * 100)
-const auditPct = Math.round((dossierStats.audit / totalDossiers) * 100)
-const finalisationPct = 100 - depotPct - validationPct - devisPct - planificationPct - auditPct
+const depotPct = computed(() =>
+  totalDossiers.value > 0
+    ? Math.round((dossierStats.value.depotDossier / totalDossiers.value) * 100)
+    : 0
+)
+const validationPct = computed(() =>
+  totalDossiers.value > 0
+    ? Math.round((dossierStats.value.validationFeef / totalDossiers.value) * 100)
+    : 0
+)
+const planificationPct = computed(() =>
+  totalDossiers.value > 0
+    ? Math.round((dossierStats.value.planification / totalDossiers.value) * 100)
+    : 0
+)
+const auditPct = computed(() =>
+  totalDossiers.value > 0 ? Math.round((dossierStats.value.audit / totalDossiers.value) * 100) : 0
+)
+const finalisationPct = computed(
+  () => 100 - depotPct.value - validationPct.value - planificationPct.value - auditPct.value
+)
 
 // Totaux par catégorie principale
-const totalAttente =
-  dossierStats.depotDossier + dossierStats.validationFeef + dossierStats.signatureDevis
-const totalEnCours = dossierStats.planification + dossierStats.audit + dossierStats.finalisation
+const totalAttente = computed(
+  () => dossierStats.value.depotDossier + dossierStats.value.validationFeef
+)
+const totalEnCours = computed(
+  () =>
+    dossierStats.value.planification + dossierStats.value.audit + dossierStats.value.finalisation
+)
 
 const oeOptions = ref<SelectItem[]>([
   { label: 'Tous', value: 'all' },
@@ -59,7 +101,12 @@ const selectedOE = ref(oeOptions.value[0].value)
 // Note: dashboardCategories and categoryTotals are now provided by useDashboardStats() composable
 
 // Use dashboard actions composable
-const { actionsByRole, loading: actionsLoading, error: actionsError, fetchActions } = useDashboardActions()
+const {
+  actionsByRole,
+  loading: actionsLoading,
+  error: actionsError,
+  fetchActions,
+} = useDashboardActions()
 
 // Gestion des onglets
 const tabs = [
@@ -101,15 +148,39 @@ const tabs = [
     <div class="flex flex-row gap-4 px-4 mb-4">
       <div class="bg-white rounded-xl shadow p-4 flex-1 flex flex-col items-center justify-center">
         <span class="text-gray-500 text-sm mb-1">Nombre d'entités</span>
-        <span class="text-2xl font-bold text-primary-600">128</span>
+        <USkeleton
+          v-if="overviewLoading"
+          class="h-8 w-16"
+        />
+        <span
+          v-else
+          class="text-2xl font-bold text-primary-600"
+          >{{ formattedEntityCount }}</span
+        >
       </div>
       <div class="bg-white rounded-xl shadow p-4 flex-1 flex flex-col items-center justify-center">
         <span class="text-gray-500 text-sm mb-1 text-center">Écart moyen audit planifié/réel</span>
-        <span class="text-base font-semibold text-gray-800">+3,5 mois</span>
+        <USkeleton
+          v-if="overviewLoading"
+          class="h-6 w-24"
+        />
+        <span
+          v-else
+          class="text-base font-semibold text-gray-800"
+          >{{ formattedAvgAuditGap }}</span
+        >
       </div>
       <div class="bg-white rounded-xl shadow p-4 flex-1 flex flex-col items-center justify-center">
         <span class="text-gray-500 text-sm mb-1 text-center">Durée moyenne du processus</span>
-        <span class="text-base font-semibold text-gray-800">6 mois</span>
+        <USkeleton
+          v-if="overviewLoading"
+          class="h-6 w-24"
+        />
+        <span
+          v-else
+          class="text-base font-semibold text-gray-800"
+          >{{ formattedAvgProcessDuration }}</span
+        >
       </div>
     </div>
     <!-- Système d'onglets pour Étapes des dossiers et Actions -->
@@ -317,7 +388,7 @@ const tabs = [
 
         <!-- En attente - Validation FEEF -->
         <div
-          class="h-full flex items-center justify-center text-orange-900 transition-all duration-500 border-r border-white"
+          class="h-full flex items-center justify-center text-orange-900 transition-all duration-500 border-r-2 border-gray-300"
           :style="`width: ${validationPct}%; background: #fdba74`"
         >
           <span
@@ -325,19 +396,6 @@ const tabs = [
             class="w-full text-center px-1"
           >
             Validation {{ dossierStats.validationFeef }}
-          </span>
-        </div>
-
-        <!-- En attente - Signature devis -->
-        <div
-          class="h-full flex items-center justify-center text-orange-900 transition-all duration-500 border-r-2 border-gray-300"
-          :style="`width: ${devisPct}%; background: #fb923c`"
-        >
-          <span
-            v-if="devisPct > 8"
-            class="w-full text-center px-1"
-          >
-            Devis {{ dossierStats.signatureDevis }}
           </span>
         </div>
 

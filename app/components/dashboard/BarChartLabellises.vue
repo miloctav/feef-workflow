@@ -1,64 +1,41 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
-import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
-import type { SelectItem } from '@nuxt/ui';
+import { ref, onMounted, watch } from 'vue'
+import {
+  Chart,
+  BarController,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+} from 'chart.js'
 
-Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
-const chartRef = ref<HTMLCanvasElement | null>(null);
+// Use dashboard overview composable
+const { labeledEntitiesChartData, loading } = useDashboardOverview()
 
-// Plages d'années disponibles
-const yearRanges: SelectItem[] = [
-  { label: '2021-2023', value: '2021-2023' },
-  { label: '2022-2024', value: '2022-2024' },
-  { label: '2023-2025', value: '2023-2025' },
-];
-const selectedRange = ref(yearRanges[0].value);
-
-const rangesList = [
-  { label: '2021-2023', years: [2021, 2022, 2023] },
-  { label: '2022-2024', years: [2022, 2023, 2024] },
-  { label: '2023-2025', years: [2023, 2024, 2025] },
-];
-const selectedRangeIdx = ref(0);
-
-
-// Labels et données fictives séparées par type
-const allLabels = [2021, 2022, 2023, 2024, 2025];
-// Données fictives : [Initial, Renouvellement] pour chaque année
-const allDataInitial = [2, 10, 15, 20, 3];
-const allDataRenouvellement = [3, 8, 12, 11, 5];
-
-const filteredLabels = computed(() => rangesList[selectedRangeIdx.value].years);
-const filteredDataInitial = computed(() => filteredLabels.value.map(y => allDataInitial[allLabels.indexOf(y)]));
-const filteredDataRenouvellement = computed(() => filteredLabels.value.map(y => allDataRenouvellement[allLabels.indexOf(y)]));
-
-function prevRange() {
-  if (selectedRangeIdx.value > 0) selectedRangeIdx.value--;
-}
-function nextRange() {
-  if (selectedRangeIdx.value < rangesList.length - 1) selectedRangeIdx.value++;
-}
-
-const chartInstance = ref<Chart<'bar', number[], string> | null>(null);
-
+const chartRef = ref<HTMLCanvasElement | null>(null)
+const chartInstance = ref<Chart<'bar', number[], string> | null>(null)
 
 // Fonction pour mettre à jour le graphique (appelée au montage et lors du changement de plage)
 function renderChart() {
-  if (!chartRef.value) return;
+  if (!chartRef.value || !labeledEntitiesChartData.value) return
 
   if (chartInstance.value) {
-    chartInstance.value.destroy();
+    chartInstance.value.destroy()
   }
+
+  const { years, initial, renewal, monitoring } = labeledEntitiesChartData.value
 
   chartInstance.value = new Chart(chartRef.value, {
     type: 'bar',
     data: {
-      labels: filteredLabels.value,
+      labels: years,
       datasets: [
         {
           label: 'Initial',
-          data: filteredDataInitial.value,
+          data: initial,
           backgroundColor: 'rgba(59, 130, 246, 0.7)',
           borderColor: 'rgba(59, 130, 246, 1)',
           borderWidth: 1,
@@ -67,14 +44,23 @@ function renderChart() {
         },
         {
           label: 'Renouvellement',
-          data: filteredDataRenouvellement.value,
+          data: renewal,
           backgroundColor: 'rgba(16, 185, 129, 0.7)',
           borderColor: 'rgba(16, 185, 129, 1)',
           borderWidth: 1,
           borderRadius: 6,
           stack: 'Stack 0',
-        }
-      ]
+        },
+        {
+          label: 'Surveillance',
+          data: monitoring,
+          backgroundColor: 'rgba(245, 158, 11, 0.7)',
+          borderColor: 'rgba(245, 158, 11, 1)',
+          borderWidth: 1,
+          borderRadius: 6,
+          stack: 'Stack 0',
+        },
+      ],
     },
     options: {
       responsive: true,
@@ -82,7 +68,7 @@ function renderChart() {
       layout: { padding: 16 },
       plugins: {
         legend: { display: true },
-        tooltip: { enabled: true }
+        tooltip: { enabled: true },
       },
       scales: {
         x: {
@@ -96,36 +82,35 @@ function renderChart() {
           title: { display: true, text: 'Labellisés', font: { size: 12 } },
           ticks: { font: { size: 12 } },
           stacked: true,
-        }
-      }
-    }
-  });
+        },
+      },
+    },
+  })
 }
 
 onMounted(() => {
-  renderChart();
-});
+  renderChart()
+})
 
-// Mettre à jour le graphique quand la plage change
-watch(selectedRangeIdx, () => {
-  renderChart();
-});
-
-
+// Mettre à jour le graphique quand les données changent
+watch(labeledEntitiesChartData, () => {
+  renderChart()
+})
 </script>
 
 <template>
-  <div class="w-full flex flex-col items-center py-4" style="height: 340px;">
-    <div style="height: 300px; width: 100%;" class="flex justify-center items-center">
-      <canvas ref="chartRef" style="width: 100%; height: 100%;"></canvas>
-    </div>
-    <!-- Sélecteur de plage d'années sous le graphique -->
-    <div class="flex justify-center w-full">
-      <div class="flex items-center gap-2">
-        <UButton icon="i-lucide-chevron-left" @click="prevRange" :disabled="selectedRangeIdx === 0" variant="outline" color="neutral" />
-        <span class="font-semibold text-lg w-32 text-center">{{ rangesList[selectedRangeIdx].label }}</span>
-        <UButton icon="i-lucide-chevron-right" @click="nextRange" :disabled="selectedRangeIdx === rangesList.length-1" variant="outline" color="neutral" />
-      </div>
+  <div
+    class="w-full flex flex-col items-center py-4"
+    style="height: 340px"
+  >
+    <div
+      style="height: 300px; width: 100%"
+      class="flex justify-center items-center"
+    >
+      <canvas
+        ref="chartRef"
+        style="width: 100%; height: 100%"
+      ></canvas>
     </div>
   </div>
 </template>
