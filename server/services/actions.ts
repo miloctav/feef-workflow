@@ -6,7 +6,7 @@
  */
 
 import { db } from '~~/server/database'
-import { actions, audits, entities, documentVersions, entityFieldVersions, contracts } from '~~/server/database/schema'
+import { actions, audits, entities, documentVersions, entityFieldVersions, contracts, documentaryReviews } from '~~/server/database/schema'
 import { eq, and, isNull, inArray, isNotNull, desc } from 'drizzle-orm'
 import { ACTION_TYPE_REGISTRY, ActionType, type ActionTypeType } from '#shared/types/actions'
 import { forInsert, forUpdate } from '~~/server/utils/tracking'
