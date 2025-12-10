@@ -4,9 +4,10 @@ import type { SelectItem } from '@nuxt/ui'
 // Use dashboard stats composable
 const { dashboardCategories, categoryTotals, loading, error, fetchStats } = useDashboardStats()
 
-// Fetch stats on mount
+// Fetch stats and actions on mount
 onMounted(() => {
   fetchStats()
+  fetchActions()
 })
 
 const dossiersFinalisesParAn = [
@@ -57,162 +58,8 @@ const oeOptions = ref<SelectItem[]>([
 const selectedOE = ref(oeOptions.value[0].value)
 // Note: dashboardCategories and categoryTotals are now provided by useDashboardStats() composable
 
-// Fonction pour calculer la priorité et les couleurs basées sur la date limite
-const getPrioriteAction = (dateLimite: string) => {
-  const aujourdhui = new Date()
-  const dateL = new Date(dateLimite)
-  const diffJours = Math.ceil((dateL.getTime() - aujourdhui.getTime()) / (1000 * 3600 * 24))
-
-  if (diffJours < 0) {
-    // Date dépassée - ROUGE
-    return {
-      priorite: 3,
-      color: 'border-red-500',
-      bgColor: 'bg-red-50',
-    }
-  } else if (diffJours <= 7) {
-    // Moins d'une semaine - ORANGE
-    return {
-      priorite: 2,
-      color: 'border-orange-500',
-      bgColor: 'bg-orange-50',
-    }
-  } else {
-    // Plus d'une semaine - VERT
-    return {
-      priorite: 1,
-      color: 'border-green-500',
-      bgColor: 'bg-green-50',
-    }
-  }
-}
-
-// Données brutes des actions par acteur (avec dates limites)
-const actionsParActeurRaw = {
-  feef: [
-    {
-      title: "Valider le dépôt d'un dossier",
-      linkedTo: 'SARL Boulangerie Martin',
-      linkedToType: 'entity' as const,
-      dateLimite: '2025-10-18',
-    }, // Date dépassée
-    {
-      title: "Valider le dépôt d'un dossier",
-      linkedTo: 'SAS TechStart',
-      linkedToType: 'entity' as const,
-      dateLimite: '2025-10-24',
-    }, // Dans 4 jours
-    {
-      title: "Valider la labellisation d'un Audit",
-      linkedTo: 'Audit #2024-A-0125',
-      linkedToType: 'audit' as const,
-      dateLimite: '2025-10-19',
-    }, // Date dépassée
-    {
-      title: "Valider la labellisation d'un Audit",
-      linkedTo: 'Audit #2024-A-0134',
-      linkedToType: 'audit' as const,
-      dateLimite: '2025-11-05',
-    }, // Dans 16 jours
-    {
-      title: "Valider le dépôt d'un dossier",
-      linkedTo: 'EURL Garage Dupont',
-      linkedToType: 'entity' as const,
-      dateLimite: '2025-10-26',
-    }, // Dans 6 jours
-  ],
-  oe: [
-    {
-      title: 'Accepter un audit',
-      linkedTo: 'Audit #2025-A-0012',
-      linkedToType: 'audit' as const,
-      dateLimite: '2025-10-17',
-    }, // Date dépassée
-    {
-      title: 'Accepter un audit',
-      linkedTo: 'Audit #2025-A-0015',
-      linkedToType: 'audit' as const,
-      dateLimite: '2025-10-22',
-    }, // Dans 2 jours
-    {
-      title: "Mettre en ligne le plan et les dates d'audit",
-      linkedTo: 'Audit #2024-A-0198',
-      linkedToType: 'audit' as const,
-      dateLimite: '2025-11-10',
-    }, // Dans 21 jours
-    {
-      title: "Mettre en ligne le rapport d'audit et les scores",
-      linkedTo: 'Audit #2024-A-0156',
-      linkedToType: 'audit' as const,
-      dateLimite: '2025-10-25',
-    }, // Dans 5 jours
-    {
-      title: "Valider le plan d'action correctif",
-      linkedTo: 'Audit #2024-A-0142',
-      linkedToType: 'audit' as const,
-      dateLimite: '2025-11-02',
-    }, // Dans 13 jours
-    {
-      title: "Mettre en ligne l'avis de labellisation",
-      linkedTo: 'Audit #2024-A-0133',
-      linkedToType: 'audit' as const,
-      dateLimite: '2025-10-16',
-    }, // Date dépassée
-  ],
-  entites: [
-    {
-      title: 'Déposer son dossier',
-      linkedTo: 'SARL Martin & Fils',
-      linkedToType: 'entity' as const,
-      dateLimite: '2025-10-23',
-    }, // Dans 3 jours
-    {
-      title: 'Mettre une nouvelle version des documents demandés',
-      linkedTo: 'SAS InnoTech',
-      linkedToType: 'entity' as const,
-      dateLimite: '2025-10-15',
-    }, // Date dépassée
-    {
-      title: 'Signer un contrat avec la FEEF',
-      linkedTo: 'EURL Services Plus',
-      linkedToType: 'entity' as const,
-      dateLimite: '2025-11-08',
-    }, // Dans 19 jours
-    {
-      title: "Mettre en ligne son plan d'action correctif",
-      linkedTo: 'SA TechGroup',
-      linkedToType: 'entity' as const,
-      dateLimite: '2025-10-27',
-    }, // Dans 7 jours
-    {
-      title: 'Mettre à jour les informations de son dossier',
-      linkedTo: 'SARL Boulangerie Martin',
-      linkedToType: 'entity' as const,
-      dateLimite: '2025-10-21',
-    }, // Dans 1 jour
-  ],
-}
-
-// Traitement des actions avec calcul de priorité et tri
-const actionsParActeur = computed(() => {
-  const processActions = (actions: typeof actionsParActeurRaw.feef) => {
-    return actions
-      .map((action) => {
-        const priorite = getPrioriteAction(action.dateLimite)
-        return {
-          ...action,
-          ...priorite,
-        }
-      })
-      .sort((a, b) => b.priorite - a.priorite) // Tri par priorité décroissante (rouge > orange > vert)
-  }
-
-  return {
-    feef: processActions(actionsParActeurRaw.feef),
-    oe: processActions(actionsParActeurRaw.oe),
-    entites: processActions(actionsParActeurRaw.entites),
-  }
-})
+// Use dashboard actions composable
+const { actionsByRole, loading: actionsLoading, error: actionsError, fetchActions } = useDashboardActions()
 
 // Gestion des onglets
 const tabs = [
@@ -330,64 +177,102 @@ const tabs = [
         <!-- Onglet Actions -->
         <template #actions>
           <div class="pt-4">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Loading state -->
+            <div
+              v-if="actionsLoading"
+              class="grid grid-cols-1 lg:grid-cols-3 gap-4"
+            >
+              <div
+                v-for="i in 3"
+                :key="i"
+                class="flex flex-col gap-3"
+              >
+                <USkeleton class="h-8 w-48 mb-2" />
+                <USkeleton
+                  v-for="j in 5"
+                  :key="j"
+                  class="h-24"
+                />
+              </div>
+            </div>
+
+            <!-- Error state -->
+            <div
+              v-else-if="actionsError"
+              class="flex justify-center"
+            >
+              <UAlert
+                color="red"
+                icon="i-lucide-alert-triangle"
+                :title="actionsError"
+              />
+            </div>
+
+            <!-- Data state -->
+            <div
+              v-else
+              class="grid grid-cols-1 lg:grid-cols-3 gap-4"
+            >
               <!-- Colonne Actions FEEF -->
               <div class="flex flex-col">
                 <h2 class="text-lg font-bold text-gray-800 mb-3 text-center">
-                  <span class="text-primary-600">{{ actionsParActeur.feef.length }}</span>
+                  <span class="text-primary-600">{{ actionsByRole.feef.length }}</span>
                   &nbsp;Actions FEEF
                 </h2>
                 <div class="flex flex-col gap-3">
-                  <ActionCard
-                    v-for="(action, idx) in actionsParActeur.feef"
-                    :key="idx"
-                    :title="action.title"
-                    :linked-to="action.linkedTo"
-                    :linked-to-type="action.linkedToType"
-                    :date-limite="action.dateLimite"
-                    :color="action.color"
-                    :bg-color="action.bgColor"
+                  <DashboardActionCard
+                    v-for="action in actionsByRole.feef"
+                    :key="action.id"
+                    :action="action"
                   />
+                  <div
+                    v-if="actionsByRole.feef.length === 0"
+                    class="text-center text-gray-500 py-8"
+                  >
+                    Aucune action FEEF
+                  </div>
                 </div>
               </div>
 
               <!-- Colonne Actions OE -->
               <div class="flex flex-col">
                 <h2 class="text-lg font-bold text-gray-800 mb-3 text-center">
-                  <span class="text-primary-600">{{ actionsParActeur.oe.length }}</span>
+                  <span class="text-primary-600">{{ actionsByRole.oe.length }}</span>
                   &nbsp;Actions OE
                 </h2>
                 <div class="flex flex-col gap-3">
-                  <ActionCard
-                    v-for="(action, idx) in actionsParActeur.oe"
-                    :key="idx"
-                    :title="action.title"
-                    :linked-to="action.linkedTo"
-                    :linked-to-type="action.linkedToType"
-                    :date-limite="action.dateLimite"
-                    :color="action.color"
-                    :bg-color="action.bgColor"
+                  <DashboardActionCard
+                    v-for="action in actionsByRole.oe"
+                    :key="action.id"
+                    :action="action"
                   />
+                  <div
+                    v-if="actionsByRole.oe.length === 0"
+                    class="text-center text-gray-500 py-8"
+                  >
+                    Aucune action OE
+                  </div>
                 </div>
               </div>
 
               <!-- Colonne Actions Entités -->
               <div class="flex flex-col">
                 <h2 class="text-lg font-bold text-gray-800 mb-3 text-center">
-                  <span class="text-primary-600">{{ actionsParActeur.entites.length }}</span>
+                  <span class="text-primary-600">{{ actionsByRole.entity.length }}</span>
                   &nbsp;Actions Entités
                 </h2>
                 <div class="flex flex-col gap-3">
-                  <ActionCard
-                    v-for="(action, idx) in actionsParActeur.entites"
-                    :key="idx"
-                    :title="action.title"
-                    :linked-to="action.linkedTo"
-                    :linked-to-type="action.linkedToType"
-                    :date-limite="action.dateLimite"
-                    :color="action.color"
-                    :bg-color="action.bgColor"
+                  <DashboardActionCard
+                    v-for="action in actionsByRole.entity"
+                    :key="action.id"
+                    :action="action"
                   />
+                  <div
+                    v-if="actionsByRole.entity.length === 0"
+                    class="text-center text-gray-500 py-8"
+                  >
+                    Aucune action Entité
+                  </div>
                 </div>
               </div>
             </div>
