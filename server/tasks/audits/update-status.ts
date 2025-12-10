@@ -50,33 +50,28 @@ export default defineTask({
 
       console.log(`[TASK] Found ${auditsToUpdate.length} audits to transition`)
 
-      // Import action creation function
-      const { createActionsForAuditStatus } = await import('../../services/actions')
+      // Import state machine
+      const { auditStateMachine } = await import('../../state-machine')
 
       // Mettre à jour chaque audit
       const updatedIds: number[] = []
       for (const audit of auditsToUpdate) {
-        // Update audit status
-        const [updatedAudit] = await db.update(audits)
-          .set({
-            status: AuditStatus.PENDING_REPORT,
-            updatedAt: new Date()
-          })
-          .where(eq(audits.id, audit.id))
-          .returning()
-
-        // Create actions for the new status
-        // Note: We don't have an H3Event in tasks, so we create a minimal mock
+        // Create a minimal mock event (no actual user for cron jobs)
         const mockEvent = {
           context: {
             userId: null // System-triggered action (no user)
           }
         } as any
 
-        await createActionsForAuditStatus(updatedAudit, AuditStatus.PENDING_REPORT, mockEvent)
-
-        updatedIds.push(audit.id)
-        console.log(`[TASK] ✓ Audit #${audit.id} (entity #${audit.entityId}) ${audit.status} → PENDING_REPORT and actions created`)
+        // Use state machine for transition
+        try {
+          await auditStateMachine.transition(audit, AuditStatus.PENDING_REPORT, mockEvent)
+          updatedIds.push(audit.id)
+          console.log(`[TASK] ✓ Audit #${audit.id} (entity #${audit.entityId}) ${audit.status} → PENDING_REPORT via state machine`)
+        } catch (error) {
+          console.error(`[TASK] ✗ Failed to transition audit #${audit.id}:`, error)
+          // Continue with next audit
+        }
       }
 
       const duration = Date.now() - startTime

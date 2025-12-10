@@ -1,10 +1,9 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { audits, oes, accounts, auditNotation } from '~~/server/database/schema'
+import { audits, oes, accounts } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
 import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
-import { executeStatusActions } from '~~/server/utils/auditStatusHandlers'
-import { detectAndCompleteActionsForAuditField, detectAndCompleteActionsForAuditStatus } from '~~/server/services/actions'
+import { auditStateMachine } from '~~/server/state-machine'
 
 interface UpdateAuditBody {
   oeId?: number
@@ -197,38 +196,13 @@ export default defineEventHandler(async (event) => {
   if (actualStartDate !== undefined) updateData.actualStartDate = actualStartDate
   if (actualEndDate !== undefined) updateData.actualEndDate = actualEndDate
   if (labelingOpinion !== undefined) updateData.labelingOpinion = labelingOpinion
-  if (status !== undefined) updateData.status = status
-
-  // Si globalScore est modifié, mettre à jour et recalculer needsCorrectivePlan via fonction dédiée
-  if (globalScore !== undefined) {
-    updateData.globalScore = globalScore
-
-    // Vérifier si la transition PENDING_REPORT → PENDING_OE_OPINION est possible
-    // Cela se produit quand le score vient d'être défini et qu'un rapport existe déjà
-    if (existingAudit.status === AuditStatus.PENDING_REPORT && !status) {
-      const { checkAndTransitionToPendingOEOpinion } = await import('~~/server/utils/auditReportTransition')
-      const transitionedStatus = await checkAndTransitionToPendingOEOpinion(
-        auditIdInt,
-        existingAudit.status,
-        currentUser.id
-      )
-
-      if (transitionedStatus) {
-        updateData.status = transitionedStatus
-        console.log(`✅ [PUT /api/audits/:id] Transition automatique vers ${transitionedStatus} après mise à jour du score`)
-      }
-    }
-  }
+  if (globalScore !== undefined) updateData.globalScore = globalScore
 
   // Gestion de l'avis OE avec timestamps automatiques
   if (oeOpinion !== undefined) {
     updateData.oeOpinion = oeOpinion
     updateData.oeOpinionTransmittedAt = new Date()
     updateData.oeOpinionTransmittedBy = currentUser.id
-    // Transition automatique vers PENDING_FEEF_DECISION si pas déjà fait
-    if (!status && existingAudit.status === AuditStatus.PENDING_OE_OPINION) {
-      updateData.status = AuditStatus.PENDING_FEEF_DECISION
-    }
   }
   if (oeOpinionArgumentaire !== undefined) {
     updateData.oeOpinionArgumentaire = oeOpinionArgumentaire
@@ -244,42 +218,16 @@ export default defineEventHandler(async (event) => {
     updateData.feefDecisionBy = currentUser.id
   }
 
-  // Exécuter les actions automatiques associées au changement de statut
-  let statusChanged = false
-  if (status !== undefined) {
-    const statusUpdates = await executeStatusActions(existingAudit, status, event)
-
-    if (statusUpdates) {
-      // Fusionner les mises à jour générées par le handler avec updateData
-      Object.assign(updateData, statusUpdates)
-      console.log('[PUT /api/audits/:id] Mises à jour automatiques appliquées suite au changement de statut')
-    }
-    statusChanged = true
-  }
-
-  // Si le statut a changé automatiquement via oeOpinion, exécuter aussi les actions
-  if (!statusChanged && oeOpinion !== undefined && existingAudit.status === AuditStatus.PENDING_OE_OPINION && updateData.status === AuditStatus.PENDING_FEEF_DECISION) {
-    const statusUpdates = await executeStatusActions(existingAudit, AuditStatus.PENDING_FEEF_DECISION, event)
-    if (statusUpdates) {
-      Object.assign(updateData, statusUpdates)
-      console.log('[PUT /api/audits/:id] Mises à jour automatiques appliquées suite au changement de statut automatique (oeOpinion)')
-    }
-  }
-
   // Régénération d'attestation si l'audit est déjà COMPLETED et est mis à jour
   if (existingAudit.status === AuditStatus.COMPLETED && !status) {
     console.log('[PUT /api/audits/:id] Audit déjà COMPLETED, régénération de l\'attestation')
 
     try {
       const { AttestationGenerator } = await import('~~/server/services/documentGeneration/AttestationGenerator')
-
       const generator = new AttestationGenerator()
 
       await generator.generate(
-        {
-          event,
-          data: { auditId: existingAudit.id },
-        },
+        { event, data: { auditId: existingAudit.id } },
         {
           auditId: existingAudit.id,
           auditDocumentType: 'ATTESTATION',
@@ -294,56 +242,21 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  console.log('Données de mise à jour avant vérifications finales:', updateData)
-  if (actualEndDate && !status) {
-    console.log('Vérification de la transition automatique basée sur actualEndDate')
-    const today = new Date()
-    const endDate = new Date(actualEndDate)
-    // Ignore time part for comparison
-    today.setHours(0, 0, 0, 0)
-    endDate.setHours(0, 0, 0, 0)
-    console.log(`actualEndDate: ${endDate.toISOString().split('T')[0]}, today: ${today.toISOString().split('T')[0]}`)
-    console.log(`Statut actuel de l'audit: ${existingAudit.status}`)
-    if (endDate <= today && existingAudit.status === AuditStatus.PLANNING) {
-      updateData.status = AuditStatus.PENDING_REPORT
-      statusChanged = true
-    }
+
+  // Gestion du changement de statut via la state machine
+  if (status !== undefined) {
+    // Transition manuelle explicite via state machine
+    await auditStateMachine.transition(existingAudit, status as any, event)
   }
 
-  // Vérifier transition PLANNING → SCHEDULED
-  // Conditions: statut PLANNING, plan uploadé, dates réelles renseignées, date de fin non passée
-  if (existingAudit.status === AuditStatus.PLANNING && !status) {
-    const { checkIfAuditPlanExists } = await import('~~/server/utils/audit')
-    const hasPlan = await checkIfAuditPlanExists(auditIdInt)
-
-    // Vérifier si les dates réelles sont renseignées (soit déjà existantes, soit en cours de mise à jour)
-    const hasActualStartDate = actualStartDate !== undefined ? actualStartDate : existingAudit.actualStartDate
-    const hasActualEndDate = actualEndDate !== undefined ? actualEndDate : existingAudit.actualEndDate
-
-    if (hasPlan && hasActualStartDate && hasActualEndDate) {
-      const today = new Date()
-      const endDate = new Date(hasActualEndDate)
-      today.setHours(0, 0, 0, 0)
-      endDate.setHours(0, 0, 0, 0)
-
-      // Si la date de fin n'est pas passée, passer à SCHEDULED
-      if (endDate >= today) {
-        updateData.status = AuditStatus.SCHEDULED
-        statusChanged = true
-        console.log(`✅ [PUT /api/audits/:id] Transition automatique PLANNING → SCHEDULED (plan uploadé + dates renseignées + date non passée)`)
-      }
-    }
-  }
-
-
-  // Mettre à jour l'audit
+  // Mettre à jour les autres champs (non-status)
   await db
     .update(audits)
     .set(forUpdate(event, updateData))
     .where(eq(audits.id, auditIdInt))
 
   // Récupérer l'audit mis à jour
-  let updatedAudit = await db.query.audits.findFirst({
+  const updatedAudit = await db.query.audits.findFirst({
     where: eq(audits.id, auditIdInt),
   })
 
@@ -354,68 +267,37 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Si globalScore a été modifié, recalculer needsCorrectivePlan et gérer transitions intelligentes
+  // Si globalScore a été modifié, recalculer needsCorrectivePlan
   if (globalScore !== undefined) {
-    const previousStatus = updatedAudit.status
     const { updateNeedsCorrectivePlan } = await import('~~/server/utils/auditCorrectivePlan')
     await updateNeedsCorrectivePlan(auditIdInt, currentUser.id)
 
-    // Récupérer l'audit après updateNeedsCorrectivePlan pour voir si le statut a changé
+    // Récupérer l'audit après updateNeedsCorrectivePlan
     const auditAfterCorrectivePlan = await db.query.audits.findFirst({
       where: eq(audits.id, auditIdInt),
     })
 
-    // Si le statut a changé suite à updateNeedsCorrectivePlan, créer les actions
-    if (auditAfterCorrectivePlan && auditAfterCorrectivePlan.status !== previousStatus) {
-      const { createActionsForAuditStatus, checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
-      await createActionsForAuditStatus(auditAfterCorrectivePlan, auditAfterCorrectivePlan.status, event)
-      await checkAndCompleteAllPendingActions(auditAfterCorrectivePlan, currentUser.id, event)
-
-      // Mettre à jour updatedAudit pour la suite
-      updatedAudit = auditAfterCorrectivePlan
+    if (auditAfterCorrectivePlan) {
+      // Vérifier les auto-transitions après le calcul du needsCorrectivePlan
+      await auditStateMachine.checkAutoTransition(auditAfterCorrectivePlan, event)
     }
   }
 
-  // If status changed, create actions for the new status
-  if (updatedAudit.status !== existingAudit.status) {
-    const { createActionsForAuditStatus } = await import('~~/server/services/actions')
-    await createActionsForAuditStatus(updatedAudit, updatedAudit.status, event)
-  }
+  // Vérifier les auto-transitions après toute mise à jour de champ
+  // (ex: dates changées, score mis à jour, etc.)
+  await auditStateMachine.checkAutoTransition(updatedAudit, event)
 
-  // Check and complete all pending actions based on audit state
+  // Compléter les actions en attente basées sur le nouvel état de l'audit
   const { checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
   await checkAndCompleteAllPendingActions(updatedAudit, currentUser.id, event)
 
-  // Générer l'attestation si le statut vient de passer à COMPLETED
-  if (status === AuditStatus.COMPLETED && existingAudit.status !== AuditStatus.COMPLETED) {
-    console.log(`[PUT /api/audits/:id] Génération de l'attestation pour l'audit ID ${auditIdInt}`)
+  // Récupérer l'audit final après toutes les transitions
+  const finalAudit = await db.query.audits.findFirst({
+    where: eq(audits.id, auditIdInt),
+  })
 
-    try {
-      const { AttestationGenerator } = await import('~~/server/services/documentGeneration/AttestationGenerator')
-
-      const generator = new AttestationGenerator()
-
-      await generator.generate(
-        {
-          event,
-          data: { auditId: auditIdInt },
-        },
-        {
-          auditId: auditIdInt,
-          auditDocumentType: 'ATTESTATION',
-          entityId: updatedAudit.entityId,
-        }
-      )
-
-      console.log(`[PUT /api/audits/:id] Attestation générée avec succès pour l'audit ID ${auditIdInt}`)
-    } catch (error) {
-      console.error('[PUT /api/audits/:id] Erreur lors de la génération de l\'attestation:', error)
-      // Non-blocking: ne pas empêcher le changement de statut de réussir
-    }
-  }
-
-  // Retourner l'audit mis � jour
+  // Retourner l'audit mis à jour
   return {
-    data: updatedAudit,
+    data: finalAudit,
   }
 })

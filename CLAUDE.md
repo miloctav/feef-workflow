@@ -161,6 +161,51 @@ The application uses **Drizzle ORM** with PostgreSQL for data persistence:
 
 **Type safety**: Schema exports inferred TypeScript types (`Account`, `Entity`, `OE`, `Audit`, `DocumentType`, `DocumentaryReview`, `DocumentVersion`) and enum constants (`Role`, `EntityType`, `AuditType`, `OERole`, `EntityRole`, `DocumentCategory`) for type-safe database operations.
 
+### Audit State Machine
+
+The application uses a **custom state machine** to manage audit status transitions:
+
+- **Architecture**: `server/state-machine/` contains the complete state machine implementation
+  - `config.ts` - **Central configuration** defining all 10 audit statuses and their transitions
+  - `engine.ts` - Transition execution engine with guard validation and action execution
+  - `guards.ts` - Reusable predicates (e.g., `has_audit_plan`, `has_global_score`)
+  - `actions.ts` - Side-effects executed during transitions (e.g., `generate_attestation`)
+  - `types.ts` - Complete TypeScript type definitions
+  - `README.md` - Comprehensive documentation with examples
+
+**Audit Status Flow** (10 statuses):
+```
+PENDING_CASE_APPROVAL → PLANNING/PENDING_OE_CHOICE
+→ PLANNING → SCHEDULED → PENDING_REPORT
+→ PENDING_OE_OPINION → PENDING_CORRECTIVE_PLAN (if score < 65)
+→ PENDING_CORRECTIVE_PLAN_VALIDATION → PENDING_OE_OPINION
+→ PENDING_FEEF_DECISION → COMPLETED
+```
+
+**Key Features**:
+- **Centralized logic**: All transition rules in one file (`config.ts`)
+- **Three trigger types**: MANUAL (API), AUTO_DOCUMENT (upload/action completion), AUTO_CRON (time-based)
+- **Guard-based validation**: Transitions only execute if guards pass (e.g., `has_report_document && has_global_score`)
+- **Automatic action creation**: Creates user actions (tasks) when entering a status
+- **Auto-transitions**: Automatically triggers transitions when conditions are met (e.g., document uploaded → status change)
+- **Extensible**: Add a new status by modifying only 2 files (schema + config)
+
+**Usage Example**:
+```typescript
+import { auditStateMachine } from '~/server/state-machine'
+
+// Manual transition
+await auditStateMachine.transition(audit, AuditStatus.SCHEDULED, event)
+
+// Check auto-transitions after field update
+await auditStateMachine.checkAutoTransition(audit, event)
+```
+
+**Integration**:
+- API endpoints use `auditStateMachine.transition()` for status changes
+- Action system calls `checkAutoTransition()` after completing user actions
+- Cron jobs use state machine for time-based transitions
+
 ### API Architecture
 
 The application provides a **RESTful API** using Nuxt server routes in `server/api/`:

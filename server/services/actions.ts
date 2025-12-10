@@ -308,6 +308,10 @@ export async function checkAndCompleteAllPendingActions(
     // Complete the action if criteria met
     if (shouldComplete) {
       await completeAction(action.id, completedBy, event)
+
+      // Vérifier si la complétion de cette action déclenche une auto-transition
+      const { auditStateMachine } = await import('~~/server/state-machine')
+      await auditStateMachine.checkAutoTransition(audit, event, action.type)
     }
   }
 }
