@@ -25,7 +25,8 @@ export default defineEventHandler(async (event) => {
     .where(whereClause)
     .groupBy(actions.status)
 
-  // Count overdue (OVERDUE status)
+  // Count overdue (PENDING + deadline < now)
+  const now = new Date()
   const overdueCount = await db
     .select({
       count: sql<number>`COUNT(*)::int`,
@@ -34,12 +35,13 @@ export default defineEventHandler(async (event) => {
     .where(
       and(
         ...userConditions,
-        eq(actions.status, 'OVERDUE'),
+        eq(actions.status, 'PENDING'),
+        lt(actions.deadline, now),
       ),
     )
 
-  // Count upcoming (PENDING + deadline < 3 days)
-  const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+  // Count upcoming (PENDING + now <= deadline <= now + 7 days)
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
   const upcomingCount = await db
     .select({
       count: sql<number>`COUNT(*)::int`,
@@ -49,8 +51,8 @@ export default defineEventHandler(async (event) => {
       and(
         ...userConditions,
         eq(actions.status, 'PENDING'),
-        lt(actions.deadline, threeDaysFromNow),
-        gte(actions.deadline, new Date()),
+        gte(actions.deadline, now),
+        lt(actions.deadline, sevenDaysFromNow),
       ),
     )
 
@@ -58,8 +60,8 @@ export default defineEventHandler(async (event) => {
   const byAuditStatus = await db
     .select({
       auditStatus: auditsTable.status,
-      overdueCount: sql<number>`COUNT(*) FILTER (WHERE ${actions.status} = 'OVERDUE')::int`,
-      upcomingCount: sql<number>`COUNT(*) FILTER (WHERE ${actions.status} = 'PENDING' AND ${actions.deadline} < NOW() + INTERVAL '3 days' AND ${actions.deadline} >= NOW())::int`,
+      overdueCount: sql<number>`COUNT(*) FILTER (WHERE ${actions.status} = 'PENDING' AND ${actions.deadline} < NOW())::int`,
+      upcomingCount: sql<number>`COUNT(*) FILTER (WHERE ${actions.status} = 'PENDING' AND ${actions.deadline} >= NOW() AND ${actions.deadline} < NOW() + INTERVAL '7 days')::int`,
     })
     .from(actions)
     .leftJoin(auditsTable, eq(actions.auditId, auditsTable.id))

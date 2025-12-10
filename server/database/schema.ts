@@ -64,7 +64,6 @@ export const actionTypeEnum = pgEnum('action_type', [
 export const actionStatusEnum = pgEnum('action_status', [
   'PENDING',
   'COMPLETED',
-  'OVERDUE',
   'CANCELLED'
 ])
 

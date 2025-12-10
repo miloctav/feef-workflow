@@ -59,7 +59,7 @@ const getDeadlineColor = (deadline: Date | string | null | undefined) => {
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
   if (diffDays < 0) return 'red' // Overdue
-  if (diffDays <= 3) return 'orange' // Within 3 days
+  if (diffDays <= 7) return 'orange' // Within 7 days
   return 'blue' // Normal
 }
 

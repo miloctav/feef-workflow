@@ -36,6 +36,17 @@ export const ActionType = {
 export type ActionTypeType = typeof ActionType[keyof typeof ActionType]
 
 /**
+ * Action status identifiers
+ */
+export const ActionStatus = {
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+} as const
+
+export type ActionStatusType = typeof ActionStatus[keyof typeof ActionStatus]
+
+/**
  * Action metadata structure
  */
 export interface ActionMetadata {

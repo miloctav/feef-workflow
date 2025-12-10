@@ -4,7 +4,7 @@
 
 import { db } from '~~/server/database'
 import { audits as auditsTable, entities, contracts as contractsTable, actions as actionsTable } from '~~/server/database/schema'
-import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { Role, OERole } from '#shared/types/roles'
 import { getEntitiesCurrentAuditTypes } from '~~/server/utils/audit'
 import { ActionType } from '~~/shared/types/actions'
@@ -138,13 +138,10 @@ export default defineEventHandler(async (event) => {
       count,
     }))
 
-  // Query entities with ENTITY_SUBMIT_CASE actions (PENDING or OVERDUE)
+  // Query entities with ENTITY_SUBMIT_CASE actions (PENDING)
   const caseSubmissionWhereConditions: any[] = [
     eq(actionsTable.type, ActionType.ENTITY_SUBMIT_CASE),
-    or(
-      eq(actionsTable.status, 'PENDING'),
-      eq(actionsTable.status, 'OVERDUE')
-    ),
+    eq(actionsTable.status, 'PENDING'),
   ]
 
   // Apply role-based filtering for actions
@@ -205,11 +202,15 @@ export default defineEventHandler(async (event) => {
 
     const entityData = entityCaseSubmissionMap.get(action.entityId)!
 
-    if (action.status === 'OVERDUE') {
-      entityData.hasOverdue = true
-    } else if (action.status === 'PENDING' && action.deadline) {
+    if (action.status === 'PENDING' && action.deadline) {
       const deadline = new Date(action.deadline)
-      if (deadline <= sevenDaysFromNow) {
+
+      // Overdue: deadline passée
+      if (deadline < now) {
+        entityData.hasOverdue = true
+      }
+      // Upcoming: deadline dans les 7 prochains jours
+      else if (deadline >= now && deadline <= sevenDaysFromNow) {
         entityData.hasUpcoming = true
       }
     }
