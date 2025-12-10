@@ -78,7 +78,6 @@ export const auditStateMachineConfig: StateMachineConfig = {
       status: AuditStatus.PLANNING,
       onEnter: {
         createActions: [
-          ActionType.ENTITY_MARK_DOCUMENTARY_REVIEW_READY,
           ActionType.SET_AUDIT_DATES,
           ActionType.UPLOAD_AUDIT_PLAN
         ]
@@ -91,7 +90,14 @@ export const auditStateMachineConfig: StateMachineConfig = {
           triggerOnActions: [ActionType.UPLOAD_AUDIT_PLAN, ActionType.SET_AUDIT_DATES],
           description: 'Plan uploadé + dates définies + date future'
         },
-        to_pending_report: {
+        to_pending_report_auto: {
+          target: AuditStatus.PENDING_REPORT,
+          guards: ['has_audit_plan', 'actual_end_date_passed'],
+          trigger: 'AUTO_DOCUMENT',
+          triggerOnActions: [ActionType.UPLOAD_AUDIT_PLAN, ActionType.SET_AUDIT_DATES],
+          description: 'Plan uploadé + date de fin passée (transition immédiate)'
+        },
+        to_pending_report_cron: {
           target: AuditStatus.PENDING_REPORT,
           guards: ['actual_end_date_passed'],
           trigger: 'AUTO_CRON',
@@ -107,10 +113,19 @@ export const auditStateMachineConfig: StateMachineConfig = {
     [AuditStatus.SCHEDULED]: {
       status: AuditStatus.SCHEDULED,
       onEnter: {
-        createActions: [] // Pas de nouvelles actions
+        createActions: [
+          ActionType.ENTITY_MARK_DOCUMENTARY_REVIEW_READY
+        ]
       },
       transitions: {
-        to_pending_report: {
+        to_pending_report_auto: {
+          target: AuditStatus.PENDING_REPORT,
+          guards: ['actual_end_date_passed'],
+          trigger: 'AUTO_DOCUMENT',
+          triggerOnActions: [ActionType.SET_AUDIT_DATES],
+          description: 'Date de fin passée (transition immédiate lors du changement de dates)'
+        },
+        to_pending_report_cron: {
           target: AuditStatus.PENDING_REPORT,
           guards: ['actual_end_date_passed'],
           trigger: 'AUTO_CRON',

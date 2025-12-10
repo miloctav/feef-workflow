@@ -243,17 +243,32 @@ export default defineEventHandler(async (event) => {
   }
 
 
+  // Mettre à jour les champs AVANT la transition de statut
+  // (important pour que les guards aient accès aux nouvelles valeurs)
+  if (Object.keys(updateData).length > 0) {
+    await db
+      .update(audits)
+      .set(forUpdate(event, updateData))
+      .where(eq(audits.id, auditIdInt))
+  }
+
+  // Récupérer l'audit mis à jour pour la transition
+  const auditBeforeTransition = await db.query.audits.findFirst({
+    where: eq(audits.id, auditIdInt),
+  })
+
+  if (!auditBeforeTransition) {
+    throw createError({
+      statusCode: 500,
+      message: 'Erreur lors de la récupération de l\'audit mis à jour',
+    })
+  }
+
   // Gestion du changement de statut via la state machine
   if (status !== undefined) {
     // Transition manuelle explicite via state machine
-    await auditStateMachine.transition(existingAudit, status as any, event)
+    await auditStateMachine.transition(auditBeforeTransition, status as any, event)
   }
-
-  // Mettre à jour les autres champs (non-status)
-  await db
-    .update(audits)
-    .set(forUpdate(event, updateData))
-    .where(eq(audits.id, auditIdInt))
 
   // Récupérer l'audit mis à jour
   const updatedAudit = await db.query.audits.findFirst({

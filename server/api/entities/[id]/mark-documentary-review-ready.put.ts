@@ -116,9 +116,30 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Check and complete all pending entity-level actions
-  const { checkAndCompleteAllPendingActionsForEntity } = await import('~~/server/services/actions')
+  // Check and complete all pending actions for this entity
+  // This includes both entity-level actions AND audit-level actions
+  // (e.g., ENTITY_MARK_DOCUMENTARY_REVIEW_READY which is linked to an audit)
+  const { checkAndCompleteAllPendingActionsForEntity, checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
+
+  // Check entity-level actions (without auditId)
   await checkAndCompleteAllPendingActionsForEntity(entityWithRelations, currentUser.id, event)
+
+  // Also check the most recent audit for this entity
+  // (important for ENTITY_MARK_DOCUMENTARY_REVIEW_READY which has an auditId)
+  const { audits } = await import('~~/server/database/schema')
+  const { desc } = await import('drizzle-orm')
+
+  const latestAudit = await db.query.audits.findFirst({
+    where: and(
+      eq(audits.entityId, entityIdInt),
+      isNull(audits.deletedAt)
+    ),
+    orderBy: [desc(audits.createdAt)]
+  })
+
+  if (latestAudit) {
+    await checkAndCompleteAllPendingActions(latestAudit, currentUser.id, event)
+  }
 
   // Retourner l'entité mise à jour
   return {

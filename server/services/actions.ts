@@ -309,9 +309,20 @@ export async function checkAndCompleteAllPendingActions(
     if (shouldComplete) {
       await completeAction(action.id, completedBy, event)
 
+      // Recharger l'audit depuis la base de données pour avoir le statut le plus récent
+      // (car une transition pourrait avoir déjà eu lieu)
+      const freshAudit = await db.query.audits.findFirst({
+        where: eq(audits.id, audit.id)
+      })
+
+      if (!freshAudit) {
+        console.warn(`[Actions] Audit ${audit.id} not found after action completion`)
+        continue
+      }
+
       // Vérifier si la complétion de cette action déclenche une auto-transition
       const { auditStateMachine } = await import('~~/server/state-machine')
-      await auditStateMachine.checkAutoTransition(audit, event, action.type)
+      await auditStateMachine.checkAutoTransition(freshAudit, event, action.type)
     }
   }
 }

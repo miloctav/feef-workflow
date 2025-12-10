@@ -262,8 +262,20 @@ export class AuditStateMachine {
         continue
       }
 
-      const deadline = new Date()
-      deadline.setDate(deadline.getDate() + actionDef.defaultDurationDays)
+      // Calcul de la deadline
+      let deadline: Date
+
+      // Cas spécial : ENTITY_MARK_DOCUMENTARY_REVIEW_READY doit avoir une deadline 2 semaines avant actualStartDate
+      if (actionType === 'ENTITY_MARK_DOCUMENTARY_REVIEW_READY' && audit.actualStartDate) {
+        deadline = new Date(audit.actualStartDate)
+        deadline.setDate(deadline.getDate() - actionDef.defaultDurationDays)
+        deadline.setHours(23, 59, 59, 999) // Fin de journée
+        console.log(`[State Machine] 📅 Deadline personnalisée pour ${actionType}: ${actionDef.defaultDurationDays} jours avant actualStartDate (${audit.actualStartDate})`)
+      } else {
+        // Calcul standard : deadline = maintenant + durée
+        deadline = new Date()
+        deadline.setDate(deadline.getDate() + actionDef.defaultDurationDays)
+      }
 
       const [createdAction] = await db.insert(actions)
         .values({

@@ -196,7 +196,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
       field: 'documentaryReviewReadyAt', // entities.documentaryReviewReadyAt
     },
     triggers: {
-      onAuditStatus: [AuditStatus.PLANNING],
+      onAuditStatus: [AuditStatus.SCHEDULED],
     },
     icon: 'i-lucide-check-circle',
     color: 'success',

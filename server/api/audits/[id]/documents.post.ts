@@ -4,7 +4,7 @@ import { eq, and, isNull, isNotNull, desc } from 'drizzle-orm'
 import { uploadFile } from '~~/server/services/garage'
 import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
 import { auditStateMachine } from '~~/server/state-machine'
-import { detectAndCompleteActionsForDocumentUpload } from '~~/server/services/actions'
+import { detectAndCompleteActionsForDocumentUpload, checkAndCompleteAllPendingActions } from '~~/server/services/actions'
 import { Role } from '#shared/types/roles'
 import type { AuditDocumentTypeType } from '~~/app/types/auditDocuments'
 
@@ -245,10 +245,18 @@ export default defineEventHandler(async (event) => {
     .set({ s3Key: uploadedS3Key })
     .where(eq(documentVersions.id, newVersion.id))
 
-  // Vérifier les auto-transitions via la state machine
-  await auditStateMachine.checkAutoTransition(audit, event)
+  // Recharger l'audit pour avoir le statut le plus récent avant de vérifier les auto-transitions
+  const freshAudit = await db.query.audits.findFirst({
+    where: eq(audits.id, auditId)
+  })
 
+  if (freshAudit) {
+    // Vérifier les auto-transitions via la state machine
+    await auditStateMachine.checkAutoTransition(freshAudit, event)
 
+    // Vérifier et compléter les actions en attente (ex: UPLOAD_AUDIT_PLAN)
+    await checkAndCompleteAllPendingActions(freshAudit, user.id, event)
+  }
 
   // Récupérer la version créée avec les infos de l'uploader
   const versionWithUploader = await db.query.documentVersions.findFirst({
