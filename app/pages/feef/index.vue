@@ -1,7 +1,6 @@
 <script setup lang="ts">
-
 definePageMeta({
-  layout: 'dashboard-feef'
+  layout: 'dashboard-feef',
 })
 </script>
 
@@ -11,7 +10,7 @@ definePageMeta({
       <NavBar />
     </template>
     <template #body>
-      <!-- <DashboardPage /> -->
+      <DashboardPage />
     </template>
   </UDashboardPanel>
 </template>

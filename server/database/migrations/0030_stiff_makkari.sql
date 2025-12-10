@@ -1,0 +1,1 @@
+ALTER TYPE "public"."audit_status" ADD VALUE 'SCHEDULED' BEFORE 'PENDING_REPORT';

@@ -31,7 +31,7 @@ export const signatureTypeEnum = pgEnum('signature_type', ['ENTITY_ONLY', 'ENTIT
 export const signatureStatusEnum = pgEnum('signature_status', ['DRAFT', 'PENDING_ENTITY', 'PENDING_FEEF', 'COMPLETED'])
 
 // Define audit status enum
-export const auditStatusEnum = pgEnum('audit_status', ['PENDING_CASE_APPROVAL', 'PENDING_OE_CHOICE', 'PLANNING', 'PENDING_REPORT', 'PENDING_CORRECTIVE_PLAN', 'PENDING_CORRECTIVE_PLAN_VALIDATION', 'PENDING_OE_OPINION', 'PENDING_FEEF_DECISION', 'COMPLETED'])
+export const auditStatusEnum = pgEnum('audit_status', ['PENDING_CASE_APPROVAL', 'PENDING_OE_CHOICE', 'PLANNING', 'SCHEDULED', 'PENDING_REPORT', 'PENDING_CORRECTIVE_PLAN', 'PENDING_CORRECTIVE_PLAN_VALIDATION', 'PENDING_OE_OPINION', 'PENDING_FEEF_DECISION', 'COMPLETED'])
 
 // Define OE opinion enum
 export const oeOpinionEnum = pgEnum('oe_opinion', ['FAVORABLE', 'UNFAVORABLE', 'RESERVED'])

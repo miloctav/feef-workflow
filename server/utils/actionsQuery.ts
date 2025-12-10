@@ -15,12 +15,17 @@ import type { PaginationConfig } from '~~/server/utils/pagination'
 export async function buildActionsWhereForUser(
   user: Account,
   additionalConditions: SQL[] = [],
+  options: { includeAllStatuses?: boolean } = {},
 ): Promise<SQL[]> {
   const conditions: SQL[] = [
     isNull(actions.deletedAt),
-    eq(actions.status, 'PENDING'), // Default: only show pending actions
     ...additionalConditions,
   ]
+
+  // Only filter by PENDING status if not explicitly disabled
+  if (!options.includeAllStatuses) {
+    conditions.push(eq(actions.status, 'PENDING'))
+  }
 
   if (user.role === Role.FEEF) {
     // FEEF sees all actions

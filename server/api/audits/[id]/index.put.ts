@@ -310,6 +310,32 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Vérifier transition PLANNING → SCHEDULED
+  // Conditions: statut PLANNING, plan uploadé, dates réelles renseignées, date de fin non passée
+  if (existingAudit.status === AuditStatus.PLANNING && !status) {
+    const { checkIfAuditPlanExists } = await import('~~/server/utils/audit')
+    const hasPlan = await checkIfAuditPlanExists(auditIdInt)
+
+    // Vérifier si les dates réelles sont renseignées (soit déjà existantes, soit en cours de mise à jour)
+    const hasActualStartDate = actualStartDate !== undefined ? actualStartDate : existingAudit.actualStartDate
+    const hasActualEndDate = actualEndDate !== undefined ? actualEndDate : existingAudit.actualEndDate
+
+    if (hasPlan && hasActualStartDate && hasActualEndDate) {
+      const today = new Date()
+      const endDate = new Date(hasActualEndDate)
+      today.setHours(0, 0, 0, 0)
+      endDate.setHours(0, 0, 0, 0)
+
+      // Si la date de fin n'est pas passée, passer à SCHEDULED
+      if (endDate >= today) {
+        updateData.status = AuditStatus.SCHEDULED
+        statusChanged = true
+        console.log(`✅ [PUT /api/audits/:id] Transition automatique PLANNING → SCHEDULED (plan uploadé + dates renseignées + date non passée)`)
+      }
+    }
+  }
+
+
   // Mettre à jour l'audit
   await db
     .update(audits)

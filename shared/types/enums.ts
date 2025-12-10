@@ -156,6 +156,7 @@ export const AuditStatus = {
   PENDING_CASE_APPROVAL: 'PENDING_CASE_APPROVAL',
   PENDING_OE_CHOICE: 'PENDING_OE_CHOICE',
   PLANNING: 'PLANNING',
+  SCHEDULED: 'SCHEDULED',
   PENDING_REPORT: 'PENDING_REPORT',
   PENDING_CORRECTIVE_PLAN: 'PENDING_CORRECTIVE_PLAN',
   PENDING_CORRECTIVE_PLAN_VALIDATION: 'PENDING_CORRECTIVE_PLAN_VALIDATION',
@@ -171,6 +172,7 @@ export type AuditStatusType = typeof AuditStatus[keyof typeof AuditStatus]
  */
 export const AuditStatusLabels: Record<AuditStatusType, string> = {
   [AuditStatus.PLANNING]: 'Planification',
+  [AuditStatus.SCHEDULED]: 'Planifié',
   [AuditStatus.PENDING_REPORT]: 'En attente du rapport',
   [AuditStatus.PENDING_CORRECTIVE_PLAN]: 'En attente du plan correctif',
   [AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION]: 'En attente de validation du plan',
@@ -188,6 +190,7 @@ export const AuditStatusColors: Record<AuditStatusType, 'primary' | 'warning' | 
   [AuditStatus.PENDING_CASE_APPROVAL]: 'warning',
   [AuditStatus.PENDING_OE_CHOICE]: 'warning',
   [AuditStatus.PLANNING]: 'info',
+  [AuditStatus.SCHEDULED]: 'info',
   [AuditStatus.PENDING_REPORT]: 'warning',
   [AuditStatus.PENDING_CORRECTIVE_PLAN]: 'warning',
   [AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION]: 'warning',
