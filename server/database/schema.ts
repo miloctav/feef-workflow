@@ -52,6 +52,7 @@ export const actionTypeEnum = pgEnum('action_type', [
   'ENTITY_UPDATE_CASE_INFORMATION',
   'ENTITY_SIGN_FEEF_CONTRACT',
   'ENTITY_UPLOAD_CORRECTIVE_PLAN',
+  'ENTITY_UPDATE_DOCUMENT',
   // Actions partagées OE/AUDITOR (fusionnées)
   'SET_AUDIT_DATES',
   'UPLOAD_AUDIT_PLAN',

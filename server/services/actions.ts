@@ -140,6 +140,70 @@ export async function createActionsForContractStatus(
   }
 }
 
+/**
+ * Create or update ENTITY_UPDATE_DOCUMENT action
+ * Une seule action par entité, mise à jour si elle existe déjà
+ */
+export async function createOrUpdateDocumentUpdateAction(
+  entityId: number,
+  event: H3Event,
+): Promise<void> {
+  console.log(`[Actions] Creating or updating ENTITY_UPDATE_DOCUMENT action for entity ${entityId}`)
+
+  // Vérifier si l'action existe déjà
+  const existingAction = await db.query.actions.findFirst({
+    where: and(
+      eq(actions.type, ActionType.ENTITY_UPDATE_DOCUMENT),
+      eq(actions.entityId, entityId),
+      isNull(actions.auditId),
+      isNull(actions.deletedAt),
+      eq(actions.status, 'PENDING'),
+    ),
+  })
+
+  if (existingAction) {
+    console.log(`[Actions] ENTITY_UPDATE_DOCUMENT action already exists (ID: ${existingAction.id}), no need to create a new one`)
+    return
+  }
+
+  // Calculer la deadline : 15 jours avant la date de début de l'audit en cours
+  let deadline: Date | null = null
+
+  // Récupérer le dernier audit non complété de l'entité
+  const currentAudit = await db.query.audits.findFirst({
+    where: and(
+      eq(audits.entityId, entityId),
+      isNull(audits.deletedAt),
+    ),
+    orderBy: [desc(audits.createdAt)],
+  })
+
+  if (currentAudit && currentAudit.status !== 'COMPLETED' && currentAudit.actualStartDate) {
+    // Calculer 15 jours avant la date de début
+    const auditStartDate = new Date(currentAudit.actualStartDate)
+    deadline = new Date(auditStartDate)
+    deadline.setDate(deadline.getDate() - 15)
+    deadline.setHours(23, 59, 59, 999)
+  }
+
+  // Créer l'action
+  const definition = ACTION_TYPE_REGISTRY[ActionType.ENTITY_UPDATE_DOCUMENT]
+  const duration = definition.defaultDurationDays
+
+  const [newAction] = await db.insert(actions).values(forInsert(event, {
+    type: ActionType.ENTITY_UPDATE_DOCUMENT,
+    entityId,
+    auditId: null, // Action entity-level
+    assignedRoles: definition.assignedRoles,
+    status: 'PENDING',
+    durationDays: duration,
+    deadline: deadline || calculateDeadline(duration), // Utiliser deadline calculée ou durée par défaut
+    metadata: null,
+  })).returning()
+
+  console.log(`[Actions] Created ENTITY_UPDATE_DOCUMENT action (ID: ${newAction.id}) for entity ${entityId}`)
+}
+
 
 
 
@@ -340,6 +404,8 @@ async function evaluateCustomCheck(checkName: string, action: any): Promise<bool
       return await checkContractEntitySigned(action)
     case 'checkAuditDatesSet':
       return await checkAuditDatesSet(action)
+    case 'checkAllDocumentRequestsCompleted':
+      return await checkAllDocumentRequestsCompleted(action)
     default:
       console.warn(`[Actions] Unknown custom check: ${checkName}`)
       return false
@@ -610,6 +676,41 @@ export async function checkAuditDatesSet(
 
   // Both dates must be set
   return !!(audit?.actualStartDate && audit?.actualEndDate)
+}
+
+/**
+ * Custom completion check: All document update requests completed
+ * Vérifie que tous les documentVersions avec askedBy != null ont un s3Key != null
+ */
+export async function checkAllDocumentRequestsCompleted(
+  action: any,
+): Promise<boolean> {
+  // Récupérer toutes les documentaryReviews de l'entité
+  const documentaryReviewsList = await db.query.documentaryReviews.findMany({
+    where: and(
+      eq(documentaryReviews.entityId, action.entityId),
+      isNull(documentaryReviews.deletedAt)
+    ),
+  })
+
+  const documentaryReviewIds = documentaryReviewsList.map(dr => dr.id)
+
+  if (documentaryReviewIds.length === 0) {
+    return true // Pas de documents, action complétée
+  }
+
+  // Récupérer toutes les versions de documents avec demande de MAJ
+  const pendingRequests = await db.query.documentVersions.findMany({
+    where: and(
+      inArray(documentVersions.documentaryReviewId, documentaryReviewIds),
+      isNotNull(documentVersions.askedBy),
+    ),
+  })
+
+  // Vérifier que toutes les demandes ont un s3Key (document uploadé)
+  const allCompleted = pendingRequests.every(version => version.s3Key !== null)
+
+  return allCompleted
 }
 
 /**

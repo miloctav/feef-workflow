@@ -225,6 +225,13 @@
       "when": 1765361470165,
       "tag": "0031_quiet_argent",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1765381151701,
+      "tag": "0032_blue_norman_osborn",
+      "breakpoints": true
     }
   ]
 }

@@ -24,6 +24,7 @@ export const ActionType = {
   ENTITY_UPDATE_CASE_INFORMATION: 'ENTITY_UPDATE_CASE_INFORMATION',
   ENTITY_SIGN_FEEF_CONTRACT: 'ENTITY_SIGN_FEEF_CONTRACT',
   ENTITY_UPLOAD_CORRECTIVE_PLAN: 'ENTITY_UPLOAD_CORRECTIVE_PLAN',
+  ENTITY_UPDATE_DOCUMENT: 'ENTITY_UPDATE_DOCUMENT',
 
   // OE/AUDITOR Actions fusionnées (multi-rôles)
   SET_AUDIT_DATES: 'SET_AUDIT_DATES',
@@ -279,6 +280,22 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
       onAuditStatus: [AuditStatus.PENDING_CORRECTIVE_PLAN],
     },
     icon: 'i-lucide-list-checks',
+    color: 'warning',
+  },
+
+  [ActionType.ENTITY_UPDATE_DOCUMENT]: {
+    key: ActionType.ENTITY_UPDATE_DOCUMENT,
+    titleFr: 'Mettre à jour les documents demandés',
+    descriptionFr: 'Téléverser les nouvelles versions des documents demandés par l\'OE',
+    assignedRoles: [Role.ENTITY],
+    defaultDurationDays: 10,
+    completionCriteria: {
+      customCheck: 'checkAllDocumentRequestsCompleted',
+    },
+    triggers: {
+      // Pas de trigger automatique - créée manuellement lors de la demande
+    },
+    icon: 'i-lucide-file-edit',
     color: 'warning',
   },
 

@@ -177,15 +177,15 @@ export default defineEventHandler(async (event) => {
   const pendingRequest = await db.query.documentVersions.findFirst({
     where: documentaryReviewId
       ? and(
-          eq(documentVersions.documentaryReviewId, documentaryReviewId),
-          isNull(documentVersions.s3Key),
-          isNotNull(documentVersions.askedBy)
-        )
+        eq(documentVersions.documentaryReviewId, documentaryReviewId),
+        isNull(documentVersions.s3Key),
+        isNotNull(documentVersions.askedBy)
+      )
       : and(
-          eq(documentVersions.contractId, contractId!),
-          isNull(documentVersions.s3Key),
-          isNotNull(documentVersions.askedBy)
-        ),
+        eq(documentVersions.contractId, contractId!),
+        isNull(documentVersions.s3Key),
+        isNotNull(documentVersions.askedBy)
+      ),
     orderBy: [desc(documentVersions.uploadAt)],
   })
 
@@ -285,6 +285,18 @@ export default defineEventHandler(async (event) => {
       },
     },
   })
+
+  // Vérifier si cet upload complète l'action ENTITY_UPDATE_DOCUMENT
+  if (documentaryReviewId) {
+    const { checkAndCompleteAllPendingActionsForEntity } = await import('~~/server/services/actions')
+    const entity = await db.query.entities.findFirst({
+      where: eq(entities.id, entityId),
+    })
+
+    if (entity) {
+      await checkAndCompleteAllPendingActionsForEntity(entity, user.id, event)
+    }
+  }
 
   return {
     data: versionWithUploader,
