@@ -13,6 +13,17 @@ import { forInsert, forUpdate } from '~~/server/utils/tracking'
 import type { H3Event } from 'h3'
 
 /**
+ * Check if a status matches the completion criteria (supports single status or array)
+ */
+function matchesAuditStatus(currentStatus: string, criteriaStatus: string | string[] | undefined): boolean {
+  if (!criteriaStatus) return false
+  if (Array.isArray(criteriaStatus)) {
+    return criteriaStatus.includes(currentStatus)
+  }
+  return currentStatus === criteriaStatus
+}
+
+/**
  * Calculate deadline from current time and duration
  */
 function calculateDeadline(durationDays: number): Date {
@@ -337,11 +348,9 @@ export async function checkAndCompleteAllPendingActions(
     }
 
     // Check status-based completion
-    if (definition.completionCriteria.auditStatus) {
-      if (audit.status === definition.completionCriteria.auditStatus) {
-        console.log(`[Actions] Action ${action.type} (${action.id}): Status matches ${audit.status}`)
-        shouldComplete = true
-      }
+    if (matchesAuditStatus(audit.status, definition.completionCriteria.auditStatus)) {
+      console.log(`[Actions] Action ${action.type} (${action.id}): Status matches ${audit.status}`)
+      shouldComplete = true
     }
 
     // Check document-based completion
@@ -435,7 +444,7 @@ export async function detectAndCompleteActionsForAuditStatus(
   for (const action of pendingActions) {
     const definition = ACTION_TYPE_REGISTRY[action.type as ActionTypeType]
 
-    if (definition?.completionCriteria.auditStatus === newStatus) {
+    if (matchesAuditStatus(newStatus, definition?.completionCriteria.auditStatus)) {
       await completeAction(action.id, completedBy, event)
     }
   }

@@ -186,3 +186,39 @@ export async function hasOeOpinion(audit: Audit): Promise<boolean> {
 export async function hasFeefDecision(audit: Audit): Promise<boolean> {
   return audit.feefDecisionAt !== null
 }
+
+/**
+ * Vérifie si l'audit nécessite une acceptation OE
+ *
+ * Vérifie que le type d'audit est INITIAL ou RENEWAL (pas MONITORING).
+ */
+export async function requiresOeAcceptance(audit: Audit): Promise<boolean> {
+  return audit.type === 'INITIAL' || audit.type === 'RENEWAL'
+}
+
+/**
+ * Vérifie si l'audit est de type MONITORING
+ *
+ * Les audits MONITORING passent directement en PLANNING sans acceptation OE.
+ */
+export async function isMonitoringAudit(audit: Audit): Promise<boolean> {
+  return audit.type === 'MONITORING'
+}
+
+/**
+ * Vérifie si l'OE a accepté l'audit
+ *
+ * Vérifie que oeAccepted === true et oeResponseAt est non null.
+ */
+export async function oeHasAccepted(audit: Audit): Promise<boolean> {
+  return audit.oeAccepted === true && audit.oeResponseAt !== null
+}
+
+/**
+ * Vérifie si l'OE a refusé l'audit
+ *
+ * Vérifie que oeAccepted === false et oeResponseAt est non null.
+ */
+export async function oeHasRefused(audit: Audit): Promise<boolean> {
+  return audit.oeAccepted === false && audit.oeResponseAt !== null
+}

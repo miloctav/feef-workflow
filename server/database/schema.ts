@@ -31,7 +31,7 @@ export const signatureTypeEnum = pgEnum('signature_type', ['ENTITY_ONLY', 'ENTIT
 export const signatureStatusEnum = pgEnum('signature_status', ['DRAFT', 'PENDING_ENTITY', 'PENDING_FEEF', 'COMPLETED'])
 
 // Define audit status enum
-export const auditStatusEnum = pgEnum('audit_status', ['PENDING_CASE_APPROVAL', 'PENDING_OE_CHOICE', 'PLANNING', 'SCHEDULED', 'PENDING_REPORT', 'PENDING_CORRECTIVE_PLAN', 'PENDING_CORRECTIVE_PLAN_VALIDATION', 'PENDING_OE_OPINION', 'PENDING_FEEF_DECISION', 'COMPLETED'])
+export const auditStatusEnum = pgEnum('audit_status', ['PENDING_CASE_APPROVAL', 'PENDING_OE_ACCEPTANCE', 'PENDING_OE_CHOICE', 'PLANNING', 'SCHEDULED', 'PENDING_REPORT', 'PENDING_CORRECTIVE_PLAN', 'PENDING_CORRECTIVE_PLAN_VALIDATION', 'PENDING_OE_OPINION', 'PENDING_FEEF_DECISION', 'COMPLETED', 'REFUSED_BY_OE'])
 
 // Define OE opinion enum
 export const oeOpinionEnum = pgEnum('oe_opinion', ['FAVORABLE', 'UNFAVORABLE', 'RESERVED'])
@@ -53,6 +53,8 @@ export const actionTypeEnum = pgEnum('action_type', [
   'ENTITY_SIGN_FEEF_CONTRACT',
   'ENTITY_UPLOAD_CORRECTIVE_PLAN',
   'ENTITY_UPDATE_DOCUMENT',
+  // OE
+  'OE_ACCEPT_OR_REFUSE_AUDIT',
   // Actions partagées OE/AUDITOR (fusionnées)
   'SET_AUDIT_DATES',
   'UPLOAD_AUDIT_PLAN',
@@ -154,6 +156,13 @@ export const audits = pgTable('audits', {
   feefDecisionAt: timestamp('feef_decision_at'),
   feefDecisionBy: integer('feef_decision_by').references(() => accounts.id),
   labelExpirationDate: date('label_expiration_date'),
+  // OE Response fields (acceptance/refusal)
+  oeResponseAt: timestamp('oe_response_at'),
+  oeResponseBy: integer('oe_response_by').references(() => accounts.id),
+  oeAccepted: boolean('oe_accepted'),
+  oeRefusalReason: text('oe_refusal_reason'),
+  // Link to previous audit in case of refusal
+  previousAuditId: integer('previous_audit_id').references((): AnyPgColumn => audits.id),
   createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
@@ -557,6 +566,16 @@ export const auditsRelations = relations(audits, ({ one, many }) => ({
     fields: [audits.feefDecisionBy],
     references: [accounts.id],
     relationName: 'feefDecisionBy',
+  }),
+  oeResponseByAccount: one(accounts, {
+    fields: [audits.oeResponseBy],
+    references: [accounts.id],
+    relationName: 'oeResponseBy',
+  }),
+  previousAudit: one(audits, {
+    fields: [audits.previousAuditId],
+    references: [audits.id],
+    relationName: 'previousAudit',
   }),
   documentVersions: many(documentVersions),
   notations: many(auditNotation),

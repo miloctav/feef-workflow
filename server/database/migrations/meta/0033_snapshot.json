@@ -1,0 +1,2249 @@
+{
+  "id": "192f92e9-6a9c-4de8-871d-87982a9233dc",
+  "prevId": "b03c72ed-1235-4af5-8881-51d82e765e24",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.accounts": {
+      "name": "accounts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "firstname": {
+          "name": "firstname",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lastname": {
+          "name": "lastname",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "oe_id": {
+          "name": "oe_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oe_role": {
+          "name": "oe_role",
+          "type": "oe_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "current_entity_id": {
+          "name": "current_entity_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password_changed_at": {
+          "name": "password_changed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "accounts_oe_id_oes_id_fk": {
+          "name": "accounts_oe_id_oes_id_fk",
+          "tableFrom": "accounts",
+          "tableTo": "oes",
+          "columnsFrom": [
+            "oe_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounts_current_entity_id_entities_id_fk": {
+          "name": "accounts_current_entity_id_entities_id_fk",
+          "tableFrom": "accounts",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "current_entity_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounts_created_by_accounts_id_fk": {
+          "name": "accounts_created_by_accounts_id_fk",
+          "tableFrom": "accounts",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounts_updated_by_accounts_id_fk": {
+          "name": "accounts_updated_by_accounts_id_fk",
+          "tableFrom": "accounts",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "accounts_email_unique": {
+          "name": "accounts_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.accounts_to_entities": {
+      "name": "accounts_to_entities",
+      "schema": "",
+      "columns": {
+        "account_id": {
+          "name": "account_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "account_entity_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "accounts_to_entities_account_id_accounts_id_fk": {
+          "name": "accounts_to_entities_account_id_accounts_id_fk",
+          "tableFrom": "accounts_to_entities",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounts_to_entities_entity_id_entities_id_fk": {
+          "name": "accounts_to_entities_entity_id_entities_id_fk",
+          "tableFrom": "accounts_to_entities",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "entity_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "accounts_to_entities_account_id_entity_id_pk": {
+          "name": "accounts_to_entities_account_id_entity_id_pk",
+          "columns": [
+            "account_id",
+            "entity_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.actions": {
+      "name": "actions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "action_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "audit_id": {
+          "name": "audit_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_roles": {
+          "name": "assigned_roles",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "action_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "duration_days": {
+          "name": "duration_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deadline": {
+          "name": "deadline",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_by": {
+          "name": "completed_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_actions_audit_id": {
+          "name": "idx_actions_audit_id",
+          "columns": [
+            {
+              "expression": "audit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"actions\".\"deleted_at\" IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_actions_entity_id": {
+          "name": "idx_actions_entity_id",
+          "columns": [
+            {
+              "expression": "entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"actions\".\"deleted_at\" IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_actions_status_deadline": {
+          "name": "idx_actions_status_deadline",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "deadline",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"actions\".\"deleted_at\" IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_actions_entity_audit_status": {
+          "name": "idx_actions_entity_audit_status",
+          "columns": [
+            {
+              "expression": "entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "audit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"actions\".\"deleted_at\" IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "actions_entity_id_entities_id_fk": {
+          "name": "actions_entity_id_entities_id_fk",
+          "tableFrom": "actions",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "entity_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "actions_audit_id_audits_id_fk": {
+          "name": "actions_audit_id_audits_id_fk",
+          "tableFrom": "actions",
+          "tableTo": "audits",
+          "columnsFrom": [
+            "audit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "actions_completed_by_accounts_id_fk": {
+          "name": "actions_completed_by_accounts_id_fk",
+          "tableFrom": "actions",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "completed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "actions_created_by_accounts_id_fk": {
+          "name": "actions_created_by_accounts_id_fk",
+          "tableFrom": "actions",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "actions_updated_by_accounts_id_fk": {
+          "name": "actions_updated_by_accounts_id_fk",
+          "tableFrom": "actions",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.audit_notation": {
+      "name": "audit_notation",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "audit_id": {
+          "name": "audit_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criterion_key": {
+          "name": "criterion_key",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score": {
+          "name": "score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "audit_notation_audit_id_audits_id_fk": {
+          "name": "audit_notation_audit_id_audits_id_fk",
+          "tableFrom": "audit_notation",
+          "tableTo": "audits",
+          "columnsFrom": [
+            "audit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.auditors_to_oe": {
+      "name": "auditors_to_oe",
+      "schema": "",
+      "columns": {
+        "auditor_id": {
+          "name": "auditor_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "oe_id": {
+          "name": "oe_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "auditors_to_oe_auditor_id_accounts_id_fk": {
+          "name": "auditors_to_oe_auditor_id_accounts_id_fk",
+          "tableFrom": "auditors_to_oe",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "auditor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "auditors_to_oe_oe_id_oes_id_fk": {
+          "name": "auditors_to_oe_oe_id_oes_id_fk",
+          "tableFrom": "auditors_to_oe",
+          "tableTo": "oes",
+          "columnsFrom": [
+            "oe_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "auditors_to_oe_auditor_id_oe_id_pk": {
+          "name": "auditors_to_oe_auditor_id_oe_id_pk",
+          "columns": [
+            "auditor_id",
+            "oe_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.audits": {
+      "name": "audits",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "oe_id": {
+          "name": "oe_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "auditor_id": {
+          "name": "auditor_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "audit_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "planned_date": {
+          "name": "planned_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actual_start_date": {
+          "name": "actual_start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actual_end_date": {
+          "name": "actual_end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "global_score": {
+          "name": "global_score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labeling_opinion": {
+          "name": "labeling_opinion",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "audit_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'PLANNING'"
+        },
+        "case_submitted_at": {
+          "name": "case_submitted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "case_submitted_by": {
+          "name": "case_submitted_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "case_approved_at": {
+          "name": "case_approved_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "case_approved_by": {
+          "name": "case_approved_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oe_opinion": {
+          "name": "oe_opinion",
+          "type": "oe_opinion",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oe_opinion_argumentaire": {
+          "name": "oe_opinion_argumentaire",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oe_opinion_conditions": {
+          "name": "oe_opinion_conditions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oe_opinion_transmitted_at": {
+          "name": "oe_opinion_transmitted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oe_opinion_transmitted_by": {
+          "name": "oe_opinion_transmitted_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "needs_corrective_plan": {
+          "name": "needs_corrective_plan",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "corrective_plan_validated_at": {
+          "name": "corrective_plan_validated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "corrective_plan_validated_by": {
+          "name": "corrective_plan_validated_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feef_decision": {
+          "name": "feef_decision",
+          "type": "feef_decision",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feef_decision_at": {
+          "name": "feef_decision_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feef_decision_by": {
+          "name": "feef_decision_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "label_expiration_date": {
+          "name": "label_expiration_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oe_response_at": {
+          "name": "oe_response_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oe_response_by": {
+          "name": "oe_response_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oe_accepted": {
+          "name": "oe_accepted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oe_refusal_reason": {
+          "name": "oe_refusal_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "previous_audit_id": {
+          "name": "previous_audit_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "audits_entity_id_entities_id_fk": {
+          "name": "audits_entity_id_entities_id_fk",
+          "tableFrom": "audits",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "entity_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audits_oe_id_oes_id_fk": {
+          "name": "audits_oe_id_oes_id_fk",
+          "tableFrom": "audits",
+          "tableTo": "oes",
+          "columnsFrom": [
+            "oe_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audits_auditor_id_accounts_id_fk": {
+          "name": "audits_auditor_id_accounts_id_fk",
+          "tableFrom": "audits",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "auditor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audits_case_submitted_by_accounts_id_fk": {
+          "name": "audits_case_submitted_by_accounts_id_fk",
+          "tableFrom": "audits",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "case_submitted_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audits_case_approved_by_accounts_id_fk": {
+          "name": "audits_case_approved_by_accounts_id_fk",
+          "tableFrom": "audits",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "case_approved_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audits_oe_opinion_transmitted_by_accounts_id_fk": {
+          "name": "audits_oe_opinion_transmitted_by_accounts_id_fk",
+          "tableFrom": "audits",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "oe_opinion_transmitted_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audits_corrective_plan_validated_by_accounts_id_fk": {
+          "name": "audits_corrective_plan_validated_by_accounts_id_fk",
+          "tableFrom": "audits",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "corrective_plan_validated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audits_feef_decision_by_accounts_id_fk": {
+          "name": "audits_feef_decision_by_accounts_id_fk",
+          "tableFrom": "audits",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "feef_decision_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audits_oe_response_by_accounts_id_fk": {
+          "name": "audits_oe_response_by_accounts_id_fk",
+          "tableFrom": "audits",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "oe_response_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audits_previous_audit_id_audits_id_fk": {
+          "name": "audits_previous_audit_id_audits_id_fk",
+          "tableFrom": "audits",
+          "tableTo": "audits",
+          "columnsFrom": [
+            "previous_audit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audits_created_by_accounts_id_fk": {
+          "name": "audits_created_by_accounts_id_fk",
+          "tableFrom": "audits",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "audits_updated_by_accounts_id_fk": {
+          "name": "audits_updated_by_accounts_id_fk",
+          "tableFrom": "audits",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.contracts": {
+      "name": "contracts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(1024)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "oe_id": {
+          "name": "oe_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requires_signature": {
+          "name": "requires_signature",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "signature_type": {
+          "name": "signature_type",
+          "type": "signature_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "signature_status": {
+          "name": "signature_status",
+          "type": "signature_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entity_signed_at": {
+          "name": "entity_signed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entity_signed_by": {
+          "name": "entity_signed_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feef_signed_at": {
+          "name": "feef_signed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feef_signed_by": {
+          "name": "feef_signed_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "contracts_entity_id_entities_id_fk": {
+          "name": "contracts_entity_id_entities_id_fk",
+          "tableFrom": "contracts",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "entity_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "contracts_oe_id_oes_id_fk": {
+          "name": "contracts_oe_id_oes_id_fk",
+          "tableFrom": "contracts",
+          "tableTo": "oes",
+          "columnsFrom": [
+            "oe_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "contracts_entity_signed_by_accounts_id_fk": {
+          "name": "contracts_entity_signed_by_accounts_id_fk",
+          "tableFrom": "contracts",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "entity_signed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "contracts_feef_signed_by_accounts_id_fk": {
+          "name": "contracts_feef_signed_by_accounts_id_fk",
+          "tableFrom": "contracts",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "feef_signed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "contracts_created_by_accounts_id_fk": {
+          "name": "contracts_created_by_accounts_id_fk",
+          "tableFrom": "contracts",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "contracts_updated_by_accounts_id_fk": {
+          "name": "contracts_updated_by_accounts_id_fk",
+          "tableFrom": "contracts",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.document_versions": {
+      "name": "document_versions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "documentary_review_id": {
+          "name": "documentary_review_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contract_id": {
+          "name": "contract_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "audit_id": {
+          "name": "audit_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "audit_document_type": {
+          "name": "audit_document_type",
+          "type": "audit_document_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "upload_at": {
+          "name": "upload_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "s3_key": {
+          "name": "s3_key",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "upload_by": {
+          "name": "upload_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asked_by": {
+          "name": "asked_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "asked_at": {
+          "name": "asked_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "comment": {
+          "name": "comment",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "document_versions_documentary_review_id_documentary_reviews_id_fk": {
+          "name": "document_versions_documentary_review_id_documentary_reviews_id_fk",
+          "tableFrom": "document_versions",
+          "tableTo": "documentary_reviews",
+          "columnsFrom": [
+            "documentary_review_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "document_versions_contract_id_contracts_id_fk": {
+          "name": "document_versions_contract_id_contracts_id_fk",
+          "tableFrom": "document_versions",
+          "tableTo": "contracts",
+          "columnsFrom": [
+            "contract_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "document_versions_audit_id_audits_id_fk": {
+          "name": "document_versions_audit_id_audits_id_fk",
+          "tableFrom": "document_versions",
+          "tableTo": "audits",
+          "columnsFrom": [
+            "audit_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "document_versions_upload_by_accounts_id_fk": {
+          "name": "document_versions_upload_by_accounts_id_fk",
+          "tableFrom": "document_versions",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "upload_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "document_versions_asked_by_accounts_id_fk": {
+          "name": "document_versions_asked_by_accounts_id_fk",
+          "tableFrom": "document_versions",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "asked_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "document_versions_updated_by_accounts_id_fk": {
+          "name": "document_versions_updated_by_accounts_id_fk",
+          "tableFrom": "document_versions",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.documentary_reviews": {
+      "name": "documentary_reviews",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_type_id": {
+          "name": "document_type_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(1024)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "document_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "documentary_reviews_entity_id_entities_id_fk": {
+          "name": "documentary_reviews_entity_id_entities_id_fk",
+          "tableFrom": "documentary_reviews",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "entity_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "documentary_reviews_document_type_id_documents_type_id_fk": {
+          "name": "documentary_reviews_document_type_id_documents_type_id_fk",
+          "tableFrom": "documentary_reviews",
+          "tableTo": "documents_type",
+          "columnsFrom": [
+            "document_type_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "documentary_reviews_created_by_accounts_id_fk": {
+          "name": "documentary_reviews_created_by_accounts_id_fk",
+          "tableFrom": "documentary_reviews",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "documentary_reviews_updated_by_accounts_id_fk": {
+          "name": "documentary_reviews_updated_by_accounts_id_fk",
+          "tableFrom": "documentary_reviews",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.documents_type": {
+      "name": "documents_type",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(1024)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "document_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "auto_ask": {
+          "name": "auto_ask",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "documents_type_created_by_accounts_id_fk": {
+          "name": "documents_type_created_by_accounts_id_fk",
+          "tableFrom": "documents_type",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "documents_type_updated_by_accounts_id_fk": {
+          "name": "documents_type_updated_by_accounts_id_fk",
+          "tableFrom": "documents_type",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.entities": {
+      "name": "entities",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "siret": {
+          "name": "siret",
+          "type": "varchar(14)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "entity_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "entity_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_group_id": {
+          "name": "parent_group_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "oe_id": {
+          "name": "oe_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "account_manager_id": {
+          "name": "account_manager_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "allow_oe_documents_access": {
+          "name": "allow_oe_documents_access",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "documentary_review_ready_at": {
+          "name": "documentary_review_ready_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "documentary_review_ready_by": {
+          "name": "documentary_review_ready_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address": {
+          "name": "address",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address_complement": {
+          "name": "address_complement",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "postal_code": {
+          "name": "postal_code",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "region": {
+          "name": "region",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone_number": {
+          "name": "phone_number",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "entities_parent_group_id_entities_id_fk": {
+          "name": "entities_parent_group_id_entities_id_fk",
+          "tableFrom": "entities",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "parent_group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "entities_oe_id_oes_id_fk": {
+          "name": "entities_oe_id_oes_id_fk",
+          "tableFrom": "entities",
+          "tableTo": "oes",
+          "columnsFrom": [
+            "oe_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "entities_account_manager_id_accounts_id_fk": {
+          "name": "entities_account_manager_id_accounts_id_fk",
+          "tableFrom": "entities",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "account_manager_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "entities_documentary_review_ready_by_accounts_id_fk": {
+          "name": "entities_documentary_review_ready_by_accounts_id_fk",
+          "tableFrom": "entities",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "documentary_review_ready_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "entities_created_by_accounts_id_fk": {
+          "name": "entities_created_by_accounts_id_fk",
+          "tableFrom": "entities",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "entities_updated_by_accounts_id_fk": {
+          "name": "entities_updated_by_accounts_id_fk",
+          "tableFrom": "entities",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "entities_siret_unique": {
+          "name": "entities_siret_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "siret"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.entity_field_versions": {
+      "name": "entity_field_versions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "field_key": {
+          "name": "field_key",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value_string": {
+          "name": "value_string",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "value_number": {
+          "name": "value_number",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "value_boolean": {
+          "name": "value_boolean",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "value_date": {
+          "name": "value_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "entity_field_versions_entity_id_entities_id_fk": {
+          "name": "entity_field_versions_entity_id_entities_id_fk",
+          "tableFrom": "entity_field_versions",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "entity_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "entity_field_versions_created_by_accounts_id_fk": {
+          "name": "entity_field_versions_created_by_accounts_id_fk",
+          "tableFrom": "entity_field_versions",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.oes": {
+      "name": "oes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "oes_created_by_accounts_id_fk": {
+          "name": "oes_created_by_accounts_id_fk",
+          "tableFrom": "oes",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "oes_updated_by_accounts_id_fk": {
+          "name": "oes_updated_by_accounts_id_fk",
+          "tableFrom": "oes",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.account_entity_role": {
+      "name": "account_entity_role",
+      "schema": "public",
+      "values": [
+        "SIGNATORY",
+        "PROCESS_MANAGER"
+      ]
+    },
+    "public.action_status": {
+      "name": "action_status",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "COMPLETED",
+        "CANCELLED"
+      ]
+    },
+    "public.action_type": {
+      "name": "action_type",
+      "schema": "public",
+      "values": [
+        "FEEF_VALIDATE_CASE_SUBMISSION",
+        "FEEF_VALIDATE_LABELING_DECISION",
+        "ENTITY_SUBMIT_CASE",
+        "ENTITY_MARK_DOCUMENTARY_REVIEW_READY",
+        "ENTITY_CHOOSE_OE",
+        "ENTITY_UPLOAD_REQUESTED_DOCUMENTS",
+        "ENTITY_UPDATE_CASE_INFORMATION",
+        "ENTITY_SIGN_FEEF_CONTRACT",
+        "ENTITY_UPLOAD_CORRECTIVE_PLAN",
+        "ENTITY_UPDATE_DOCUMENT",
+        "OE_ACCEPT_OR_REFUSE_AUDIT",
+        "SET_AUDIT_DATES",
+        "UPLOAD_AUDIT_PLAN",
+        "UPLOAD_AUDIT_REPORT",
+        "VALIDATE_CORRECTIVE_PLAN",
+        "UPLOAD_LABELING_OPINION"
+      ]
+    },
+    "public.audit_document_type": {
+      "name": "audit_document_type",
+      "schema": "public",
+      "values": [
+        "PLAN",
+        "REPORT",
+        "CORRECTIVE_PLAN",
+        "OE_OPINION",
+        "ATTESTATION"
+      ]
+    },
+    "public.audit_status": {
+      "name": "audit_status",
+      "schema": "public",
+      "values": [
+        "PENDING_CASE_APPROVAL",
+        "PENDING_OE_ACCEPTANCE",
+        "PENDING_OE_CHOICE",
+        "PLANNING",
+        "SCHEDULED",
+        "PENDING_REPORT",
+        "PENDING_CORRECTIVE_PLAN",
+        "PENDING_CORRECTIVE_PLAN_VALIDATION",
+        "PENDING_OE_OPINION",
+        "PENDING_FEEF_DECISION",
+        "COMPLETED",
+        "REFUSED_BY_OE"
+      ]
+    },
+    "public.audit_type": {
+      "name": "audit_type",
+      "schema": "public",
+      "values": [
+        "INITIAL",
+        "RENEWAL",
+        "MONITORING"
+      ]
+    },
+    "public.document_category": {
+      "name": "document_category",
+      "schema": "public",
+      "values": [
+        "CANDIDACY",
+        "AUDIT",
+        "OTHER"
+      ]
+    },
+    "public.entity_mode": {
+      "name": "entity_mode",
+      "schema": "public",
+      "values": [
+        "MASTER",
+        "FOLLOWER"
+      ]
+    },
+    "public.entity_type": {
+      "name": "entity_type",
+      "schema": "public",
+      "values": [
+        "COMPANY",
+        "GROUP"
+      ]
+    },
+    "public.feef_decision": {
+      "name": "feef_decision",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "ACCEPTED",
+        "REJECTED"
+      ]
+    },
+    "public.oe_opinion": {
+      "name": "oe_opinion",
+      "schema": "public",
+      "values": [
+        "FAVORABLE",
+        "UNFAVORABLE",
+        "RESERVED"
+      ]
+    },
+    "public.oe_role": {
+      "name": "oe_role",
+      "schema": "public",
+      "values": [
+        "ADMIN",
+        "ACCOUNT_MANAGER"
+      ]
+    },
+    "public.role": {
+      "name": "role",
+      "schema": "public",
+      "values": [
+        "FEEF",
+        "OE",
+        "AUDITOR",
+        "ENTITY"
+      ]
+    },
+    "public.signature_status": {
+      "name": "signature_status",
+      "schema": "public",
+      "values": [
+        "DRAFT",
+        "PENDING_ENTITY",
+        "PENDING_FEEF",
+        "COMPLETED"
+      ]
+    },
+    "public.signature_type": {
+      "name": "signature_type",
+      "schema": "public",
+      "values": [
+        "ENTITY_ONLY",
+        "ENTITY_AND_FEEF"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -1,19 +1,102 @@
 <template>
   <div class="bg-gray-50 rounded-b-lg p-6 min-h-[300px]">
     <div class="flex items-start gap-4 mb-6">
-      <UIcon name="i-lucide-search" class="w-6 h-6 text-primary mt-1" />
+      <UIcon
+        name="i-lucide-search"
+        class="w-6 h-6 text-primary mt-1"
+      />
       <div>
         <h3 class="text-lg font-semibold text-gray-900 mb-2">Phase d'audit</h3>
         <p class="text-gray-600 text-sm">Suivi de l'audit réalisé par l'Organisme Évaluateur</p>
       </div>
     </div>
 
+    <!-- Section acceptation OE (si PENDING_OE_ACCEPTANCE) -->
+    <UCard
+      v-if="currentAudit?.status === AuditStatus.PENDING_OE_ACCEPTANCE"
+      class="mb-6"
+    >
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon
+            name="i-lucide-alert-circle"
+            class="w-5 h-5 text-orange-500"
+          />
+          <h4 class="font-semibold">Acceptation de l'audit</h4>
+        </div>
+      </template>
+
+      <div class="space-y-4">
+        <!-- Message pour l'OE -->
+        <template v-if="user?.role === Role.OE">
+          <UAlert
+            color="orange"
+            variant="soft"
+            title="Action requise"
+            description="Vous devez indiquer si vous acceptez ou refusez d'effectuer cet audit avant de pouvoir le planifier."
+          />
+
+          <div class="flex justify-end">
+            <OEResponseModal
+              :audit-id="currentAudit.id"
+              @success="handleOEResponseSuccess"
+            />
+          </div>
+        </template>
+
+        <!-- Message pour ENTITY et FEEF -->
+        <template v-else>
+          <UAlert
+            color="info"
+            variant="soft"
+            title="En attente de l'acceptation de l'OE"
+            description="L'organisme évaluateur doit accepter ou refuser cet audit avant de pouvoir continuer."
+          />
+        </template>
+      </div>
+    </UCard>
+
+    <!-- Affichage si audit refusé -->
+    <UCard
+      v-else-if="currentAudit?.status === AuditStatus.REFUSED_BY_OE"
+      class="mb-6"
+    >
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon
+            name="i-lucide-x-circle"
+            class="w-5 h-5 text-red-500"
+          />
+          <h4 class="font-semibold">Audit refusé</h4>
+        </div>
+      </template>
+
+      <div class="space-y-4">
+        <UAlert
+          color="red"
+          variant="solid"
+          title="Cet audit a été refusé par l'OE"
+        />
+
+        <div
+          v-if="currentAudit.oeRefusalReason"
+          class="p-4 bg-gray-50 rounded-lg"
+        >
+          <p class="text-sm font-semibold text-gray-900 mb-2">Raison du refus :</p>
+          <p class="text-sm text-gray-700">{{ currentAudit.oeRefusalReason }}</p>
+        </div>
+      </div>
+    </UCard>
+
     <div class="space-y-8">
-      <!-- Section: Informations d'audit -->
-      <UCard>
+      <!-- Section: Informations d'audit (masquée si PENDING_OE_ACCEPTANCE) -->
+      <UCard v-if="currentAudit?.status !== AuditStatus.PENDING_OE_ACCEPTANCE">
         <template #header>
           <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-clipboard-check" class="w-5 h-5 text-purple-600" />
+            <UIcon
+              name="i-lucide-clipboard-check"
+              class="w-5 h-5 text-purple-600"
+            />
             <h4 class="font-semibold">Informations d'audit</h4>
           </div>
         </template>
@@ -31,7 +114,9 @@
           >
             <template #content>
               <div v-if="documentsTransmitted">
-                <p class="text-xs text-blue-800">Partagés le : {{ formatDate(currentEntity?.documentaryReviewReadyAt) }}</p>
+                <p class="text-xs text-blue-800">
+                  Partagés le : {{ formatDate(currentEntity?.documentaryReviewReadyAt) }}
+                </p>
               </div>
               <div v-else>
                 <p class="text-xs text-orange-700">Transmission en cours</p>
@@ -56,7 +141,9 @@
             label-success="Disponible"
             color-scheme="blue"
             :clickable="hasPlan || canUploadPlan"
-            :clickable-text="hasPlan ? 'Cliquer pour consulter le plan' : 'Cliquer pour importer un plan'"
+            :clickable-text="
+              hasPlan ? 'Cliquer pour consulter le plan' : 'Cliquer pour importer un plan'
+            "
             @click="openPlanViewer"
           >
           </AuditStepCard>
@@ -75,7 +162,11 @@
           >
             <template #actions>
               <!-- Bouton pour programmer les dates (OE/FEEF seulement) -->
-              <div v-if="(user?.role === Role.OE || user?.role === Role.FEEF) && currentAudit && isEditable">
+              <div
+                v-if="
+                  (user?.role === Role.OE || user?.role === Role.FEEF) && currentAudit && isEditable
+                "
+              >
                 <AuditDatesModal
                   :audit-id="currentAudit.id"
                   :initial-planned-date="currentAudit.plannedDate"
@@ -90,10 +181,14 @@
               <!-- Affichage des dates -->
               <div v-if="(plannedDatesSet || actualDatesSet) && currentAudit">
                 <!-- Dates prévisionnelles -->
-                <div v-if="plannedDatesSet" class="mb-3">
+                <div
+                  v-if="plannedDatesSet"
+                  class="mb-3"
+                >
                   <p class="text-xs font-semibold text-gray-900 mb-1">Dates prévisionnelles</p>
                   <p class="text-xs text-gray-700">
-                    {{ formatDate(currentAudit.plannedStartDate) }} - {{ formatDate(currentAudit.plannedEndDate) }}
+                    {{ formatDate(currentAudit.plannedStartDate) }} -
+                    {{ formatDate(currentAudit.plannedEndDate) }}
                   </p>
                 </div>
 
@@ -101,9 +196,16 @@
                 <div v-if="actualDatesSet">
                   <p class="text-xs font-semibold text-gray-900 mb-1">Dates réelles</p>
                   <p class="text-xs text-gray-700">
-                    {{ formatDate(currentAudit.actualStartDate) }} - {{ formatDate(currentAudit.actualEndDate) }}
+                    {{ formatDate(currentAudit.actualStartDate) }} -
+                    {{ formatDate(currentAudit.actualEndDate) }}
                   </p>
-                  <UBadge v-if="auditCompleted" color="success" size="xs" class="mt-1">Audit terminé</UBadge>
+                  <UBadge
+                    v-if="auditCompleted"
+                    color="success"
+                    size="xs"
+                    class="mt-1"
+                    >Audit terminé</UBadge
+                  >
                 </div>
               </div>
             </template>
@@ -142,7 +244,10 @@ const isEditable = computed(() => {
 
 // Computed: Plan d'audit disponible (depuis lastDocumentVersions)
 const hasPlan = computed(() => {
-  return currentAudit.value?.lastDocumentVersions?.PLAN !== null && currentAudit.value?.lastDocumentVersions?.PLAN !== undefined
+  return (
+    currentAudit.value?.lastDocumentVersions?.PLAN !== null &&
+    currentAudit.value?.lastDocumentVersions?.PLAN !== undefined
+  )
 })
 
 // Computed: OE peut uploader le plan
@@ -192,7 +297,7 @@ function formatDate(dateString: string | Date | null | undefined): string {
   return date.toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
+    year: 'numeric',
   })
 }
 
@@ -209,5 +314,12 @@ async function handlePlanUploaded() {
 async function handleDatesSaved() {
   // currentAudit est d�j� mis � jour par updateAudit() dans AuditDatesModal
   // Pas besoin de refetch l'audit, il est d�j� synchronis�
+}
+
+async function handleOEResponseSuccess() {
+  // Recharger l'audit pour afficher le nouveau statut
+  if (currentAudit.value?.id) {
+    await fetchAudit(currentAudit.value.id)
+  }
 }
 </script>

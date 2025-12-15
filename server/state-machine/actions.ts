@@ -110,3 +110,53 @@ export async function generateAttestation(audit: Audit, event: H3Event): Promise
     // L'attestation peut être régénérée manuellement si nécessaire
   }
 }
+
+/**
+ * Crée un nouvel audit en cas de refus par l'OE
+ *
+ * Cette action est exécutée lorsque l'OE refuse un audit.
+ * Elle effectue les opérations suivantes :
+ * 1. Retire l'OE de l'entité (oeId = null)
+ * 2. Crée un nouvel audit du même type au statut PENDING_OE_CHOICE
+ * 3. Lie le nouvel audit à l'ancien via previousAuditId
+ * 4. Crée les actions pour le nouveau statut
+ */
+export async function createNewAuditAfterRefusal(audit: Audit, event: H3Event): Promise<void> {
+  const { user } = await requireUserSession(event)
+
+  console.log(`[State Machine Action] Création d'un nouvel audit après refus de l'audit ${audit.id}`)
+
+  // 1. Retirer l'OE de l'entité
+  await db.update(entities)
+    .set(forUpdate(event, {
+      oeId: null,
+    }))
+    .where(eq(entities.id, audit.entityId))
+
+  console.log(`[State Machine Action] OE retiré de l'entité ${audit.entityId}`)
+
+  // 2. Créer un nouvel audit avec les informations de l'audit refusé
+  const [newAudit] = await db.insert(audits)
+    .values({
+      entityId: audit.entityId,
+      type: audit.type, // Même type que l'audit refusé
+      status: 'PENDING_OE_CHOICE', // Pas d'OE assigné
+      previousAuditId: audit.id, // Lien vers l'audit refusé
+      // Copier les informations de soumission et d'approbation du dossier
+      caseSubmittedAt: audit.caseSubmittedAt,
+      caseSubmittedBy: audit.caseSubmittedBy,
+      caseApprovedAt: audit.caseApprovedAt,
+      caseApprovedBy: audit.caseApprovedBy,
+      createdBy: user.id,
+      createdAt: new Date(),
+    })
+    .returning()
+
+  console.log(`[State Machine Action] Nouvel audit créé : ${newAudit.id} (type: ${newAudit.type}, statut: ${newAudit.status})`)
+
+  // 3. Créer les actions pour le nouveau statut
+  const { createActionsForAuditStatus } = await import('~~/server/services/actions')
+  await createActionsForAuditStatus(newAudit, newAudit.status, event)
+
+  console.log(`[State Machine Action] ✅ Actions créées pour le nouvel audit ${newAudit.id}`)
+}

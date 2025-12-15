@@ -26,7 +26,7 @@ const getInitialTab = () => {
   }
 
   // Si statut PLANNING → onglet planification d'audit
-  if (status === AuditStatus.PLANNING) {
+  if (status === AuditStatus.PLANNING || status === AuditStatus.SCHEDULED || status === AuditStatus.PENDING_OE_ACCEPTANCE) {
     return 'audit'
   }
 
@@ -51,7 +51,7 @@ watch(
         previousEntityId.value = audit.entityId
       }
 
-      // S�lectionner l'onglet en fonction du statut
+      // Sélectionner l'onglet en fonction du statut
       selectedTab.value = getInitialTab()
     }
   },

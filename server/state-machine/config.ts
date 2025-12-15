@@ -34,17 +34,51 @@ export const auditStateMachineConfig: StateMachineConfig = {
         ]
       },
       transitions: {
-        approve_with_oe: {
-          target: AuditStatus.PLANNING,
-          guards: ['has_oe_assigned'],
+        approve_with_oe_needs_acceptance: {
+          target: AuditStatus.PENDING_OE_ACCEPTANCE,
+          guards: ['has_oe_assigned', 'requires_oe_acceptance'],
           trigger: 'MANUAL',
-          description: 'FEEF approuve le dossier avec OE déjà assigné'
+          description: 'FEEF approuve + OE assigné + audit INITIAL/RENEWAL → acceptation requise'
+        },
+        approve_with_oe_monitoring: {
+          target: AuditStatus.PLANNING,
+          guards: ['has_oe_assigned', 'is_monitoring_audit'],
+          trigger: 'MANUAL',
+          description: 'FEEF approuve + OE assigné + audit MONITORING → planification directe'
         },
         approve_without_oe: {
           target: AuditStatus.PENDING_OE_CHOICE,
           guards: ['no_oe_assigned'],
           trigger: 'MANUAL',
           description: 'FEEF approuve le dossier sans OE assigné'
+        }
+      }
+    },
+
+    // ============================================
+    // État: PENDING_OE_ACCEPTANCE
+    // Description: En attente de l'acceptation de l'OE
+    // ============================================
+    [AuditStatus.PENDING_OE_ACCEPTANCE]: {
+      status: AuditStatus.PENDING_OE_ACCEPTANCE,
+      onEnter: {
+        createActions: [
+          ActionType.OE_ACCEPT_OR_REFUSE_AUDIT
+        ]
+      },
+      transitions: {
+        oe_accepts: {
+          target: AuditStatus.PLANNING,
+          guards: ['oe_has_accepted'],
+          trigger: 'AUTO_DOCUMENT',
+          description: 'OE accepte l\'audit → planification'
+        },
+        oe_refuses: {
+          target: AuditStatus.REFUSED_BY_OE,
+          guards: ['oe_has_refused'],
+          trigger: 'AUTO_DOCUMENT',
+          actions: ['create_new_audit_after_refusal'],
+          description: 'OE refuse l\'audit → créer nouvel audit + retirer OE'
         }
       }
     },
@@ -61,11 +95,17 @@ export const auditStateMachineConfig: StateMachineConfig = {
         ]
       },
       transitions: {
-        oe_assigned: {
-          target: AuditStatus.PLANNING,
-          guards: ['has_oe_assigned'],
+        oe_assigned_needs_acceptance: {
+          target: AuditStatus.PENDING_OE_ACCEPTANCE,
+          guards: ['has_oe_assigned', 'requires_oe_acceptance'],
           trigger: 'MANUAL',
-          description: 'Entité a choisi un OE'
+          description: 'OE assigné pour audit INITIAL/RENEWAL → acceptation requise'
+        },
+        oe_assigned_monitoring: {
+          target: AuditStatus.PLANNING,
+          guards: ['has_oe_assigned', 'is_monitoring_audit'],
+          trigger: 'MANUAL',
+          description: 'OE assigné pour audit MONITORING → planification directe'
         }
       }
     },
@@ -262,6 +302,18 @@ export const auditStateMachineConfig: StateMachineConfig = {
         executeActions: ['generate_attestation']
       },
       transitions: {} // État final, pas de transitions
+    },
+
+    // ============================================
+    // État: REFUSED_BY_OE
+    // Description: Audit refusé par l'OE (terminal)
+    // ============================================
+    [AuditStatus.REFUSED_BY_OE]: {
+      status: AuditStatus.REFUSED_BY_OE,
+      onEnter: {
+        createActions: []
+      },
+      transitions: {} // État terminal, pas de transitions
     }
   },
 
@@ -283,6 +335,10 @@ export const auditStateMachineConfig: StateMachineConfig = {
     corrective_plan_validated: guards.correctivePlanValidated,
     has_oe_opinion: guards.hasOeOpinion,
     has_feef_decision: guards.hasFeefDecision,
+    requires_oe_acceptance: guards.requiresOeAcceptance,
+    is_monitoring_audit: guards.isMonitoringAudit,
+    oe_has_accepted: guards.oeHasAccepted,
+    oe_has_refused: guards.oeHasRefused,
   },
 
   // ============================================
@@ -293,5 +349,6 @@ export const auditStateMachineConfig: StateMachineConfig = {
     calculate_label_expiration: actions.calculateLabelExpiration,
     reset_entity_workflow: actions.resetEntityWorkflow,
     generate_attestation: actions.generateAttestation,
+    create_new_audit_after_refusal: actions.createNewAuditAfterRefusal,
   }
 }

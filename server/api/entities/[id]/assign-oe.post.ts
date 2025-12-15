@@ -240,14 +240,20 @@ export default defineEventHandler(async (event) => {
   // Gérer l'assignation OE à l'audit en cours
   if (ongoingAudit) {
     console.log(`Assignation de l'OE ID ${oeId} à l'audit en cours ID ${ongoingAudit.id}`)
-    // Déterminer les champs à mettre à jour pour l'audit en cours
+
     const auditUpdate: { oeId: number | null; status?: AuditStatusType } = {
       oeId: oeId
     }
 
     const statusChanged = ongoingAudit.status === AuditStatus.PENDING_OE_CHOICE
     if (statusChanged) {
-      auditUpdate.status = AuditStatus.PLANNING
+      // Déterminer le nouveau statut selon le type d'audit
+      if (ongoingAudit.type === AuditType.MONITORING) {
+        auditUpdate.status = AuditStatus.PLANNING
+      } else {
+        // INITIAL ou RENEWAL → nécessite acceptation OE
+        auditUpdate.status = AuditStatus.PENDING_OE_ACCEPTANCE
+      }
     }
 
     await db
@@ -270,7 +276,7 @@ export default defineEventHandler(async (event) => {
     // Create actions if status changed and complete pending actions
     const { createActionsForAuditStatus, checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
     if (statusChanged) {
-      await createActionsForAuditStatus(updatedAudit, AuditStatus.PLANNING, event)
+      await createActionsForAuditStatus(updatedAudit, updatedAudit.status, event)
     }
     await checkAndCompleteAllPendingActions(updatedAudit, currentUser.id, event)
   }

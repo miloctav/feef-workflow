@@ -154,6 +154,7 @@ export function getAuditTypeColor(type: AuditTypeType): 'primary' | 'warning' | 
  */
 export const AuditStatus = {
   PENDING_CASE_APPROVAL: 'PENDING_CASE_APPROVAL',
+  PENDING_OE_ACCEPTANCE: 'PENDING_OE_ACCEPTANCE',
   PENDING_OE_CHOICE: 'PENDING_OE_CHOICE',
   PLANNING: 'PLANNING',
   SCHEDULED: 'SCHEDULED',
@@ -163,6 +164,7 @@ export const AuditStatus = {
   PENDING_OE_OPINION: 'PENDING_OE_OPINION',
   PENDING_FEEF_DECISION: 'PENDING_FEEF_DECISION',
   COMPLETED: 'COMPLETED',
+  REFUSED_BY_OE: 'REFUSED_BY_OE',
 } as const
 
 export type AuditStatusType = typeof AuditStatus[keyof typeof AuditStatus]
@@ -180,14 +182,17 @@ export const AuditStatusLabels: Record<AuditStatusType, string> = {
   [AuditStatus.PENDING_FEEF_DECISION]: 'En attente de décision FEEF',
   [AuditStatus.COMPLETED]: 'Terminé',
   [AuditStatus.PENDING_CASE_APPROVAL]: "En attente d'approbation du dossier",
-  [AuditStatus.PENDING_OE_CHOICE]: "En attente du choix de l'OE"
+  [AuditStatus.PENDING_OE_ACCEPTANCE]: "En attente de l'acceptation OE",
+  [AuditStatus.PENDING_OE_CHOICE]: "En attente du choix de l'OE",
+  [AuditStatus.REFUSED_BY_OE]: "Refusé par l'OE"
 }
 
 /**
  * Couleurs de badge pour les statuts d'audit (pour Nuxt UI)
  */
-export const AuditStatusColors: Record<AuditStatusType, 'primary' | 'warning' | 'success' | 'info' | 'neutral'> = {
+export const AuditStatusColors: Record<AuditStatusType, 'primary' | 'warning' | 'success' | 'info' | 'neutral' | 'error'> = {
   [AuditStatus.PENDING_CASE_APPROVAL]: 'warning',
+  [AuditStatus.PENDING_OE_ACCEPTANCE]: 'warning',
   [AuditStatus.PENDING_OE_CHOICE]: 'warning',
   [AuditStatus.PLANNING]: 'info',
   [AuditStatus.SCHEDULED]: 'info',
@@ -196,7 +201,8 @@ export const AuditStatusColors: Record<AuditStatusType, 'primary' | 'warning' | 
   [AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION]: 'warning',
   [AuditStatus.PENDING_OE_OPINION]: 'warning',
   [AuditStatus.PENDING_FEEF_DECISION]: 'primary',
-  [AuditStatus.COMPLETED]: 'success'
+  [AuditStatus.COMPLETED]: 'success',
+  [AuditStatus.REFUSED_BY_OE]: 'error'
 }
 
 /**
@@ -209,7 +215,7 @@ export function getAuditStatusLabel(status: AuditStatusType): string {
 /**
  * Obtenir la couleur du badge d'un statut d'audit
  */
-export function getAuditStatusColor(status: AuditStatusType): 'primary' | 'warning' | 'success' | 'info' | 'neutral' {
+export function getAuditStatusColor(status: AuditStatusType): 'primary' | 'warning' | 'success' | 'info' | 'neutral' | 'error' {
   return AuditStatusColors[status] || 'neutral'
 }
 

@@ -26,6 +26,9 @@ export const ActionType = {
   ENTITY_UPLOAD_CORRECTIVE_PLAN: 'ENTITY_UPLOAD_CORRECTIVE_PLAN',
   ENTITY_UPDATE_DOCUMENT: 'ENTITY_UPDATE_DOCUMENT',
 
+  // OE Actions
+  OE_ACCEPT_OR_REFUSE_AUDIT: 'OE_ACCEPT_OR_REFUSE_AUDIT',
+
   // OE/AUDITOR Actions fusionnées (multi-rôles)
   SET_AUDIT_DATES: 'SET_AUDIT_DATES',
   UPLOAD_AUDIT_PLAN: 'UPLOAD_AUDIT_PLAN',
@@ -75,8 +78,8 @@ export interface ActionCompletionCriteria {
   // Champ de base de données qui doit être défini
   field?: string
 
-  // Statut d'audit qui déclenche la complétion
-  auditStatus?: AuditStatusType
+  // Statut(s) d'audit qui déclenche(nt) la complétion (OR si plusieurs)
+  auditStatus?: AuditStatusType | AuditStatusType[]
 
   // Type de document qui doit être uploadé
   documentType?: string
@@ -210,7 +213,8 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     assignedRoles: [Role.ENTITY],
     defaultDurationDays: 15,
     completionCriteria: {
-      auditStatus: AuditStatus.PLANNING, // Quand l'audit passe de PENDING_OE_CHOICE à PLANNING
+      // L'action se termine soit quand l'OE accepte (PLANNING), soit quand l'entité choisit un OE (PENDING_OE_ACCEPTANCE)
+      auditStatus: [AuditStatus.PLANNING, AuditStatus.PENDING_OE_ACCEPTANCE],
     },
     triggers: {
       onAuditStatus: [AuditStatus.PENDING_OE_CHOICE],
@@ -300,7 +304,27 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
   },
 
   // ============================================
-  // OE ACTIONS (certaines partagées avec AUDITOR)
+  // OE ACTIONS
+  // ============================================
+
+  [ActionType.OE_ACCEPT_OR_REFUSE_AUDIT]: {
+    key: ActionType.OE_ACCEPT_OR_REFUSE_AUDIT,
+    titleFr: 'Accepter ou refuser l\'audit',
+    descriptionFr: 'Indiquez si vous acceptez ou refusez d\'effectuer cet audit',
+    assignedRoles: [Role.OE],
+    defaultDurationDays: 7,
+    completionCriteria: {
+      field: 'oeResponseAt',
+    },
+    triggers: {
+      onAuditStatus: [AuditStatus.PENDING_OE_ACCEPTANCE],
+    },
+    icon: 'i-lucide-clipboard-check',
+    color: 'warning',
+  },
+
+  // ============================================
+  // OE/AUDITOR ACTIONS PARTAGÉES
   // ============================================
 
   [ActionType.SET_AUDIT_DATES]: {
