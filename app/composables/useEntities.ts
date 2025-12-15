@@ -34,6 +34,9 @@ export const useEntities = () => {
   // State pour une entité individuelle
   const currentEntity = useState<EntityWithRelations | null>('entities:current', () => null)
 
+  // State pour une entité suiveuse (follower)
+  const currentFollowerEntity = useState<EntityWithRelations | null>('entities:currentFollower', () => null)
+
   // États de chargement pour les opérations CRUD
   const createLoading = useState('entities:createLoading', () => false)
   const updateLoading = useState('entities:updateLoading', () => false)
@@ -103,6 +106,31 @@ export const useEntities = () => {
       const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération de l\'entité'
 
       currentEntity.value = null
+
+      toast.add({
+        title: 'Erreur',
+        description: errorMessage,
+        color: 'error',
+      })
+
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  /**
+   * Récupérer une entité suiveuse (follower) par ID
+   */
+  const fetchFollowerEntity = async (id: number) => {
+    try {
+      const response = await $fetch<{ data: EntityWithRelations }>(`/api/entities/${id}`)
+
+      currentFollowerEntity.value = response.data
+
+      return { success: true, data: response.data }
+    } catch (e: any) {
+      const errorMessage = e.data?.message || e.message || 'Erreur lors de la récupération de l\'entité suiveuse'
+
+      currentFollowerEntity.value = null
 
       toast.add({
         title: 'Erreur',
@@ -559,6 +587,9 @@ export const useEntities = () => {
     // Entité individuelle
     currentEntity: readonly(currentEntity),
 
+    // Entité suiveuse (follower)
+    currentFollowerEntity: readonly(currentFollowerEntity),
+
     // États de chargement
     fetchLoading: readonly(fetchLoading),
     fetchError: readonly(fetchErrorMessage),
@@ -584,6 +615,7 @@ export const useEntities = () => {
     // Actions CRUD
     fetchEntities,
     fetchEntity,
+    fetchFollowerEntity,
     fetchEntitiesForSelect,
     createEntity,
     updateEntity,
