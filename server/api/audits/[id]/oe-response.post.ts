@@ -6,6 +6,7 @@ import { AuditStatus } from '~~/shared/types/enums'
 import { Role } from '~~/shared/types/roles'
 import { auditStateMachine } from '~~/server/state-machine'
 import { forUpdate } from '~~/server/utils/tracking'
+import { detectAndCompleteActionsForAuditField } from '~~/server/services/actions'
 
 const oeResponseSchema = z.object({
   accepted: z.boolean(),
@@ -117,6 +118,14 @@ export default defineEventHandler(async (event) => {
       message: 'Erreur lors de la récupération de l\'audit',
     })
   }
+
+  // Détecter et compléter les actions liées au champ oeResponseAt
+  await detectAndCompleteActionsForAuditField(
+    updatedAudit,
+    'oeResponseAt',
+    user.id,
+    event
+  )
 
   // Déclencher l'auto-transition via la state machine
   await auditStateMachine.checkAutoTransition(updatedAudit, event)

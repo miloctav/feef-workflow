@@ -86,11 +86,43 @@ const getColorClasses = (color: string) => {
       }
   }
 }
+
+// Get French label for a role
+const getRoleLabel = (role: string) => {
+  switch (role) {
+    case 'FEEF':
+      return 'FEEF'
+    case 'OE':
+      return 'OE'
+    case 'AUDITOR':
+      return 'Auditeur'
+    case 'ENTITY':
+      return 'Entreprise'
+    default:
+      return role
+  }
+}
+
+// Get badge color for a role
+const getRoleBadgeColor = (role: string) => {
+  switch (role) {
+    case 'FEEF':
+      return 'primary'
+    case 'OE':
+      return 'info'
+    case 'AUDITOR':
+      return 'secondary'
+    case 'ENTITY':
+      return 'success'
+    default:
+      return 'neutral'
+  }
+}
 </script>
 
 <template>
   <div class="flex justify-center">
-    <div class="w-full max-w-3xl">
+    <div class="w-full">
       <div
         v-if="props.loading"
         class="mb-4"
@@ -112,7 +144,7 @@ const getColorClasses = (color: string) => {
         />
       </div>
       <div v-else-if="hasActions">
-        <div class="space-y-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div
             v-for="(action, index) in safeActions"
             :key="`action-${action.id}-${index}`"
@@ -122,24 +154,46 @@ const getColorClasses = (color: string) => {
               getColorClasses(getDeadlineColor(action.deadline)).bg,
             ]"
           >
-            <div class="flex flex-col gap-2">
+            <div class="flex flex-col gap-3">
+              <!-- Role badges -->
+              <div class="flex flex-wrap gap-2">
+                <UBadge
+                  v-for="role in action.assignedRoles"
+                  :key="role"
+                  :color="getRoleBadgeColor(role)"
+                  variant="soft"
+                  size="xs"
+                >
+                  {{ getRoleLabel(role) }}
+                </UBadge>
+              </div>
+
+              <!-- Action title and description -->
               <div class="text-gray-900 dark:text-gray-100">
-                <span class="font-semibold">{{ getActionLabel(action.type) }}</span>
-                <span
+                <div class="font-semibold mb-1">
+                  {{ getActionLabel(action.type) }}
+                </div>
+                <div
                   v-if="getActionDescription(action.type)"
                   class="text-sm text-gray-600 dark:text-gray-400"
                 >
-                  — {{ getActionDescription(action.type) }}
-                </span>
+                  {{ getActionDescription(action.type) }}
+                </div>
               </div>
+
+              <!-- Deadline -->
               <div class="flex items-center gap-2">
+                <UIcon
+                  name="i-lucide-clock"
+                  :class="['w-4 h-4', getColorClasses(getDeadlineColor(action.deadline)).text]"
+                />
                 <span
                   :class="[
                     'text-sm font-medium',
                     getColorClasses(getDeadlineColor(action.deadline)).text,
                   ]"
                 >
-                  Échéance : {{ formatDate(action.deadline) }}
+                  {{ formatDate(action.deadline) }}
                 </span>
               </div>
             </div>
