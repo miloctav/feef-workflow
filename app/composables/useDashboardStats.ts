@@ -104,6 +104,12 @@ const CARD_MAPPINGS: Array<{
       category: 'Audit',
       cards: [
         {
+          shortText: 'En attente d\'acceptation par l\'OE',
+          auditStatus: 'PENDING_OE_ACCEPTANCE',
+          color: 'border-orange-500',
+          bgColor: 'bg-orange-50',
+        },
+        {
           shortText: 'Audit planifié',
           auditStatus: 'SCHEDULED',
           color: 'border-indigo-500',
