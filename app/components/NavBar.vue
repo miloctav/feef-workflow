@@ -16,7 +16,7 @@ const props = withDefaults(defineProps<Props>(), {
   breadcrumbItems: () => []
 })
 
-const { isNotificationsSlideoverOpen } = useDashboard()
+const { isNotificationsSlideoverOpen, isActionsSlideoverOpen } = useDashboard()
 
 // Récupérer la session pour vérifier le rôle
 const { data: session } = await useFetch('/api/auth/session')
@@ -42,6 +42,19 @@ const displayedBreadcrumbs = computed(() => {
     </template>
 
      <template #right>
+          <UTooltip text="Mes actions" :shortcuts="['T']">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              square
+              @click="isActionsSlideoverOpen = true"
+            >
+              <UChip color="primary" inset>
+                <UIcon name="i-lucide-clipboard-list" class="size-5 shrink-0" />
+              </UChip>
+            </UButton>
+          </UTooltip>
+
           <UTooltip text="Notifications" :shortcuts="['N']">
             <UButton
               color="neutral"

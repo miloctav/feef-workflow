@@ -285,7 +285,15 @@ function buildFilterConditions(
         // Handle "null" string as SQL NULL
         conditions.push(isNull(column))
       } else {
-        conditions.push(sql`${column} = ${value}`)
+        // Check if filtering on an array column (PostgreSQL array)
+        // Use the @> (contains) operator for array columns
+        // This allows filtering actions.assignedRoles @> '{FEEF}'
+        if (key === 'assignedRoles' || (column as any)?._?.dataType === 'array') {
+          // For array columns, use PostgreSQL contains operator
+          conditions.push(sql`${column} @> ARRAY[${value}]::text[]`)
+        } else {
+          conditions.push(sql`${column} = ${value}`)
+        }
       }
     }
   }

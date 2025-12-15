@@ -44,6 +44,7 @@
       <slot />
     </UDashboardPanel>
     <NotificationsSlideover />
+    <ActionsSlideover />
   </UDashboardGroup>
 </template>
 
