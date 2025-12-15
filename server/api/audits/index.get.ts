@@ -70,7 +70,11 @@ export default defineEventHandler(async (event) => {
 
   // Ajouter les filtres spécifiques par rôle
   if (user.role === Role.OE) {
-    whereConditions.push(eq(auditsTable.oeId, user.oeId))
+    // Si un entityId est fourni dans la requête, ne pas filtrer par oeId
+    // Cela permet de voir tous les audits de cette entité, même ceux d'autres OE
+    if (!query.entityId && user.oeId !== null) {
+      whereConditions.push(eq(auditsTable.oeId, user.oeId))
+    }
 
     // Si ACCOUNT_MANAGER, filtrer par accountManagerId via les entités
     if (user.oeRole === OERole.ACCOUNT_MANAGER) {
