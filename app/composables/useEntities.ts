@@ -163,9 +163,6 @@ export const useEntities = () => {
         body: data,
       })
 
-      // Rafraîchir la liste paginée pour refléter les changements
-      await refresh()
-
       // Mettre à jour l'entité courante si c'est celle-ci
       if (currentEntity.value?.id === id) {
         currentEntity.value = response.data

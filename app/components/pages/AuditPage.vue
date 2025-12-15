@@ -36,15 +36,22 @@ const getInitialTab = () => {
 
 const selectedTab = ref('dossier')
 
-// Watcher pour charger l'entité et sélectionner l'onglet dès que l'audit est disponible
+// Stocker l'entityId pr�c�dent pour �viter les refetch inutiles
+const previousEntityId = ref<number | null>(null)
+
+// Watcher pour charger l'entit� et s�lectionner l'onglet d�s que l'audit est disponible
 watch(
   currentAudit,
   async (audit) => {
     if (audit?.entityId) {
-      console.log('Fetching entity for audit:', audit)
-      await fetchEntity(audit.entityId)
+      // Ne fetch l'entit� que si l'entityId a chang�
+      if (previousEntityId.value !== audit.entityId) {
+        console.log('Fetching entity for audit:', audit)
+        await fetchEntity(audit.entityId)
+        previousEntityId.value = audit.entityId
+      }
 
-      // Sélectionner l'onglet en fonction du statut
+      // S�lectionner l'onglet en fonction du statut
       selectedTab.value = getInitialTab()
     }
   },

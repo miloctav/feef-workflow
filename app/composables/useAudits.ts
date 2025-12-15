@@ -160,9 +160,6 @@ export const useAudits = (options?: { entityId?: number }) => {
         body: data,
       })
 
-      // Rafra�chir la liste pagin�e pour refl�ter les changements
-      await refresh()
-
       // Mettre � jour l'audit courant si c'est celui-ci
       if (currentAudit.value?.id === id) {
         currentAudit.value = response.data
@@ -242,9 +239,6 @@ export const useAudits = (options?: { entityId?: number }) => {
         method: 'POST',
         body: { auditorId },
       })
-
-      // Rafra�chir la liste pagin�e pour refl�ter les changements
-      await refresh()
 
       // Mettre � jour l'audit courant si c'est celui-ci
       if (currentAudit.value?.id === id) {

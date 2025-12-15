@@ -207,8 +207,7 @@ async function handlePlanUploaded() {
 }
 
 async function handleDatesSaved() {
-  if (currentAudit.value) {
-    await fetchAudit(currentAudit.value.id)
-  }
+  // currentAudit est d�j� mis � jour par updateAudit() dans AuditDatesModal
+  // Pas besoin de refetch l'audit, il est d�j� synchronis�
 }
 </script>
