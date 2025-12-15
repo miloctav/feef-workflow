@@ -134,6 +134,7 @@ const props = defineProps<Props>()
 // Composables
 const { user } = useAuth()
 const { updateAudit, fetchAudit, updateLoading } = useAudits()
+const { triggerActionRefresh } = useActionRefresh()
 
 // Inject isAuditEditable
 const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
@@ -220,6 +221,14 @@ async function handleSave() {
   if (auditResult.success) {
     await fetchAudit(props.audit.id)
     hasChanges.value = false
+
+    // Déclencher le rafraîchissement des actions
+    // L'émission d'un avis peut compléter des actions et déclencher des transitions
+    triggerActionRefresh({
+      auditId: props.audit.id.toString(),
+      entityId: props.audit.entityId.toString(),
+    })
+
     isOpen.value = false
   }
 }

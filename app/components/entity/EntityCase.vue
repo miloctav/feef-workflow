@@ -22,6 +22,7 @@ const {
 
 const { user } = useAuth()
 const { buildFieldGroups } = useEntityFieldGroups()
+const { triggerActionRefresh } = useActionRefresh()
 
 // Entité à afficher : followerEntity (si fourni) ou currentEntity
 const displayEntity = computed(() => props.followerEntity || currentEntity.value)
@@ -58,14 +59,32 @@ const openFieldGroupEditor = (groupKey: EntityFieldGroupKey) => {
 
 const handleSubmitCaseAndClose = async (close: () => void) => {
   if (!displayEntity.value) return
-  await submitCase(displayEntity.value.id, plannedDate.value)
+  const result = await submitCase(displayEntity.value.id, plannedDate.value)
   await handleRefreshEntity()
+
+  // Déclencher le rafraîchissement des actions
+  // La soumission du dossier peut créer/compléter des actions
+  if (result?.success) {
+    triggerActionRefresh({
+      entityId: displayEntity.value.id.toString(),
+    })
+  }
+
   close()
 }
 
 const handleApproveCase = async () => {
   if (!displayEntity.value) return
-  await approveCase(displayEntity.value.id)
+  const result = await approveCase(displayEntity.value.id)
+
+  // Déclencher le rafraîchissement des actions
+  // L'approbation du dossier peut créer/compléter des actions et créer un audit
+  if (result?.success && result.data) {
+    triggerActionRefresh({
+      entityId: displayEntity.value.id.toString(),
+      auditId: result.data.auditId?.toString(),
+    })
+  }
 }
 
 const handleRefreshEntity = async () => {

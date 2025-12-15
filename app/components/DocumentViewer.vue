@@ -304,6 +304,9 @@ const {
 // Session user pour vérifier les permissions
 const { user } = useUserSession()
 
+// Import du helper pour déclencher le rafraîchissement des actions
+const { triggerActionRefresh } = useActionRefresh()
+
 // Refs pour les inputs file
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const fileInputEmptyRef = ref<HTMLInputElement | null>(null)
@@ -390,6 +393,23 @@ const handleFileSelect = async (event: Event) => {
   if (result.success && result.data) {
     // Sélectionner automatiquement la nouvelle version (la plus récente)
     selectedVersionId.value = result.data.id
+
+    // Déclencher le rafraîchissement des actions
+    // L'upload d'un document peut créer/compléter des actions
+    if (props.audit) {
+      triggerActionRefresh({
+        auditId: props.audit.id.toString(),
+        entityId: props.audit.entityId.toString(),
+      })
+    } else if (props.documentaryReview) {
+      triggerActionRefresh({
+        entityId: props.documentaryReview.entityId.toString(),
+      })
+    } else if (props.contract) {
+      triggerActionRefresh({
+        entityId: props.contract.entityId.toString(),
+      })
+    }
   }
 
   // Réinitialiser l'input pour permettre de réuploader le même fichier

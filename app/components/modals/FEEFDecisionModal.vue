@@ -62,6 +62,8 @@
 </template>
 
 <script setup lang="ts">
+import { AuditStatus } from '#shared/types/enums'
+
 interface Props {
   auditId: number
 }
@@ -74,6 +76,7 @@ const emit = defineEmits<{
 
 // Composables
 const { updateAudit } = useAudits()
+const { triggerActionRefresh } = useActionRefresh()
 const toast = useToast()
 
 // État local
@@ -97,6 +100,15 @@ const submitDecision = async (closeModal?: () => void) => {
     }
 
     emit('submitted', result.data)
+
+    // Déclencher le rafraîchissement des actions
+    // La décision FEEF complète des actions et change le statut de l'audit
+    if (result.data) {
+      triggerActionRefresh({
+        auditId: result.data.id.toString(),
+        entityId: result.data.entityId.toString(),
+      })
+    }
 
     // Fermer le modal
     if (closeModal) {

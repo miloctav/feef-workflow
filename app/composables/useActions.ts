@@ -2,6 +2,7 @@
 import type { Action } from '~~/server/database/schema'
 import type { PaginationParams } from '~~/app/types/pagination'
 import { isRef, unref, watch, computed } from 'vue'
+import { onActionRefresh } from './useActionRefresh'
 
 export const useActions = (options?: { auditId?: number | Ref<number | undefined>; entityId?: number | Ref<number | undefined> }) => {
   // Permet d'accepter un ref/computed ou une valeur primitive
@@ -67,6 +68,22 @@ export const useActions = (options?: { auditId?: number | Ref<number | undefined
   const reset = () => {
     paginated.reset()
   }
+
+  // S'abonner aux événements de rafraîchissement automatique
+  // Convertir les IDs number en string pour correspondre au format des événements
+  const auditIdStringRef = computed(() => auditIdRef.value?.toString())
+  const entityIdStringRef = computed(() => entityIdRef.value?.toString())
+
+  onActionRefresh(
+    async () => {
+      // Rafraîchir les actions automatiquement lors d'un événement
+      await paginated.refresh()
+    },
+    {
+      auditId: auditIdStringRef,
+      entityId: entityIdStringRef,
+    }
+  )
 
   return {
     actions: paginated.data,

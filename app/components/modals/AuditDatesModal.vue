@@ -135,6 +135,7 @@ const emit = defineEmits<{
 
 // Composables
 const { updateAudit } = useAudits()
+const { triggerActionRefresh } = useActionRefresh()
 const toast = useToast()
 
 // État local
@@ -234,6 +235,16 @@ const saveDates = async (closeModal?: () => void) => {
 
     if (result.success) {
       emit('saved', updateData)
+
+      // Déclencher le rafraîchissement des actions
+      // La saisie des dates d'audit peut compléter des actions
+      if (result.data) {
+        triggerActionRefresh({
+          auditId: result.data.id.toString(),
+          entityId: result.data.entityId.toString(),
+        })
+      }
+
       if (closeModal) {
         closeModal()
       }

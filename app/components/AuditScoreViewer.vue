@@ -154,6 +154,7 @@ const props = defineProps<Props>()
 const { user } = useAuth()
 const { auditNotations, fetchAuditNotations, updateAuditNotations, updateLoading: notationUpdateLoading } = useAuditNotation()
 const { fetchAudit, updateAudit, updateLoading: auditUpdateLoading } = useAudits()
+const { triggerActionRefresh } = useActionRefresh()
 
 // Inject isAuditEditable from parent
 const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
@@ -256,7 +257,14 @@ async function handleSave() {
   if (success) {
     await fetchAudit(props.audit.id)
     hasChanges.value = false
-    
+
+    // Déclencher le rafraîchissement des actions
+    // La saisie du score peut compléter des actions et déclencher des transitions
+    triggerActionRefresh({
+      auditId: props.audit.id.toString(),
+      entityId: props.audit.entityId.toString(),
+    })
+
     // Fermer le slideover après la sauvegarde
     isOpen.value = false
   }

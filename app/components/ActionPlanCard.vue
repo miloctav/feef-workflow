@@ -103,6 +103,7 @@ const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
 
 // Composables
 const toast = useToast()
+const { triggerActionRefresh } = useActionRefresh()
 
 // État local
 const validating = ref(false)
@@ -190,6 +191,13 @@ async function handleValidatePlan() {
 
     // Recharger l'audit
     await fetchAudit(currentAudit.value.id)
+
+    // Déclencher le rafraîchissement des actions
+    // La validation du plan peut compléter des actions et en créer de nouvelles
+    triggerActionRefresh({
+      auditId: currentAudit.value.id.toString(),
+      entityId: currentAudit.value.entityId.toString(),
+    })
   } catch (error: any) {
     toast.add({
       title: 'Erreur',
