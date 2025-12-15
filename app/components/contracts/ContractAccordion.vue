@@ -8,7 +8,11 @@
       <template #leading>
         <div class="flex items-center gap-4">
           <div :class="iconContainerClass">
-            <UIcon :name="icon" class="w-6 h-6" :class="iconClass" />
+            <UIcon
+              :name="icon"
+              class="w-6 h-6"
+              :class="iconClass"
+            />
           </div>
           <div>
             <div class="flex items-center gap-3">
@@ -25,13 +29,22 @@
       <template #content>
         <div class="px-6 pb-6 pt-4">
           <!-- État vide -->
-          <div v-if="contracts.length === 0" class="text-center py-8 text-gray-500">
-            <UIcon name="i-lucide-inbox" class="w-12 h-12 mx-auto mb-2 text-gray-300" />
+          <div
+            v-if="contracts.length === 0"
+            class="text-center py-8 text-gray-500"
+          >
+            <UIcon
+              name="i-lucide-inbox"
+              class="w-12 h-12 mx-auto mb-2 text-gray-300"
+            />
             <p>{{ emptyMessage }}</p>
           </div>
 
           <!-- Liste des contrats -->
-          <div v-else class="space-y-3">
+          <div
+            v-else
+            class="space-y-3"
+          >
             <div
               v-for="contract in contracts"
               :key="contract.id"
@@ -57,7 +70,10 @@
                         <h4 class="font-semibold text-base text-gray-900 group-hover:text-blue-900">
                           {{ contract.title }}
                         </h4>
-                        <UIcon name="i-lucide-eye" class="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
+                        <UIcon
+                          name="i-lucide-eye"
+                          class="w-4 h-4 text-gray-400 group-hover:text-blue-500"
+                        />
 
                         <!-- Badge statut de signature -->
                         <UBadge
@@ -69,19 +85,41 @@
                           {{ getSignatureStatusLabel(contract.signatureStatus) }}
                         </UBadge>
                       </div>
-                      <p v-if="contract.description" class="text-sm text-gray-600 mt-1.5">
+                      <p
+                        v-if="contract.description"
+                        class="text-sm text-gray-600 mt-1.5"
+                      >
                         {{ contract.description }}
                       </p>
 
                       <!-- Métadonnées -->
                       <div class="flex flex-wrap items-center gap-4 mt-3 text-xs text-gray-500">
                         <span class="flex items-center gap-1.5">
-                          <UIcon name="i-lucide-calendar" class="w-3.5 h-3.5" />
+                          <UIcon
+                            name="i-lucide-calendar"
+                            class="w-3.5 h-3.5"
+                          />
                           Créé le {{ formatDate(contract.createdAt) }}
                         </span>
-                        <span v-if="contract.updatedAt && contract.updatedAt !== contract.createdAt" class="flex items-center gap-1.5">
-                          <UIcon name="i-lucide-refresh-cw" class="w-3.5 h-3.5" />
+                        <span
+                          v-if="contract.updatedAt && contract.updatedAt !== contract.createdAt"
+                          class="flex items-center gap-1.5"
+                        >
+                          <UIcon
+                            name="i-lucide-refresh-cw"
+                            class="w-3.5 h-3.5"
+                          />
                           Modifié le {{ formatDate(contract.updatedAt) }}
+                        </span>
+                        <span
+                          v-if="contract.validityEndDate"
+                          class="flex items-center gap-1.5"
+                        >
+                          <UIcon
+                            name="i-lucide-clock"
+                            class="w-3.5 h-3.5"
+                          />
+                          Validité jusqu'au {{ formatDate(contract.validityEndDate) }}
                         </span>
                       </div>
                     </div>
@@ -101,7 +139,11 @@
                       </UButton>
 
                       <!-- Actions existantes -->
-                      <slot v-if="canEditContract(contract)" name="contract-actions" :contract="contract" />
+                      <slot
+                        v-if="canEditContract(contract)"
+                        name="contract-actions"
+                        :contract="contract"
+                      />
                     </div>
                   </div>
                 </div>
@@ -131,7 +173,7 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   color: 'blue',
-  emptyMessage: 'Aucun contrat'
+  emptyMessage: 'Aucun contrat',
 })
 
 defineEmits<Emits>()

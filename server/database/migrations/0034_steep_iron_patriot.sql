@@ -1,0 +1,1 @@
+ALTER TABLE "contracts" ADD COLUMN "validity_end_date" date;

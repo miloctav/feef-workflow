@@ -36,6 +36,9 @@ export default defineEventHandler(async (event) => {
   let forceOeIdStr: string | null = null
   let requiresSignatureStr: string | null = null
   let signatureTypeStr: string | null = null
+  let validityMonthsStr: string | null = null
+  let validityYearsStr: string | null = null
+  let validityEndDateStr: string | null = null
   let fileData: { filename: string, data: Buffer } | null = null
 
   for (const part of formData) {
@@ -51,6 +54,12 @@ export default defineEventHandler(async (event) => {
       requiresSignatureStr = part.data.toString()
     } else if (part.name === 'signatureType') {
       signatureTypeStr = part.data.toString()
+    } else if (part.name === 'validityMonths') {
+      validityMonthsStr = part.data.toString()
+    } else if (part.name === 'validityYears') {
+      validityYearsStr = part.data.toString()
+    } else if (part.name === 'validityEndDate') {
+      validityEndDateStr = part.data.toString()
     } else if (part.name === 'file' && part.filename) {
       fileData = {
         filename: part.filename,
@@ -66,6 +75,9 @@ export default defineEventHandler(async (event) => {
     forceOeId: forceOeIdStr === '' ? null : (forceOeIdStr ? Number(forceOeIdStr) : undefined),
     requiresSignature: requiresSignatureStr === 'true',
     signatureType: signatureTypeStr as 'ENTITY_ONLY' | 'ENTITY_AND_FEEF' | null,
+    validityMonths: validityMonthsStr ? Number(validityMonthsStr) : undefined,
+    validityYears: validityYearsStr ? Number(validityYearsStr) : undefined,
+    validityEndDate: validityEndDateStr || undefined,
   }
 
   // Validation du title (obligatoire)
@@ -206,6 +218,30 @@ export default defineEventHandler(async (event) => {
     signatureStatus = 'DRAFT' // Le contrat commence en mode DRAFT
   }
 
+  // Calculer la date de fin de validité
+  let validityEndDate: string | null = null
+
+  // Vérifier qu'un seul type de validité est fourni
+  const validityFieldsCount = [body.validityMonths, body.validityYears, body.validityEndDate].filter(v => v !== undefined).length
+  if (validityFieldsCount > 1) {
+    throw createError({
+      statusCode: 400,
+      message: 'Vous ne pouvez spécifier qu\'un seul type de validité (mois, années, ou date directe)',
+    })
+  }
+
+  if (body.validityMonths) {
+    const createdDate = new Date()
+    createdDate.setMonth(createdDate.getMonth() + body.validityMonths)
+    validityEndDate = createdDate.toISOString().split('T')[0] // Format YYYY-MM-DD
+  } else if (body.validityYears) {
+    const createdDate = new Date()
+    createdDate.setFullYear(createdDate.getFullYear() + body.validityYears)
+    validityEndDate = createdDate.toISOString().split('T')[0] // Format YYYY-MM-DD
+  } else if (body.validityEndDate) {
+    validityEndDate = body.validityEndDate
+  }
+
   // Créer le contrat
   const [contract] = await db.insert(contracts)
     .values(forInsert(event, {
@@ -216,6 +252,7 @@ export default defineEventHandler(async (event) => {
       requiresSignature,
       signatureType,
       signatureStatus,
+      validityEndDate,
     }))
     .returning()
 

@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
 
   // Vérifier qu'on ne tente pas de modifier des champs non modifiables
   if (body.entityId !== undefined || body.oeId !== undefined ||
-      body.createdBy !== undefined || body.createdAt !== undefined) {
+    body.createdBy !== undefined || body.createdAt !== undefined) {
     throw createError({
       statusCode: 400,
       message: 'Les champs entityId, oeId, createdBy et createdAt ne peuvent pas être modifiés',
@@ -57,6 +57,7 @@ export default defineEventHandler(async (event) => {
   const updateData: {
     title?: string
     description?: string | null
+    validityEndDate?: string | null
   } = {}
 
   // Validation et ajout du title si fourni
@@ -73,6 +74,41 @@ export default defineEventHandler(async (event) => {
   // Ajout de la description si fournie
   if (body.description !== undefined) {
     updateData.description = body.description
+  }
+
+  // Gérer les champs de validité
+  // Vérifier qu'un seul type de validité est fourni
+  const validityFieldsCount = [body.validityMonths, body.validityYears, body.validityEndDate].filter(v => v !== undefined).length
+  if (validityFieldsCount > 1) {
+    throw createError({
+      statusCode: 400,
+      message: 'Vous ne pouvez spécifier qu\'un seul type de validité (mois, années, ou date directe)',
+    })
+  }
+
+  if (body.validityMonths !== undefined) {
+    if (body.validityMonths === null) {
+      // Supprimer la validité
+      updateData.validityEndDate = null
+    } else {
+      // Calculer à partir de la date de création du contrat
+      const createdDate = new Date(contract.createdAt)
+      createdDate.setMonth(createdDate.getMonth() + body.validityMonths)
+      updateData.validityEndDate = createdDate.toISOString().split('T')[0]
+    }
+  } else if (body.validityYears !== undefined) {
+    if (body.validityYears === null) {
+      // Supprimer la validité
+      updateData.validityEndDate = null
+    } else {
+      // Calculer à partir de la date de création du contrat
+      const createdDate = new Date(contract.createdAt)
+      createdDate.setFullYear(createdDate.getFullYear() + body.validityYears)
+      updateData.validityEndDate = createdDate.toISOString().split('T')[0]
+    }
+  } else if (body.validityEndDate !== undefined) {
+    // Date directe ou null pour supprimer
+    updateData.validityEndDate = body.validityEndDate
   }
 
   // Vérifier qu'il y a au moins un champ à mettre à jour

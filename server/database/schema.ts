@@ -247,6 +247,8 @@ export const contracts = pgTable('contracts', {
   entitySignedBy: integer('entity_signed_by').references(() => accounts.id),
   feefSignedAt: timestamp('feef_signed_at'),
   feefSignedBy: integer('feef_signed_by').references(() => accounts.id),
+  // Validity field
+  validityEndDate: date('validity_end_date'),
   createdBy: integer('created_by').notNull().references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),

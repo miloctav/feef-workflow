@@ -21,10 +21,18 @@ export interface CreateContractData {
   forceOeId?: number | null // null pour forcer FEEF, number pour forcer un OE, undefined pour auto
   requiresSignature?: boolean // Si le contrat doit être signé (FEEF uniquement)
   signatureType?: 'ENTITY_ONLY' | 'ENTITY_AND_FEEF' | null // Qui doit signer
+  // Validity fields - only one should be provided
+  validityMonths?: number // Duration in months
+  validityYears?: number // Duration in years
+  validityEndDate?: string // Direct end date (ISO format)
 }
 
 // Type pour la mise à jour d'un contrat
 export interface UpdateContractData {
   title?: string
   description?: string | null
+  // Validity fields - only one should be provided, or null to clear
+  validityMonths?: number | null
+  validityYears?: number | null
+  validityEndDate?: string | null
 }

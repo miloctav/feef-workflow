@@ -1,5 +1,8 @@
 <template>
-  <UModal title="Ajouter un contrat" :ui="{ footer: 'justify-end' }">
+  <UModal
+    title="Ajouter un contrat"
+    :ui="{ footer: 'justify-end' }"
+  >
     <!-- Bouton trigger du modal -->
     <UButton
       v-if="compact"
@@ -21,7 +24,10 @@
 
     <template #body>
       <div class="space-y-4">
-        <UFormField label="Titre" required>
+        <UFormField
+          label="Titre"
+          required
+        >
           <UInput
             v-model="form.title"
             placeholder="Titre du contrat"
@@ -38,7 +44,10 @@
           />
         </UFormField>
 
-        <UFormField label="Fichier du contrat (PDF)" required>
+        <UFormField
+          label="Fichier du contrat (PDF)"
+          required
+        >
           <UFileUpload
             v-model="form.file"
             accept="application/pdf"
@@ -50,8 +59,59 @@
           />
         </UFormField>
 
+        <!-- Durée de validité (optionnelle) -->
+        <div class="space-y-3 pt-2 border-t border-neutral-200 dark:border-neutral-800">
+          <UFormField label="Durée de validité (optionnelle)">
+            <URadioGroup
+              v-model="form.validityType"
+              :items="validityTypeOptions"
+              :disabled="createLoading"
+            />
+          </UFormField>
+
+          <UFormField
+            v-if="form.validityType === 'months'"
+            label="Nombre de mois"
+          >
+            <UInput
+              v-model.number="form.validityMonths"
+              type="number"
+              min="1"
+              placeholder="Ex: 12"
+              :disabled="createLoading"
+            />
+          </UFormField>
+
+          <UFormField
+            v-if="form.validityType === 'years'"
+            label="Nombre d'années"
+          >
+            <UInput
+              v-model.number="form.validityYears"
+              type="number"
+              min="1"
+              placeholder="Ex: 2"
+              :disabled="createLoading"
+            />
+          </UFormField>
+
+          <UFormField
+            v-if="form.validityType === 'date'"
+            label="Date de fin de validité"
+          >
+            <UInput
+              v-model="form.validityEndDate"
+              type="date"
+              :disabled="createLoading"
+            />
+          </UFormField>
+        </div>
+
         <!-- Options de signature (uniquement pour contrats FEEF) -->
-        <div v-if="forceOeId === null" class="space-y-3 pt-2 border-t border-neutral-200 dark:border-neutral-800">
+        <div
+          v-if="forceOeId === null"
+          class="space-y-3 pt-2 border-t border-neutral-200 dark:border-neutral-800"
+        >
           <UFormField label="Options de signature">
             <UCheckbox
               v-model="form.requiresSignature"
@@ -106,7 +166,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   compact: false,
   entityId: undefined,
-  forceOeId: undefined
+  forceOeId: undefined,
 })
 const emit = defineEmits<{
   created: []
@@ -114,18 +174,42 @@ const emit = defineEmits<{
 
 const { createContract, createLoading } = useContracts()
 
+// Options pour le type de validité
+const validityTypeOptions = [
+  {
+    value: 'none',
+    label: 'Aucune',
+    description: 'Pas de date de fin de validité',
+  },
+  {
+    value: 'months',
+    label: 'En mois',
+    description: 'Spécifier la durée en mois',
+  },
+  {
+    value: 'years',
+    label: 'En années',
+    description: 'Spécifier la durée en années',
+  },
+  {
+    value: 'date',
+    label: 'Date directe',
+    description: 'Choisir une date de fin',
+  },
+]
+
 // Options pour le type de signature
 const signatureTypeOptions = [
   {
     value: 'ENTITY_ONLY',
     label: 'Entity seule',
-    description: 'Seule l\'entité doit signer le contrat'
+    description: "Seule l'entité doit signer le contrat",
   },
   {
     value: 'ENTITY_AND_FEEF',
     label: 'Entity + FEEF',
-    description: 'L\'entité puis FEEF doivent signer le contrat'
-  }
+    description: "L'entité puis FEEF doivent signer le contrat",
+  },
 ]
 
 // Formulaire
@@ -133,12 +217,20 @@ const form = reactive<{
   title: string
   description: string
   file: File | null
+  validityType: 'none' | 'months' | 'years' | 'date'
+  validityMonths: number | null
+  validityYears: number | null
+  validityEndDate: string
   requiresSignature: boolean
   signatureType: 'ENTITY_ONLY' | 'ENTITY_AND_FEEF' | null
 }>({
   title: '',
   description: '',
   file: null,
+  validityType: 'none',
+  validityMonths: null,
+  validityYears: null,
+  validityEndDate: '',
   requiresSignature: false,
   signatureType: null,
 })
@@ -180,6 +272,15 @@ const handleSubmit = async (close: () => void) => {
     formData.append('forceOeId', props.forceOeId === null ? '' : props.forceOeId.toString())
   }
 
+  // Ajouter les champs de validité si spécifiés
+  if (form.validityType === 'months' && form.validityMonths) {
+    formData.append('validityMonths', form.validityMonths.toString())
+  } else if (form.validityType === 'years' && form.validityYears) {
+    formData.append('validityYears', form.validityYears.toString())
+  } else if (form.validityType === 'date' && form.validityEndDate) {
+    formData.append('validityEndDate', form.validityEndDate)
+  }
+
   // Ajouter les champs de signature si requis et si c'est un contrat FEEF
   if (props.forceOeId === null && form.requiresSignature) {
     formData.append('requiresSignature', 'true')
@@ -207,17 +308,24 @@ const resetForm = () => {
   form.title = ''
   form.description = ''
   form.file = null
+  form.validityType = 'none'
+  form.validityMonths = null
+  form.validityYears = null
+  form.validityEndDate = ''
   form.requiresSignature = false
   form.signatureType = null
 }
 
 // Réinitialiser signatureType quand requiresSignature passe à false
-watch(() => form.requiresSignature, (newValue) => {
-  if (!newValue) {
-    form.signatureType = null
-  } else {
-    // Par défaut, sélectionner ENTITY_ONLY
-    form.signatureType = 'ENTITY_ONLY'
+watch(
+  () => form.requiresSignature,
+  (newValue) => {
+    if (!newValue) {
+      form.signatureType = null
+    } else {
+      // Par défaut, sélectionner ENTITY_ONLY
+      form.signatureType = 'ENTITY_ONLY'
+    }
   }
-})
+)
 </script>

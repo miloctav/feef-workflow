@@ -239,6 +239,13 @@
       "when": 1765793676993,
       "tag": "0033_living_grandmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1765812481153,
+      "tag": "0034_steep_iron_patriot",
+      "breakpoints": true
     }
   ]
 }
