@@ -15,11 +15,12 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const params = parsePaginationParams(query, actionsPaginationConfig)
 
-  // Extract auditId from query if present
+  // Extract auditId and entityId from query if present
   const auditId = query.auditId ? Number(query.auditId) : undefined
+  const entityId = query.entityId ? Number(query.entityId) : undefined
 
   // Build WHERE conditions based on user context
-  const userConditions = await buildActionsWhereForUser(user, [], { auditId })
+  const userConditions = await buildActionsWhereForUser(user, [], { auditId, entityId })
   const whereConditions = await buildWhereConditions(params, actionsPaginationConfig)
 
   const allConditions = [...userConditions, ...whereConditions]

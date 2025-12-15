@@ -15,7 +15,7 @@ import type { PaginationConfig } from '~~/server/utils/pagination'
 export async function buildActionsWhereForUser(
   user: Account,
   additionalConditions: SQL[] = [],
-  options: { includeAllStatuses?: boolean; auditId?: number } = {},
+  options: { includeAllStatuses?: boolean; auditId?: number; entityId?: number } = {},
 ): Promise<SQL[]> {
   const conditions: SQL[] = [
     isNull(actions.deletedAt),
@@ -30,6 +30,12 @@ export async function buildActionsWhereForUser(
   // If auditId is provided, bypass role filtering and show all actions for this audit
   if (options.auditId) {
     conditions.push(eq(actions.auditId, options.auditId))
+    return conditions
+  }
+
+  // If entityId is provided, bypass role filtering and show all actions for this entity
+  if (options.entityId) {
+    conditions.push(eq(actions.entityId, options.entityId))
     return conditions
   }
 
