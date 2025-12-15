@@ -18,6 +18,7 @@ export interface DocumentVersion {
   askedAt: string | null
   askedByAccount: UploadByAccount | null
   comment: string | null
+  auditDocumentType?: string | null
 }
 
 // Type pour créer une nouvelle version de document
