@@ -1,13 +1,22 @@
 <template>
   <div class="space-y-6">
     <!-- Loading state -->
-    <div v-if="fetchLoading" class="flex items-center justify-center p-8">
-      <UIcon name="i-heroicons-arrow-path" class="animate-spin text-primary w-6 h-6" />
+    <div
+      v-if="fetchLoading"
+      class="flex items-center justify-center p-8"
+    >
+      <UIcon
+        name="i-heroicons-arrow-path"
+        class="animate-spin text-primary w-6 h-6"
+      />
       <span class="ml-2">Chargement des contrats...</span>
     </div>
 
     <!-- Error state -->
-    <div v-else-if="fetchError" class="flex items-center justify-center p-8">
+    <div
+      v-else-if="fetchError"
+      class="flex items-center justify-center p-8"
+    >
       <UAlert
         color="error"
         variant="soft"
@@ -17,9 +26,15 @@
     </div>
 
     <!-- Contrats organisés en deux sections distinctes -->
-    <div v-else class="space-y-8">
+    <div
+      v-else
+      class="space-y-8"
+    >
       <!-- SECTION CONTRATS FEEF -->
-      <div v-if="showFeefSection" class="space-y-4">
+      <div
+        v-if="showFeefSection"
+        class="space-y-4"
+      >
         <div class="flex items-center justify-between pb-2">
           <div>
             <h2 class="text-lg font-semibold text-gray-900">Contrats FEEF</h2>
@@ -56,7 +71,10 @@
       </div>
 
       <!-- SECTION CONTRATS OE -->
-      <div v-if="showOeSection" class="space-y-4">
+      <div
+        v-if="showOeSection"
+        class="space-y-4"
+      >
         <div class="flex items-center justify-between pb-2">
           <div>
             <div class="flex items-center gap-3">
@@ -122,9 +140,15 @@
         </ContractAccordion>
 
         <!-- État vide si aucun contrat OE -->
-        <UCard v-if="Object.keys(oeContractsByOe).length === 0" class="overflow-hidden">
+        <UCard
+          v-if="Object.keys(oeContractsByOe).length === 0"
+          class="overflow-hidden"
+        >
           <div class="text-center py-8 text-gray-500">
-            <UIcon name="i-lucide-inbox" class="w-12 h-12 mx-auto mb-2 text-gray-300" />
+            <UIcon
+              name="i-lucide-inbox"
+              class="w-12 h-12 mx-auto mb-2 text-gray-300"
+            />
             <p>Aucun contrat OE</p>
           </div>
         </UCard>
@@ -165,12 +189,7 @@ const entityId = computed(() => {
   return currentEntity.value?.id
 })
 
-const {
-  contracts,
-  fetchLoading,
-  fetchError,
-  fetchContracts,
-} = useContracts()
+const { contracts, fetchLoading, fetchError, fetchContracts } = useContracts()
 
 // Récupérer les audits pour l'entité courante
 const { audits, setFilters: setAuditFilters, refresh: refreshAudits } = useAudits()
@@ -185,20 +204,22 @@ const canChangeOe = computed(() => {
   // Si pas d'audits, on peut changer
   if (!audits.value || audits.value.length === 0) return true
   // Trier par date de création décroissante pour avoir le dernier audit
-  const sortedAudits = [...audits.value].sort((a, b) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  const sortedAudits = [...audits.value].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )
   const lastAudit = sortedAudits[0]
 
-  if(lastAudit.type === AuditType.MONITORING) return (lastAudit.status === AuditStatus.COMPLETED)
-  
-  return lastAudit.status === AuditStatus.PENDING_OE_CHOICE || lastAudit.status === AuditStatus.PENDING_CASE_APPROVAL
+  if (lastAudit.type === AuditType.MONITORING) return lastAudit.status === AuditStatus.COMPLETED
+
+  return (
+    lastAudit.status === AuditStatus.PENDING_OE_CHOICE ||
+    lastAudit.status === AuditStatus.PENDING_CASE_APPROVAL
+  )
 })
 
-// Charger les contrats et audits au montage
+// Charger les audits au montage pour vérifier si on peut changer d'OE (les contrats sont déjà chargés par EntityPage)
 onMounted(async () => {
   if (entityId.value) {
-    await fetchContracts(entityId.value)
     // Charger les audits pour vérifier si on peut changer d'OE
     // Le watch automatique de usePaginatedFetch déclenchera refreshAudits()
     setAuditFilters({ entityId: entityId.value })
@@ -207,13 +228,13 @@ onMounted(async () => {
 
 // Filtrer les contrats FEEF (oeId = null)
 const feefContracts = computed(() => {
-  return contracts.value.filter(c => c.oeId === null)
+  return contracts.value.filter((c) => c.oeId === null)
 })
 
 // Grouper les contrats OE par oeId
 const oeContractsByOe = computed(() => {
   const groups: Record<string, any[]> = {}
-  contracts.value.forEach(contract => {
+  contracts.value.forEach((contract) => {
     if (contract.oeId !== null) {
       const oeKey = contract.oe?.name || `OE ${contract.oeId}`
       if (!groups[oeKey]) groups[oeKey] = []
@@ -227,8 +248,6 @@ const oeContractsByOe = computed(() => {
 const oeContractsCount = computed(() => {
   return Object.values(oeContractsByOe.value).flat().length
 })
-
-
 
 // Affichage conditionnel selon le rôle
 const showFeefSection = computed(() => {
@@ -261,10 +280,6 @@ const canAddOeContract = computed(() => {
 
   return false
 })
-
-
-
-
 
 // Gestion du Viewer
 const isViewerOpen = ref(false)

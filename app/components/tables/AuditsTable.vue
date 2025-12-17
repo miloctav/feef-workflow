@@ -138,9 +138,11 @@ const loadAuditors = async () => {
 
 // Charger les données au montage du composant
 onMounted(() => {
-  // Charger la liste des audits
+  // Charger la liste des audits seulement si elle n'est pas déjà chargée (par EntityPage par exemple)
   // Note: Si entityId est fourni en props, il est déjà dans initialParams et sera utilisé automatiquement
-  fetchAudits()
+  if (audits.value.length === 0) {
+    fetchAudits()
+  }
 
   if (props.hasFilters) {
     loadOEs()

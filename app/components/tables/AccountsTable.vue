@@ -54,28 +54,57 @@
       </template>
 
       <template #filter-badges="{ filters }">
-        <UBadge v-if="filters.entityRole !== null" variant="subtle" color="primary" size="sm">
+        <UBadge
+          v-if="filters.entityRole !== null"
+          variant="subtle"
+          color="primary"
+          size="sm"
+        >
           Rôle entité: {{ getFilterLabel('entityRole', filters.entityRole) }}
         </UBadge>
-        <UBadge v-if="filters.oeRole !== null" variant="subtle" color="primary" size="sm">
+        <UBadge
+          v-if="filters.oeRole !== null"
+          variant="subtle"
+          color="primary"
+          size="sm"
+        >
           Rôle OE: {{ getFilterLabel('oeRole', filters.oeRole) }}
         </UBadge>
-        <UBadge v-if="filters.role !== null" variant="subtle" color="primary" size="sm">
+        <UBadge
+          v-if="filters.role !== null"
+          variant="subtle"
+          color="primary"
+          size="sm"
+        >
           Rôle: {{ getFilterLabel('role', filters.role) }}
         </UBadge>
       </template>
 
       <template #form="{ item, isEditing }">
-        <UForm ref="form" :schema="schema" :state="state" class="space-y-6">
+        <UForm
+          ref="form"
+          :schema="schema"
+          :state="state"
+          class="space-y-6"
+        >
           <!-- Informations personnelles -->
           <div class="space-y-4">
-            <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-              <UIcon name="i-lucide-user" class="size-4" />
+            <div
+              class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              <UIcon
+                name="i-lucide-user"
+                class="size-4"
+              />
               <span>Informations personnelles</span>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UFormField label="Prénom" name="firstname" required>
+              <UFormField
+                label="Prénom"
+                name="firstname"
+                required
+              >
                 <UInput
                   v-model="state.firstname"
                   placeholder="Jean"
@@ -85,7 +114,11 @@
                 />
               </UFormField>
 
-              <UFormField label="Nom" name="lastname" required>
+              <UFormField
+                label="Nom"
+                name="lastname"
+                required
+              >
                 <UInput
                   v-model="state.lastname"
                   placeholder="Dupont"
@@ -96,7 +129,11 @@
               </UFormField>
             </div>
 
-            <UFormField label="Adresse email" name="email" required>
+            <UFormField
+              label="Adresse email"
+              name="email"
+              required
+            >
               <UInput
                 v-model="state.email"
                 type="email"
@@ -111,12 +148,21 @@
 
           <!-- Rôle et permissions -->
           <div class="space-y-4">
-            <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-              <UIcon name="i-lucide-shield" class="size-4" />
+            <div
+              class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              <UIcon
+                name="i-lucide-shield"
+                class="size-4"
+              />
               <span>Rôle et permissions</span>
             </div>
 
-            <UFormField label="Rôle global" name="role" required>
+            <UFormField
+              label="Rôle global"
+              name="role"
+              required
+            >
               <USelect
                 v-model="state.role"
                 :items="availableRoleOptions"
@@ -131,7 +177,12 @@
             <!-- Champs spécifiques au rôle OE -->
             <template v-if="state.role === 'OE'">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <UFormField v-if="!oeId" label="Organisme Évaluateur" name="oeId" required>
+                <UFormField
+                  v-if="!oeId"
+                  label="Organisme Évaluateur"
+                  name="oeId"
+                  required
+                >
                   <USelect
                     v-model="state.oeId"
                     :items="oesList"
@@ -142,7 +193,12 @@
                   />
                 </UFormField>
 
-                <UFormField label="Rôle dans l'OE" name="oeRole" required :class="!oeId ? '' : 'md:col-span-2'">
+                <UFormField
+                  label="Rôle dans l'OE"
+                  name="oeRole"
+                  required
+                  :class="!oeId ? '' : 'md:col-span-2'"
+                >
                   <USelect
                     v-model="state.oeRole"
                     :items="oeRoleCreateOptions"
@@ -180,7 +236,11 @@
                   class="flex items-start gap-2 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50"
                 >
                   <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <UFormField :label="`Entité ${index + 1}`" :name="`entityRoles.${index}.entityId`" required>
+                    <UFormField
+                      :label="`Entité ${index + 1}`"
+                      :name="`entityRoles.${index}.entityId`"
+                      required
+                    >
                       <USelect
                         v-model="entityRole.entityId"
                         :items="entitiesList"
@@ -192,7 +252,11 @@
                       />
                     </UFormField>
 
-                    <UFormField label="Rôle" :name="`entityRoles.${index}.role`" required>
+                    <UFormField
+                      label="Rôle"
+                      :name="`entityRoles.${index}.role`"
+                      required
+                    >
                       <USelect
                         v-model="entityRole.role"
                         :items="entityRoleCreateOptions"
@@ -220,7 +284,13 @@
             <!-- Champs spécifiques au rôle AUDITOR -->
             <template v-if="state.role === 'AUDITOR'">
               <!-- En mode OE, l'OE est automatiquement lié (pas besoin de sélection) -->
-              <UFormField v-if="!oeId" label="Organismes Évaluateurs" name="oeIds" required hint="Sélection multiple possible">
+              <UFormField
+                v-if="!oeId"
+                label="Organismes Évaluateurs"
+                name="oeIds"
+                required
+                hint="Sélection multiple possible"
+              >
                 <USelectMenu
                   v-model="state.oeIds"
                   :items="oesList"
@@ -237,7 +307,12 @@
       </template>
 
       <template #form-footer="{ close, item, isEditing }">
-        <UButton label="Annuler" color="neutral" variant="outline" @click="close" />
+        <UButton
+          label="Annuler"
+          color="neutral"
+          variant="outline"
+          @click="close"
+        />
         <UButton
           :label="isEditing ? 'Modifier' : 'Créer'"
           color="primary"
@@ -260,19 +335,28 @@ import {
   getOERoleLabel,
   getOERoleOptions,
 } from '~~/app/utils/roles'
-import { Role, EntityRole, type EntityRoleType, type RoleType, type OERoleType } from '#shared/types/roles'
+import {
+  Role,
+  EntityRole,
+  type EntityRoleType,
+  type RoleType,
+  type OERoleType,
+} from '#shared/types/roles'
 import { EntityMode } from '#shared/types/enums'
 import { z } from 'zod'
 
-const props = withDefaults(defineProps<{
-  hasFilters?: boolean
-  entityId?: number
-  oeId?: number
-  allowDelete?: boolean
-}>(), {
-  hasFilters: true,
-  allowDelete: false
-})
+const props = withDefaults(
+  defineProps<{
+    hasFilters?: boolean
+    entityId?: number
+    oeId?: number
+    allowDelete?: boolean
+  }>(),
+  {
+    hasFilters: true,
+    allowDelete: false,
+  }
+)
 
 const { user } = useAuth()
 
@@ -307,12 +391,15 @@ const entitiesList = ref<Array<{ label: string; value: number | null }>>([])
 // Items pour les filtres avec labels en français
 const entityRoleItems = ref<Array<{ label: string; value: EntityRoleType | null }>>([
   { label: 'Tous les rôles', value: null },
-  ...getEntityRoleOptions().map(opt => ({ label: opt.label, value: opt.value as EntityRoleType })),
+  ...getEntityRoleOptions().map((opt) => ({
+    label: opt.label,
+    value: opt.value as EntityRoleType,
+  })),
 ])
 
 const oeRoleItems = ref<Array<{ label: string; value: OERoleType | null }>>([
   { label: 'Tous les rôles', value: null },
-  ...getOERoleOptions().map(opt => ({ label: opt.label, value: opt.value as OERoleType })),
+  ...getOERoleOptions().map((opt) => ({ label: opt.label, value: opt.value as OERoleType })),
 ])
 
 const roleFilterItems = ref<Array<{ label: string; value: RoleType | null }>>([
@@ -329,11 +416,11 @@ const roleOptions = getRoleOptions()
 const availableRoleOptions = computed(() => {
   // En mode OE : limiter aux rôles OE et AUDITOR
   if (props.oeId) {
-    return roleOptions.filter(opt => opt.value === Role.OE || opt.value === Role.AUDITOR)
+    return roleOptions.filter((opt) => opt.value === Role.OE || opt.value === Role.AUDITOR)
   }
   // En mode Entity : limiter au rôle ENTITY
   if (props.entityId) {
-    return roleOptions.filter(opt => opt.value === Role.ENTITY)
+    return roleOptions.filter((opt) => opt.value === Role.ENTITY)
   }
   // Mode général : tous les rôles disponibles
   return roleOptions
@@ -347,6 +434,7 @@ const showFiltersCard = computed(() => {
 // Charger les données au montage du composant
 onMounted(async () => {
   // Appliquer le filtre entityId si fourni en props
+  // Note: setFilters déclenche automatiquement un refresh via le watch dans usePaginatedFetch
   if (props.entityId) {
     setFilters({ entityId: props.entityId })
   }
@@ -361,8 +449,7 @@ onMounted(async () => {
   oesList.value = await fetchOesForSelect({ includeAll: false })
   entitiesList.value = await fetchEntitiesForSelect({ includeAll: false, mode: EntityMode.MASTER })
 
-  // Charger la liste des comptes
-  fetchAccounts()
+  // Note: Pas besoin d'appeler fetchAccounts() car setFilters() déclenche déjà le refresh
 })
 
 // Gérer les changements de filtres depuis PaginatedTable
@@ -383,7 +470,10 @@ const handleFiltersChange = (newFilters: Record<string, any>) => {
 }
 
 // Obtenir le label d'un filtre pour l'affichage
-const getFilterLabel = (filterName: string, filterValue: EntityRoleType | OERoleType | RoleType | null): string => {
+const getFilterLabel = (
+  filterName: string,
+  filterValue: EntityRoleType | OERoleType | RoleType | null
+): string => {
   if (filterValue === null) return ''
 
   if (filterName === 'entityRole') {
@@ -426,7 +516,11 @@ const columns = computed(() => {
       cell: ({ row }) => {
         const role = row.original.role
         const label = getRoleLabel(role)
-        return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'soft', size: 'sm' }, () => label)
+        return h(
+          resolveComponent('UBadge'),
+          { color: 'neutral', variant: 'soft', size: 'sm' },
+          () => label
+        )
       },
     },
   ]
@@ -436,7 +530,7 @@ const columns = computed(() => {
     // Mode entityId : afficher le rôle dans l'entité
     allColumns.push({
       accessorKey: 'entityRole',
-      header: 'Rôle dans l\'entité',
+      header: "Rôle dans l'entité",
       cell: ({ row }) => {
         const account = row.original
         // Trouver la relation avec l'entité actuelle
@@ -457,14 +551,18 @@ const columns = computed(() => {
     // Mode oeId : afficher le rôle dans l'OE
     allColumns.push({
       accessorKey: 'oeRole',
-      header: 'Rôle dans l\'OE',
+      header: "Rôle dans l'OE",
       cell: ({ row }) => {
         const account = row.original
         const oeRole = account.oeRole
 
         if (oeRole) {
           const label = getOERoleLabel(oeRole)
-          return h(resolveComponent('UBadge'), { color: 'primary', variant: 'soft', size: 'sm' }, () => label)
+          return h(
+            resolveComponent('UBadge'),
+            { color: 'primary', variant: 'soft', size: 'sm' },
+            () => label
+          )
         }
 
         return '-'
@@ -481,24 +579,40 @@ const columns = computed(() => {
         // Si le compte est un OE, afficher son oeRole
         if (account.role === Role.OE && account.oeRole) {
           const label = getOERoleLabel(account.oeRole)
-          return h(resolveComponent('UBadge'), { color: 'primary', variant: 'soft', size: 'sm' }, () => label)
+          return h(
+            resolveComponent('UBadge'),
+            { color: 'primary', variant: 'soft', size: 'sm' },
+            () => label
+          )
         }
 
         // Si le compte est une ENTITY, afficher le nombre d'entités associées
         if (account.role === Role.ENTITY && account.accountsToEntities) {
           const count = account.accountsToEntities.length
           const text = count === 1 ? '1 entité' : `${count} entités`
-          return h(resolveComponent('UBadge'), { color: 'neutral', variant: 'soft', size: 'sm' }, () => text)
+          return h(
+            resolveComponent('UBadge'),
+            { color: 'neutral', variant: 'soft', size: 'sm' },
+            () => text
+          )
         }
 
         // Si le compte est un AUDITOR, afficher les OEs associés
         if (account.role === Role.AUDITOR && account.auditorsToOE) {
           const count = account.auditorsToOE.length
           if (count === 0) {
-            return h(resolveComponent('UBadge'), { color: 'gray', variant: 'soft', size: 'sm' }, () => 'Aucun OE')
+            return h(
+              resolveComponent('UBadge'),
+              { color: 'gray', variant: 'soft', size: 'sm' },
+              () => 'Aucun OE'
+            )
           }
           const text = count === 1 ? '1 OE' : `${count} OEs`
-          return h(resolveComponent('UBadge'), { color: 'blue', variant: 'soft', size: 'sm' }, () => text)
+          return h(
+            resolveComponent('UBadge'),
+            { color: 'blue', variant: 'soft', size: 'sm' },
+            () => text
+          )
         }
 
         return '-'
@@ -515,8 +629,15 @@ const columns = computed(() => {
         const account = row.original
 
         // Pour les auditeurs, afficher les OEs associés
-        if (account.role === Role.AUDITOR && account.auditorsToOE && account.auditorsToOE.length > 0) {
-          const oeNames = account.auditorsToOE.map(rel => rel.oe?.name).filter(Boolean).join(', ')
+        if (
+          account.role === Role.AUDITOR &&
+          account.auditorsToOE &&
+          account.auditorsToOE.length > 0
+        ) {
+          const oeNames = account.auditorsToOE
+            .map((rel) => rel.oe?.name)
+            .filter(Boolean)
+            .join(', ')
           return oeNames || '-'
         }
 
@@ -555,14 +676,20 @@ const forcedRole = computed(() => {
 // Schéma de validation pour le formulaire (dynamique selon le rôle et le mode)
 const schema = computed(() => {
   const baseSchema: Record<string, any> = {
-    firstname: z.string().min(1, 'Le prénom est requis').min(2, 'Le prénom doit contenir au moins 2 caractères'),
-    lastname: z.string().min(1, 'Le nom est requis').min(2, 'Le nom doit contenir au moins 2 caractères'),
+    firstname: z
+      .string()
+      .min(1, 'Le prénom est requis')
+      .min(2, 'Le prénom doit contenir au moins 2 caractères'),
+    lastname: z
+      .string()
+      .min(1, 'Le nom est requis')
+      .min(2, 'Le nom doit contenir au moins 2 caractères'),
     role: z.string().min(1, 'Le rôle est requis'),
   }
 
   // Email uniquement requis en mode création (pas en édition)
   if (!isEditingMode.value) {
-    baseSchema.email = z.string().min(1, 'L\'email est requis').email('L\'email doit être valide')
+    baseSchema.email = z.string().min(1, "L'email est requis").email("L'email doit être valide")
   } else {
     baseSchema.email = z.string().optional()
   }
@@ -570,13 +697,17 @@ const schema = computed(() => {
   const selectedRole = forcedRole.value || state.role
 
   // Si le rôle est ENTITY
-    if (selectedRole === Role.ENTITY) {
+  if (selectedRole === Role.ENTITY) {
     return z.object({
       ...baseSchema,
-      entityRoles: z.array(z.object({
-        entityId: z.number().positive('L\'entité est requise'),
-        role: z.string().min(1, 'Le rôle dans l\'entité est requis')
-      })).min(1, 'Au moins une entité doit être sélectionnée')
+      entityRoles: z
+        .array(
+          z.object({
+            entityId: z.number().positive("L'entité est requise"),
+            role: z.string().min(1, "Le rôle dans l'entité est requis"),
+          })
+        )
+        .min(1, 'Au moins une entité doit être sélectionnée'),
     })
   }
 
@@ -584,8 +715,8 @@ const schema = computed(() => {
   if (selectedRole === Role.OE) {
     return z.object({
       ...baseSchema,
-      oeId: z.number().positive('L\'OE est requis'),
-      oeRole: z.string().min(1, 'Le rôle dans l\'OE est requis')
+      oeId: z.number().positive("L'OE est requis"),
+      oeRole: z.string().min(1, "Le rôle dans l'OE est requis"),
     })
   }
 
@@ -593,7 +724,9 @@ const schema = computed(() => {
   if (selectedRole === Role.AUDITOR) {
     return z.object({
       ...baseSchema,
-      oeIds: z.array(z.number().positive('L\'OE doit être valide')).min(1, 'Au moins un OE doit être sélectionné')
+      oeIds: z
+        .array(z.number().positive("L'OE doit être valide"))
+        .min(1, 'Au moins un OE doit être sélectionné'),
     })
   }
 
@@ -623,56 +756,63 @@ const state = reactive<Schema>({
   oeId: props.oeId,
   oeRole: '',
   oeIds: props.oeId ? [props.oeId] : [],
-  entityRoles: props.entityId ? [{ entityId: props.entityId, role: '' }] : []
+  entityRoles: props.entityId ? [{ entityId: props.entityId, role: '' }] : [],
 })
 
 // Watcher pour forcer le rôle quand les props changent
-watch(() => forcedRole.value, (newRole) => {
-  if (newRole) {
-    state.role = newRole
-  }
-}, { immediate: true })
+watch(
+  () => forcedRole.value,
+  (newRole) => {
+    if (newRole) {
+      state.role = newRole
+    }
+  },
+  { immediate: true }
+)
 
 // Watcher pour réinitialiser les champs quand le rôle change
-watch(() => state.role, (newRole, oldRole) => {
-  // Ne rien faire si c'est la première initialisation
-  if (!oldRole) return
+watch(
+  () => state.role,
+  (newRole, oldRole) => {
+    // Ne rien faire si c'est la première initialisation
+    if (!oldRole) return
 
-  // Réinitialiser les champs OE si on ne sélectionne plus OE
-  if (oldRole === Role.OE && newRole !== Role.OE) {
-    // Ne pas réinitialiser oeId si on est en mode OE (props.oeId fourni)
-    if (!props.oeId) {
-      state.oeId = undefined
+    // Réinitialiser les champs OE si on ne sélectionne plus OE
+    if (oldRole === Role.OE && newRole !== Role.OE) {
+      // Ne pas réinitialiser oeId si on est en mode OE (props.oeId fourni)
+      if (!props.oeId) {
+        state.oeId = undefined
+      }
+      state.oeRole = ''
     }
-    state.oeRole = ''
-  }
 
-  // Réinitialiser les champs ENTITY si on ne sélectionne plus ENTITY
-  if (oldRole === Role.ENTITY && newRole !== Role.ENTITY) {
-    state.entityRoles = []
-  }
+    // Réinitialiser les champs ENTITY si on ne sélectionne plus ENTITY
+    if (oldRole === Role.ENTITY && newRole !== Role.ENTITY) {
+      state.entityRoles = []
+    }
 
-  // Réinitialiser les champs AUDITOR si on ne sélectionne plus AUDITOR
-  if (oldRole === Role.AUDITOR && newRole !== Role.AUDITOR) {
-    // En mode OE, garder props.oeId dans oeIds
-    state.oeIds = props.oeId ? [props.oeId] : []
-  }
+    // Réinitialiser les champs AUDITOR si on ne sélectionne plus AUDITOR
+    if (oldRole === Role.AUDITOR && newRole !== Role.AUDITOR) {
+      // En mode OE, garder props.oeId dans oeIds
+      state.oeIds = props.oeId ? [props.oeId] : []
+    }
 
-  // Initialiser les champs selon le nouveau rôle
-  if (newRole === Role.ENTITY && (!state.entityRoles || state.entityRoles.length === 0)) {
-    state.entityRoles = props.entityId
-      ? [{ entityId: props.entityId, role: '' }]
-      : [{ entityId: null as any, role: '' }] // Au moins une ligne pour une meilleure UX
-  }
+    // Initialiser les champs selon le nouveau rôle
+    if (newRole === Role.ENTITY && (!state.entityRoles || state.entityRoles.length === 0)) {
+      state.entityRoles = props.entityId
+        ? [{ entityId: props.entityId, role: '' }]
+        : [{ entityId: null as any, role: '' }] // Au moins une ligne pour une meilleure UX
+    }
 
-  if (newRole === Role.OE && !state.oeId) {
-    state.oeId = props.oeId
-  }
+    if (newRole === Role.OE && !state.oeId) {
+      state.oeId = props.oeId
+    }
 
-  if (newRole === Role.AUDITOR && (!state.oeIds || state.oeIds.length === 0)) {
-    state.oeIds = props.oeId ? [props.oeId] : []
+    if (newRole === Role.AUDITOR && (!state.oeIds || state.oeIds.length === 0)) {
+      state.oeIds = props.oeId ? [props.oeId] : []
+    }
   }
-})
+)
 
 const createLoading = ref(false)
 const form = ref()
@@ -686,7 +826,7 @@ const addEntityRole = () => {
   }
   state.entityRoles.push({
     entityId: null as any, // Sera converti en number par le select
-    role: ''
+    role: '',
   })
 }
 
@@ -743,9 +883,7 @@ const updateEntityAssociations = async (item: AccountWithRelations) => {
 
   // Associations à supprimer (dans existing mais pas dans new)
   for (const existing of existingAssociations) {
-    const stillExists = newAssociations.find(
-      (a) => a.entityId === existing.entityId
-    )
+    const stillExists = newAssociations.find((a) => a.entityId === existing.entityId)
     if (!stillExists) {
       await removeAccountFromEntity(item.id, existing.entityId)
     }
@@ -755,9 +893,7 @@ const updateEntityAssociations = async (item: AccountWithRelations) => {
   for (const newAssoc of newAssociations) {
     if (!newAssoc.entityId) continue // Skip si entityId est null
 
-    const existing = existingAssociations.find(
-      (a) => a.entityId === newAssoc.entityId
-    )
+    const existing = existingAssociations.find((a) => a.entityId === newAssoc.entityId)
 
     if (!existing) {
       // AJOUTER : appeler POST /api/accounts-to-entities

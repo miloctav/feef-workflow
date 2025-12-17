@@ -1,13 +1,22 @@
 <template>
   <div class="space-y-6">
     <!-- Loading state -->
-    <div v-if="fetchLoading" class="flex items-center justify-center p-8">
-      <UIcon name="i-heroicons-arrow-path" class="animate-spin text-primary w-6 h-6" />
+    <div
+      v-if="fetchLoading"
+      class="flex items-center justify-center p-8"
+    >
+      <UIcon
+        name="i-heroicons-arrow-path"
+        class="animate-spin text-primary w-6 h-6"
+      />
       <span class="ml-2">Chargement des documents...</span>
     </div>
 
     <!-- Error state -->
-    <div v-else-if="fetchError" class="flex items-center justify-center p-8">
+    <div
+      v-else-if="fetchError"
+      class="flex items-center justify-center p-8"
+    >
       <UAlert
         color="error"
         variant="soft"
@@ -17,7 +26,10 @@
     </div>
 
     <!-- Documents organisés par catégorie -->
-    <div v-else class="space-y-4">
+    <div
+      v-else
+      class="space-y-4"
+    >
       <!-- Header avec bouton d'ajout global -->
       <div class="flex items-center justify-between pb-2">
         <div>
@@ -51,17 +63,25 @@
         class="p-4 bg-green-50 rounded-lg border border-green-200"
       >
         <div class="flex items-center gap-3">
-          <UIcon name="i-lucide-check-circle" class="w-6 h-6 text-green-600 flex-shrink-0" />
+          <UIcon
+            name="i-lucide-check-circle"
+            class="w-6 h-6 text-green-600 flex-shrink-0"
+          />
           <div class="flex-1">
             <h5 class="font-medium text-green-800 mb-1">Revue documentaire validée par l'entité</h5>
             <p class="text-sm text-green-700">
               Marquée comme prête le {{ formatDate(currentEntity.documentaryReviewReadyAt, true) }}
               <span v-if="currentEntity.documentaryReviewReadyByAccount">
-                par {{ currentEntity.documentaryReviewReadyByAccount.firstname }} {{ currentEntity.documentaryReviewReadyByAccount.lastname }}
+                par {{ currentEntity.documentaryReviewReadyByAccount.firstname }}
+                {{ currentEntity.documentaryReviewReadyByAccount.lastname }}
               </span>
             </p>
           </div>
-          <UBadge color="success" variant="solid" size="lg">
+          <UBadge
+            color="success"
+            variant="solid"
+            size="lg"
+          >
             Validée
           </UBadge>
         </div>
@@ -98,7 +118,12 @@
         icon="i-lucide-lock"
       />
 
-      <UCard v-if="canViewDocuments" v-for="category in accordionItems" :key="category.value" class="overflow-hidden">
+      <UCard
+        v-if="canViewDocuments"
+        v-for="category in accordionItems"
+        :key="category.value"
+        class="overflow-hidden"
+      >
         <UAccordion
           type="single"
           :items="[category]"
@@ -106,8 +131,15 @@
         >
           <template #leading="{ item }">
             <div class="flex items-center gap-4">
-              <div class="p-3 rounded-lg" :class="getCategoryBackgroundClass(item.badgeColor)">
-                <UIcon :name="item.icon" class="w-6 h-6" :class="item.iconColor" />
+              <div
+                class="p-3 rounded-lg"
+                :class="getCategoryBackgroundClass(item.badgeColor)"
+              >
+                <UIcon
+                  :name="item.icon"
+                  class="w-6 h-6"
+                  :class="item.iconColor"
+                />
               </div>
               <div>
                 <h3 class="font-bold text-lg text-gray-900">{{ item.title }}</h3>
@@ -129,12 +161,21 @@
           <template #content="{ item }">
             <!-- Liste des documents -->
             <div class="px-6 pb-6 pt-4">
-              <div v-if="item.documents.length === 0" class="text-center py-8 text-gray-500">
-                <UIcon name="i-lucide-inbox" class="w-12 h-12 mx-auto mb-2 text-gray-300" />
+              <div
+                v-if="item.documents.length === 0"
+                class="text-center py-8 text-gray-500"
+              >
+                <UIcon
+                  name="i-lucide-inbox"
+                  class="w-12 h-12 mx-auto mb-2 text-gray-300"
+                />
                 <p>Aucun document dans cette catégorie</p>
               </div>
 
-              <div v-else class="space-y-3">
+              <div
+                v-else
+                class="space-y-3"
+              >
                 <div
                   v-for="document in item.documents"
                   :key="document.id"
@@ -157,7 +198,9 @@
                       <div class="flex items-start justify-between gap-4">
                         <div class="flex-1 min-w-0">
                           <div class="flex items-center gap-2">
-                            <h4 class="font-semibold text-base text-gray-900 group-hover:text-blue-900">
+                            <h4
+                              class="font-semibold text-base text-gray-900 group-hover:text-blue-900"
+                            >
                               {{ document.title }}
                             </h4>
                             <UBadge
@@ -167,23 +210,41 @@
                               size="sm"
                               class="flex items-center gap-1"
                             >
-                              <UIcon name="i-lucide-alert-circle" class="w-3 h-3" />
+                              <UIcon
+                                name="i-lucide-alert-circle"
+                                class="w-3 h-3"
+                              />
                               Demande en attente
                             </UBadge>
-                            <UIcon name="i-lucide-eye" class="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
+                            <UIcon
+                              name="i-lucide-eye"
+                              class="w-4 h-4 text-gray-400 group-hover:text-blue-500"
+                            />
                           </div>
-                          <p v-if="document.description" class="text-sm text-gray-600 mt-1.5">
+                          <p
+                            v-if="document.description"
+                            class="text-sm text-gray-600 mt-1.5"
+                          >
                             {{ document.description }}
                           </p>
 
                           <!-- Métadonnées -->
                           <div class="flex flex-wrap items-center gap-4 mt-3 text-xs text-gray-500">
                             <span class="flex items-center gap-1.5">
-                              <UIcon name="i-lucide-calendar" class="w-3.5 h-3.5" />
+                              <UIcon
+                                name="i-lucide-calendar"
+                                class="w-3.5 h-3.5"
+                              />
                               Créé le {{ formatDate(document.createdAt) }}
                             </span>
-                            <span v-if="document.updatedAt && document.updatedAt !== document.createdAt" class="flex items-center gap-1.5">
-                              <UIcon name="i-lucide-refresh-cw" class="w-3.5 h-3.5" />
+                            <span
+                              v-if="document.updatedAt && document.updatedAt !== document.createdAt"
+                              class="flex items-center gap-1.5"
+                            >
+                              <UIcon
+                                name="i-lucide-refresh-cw"
+                                class="w-3.5 h-3.5"
+                              />
                               Modifié le {{ formatDate(document.updatedAt) }}
                             </span>
                           </div>
@@ -193,7 +254,10 @@
                         <div class="flex-shrink-0 flex gap-2">
                           <!-- Bouton demande de mise à jour (FEEF ou OE, seulement si pas de demande en attente) -->
                           <DocumentRequestUpdateModal
-                            v-if="(user?.role === Role.FEEF || user?.role === Role.OE) && !hasPendingRequest(document.id)"
+                            v-if="
+                              (user?.role === Role.FEEF || user?.role === Role.OE) &&
+                              !hasPendingRequest(document.id)
+                            "
                             :documentary-review-id="document.id"
                             :document-title="document.title"
                             button-label="Demander MAJ"
@@ -240,7 +304,7 @@ import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
 import {
   DocumentaryReviewCategoryLabels,
   DocumentaryReviewCategoryIcons,
-  DocumentaryReviewCategoryColors
+  DocumentaryReviewCategoryColors,
 } from '#shared/types/enums'
 import AddDocumentaryReviewModal from '~/components/modals/AddDocumentaryReviewModal.vue'
 
@@ -273,8 +337,8 @@ async function checkPendingRequest(documentId: number) {
       query: { documentaryReviewId: documentId },
     })
 
-    const hasPending = response.data.some(version =>
-      version.s3Key === null && version.askedBy !== null
+    const hasPending = response.data.some(
+      (version) => version.s3Key === null && version.askedBy !== null
     )
 
     if (hasPending) {
@@ -287,13 +351,11 @@ async function checkPendingRequest(documentId: number) {
   }
 }
 
-// Charger les documents au montage et vérifier les demandes
+// Vérifier les demandes en attente au montage (les documents sont déjà chargés par EntityPage)
 onMounted(async () => {
-  if (currentEntity.value) {
-    await fetchDocumentaryReviews(currentEntity.value.id)
-
+  if (currentEntity.value && documentaryReviews.value.length > 0) {
     // Vérifier les demandes en attente pour tous les documents (en parallèle)
-    const checks = documentaryReviews.value.map(doc => checkPendingRequest(doc.id))
+    const checks = documentaryReviews.value.map((doc) => checkPendingRequest(doc.id))
     await Promise.all(checks)
   }
 })
@@ -329,7 +391,7 @@ const documentsByCategory = computed(() => {
     OTHER: [],
   }
 
-  documentaryReviews.value.forEach(doc => {
+  documentaryReviews.value.forEach((doc) => {
     categories[doc.category].push(doc)
   })
 
@@ -339,10 +401,14 @@ const documentsByCategory = computed(() => {
 // Préparer les items pour l'accordion
 const accordionItems = computed(() => {
   return Object.entries(documentsByCategory.value).map(([categoryKey, documents]) => ({
-    title: DocumentaryReviewCategoryLabels[categoryKey as keyof typeof DocumentaryReviewCategoryLabels],
-    icon: DocumentaryReviewCategoryIcons[categoryKey as keyof typeof DocumentaryReviewCategoryIcons],
+    title:
+      DocumentaryReviewCategoryLabels[categoryKey as keyof typeof DocumentaryReviewCategoryLabels],
+    icon: DocumentaryReviewCategoryIcons[
+      categoryKey as keyof typeof DocumentaryReviewCategoryIcons
+    ],
     iconColor: getCategoryIconColor(categoryKey),
-    badgeColor: DocumentaryReviewCategoryColors[categoryKey as keyof typeof DocumentaryReviewCategoryColors],
+    badgeColor:
+      DocumentaryReviewCategoryColors[categoryKey as keyof typeof DocumentaryReviewCategoryColors],
     value: categoryKey,
     documents: documents,
   }))
@@ -360,9 +426,9 @@ function getCategoryIconColor(categoryKey: string): string {
 
 function getCategoryBackgroundClass(color: string): string {
   const colorMap: Record<string, string> = {
-    'primary': 'bg-blue-100',
-    'success': 'bg-green-100',
-    'neutral': 'bg-gray-100',
+    primary: 'bg-blue-100',
+    success: 'bg-green-100',
+    neutral: 'bg-gray-100',
   }
   return colorMap[color] || 'bg-gray-100'
 }
@@ -434,11 +500,13 @@ async function handleDownloadAll() {
   try {
     // Formater la date pour le nom de fichier
     const date = new Date()
-    const formattedDate = date.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }).replace(/\//g, '-')
+    const formattedDate = date
+      .toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+      .replace(/\//g, '-')
 
     const entityName = currentEntity.value.name.replace(/[^a-zA-Z0-9]/g, '_')
     const filename = `Revue_documentaire_${entityName}_${formattedDate}.zip`
@@ -455,14 +523,14 @@ async function handleDownloadAll() {
     const toast = useToast()
     toast.add({
       title: 'Succès',
-      description: 'Téléchargement de l\'archive démarré',
+      description: "Téléchargement de l'archive démarré",
       color: 'success',
     })
   } catch (error: any) {
     const toast = useToast()
     toast.add({
       title: 'Erreur',
-      description: error.message || 'Erreur lors du téléchargement de l\'archive',
+      description: error.message || "Erreur lors du téléchargement de l'archive",
       color: 'error',
     })
   } finally {
