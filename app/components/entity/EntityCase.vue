@@ -432,14 +432,7 @@ const entityLevelActions = computed(() => {
           <div class="pt-4 border-t border-gray-200">
             <div
               class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors"
-              :class="{
-                'pointer-events-none': user?.role !== Role.FEEF && user?.role !== Role.ENTITY,
-              }"
-              @click="
-                user?.role === Role.FEEF || user?.role === Role.ENTITY
-                  ? openFieldEditor('sitesCount')
-                  : undefined
-              "
+              @click="openFieldEditor('sitesCount')"
             >
               <div class="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg">
                 <UIcon
@@ -776,15 +769,8 @@ const entityLevelActions = computed(() => {
       <UCard
         v-for="groupKey in ['pilot', 'ceo', 'accounting']"
         :key="groupKey"
-        :class="[
-          'cursor-pointer hover:shadow-md transition-shadow',
-          { 'pointer-events-none': user?.role !== Role.FEEF && user?.role !== Role.ENTITY },
-        ]"
-        @click="
-          user?.role === Role.FEEF || user?.role === Role.ENTITY
-            ? openFieldGroupEditor(groupKey)
-            : undefined
-        "
+        class="cursor-pointer hover:shadow-md transition-shadow"
+        @click="openFieldGroupEditor(groupKey)"
       >
         <template #header>
           <div class="flex items-center justify-between">
@@ -830,15 +816,8 @@ const entityLevelActions = computed(() => {
 
     <!-- Groupe 6: Labeling Scope (avec alerte conditionnelle) -->
     <UCard
-      :class="[
-        'cursor-pointer hover:shadow-md transition-shadow',
-        { 'pointer-events-none': user?.role !== Role.FEEF && user?.role !== Role.ENTITY },
-      ]"
-      @click="
-        user?.role === Role.FEEF || user?.role === Role.ENTITY
-          ? openFieldGroupEditor('labeling_scope')
-          : undefined
-      "
+      class="cursor-pointer hover:shadow-md transition-shadow"
+      @click="openFieldGroupEditor('labeling_scope')"
     >
       <template #header>
         <div class="flex items-center justify-between">
@@ -903,15 +882,8 @@ const entityLevelActions = computed(() => {
 
     <!-- Groupe Revenue (inchangé) -->
     <UCard
-      :class="[
-        'cursor-pointer hover:shadow-md transition-shadow',
-        { 'pointer-events-none': user?.role !== Role.FEEF && user?.role !== Role.ENTITY },
-      ]"
-      @click="
-        user?.role === Role.FEEF || user?.role === Role.ENTITY
-          ? openFieldGroupEditor('revenue')
-          : undefined
-      "
+      class="cursor-pointer hover:shadow-md transition-shadow"
+      @click="openFieldGroupEditor('revenue')"
     >
       <template #header>
         <div class="flex items-center justify-between">
@@ -944,15 +916,8 @@ const entityLevelActions = computed(() => {
 
     <!-- Groupe 7: Activities (ActivitesGrid avec badges) -->
     <UCard
-      :class="[
-        'cursor-pointer hover:shadow-md transition-shadow',
-        { 'pointer-events-none': user?.role !== Role.FEEF && user?.role !== Role.ENTITY },
-      ]"
-      @click="
-        user?.role === Role.FEEF || user?.role === Role.ENTITY
-          ? openFieldGroupEditor('activities')
-          : undefined
-      "
+      class="cursor-pointer hover:shadow-md transition-shadow"
+      @click="openFieldGroupEditor('activities')"
     >
       <template #header>
         <div class="flex items-center justify-between">
@@ -1069,15 +1034,8 @@ const entityLevelActions = computed(() => {
     <UCard
       v-for="groupKey in ['subcontracting', 'trading']"
       :key="groupKey"
-      :class="[
-        'cursor-pointer hover:shadow-md transition-shadow',
-        { 'pointer-events-none': user?.role !== Role.FEEF && user?.role !== Role.ENTITY },
-      ]"
-      @click="
-        user?.role === Role.FEEF || user?.role === Role.ENTITY
-          ? openFieldGroupEditor(groupKey)
-          : undefined
-      "
+      class="cursor-pointer hover:shadow-md transition-shadow"
+      @click="openFieldGroupEditor(groupKey)"
     >
       <template #header>
         <div class="flex items-center justify-between">

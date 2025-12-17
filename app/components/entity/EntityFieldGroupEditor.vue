@@ -5,13 +5,15 @@
     :description="currentGroup?.description"
     class="w-full max-w-3xl"
     close-icon="i-lucide-x"
-    :dismissible="false"
+    :dismissible="isReadOnly"
   >
-
     <template #body>
       <div class="flex flex-col h-full space-y-8">
-        <!-- Formulaire multi-champs -->
-        <div class="bg-primary-50 border-2 border-primary-200 rounded-lg p-6">
+        <!-- Formulaire multi-champs (seulement si pas en lecture seule) -->
+        <div
+          v-if="!isReadOnly"
+          class="bg-primary-50 border-2 border-primary-200 rounded-lg p-6"
+        >
           <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-6">
             Modifier les informations
           </h3>
@@ -25,8 +27,16 @@
               <label class="block">
                 <span class="text-sm font-medium text-gray-700">
                   {{ field.label }}
-                  <span v-if="field.required" class="text-red-500">*</span>
-                  <span v-if="field.unit" class="text-gray-500 font-normal">({{ field.unit }})</span>
+                  <span
+                    v-if="field.required"
+                    class="text-red-500"
+                    >*</span
+                  >
+                  <span
+                    v-if="field.unit"
+                    class="text-gray-500 font-normal"
+                    >({{ field.unit }})</span
+                  >
                 </span>
 
                 <!-- Input basé sur le type -->
@@ -76,7 +86,10 @@
                 </div>
 
                 <!-- Description du champ -->
-                <p v-if="field.description" class="text-xs text-gray-500 mt-1">
+                <p
+                  v-if="field.description"
+                  class="text-xs text-gray-500 mt-1"
+                >
                   {{ field.description }}
                 </p>
               </label>
@@ -97,6 +110,38 @@
           />
         </div>
 
+        <!-- Section Valeurs actuelles (seulement en mode lecture seule) -->
+        <div
+          v-if="isReadOnly"
+          class="bg-gray-50 border-2 border-gray-200 rounded-lg p-6"
+        >
+          <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-6">
+            Valeurs actuelles
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div
+              v-for="field in currentGroupFields"
+              :key="field.key"
+              :class="['space-y-2', field.type === 'text' ? 'md:col-span-2' : '']"
+            >
+              <label class="block">
+                <span class="text-sm font-medium text-gray-700">
+                  {{ field.label }}
+                  <span
+                    v-if="field.unit"
+                    class="text-gray-500 font-normal"
+                    >({{ field.unit }})</span
+                  >
+                </span>
+                <div class="mt-2 text-gray-900 font-semibold">
+                  {{ formatFieldValue(field.value, field.type, field.unit) }}
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <!-- Historique des champs du groupe -->
         <div class="flex-1">
           <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
@@ -114,38 +159,62 @@
               </div>
 
               <!-- Historique du champ -->
-              <div v-if="!fieldHistories[field.key] || fieldHistories[field.key].length === 0" class="text-sm text-gray-500 italic">
+              <div
+                v-if="!fieldHistories[field.key] || fieldHistories[field.key].length === 0"
+                class="text-sm text-gray-500 italic"
+              >
                 Aucune modification enregistrée
               </div>
-              <div v-else class="space-y-2">
-                  <div
-                    v-for="(version, idx) in fieldHistories[field.key].slice(0, 3)"
-                    :key="version.id"
-                    class="text-sm"
-                  >
-                    <div class="flex items-start gap-2">
-                      <UBadge v-if="idx === 0" color="primary" variant="soft" size="xs">
-                        Actuelle
-                      </UBadge>
-                      <span class="text-gray-700">{{ formatFieldValue(version.value, field.type, field.unit) }}</span>
-                    </div>
-                    <div class="text-xs text-gray-500 ml-0 mt-0.5">
-                      {{ new Date(version.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
-                      par {{ version.createdByAccount?.firstname }} {{ version.createdByAccount?.lastname }}
-                    </div>
+              <div
+                v-else
+                class="space-y-2"
+              >
+                <div
+                  v-for="(version, idx) in fieldHistories[field.key].slice(0, 3)"
+                  :key="version.id"
+                  class="text-sm"
+                >
+                  <div class="flex items-start gap-2">
+                    <UBadge
+                      v-if="idx === 0"
+                      color="primary"
+                      variant="soft"
+                      size="xs"
+                    >
+                      Actuelle
+                    </UBadge>
+                    <span class="text-gray-700">{{
+                      formatFieldValue(version.value, field.type, field.unit)
+                    }}</span>
                   </div>
-                  <UButton
-                    v-if="fieldHistories[field.key].length > 3"
-                    variant="ghost"
-                    size="xs"
-                    :label="`Voir ${fieldHistories[field.key].length - 3} version${fieldHistories[field.key].length - 3 > 1 ? 's' : ''} de plus`"
-                    @click="openFullHistory(field.key)"
-                  />
+                  <div class="text-xs text-gray-500 ml-0 mt-0.5">
+                    {{
+                      new Date(version.createdAt).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    }}
+                    par {{ version.createdByAccount?.firstname }}
+                    {{ version.createdByAccount?.lastname }}
+                  </div>
                 </div>
+                <UButton
+                  v-if="fieldHistories[field.key].length > 3"
+                  variant="ghost"
+                  size="xs"
+                  :label="`Voir ${fieldHistories[field.key].length - 3} version${
+                    fieldHistories[field.key].length - 3 > 1 ? 's' : ''
+                  } de plus`"
+                  @click="openFullHistory(field.key)"
+                />
               </div>
             </div>
           </div>
         </div>
+      </div>
     </template>
   </USlideover>
 </template>
@@ -153,6 +222,7 @@
 <script setup lang="ts">
 import type { EntityFieldGroupKey, EntityField } from '~/types/entities'
 import { entityFieldGroups, getFieldsByGroup } from '~~/server/database/entity-fields-config'
+import { Role } from '~~/shared/types/roles'
 
 interface Props {
   entityId?: number
@@ -168,7 +238,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  'updated': []
+  updated: []
 }>()
 
 const isOpen = computed({
@@ -178,11 +248,17 @@ const isOpen = computed({
 
 const { updateFieldGroup } = useEntityFieldGroups()
 const { fetchMultipleFieldHistories } = useEntityFields()
+const { user } = useAuth()
+
+// Computed: est-ce que l'utilisateur est en mode lecture seule ?
+const isReadOnly = computed(() => {
+  return user.value?.role === Role.OE || user.value?.role === Role.AUDITOR
+})
 
 // Groupe actuel
 const currentGroup = computed(() => {
   if (!props.groupKey) return null
-  return entityFieldGroups.find(g => g.key === props.groupKey)
+  return entityFieldGroups.find((g) => g.key === props.groupKey)
 })
 
 // Champs du groupe actuel avec leurs métadonnées
@@ -190,8 +266,8 @@ const currentGroupFields = computed(() => {
   if (!currentGroup.value) return []
   const fieldDefs = getFieldsByGroup(currentGroup.value.key)
 
-  return fieldDefs.map(fieldDef => {
-    const fieldValue = props.fields?.find(f => f.key === fieldDef.key)
+  return fieldDefs.map((fieldDef) => {
+    const fieldValue = props.fields?.find((f) => f.key === fieldDef.key)
     return {
       ...fieldDef,
       value: fieldValue?.value ?? null,
@@ -203,20 +279,24 @@ const currentGroupFields = computed(() => {
 const editValues = ref<Record<string, any>>({})
 
 // Initialiser les valeurs d'édition
-watch([currentGroupFields, isOpen], () => {
-  if (!isOpen.value || currentGroupFields.value.length === 0) return
+watch(
+  [currentGroupFields, isOpen],
+  () => {
+    if (!isOpen.value || currentGroupFields.value.length === 0) return
 
-  const values: Record<string, any> = {}
-  for (const field of currentGroupFields.value) {
-    // Convertir Date en string pour inputs date
-    if (field.type === 'date' && field.value instanceof Date) {
-      values[field.key] = field.value.toISOString().split('T')[0]
-    } else {
-      values[field.key] = field.value ?? (field.type === 'boolean' ? false : '')
+    const values: Record<string, any> = {}
+    for (const field of currentGroupFields.value) {
+      // Convertir Date en string pour inputs date
+      if (field.type === 'date' && field.value instanceof Date) {
+        values[field.key] = field.value.toISOString().split('T')[0]
+      } else {
+        values[field.key] = field.value ?? (field.type === 'boolean' ? false : '')
+      }
     }
-  }
-  editValues.value = values
-}, { immediate: true })
+    editValues.value = values
+  },
+  { immediate: true }
+)
 
 // Détection des changements
 const changedFields = computed(() => {
@@ -257,18 +337,22 @@ const changedFieldsCount = computed(() => changedFields.value.size)
 const fieldHistories = ref<Record<string, any[]>>({})
 
 // Charger tous les historiques au montage
-watch([currentGroupFields, isOpen], async () => {
-  if (!isOpen.value || !props.entityId || currentGroupFields.value.length === 0) return
+watch(
+  [currentGroupFields, isOpen],
+  async () => {
+    if (!isOpen.value || !props.entityId || currentGroupFields.value.length === 0) return
 
-  // Réinitialiser tous les historiques
-  fieldHistories.value = {}
+    // Réinitialiser tous les historiques
+    fieldHistories.value = {}
 
-  // Charger tous les historiques en une passe
-  const fieldKeys = currentGroupFields.value.map(f => f.key)
-  const histories = await fetchMultipleFieldHistories(props.entityId, fieldKeys)
+    // Charger tous les historiques en une passe
+    const fieldKeys = currentGroupFields.value.map((f) => f.key)
+    const histories = await fetchMultipleFieldHistories(props.entityId, fieldKeys)
 
-  fieldHistories.value = histories
-}, { immediate: true })
+    fieldHistories.value = histories
+  },
+  { immediate: true }
+)
 
 // Format valeur pour affichage
 const formatFieldValue = (value: any, type: string, unit?: string) => {
@@ -279,7 +363,7 @@ const formatFieldValue = (value: any, type: string, unit?: string) => {
       return new Date(value).toLocaleDateString('fr-FR', {
         day: 'numeric',
         month: 'long',
-        year: 'numeric'
+        year: 'numeric',
       })
     case 'boolean':
       return value ? 'Oui' : 'Non'
@@ -323,7 +407,7 @@ const handleSave = async () => {
     // Convertir les dates si nécessaire
     const updates = new Map<string, any>()
     for (const [key, value] of changedFields.value.entries()) {
-      const fieldDef = currentGroupFields.value.find(f => f.key === key)
+      const fieldDef = currentGroupFields.value.find((f) => f.key === key)
 
       if (fieldDef?.type === 'date' && value !== null) {
         updates.set(key, new Date(value))

@@ -5,6 +5,7 @@
     side="right"
     class="w-full max-w-2xl"
     close-icon="i-lucide-arrow-right"
+    :dismissible="isReadOnly"
   >
     <!-- Header avec navigation -->
     <template #header>
@@ -13,11 +14,17 @@
           <div class="flex-1 pr-16 max-w-2xl">
             <h2 class="text-lg font-semibold text-gray-900">
               {{ currentField?.label }}
-              <span v-if="currentField?.unit" class="text-gray-500 text-base font-normal">
+              <span
+                v-if="currentField?.unit"
+                class="text-gray-500 text-base font-normal"
+              >
                 ({{ currentField.unit }})
               </span>
             </h2>
-            <p v-if="currentFieldDefinition?.description" class="text-sm text-gray-600 mt-1">
+            <p
+              v-if="currentFieldDefinition?.description"
+              class="text-sm text-gray-600 mt-1"
+            >
               {{ currentFieldDefinition.description }}
             </p>
           </div>
@@ -53,11 +60,19 @@
     <!-- Corps avec input et timeline -->
     <template #body>
       <div class="flex flex-col h-full space-y-8">
-        <!-- Zone d'édition mise en évidence -->
-        <div class="bg-primary-50 border-2 border-primary-200 rounded-lg p-6">
+        <!-- Zone d'édition mise en évidence (seulement si pas en lecture seule) -->
+        <div
+          v-if="!isReadOnly"
+          class="bg-primary-50 border-2 border-primary-200 rounded-lg p-6"
+        >
           <!-- Valeur actuelle EN HAUT -->
-          <div v-if="currentField?.value !== null && currentField?.value !== undefined" class="mb-4 pb-4 border-b border-primary-200">
-            <div class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Valeur actuelle</div>
+          <div
+            v-if="currentField?.value !== null && currentField?.value !== undefined"
+            class="mb-4 pb-4 border-b border-primary-200"
+          >
+            <div class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+              Valeur actuelle
+            </div>
             <div class="text-xl font-bold text-gray-900">
               {{ formatFieldValue(currentField.value, currentField.type) }}
             </div>
@@ -65,7 +80,11 @@
 
           <label class="block space-y-3">
             <span class="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-              {{ currentField?.value !== null && currentField?.value !== undefined ? 'Modifier la valeur' : 'Définir la valeur' }}
+              {{
+                currentField?.value !== null && currentField?.value !== undefined
+                  ? 'Modifier la valeur'
+                  : 'Définir la valeur'
+              }}
             </span>
 
             <!-- Input selon le type -->
@@ -102,7 +121,10 @@
               />
 
               <!-- Boolean -->
-              <div v-else-if="currentField?.type === 'boolean'" class="flex items-center gap-3">
+              <div
+                v-else-if="currentField?.type === 'boolean'"
+                class="flex items-center gap-3"
+              >
                 <UToggle
                   v-model="editValue"
                   size="lg"
@@ -137,6 +159,19 @@
           />
         </div>
 
+        <!-- Section Valeur actuelle (seulement en mode lecture seule) -->
+        <div
+          v-if="isReadOnly && currentField"
+          class="bg-gray-50 border-2 border-gray-200 rounded-lg p-6"
+        >
+          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+            Valeur actuelle
+          </div>
+          <div class="text-xl font-bold text-gray-900">
+            {{ formatFieldValue(currentField.value, currentField.type) }}
+          </div>
+        </div>
+
         <!-- Timeline de l'historique -->
         <div class="flex-1">
           <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
@@ -144,39 +179,62 @@
           </h3>
 
           <!-- État de chargement -->
-          <div v-if="fetchHistoryLoading" class="flex items-center justify-center py-12">
+          <div
+            v-if="fetchHistoryLoading"
+            class="flex items-center justify-center py-12"
+          >
             <div class="text-center">
-              <UIcon name="i-heroicons-arrow-path" class="animate-spin w-8 h-8 mx-auto mb-4 text-primary" />
+              <UIcon
+                name="i-heroicons-arrow-path"
+                class="animate-spin w-8 h-8 mx-auto mb-4 text-primary"
+              />
               <p class="text-gray-600">Chargement de l'historique...</p>
             </div>
           </div>
 
           <!-- Historique vide -->
-          <div v-else-if="fieldHistory.length === 0" class="text-center py-12">
-            <UIcon name="i-lucide-clock" class="w-12 h-12 mx-auto mb-3 text-gray-400" />
+          <div
+            v-else-if="fieldHistory.length === 0"
+            class="text-center py-12"
+          >
+            <UIcon
+              name="i-lucide-clock"
+              class="w-12 h-12 mx-auto mb-3 text-gray-400"
+            />
             <p class="text-gray-600">Aucune modification enregistrée</p>
           </div>
 
           <!-- Timeline -->
-          <UTimeline v-else :items="timelineItems">
+          <UTimeline
+            v-else
+            :items="timelineItems"
+          >
             <!-- Slot title : la VALEUR du champ -->
             <template #title="{ item }">
               <div class="flex items-center gap-3">
-                <div :class="[
-                  'font-bold',
-                  currentField?.type === 'text' ? 'text-sm' : 'text-lg',
-                  item.isCurrent ? 'text-primary-600' : 'text-gray-900'
-                ]">
+                <div
+                  :class="[
+                    'font-bold',
+                    currentField?.type === 'text' ? 'text-sm' : 'text-lg',
+                    item.isCurrent ? 'text-primary-600' : 'text-gray-900',
+                  ]"
+                >
                   <div v-if="!item.isTruncated">{{ item.displayValue }}</div>
                   <div v-else>
-                    <div v-if="!expandedItems.has(item.index)" class="flex items-center gap-2">
+                    <div
+                      v-if="!expandedItems.has(item.index)"
+                      class="flex items-center gap-2"
+                    >
                       <span>{{ item.displayValue }}</span>
                       <button
                         @click.stop="toggleTextExpansion(item.index)"
                         class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
                         title="Cliquer pour voir le texte complet"
                       >
-                        <UIcon name="i-lucide-chevron-down" class="w-3 h-3" />
+                        <UIcon
+                          name="i-lucide-chevron-down"
+                          class="w-3 h-3"
+                        />
                         Voir plus
                       </button>
                     </div>
@@ -187,13 +245,21 @@
                         class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors cursor-pointer mt-2"
                         title="Cliquer pour réduire le texte"
                       >
-                        <UIcon name="i-lucide-chevron-up" class="w-3 h-3" />
+                        <UIcon
+                          name="i-lucide-chevron-up"
+                          class="w-3 h-3"
+                        />
                         Voir moins
                       </button>
                     </div>
                   </div>
                 </div>
-                <UBadge v-if="item.isCurrent" color="primary" variant="soft" size="xs">
+                <UBadge
+                  v-if="item.isCurrent"
+                  color="primary"
+                  variant="soft"
+                  size="xs"
+                >
                   Actuelle
                 </UBadge>
               </div>
@@ -210,13 +276,12 @@
       </div>
     </template>
   </USlideover>
-
-
 </template>
 
 <script setup lang="ts">
 import type { EntityField } from '~/types/entities'
 import { entityFieldsConfig, type EntityFieldKey } from '~~/server/database/entity-fields-config'
+import { Role } from '~~/shared/types/roles'
 
 interface Props {
   entityId?: number
@@ -232,7 +297,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  'updated': []
+  updated: []
 }>()
 
 const isOpen = computed({
@@ -241,7 +306,19 @@ const isOpen = computed({
 })
 
 const { currentEntity, fetchEntity } = useEntities()
-const { updateEntityField, updateFieldLoading, fetchEntityFieldHistory, fetchHistoryLoading, fieldHistory } = useEntityFields()
+const {
+  updateEntityField,
+  updateFieldLoading,
+  fetchEntityFieldHistory,
+  fetchHistoryLoading,
+  fieldHistory,
+} = useEntityFields()
+const { user } = useAuth()
+
+// Computed: est-ce que l'utilisateur est en mode lecture seule ?
+const isReadOnly = computed(() => {
+  return user.value?.role === Role.OE || user.value?.role === Role.AUDITOR
+})
 
 // Index du champ actuellement affiché
 const currentFieldIndex = ref(0)
@@ -255,7 +332,7 @@ const currentField = computed(() => props.fields[currentFieldIndex.value] || nul
 // Définition du champ depuis la config
 const currentFieldDefinition = computed(() => {
   if (!currentField.value) return null
-  return entityFieldsConfig.find(f => f.key === currentField.value!.key)
+  return entityFieldsConfig.find((f) => f.key === currentField.value!.key)
 })
 
 // Valeur en cours d'édition
@@ -309,33 +386,45 @@ const hasChanges = computed(() => {
 })
 
 // Initialiser la valeur d'édition quand le champ change
-watch([currentField, isOpen], () => {
-  if (!currentField.value || !isOpen.value) return
+watch(
+  [currentField, isOpen],
+  () => {
+    if (!currentField.value || !isOpen.value) return
 
-  // Convertir Date en string pour les inputs de type date
-  if (currentField.value.type === 'date' && currentField.value.value instanceof Date) {
-    editValue.value = currentField.value.value.toISOString().split('T')[0]
-  } else {
-    editValue.value = currentField.value.value ?? ''
-  }
-}, { immediate: true })
+    // Convertir Date en string pour les inputs de type date
+    if (currentField.value.type === 'date' && currentField.value.value instanceof Date) {
+      editValue.value = currentField.value.value.toISOString().split('T')[0]
+    } else {
+      editValue.value = currentField.value.value ?? ''
+    }
+  },
+  { immediate: true }
+)
 
 // Charger l'historique quand le champ change
-watch([currentField, isOpen], async () => {
-  if (!currentField.value || !isOpen.value || !props.entityId) return
+watch(
+  [currentField, isOpen],
+  async () => {
+    if (!currentField.value || !isOpen.value || !props.entityId) return
 
-  await fetchEntityFieldHistory(props.entityId, currentField.value.key)
-}, { immediate: true })
+    await fetchEntityFieldHistory(props.entityId, currentField.value.key)
+  },
+  { immediate: true }
+)
 
 // Initialiser l'index du champ au départ
-watch([() => props.initialFieldKey, () => props.fields, isOpen], () => {
-  if (!isOpen.value || !props.initialFieldKey || props.fields.length === 0) return
+watch(
+  [() => props.initialFieldKey, () => props.fields, isOpen],
+  () => {
+    if (!isOpen.value || !props.initialFieldKey || props.fields.length === 0) return
 
-  const index = props.fields.findIndex(f => f.key === props.initialFieldKey)
-  if (index !== -1) {
-    currentFieldIndex.value = index
-  }
-}, { immediate: true })
+    const index = props.fields.findIndex((f) => f.key === props.initialFieldKey)
+    if (index !== -1) {
+      currentFieldIndex.value = index
+    }
+  },
+  { immediate: true }
+)
 
 // Fonction pour toggle l'expansion du texte
 const toggleTextExpansion = (itemIndex: number) => {
@@ -355,7 +444,7 @@ const formatFieldValue = (value: any, type: string) => {
       return new Date(value).toLocaleDateString('fr-FR', {
         day: 'numeric',
         month: 'long',
-        year: 'numeric'
+        year: 'numeric',
       })
     case 'boolean':
       return value ? 'Oui' : 'Non'
@@ -372,7 +461,7 @@ const formatFieldValueForHistory = (value: any, type: string) => {
     return {
       displayValue: 'Non défini',
       isTruncated: false,
-      fullValue: 'Non défini'
+      fullValue: 'Non défini',
     }
   }
 
@@ -381,19 +470,19 @@ const formatFieldValueForHistory = (value: any, type: string) => {
       const dateValue = new Date(value).toLocaleDateString('fr-FR', {
         day: 'numeric',
         month: 'long',
-        year: 'numeric'
+        year: 'numeric',
       })
       return {
         displayValue: dateValue,
         isTruncated: false,
-        fullValue: dateValue
+        fullValue: dateValue,
       }
     case 'boolean':
       const boolValue = value ? 'Oui' : 'Non'
       return {
         displayValue: boolValue,
         isTruncated: false,
-        fullValue: boolValue
+        fullValue: boolValue,
       }
     case 'text':
       const textValue = String(value)
@@ -401,14 +490,14 @@ const formatFieldValueForHistory = (value: any, type: string) => {
       return {
         displayValue: textValue.length > limit ? textValue.substring(0, limit) + '...' : textValue,
         isTruncated: textValue.length > limit,
-        fullValue: textValue
+        fullValue: textValue,
       }
     default:
       const stringValue = String(value)
       return {
         displayValue: stringValue,
         isTruncated: false,
-        fullValue: stringValue
+        fullValue: stringValue,
       }
   }
 }
@@ -427,7 +516,7 @@ const timelineItems = computed(() => {
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
 
     // Formater la valeur pour l'historique
@@ -477,7 +566,7 @@ const handleSave = async () => {
     // Retrouver l'index du champ actuel dans les fields rafraîchis
     // pour éviter de revenir au premier champ
     await nextTick()
-    const newIndex = props.fields.findIndex(f => f.key === currentKey)
+    const newIndex = props.fields.findIndex((f) => f.key === currentKey)
     if (newIndex !== -1) {
       currentFieldIndex.value = newIndex
     }
