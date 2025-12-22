@@ -70,6 +70,42 @@ export const actionStatusEnum = pgEnum('action_status', [
   'CANCELLED'
 ])
 
+// Define event type enum
+export const eventTypeEnum = pgEnum('event_type', [
+  // Audit workflow events
+  'AUDIT_CASE_SUBMITTED',
+  'AUDIT_CASE_APPROVED',
+  'AUDIT_OE_ASSIGNED',
+  'AUDIT_OE_ACCEPTED',
+  'AUDIT_OE_REFUSED',
+  'AUDIT_DATES_SET',
+  'AUDIT_PLAN_UPLOADED',
+  'AUDIT_REPORT_UPLOADED',
+  'AUDIT_CORRECTIVE_PLAN_UPLOADED',
+  'AUDIT_CORRECTIVE_PLAN_VALIDATED',
+  'AUDIT_OE_OPINION_TRANSMITTED',
+  'AUDIT_FEEF_DECISION_ACCEPTED',
+  'AUDIT_FEEF_DECISION_REJECTED',
+  'AUDIT_ATTESTATION_GENERATED',
+  'AUDIT_STATUS_CHANGED',
+
+  // Entity events
+  'ENTITY_DOCUMENTARY_REVIEW_READY',
+  'ENTITY_OE_ASSIGNED',
+
+  // Contract events
+  'CONTRACT_ENTITY_SIGNED',
+  'CONTRACT_FEEF_SIGNED',
+])
+
+// Define event category enum
+export const eventCategoryEnum = pgEnum('event_category', [
+  'AUDIT',
+  'ENTITY',
+  'CONTRACT',
+  'SYSTEM',
+])
+
 // ========================================
 // Import enum values and types from shared
 // ========================================
@@ -94,8 +130,6 @@ export const entities = pgTable('entities', {
   oeId: integer('oe_id').references(() => oes.id),
   accountManagerId: integer('account_manager_id').references(() => accounts.id),
   allowOeDocumentsAccess: boolean('allow_oe_documents_access').notNull().default(false),
-  documentaryReviewReadyAt: timestamp('documentary_review_ready_at'),
-  documentaryReviewReadyBy: integer('documentary_review_ready_by').references(() => accounts.id),
   // Address and contact fields
   address: varchar('address', { length: 255 }),
   addressComplement: varchar('address_complement', { length: 255 }),
@@ -136,29 +170,16 @@ export const audits = pgTable('audits', {
   labelingOpinion: json('labeling_opinion'),
   // Workflow status
   status: auditStatusEnum('status').default('PLANNING'),
-  // Case submission/approval fields
-  caseSubmittedAt: timestamp('case_submitted_at'),
-  caseSubmittedBy: integer('case_submitted_by').references(() => accounts.id),
-  caseApprovedAt: timestamp('case_approved_at'),
-  caseApprovedBy: integer('case_approved_by').references(() => accounts.id),
   // OE Opinion fields
   oeOpinion: oeOpinionEnum('oe_opinion'),
   oeOpinionArgumentaire: text('oe_opinion_argumentaire'),
   oeOpinionConditions: text('oe_opinion_conditions'),
-  oeOpinionTransmittedAt: timestamp('oe_opinion_transmitted_at'),
-  oeOpinionTransmittedBy: integer('oe_opinion_transmitted_by').references(() => accounts.id),
   // Corrective plan validation
   needsCorrectivePlan: boolean('needs_corrective_plan').default(false),
-  correctivePlanValidatedAt: timestamp('corrective_plan_validated_at'),
-  correctivePlanValidatedBy: integer('corrective_plan_validated_by').references(() => accounts.id),
   // FEEF Decision fields
   feefDecision: feefDecisionEnum('feef_decision'),
-  feefDecisionAt: timestamp('feef_decision_at'),
-  feefDecisionBy: integer('feef_decision_by').references(() => accounts.id),
   labelExpirationDate: date('label_expiration_date'),
   // OE Response fields (acceptance/refusal)
-  oeResponseAt: timestamp('oe_response_at'),
-  oeResponseBy: integer('oe_response_by').references(() => accounts.id),
   oeAccepted: boolean('oe_accepted'),
   oeRefusalReason: text('oe_refusal_reason'),
   // Link to previous audit in case of refusal
@@ -243,10 +264,6 @@ export const contracts = pgTable('contracts', {
   requiresSignature: boolean('requires_signature').notNull().default(false),
   signatureType: signatureTypeEnum('signature_type'),
   signatureStatus: signatureStatusEnum('signature_status'),
-  entitySignedAt: timestamp('entity_signed_at'),
-  entitySignedBy: integer('entity_signed_by').references(() => accounts.id),
-  feefSignedAt: timestamp('feef_signed_at'),
-  feefSignedBy: integer('feef_signed_by').references(() => accounts.id),
   // Validity field
   validityEndDate: date('validity_end_date'),
   createdBy: integer('created_by').notNull().references(() => accounts.id),
@@ -339,6 +356,34 @@ export const actions = pgTable('actions', {
     .where(sql`${table.deletedAt} IS NULL`),
 ])
 
+// Events table for audit trail
+export const events = pgTable('events', {
+  id: serial('id').primaryKey(),
+
+  // Identification de l'événement
+  type: eventTypeEnum('type').notNull(),
+  category: eventCategoryEnum('category').notNull(),
+
+  // Références polymorphiques (au moins une doit être remplie)
+  auditId: integer('audit_id').references(() => audits.id),
+  entityId: integer('entity_id').references(() => entities.id),
+  contractId: integer('contract_id').references(() => contracts.id),
+
+  // Qui et quand
+  performedBy: integer('performed_by').notNull().references(() => accounts.id),
+  performedAt: timestamp('performed_at').notNull().defaultNow(),
+
+  // Contexte flexible (JSON)
+  metadata: json('metadata'),
+}, (table) => [
+  // Index pour queries rapides
+  index('idx_events_audit_id').on(table.auditId),
+  index('idx_events_entity_id').on(table.entityId),
+  index('idx_events_type').on(table.type),
+  index('idx_events_category_date').on(table.category, table.performedAt),
+  index('idx_events_performed_by').on(table.performedBy),
+])
+
 // ========================================
 // Types inférés depuis le schéma Drizzle
 // ========================================
@@ -396,6 +441,10 @@ export type NewAuditNotation = typeof auditNotation.$inferInsert
 // Type pour Action
 export type Action = typeof actions.$inferSelect
 export type NewAction = typeof actions.$inferInsert
+
+// Type pour Event
+export type Event = typeof events.$inferSelect
+export type NewEvent = typeof events.$inferInsert
 
 // ========================================
 // Relations Drizzle pour les queries relationnelles
@@ -459,6 +508,9 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
   actionsCreated: many(actions, {
     relationName: 'actionCreatedBy',
   }),
+  eventsPerformed: many(events, {
+    relationName: 'eventPerformedBy',
+  }),
 }))
 
 export const oeRelations = relations(oes, ({ many }) => ({
@@ -486,16 +538,13 @@ export const entitiesRelations = relations(entities, ({ one, many }) => ({
     fields: [entities.accountManagerId],
     references: [accounts.id],
   }),
-  documentaryReviewReadyByAccount: one(accounts, {
-    fields: [entities.documentaryReviewReadyBy],
-    references: [accounts.id],
-  }),
   accountsToEntities: many(accountsToEntities),
   audits: many(audits),
   documentaryReviews: many(documentaryReviews),
   contracts: many(contracts),
   fieldVersions: many(entityFieldVersions),
   actions: many(actions),
+  events: many(events),
 }))
 
 export const contractsRelations = relations(contracts, ({ one, many }) => ({
@@ -512,22 +561,13 @@ export const contractsRelations = relations(contracts, ({ one, many }) => ({
     references: [accounts.id],
     relationName: 'contractCreatedBy',
   }),
-  entitySignedByAccount: one(accounts, {
-    fields: [contracts.entitySignedBy],
-    references: [accounts.id],
-    relationName: 'contractEntitySignedBy',
-  }),
-  feefSignedByAccount: one(accounts, {
-    fields: [contracts.feefSignedBy],
-    references: [accounts.id],
-    relationName: 'contractFeefSignedBy',
-  }),
   updatedByAccount: one(accounts, {
     fields: [contracts.updatedBy],
     references: [accounts.id],
     relationName: 'contractUpdatedBy',
   }),
   documentVersions: many(documentVersions),
+  events: many(events),
 }))
 
 export const auditsRelations = relations(audits, ({ one, many }) => ({
@@ -544,36 +584,6 @@ export const auditsRelations = relations(audits, ({ one, many }) => ({
     references: [accounts.id],
     relationName: 'auditor',
   }),
-  caseSubmittedByAccount: one(accounts, {
-    fields: [audits.caseSubmittedBy],
-    references: [accounts.id],
-    relationName: 'auditCaseSubmittedBy',
-  }),
-  caseApprovedByAccount: one(accounts, {
-    fields: [audits.caseApprovedBy],
-    references: [accounts.id],
-    relationName: 'auditCaseApprovedBy',
-  }),
-  oeOpinionTransmittedByAccount: one(accounts, {
-    fields: [audits.oeOpinionTransmittedBy],
-    references: [accounts.id],
-    relationName: 'oeOpinionTransmittedBy',
-  }),
-  correctivePlanValidatedByAccount: one(accounts, {
-    fields: [audits.correctivePlanValidatedBy],
-    references: [accounts.id],
-    relationName: 'correctivePlanValidatedBy',
-  }),
-  feefDecisionByAccount: one(accounts, {
-    fields: [audits.feefDecisionBy],
-    references: [accounts.id],
-    relationName: 'feefDecisionBy',
-  }),
-  oeResponseByAccount: one(accounts, {
-    fields: [audits.oeResponseBy],
-    references: [accounts.id],
-    relationName: 'oeResponseBy',
-  }),
   previousAudit: one(audits, {
     fields: [audits.previousAuditId],
     references: [audits.id],
@@ -582,6 +592,7 @@ export const auditsRelations = relations(audits, ({ one, many }) => ({
   documentVersions: many(documentVersions),
   notations: many(auditNotation),
   actions: many(actions),
+  events: many(events),
 }))
 
 export const accountsToEntitiesRelations = relations(accountsToEntities, ({ one }) => ({
@@ -692,5 +703,25 @@ export const actionsRelations = relations(actions, ({ one }) => ({
     fields: [actions.createdBy],
     references: [accounts.id],
     relationName: 'actionCreatedBy',
+  }),
+}))
+
+export const eventsRelations = relations(events, ({ one }) => ({
+  audit: one(audits, {
+    fields: [events.auditId],
+    references: [audits.id],
+  }),
+  entity: one(entities, {
+    fields: [events.entityId],
+    references: [entities.id],
+  }),
+  contract: one(contracts, {
+    fields: [events.contractId],
+    references: [contracts.id],
+  }),
+  performedByAccount: one(accounts, {
+    fields: [events.performedBy],
+    references: [accounts.id],
+    relationName: 'eventPerformedBy',
   }),
 }))

@@ -2,6 +2,7 @@ import { eq, and, isNull } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { entities, accountsToEntities } from '~~/server/database/schema'
 import { Role } from '#shared/types/roles'
+import { recordEvent, getLatestEvent } from '~~/server/services/events'
 
 export default defineEventHandler(async (event) => {
   // Authentification - l'utilisateur doit être connecté
@@ -76,7 +77,8 @@ export default defineEventHandler(async (event) => {
   // (Vérification retirée : caseSubmittedAt n'existe pas sur entity)
 
   // Vérifier que documentaryReviewReadyAt est null (pas déjà marqué)
-  if (entity.documentaryReviewReadyAt) {
+  const readyEvent = await getLatestEvent('ENTITY_DOCUMENTARY_REVIEW_READY', { entityId: entity.id })
+  if (readyEvent) {
     throw createError({
       statusCode: 400,
       message: 'La revue documentaire a déjà été marquée comme prête',
@@ -88,25 +90,23 @@ export default defineEventHandler(async (event) => {
   await db
     .update(entities)
     .set({
-      documentaryReviewReadyAt: new Date(),
-      documentaryReviewReadyBy: currentUser.id,
       updatedBy: currentUser.id,
       updatedAt: new Date(),
     })
     .where(eq(entities.id, entityIdInt))
 
-  // Récupérer l'entité mise à jour avec les relations pour l'account
+  // Enregistrer l'événement de revue documentaire prête
+  await recordEvent(event, {
+    type: 'ENTITY_DOCUMENTARY_REVIEW_READY',
+    entityId: entityIdInt,
+    metadata: {
+      timestamp: new Date(),
+    },
+  })
+
+  // Récupérer l'entité mise à jour
   const entityWithRelations = await db.query.entities.findFirst({
     where: eq(entities.id, entityIdInt),
-    with: {
-      documentaryReviewReadyByAccount: {
-        columns: {
-          id: true,
-          firstname: true,
-          lastname: true,
-        },
-      },
-    },
   })
 
   if (!entityWithRelations) {

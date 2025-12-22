@@ -246,6 +246,20 @@
       "when": 1765812481153,
       "tag": "0034_steep_iron_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1765982454421,
+      "tag": "0035_dazzling_franklin_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1765984952878,
+      "tag": "0036_bizarre_mauler",
+      "breakpoints": true
     }
   ]
 }

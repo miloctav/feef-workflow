@@ -102,13 +102,6 @@ export default defineEventHandler(async (event) => {
           lastname: true,
           email: true,
         }
-      },
-      documentaryReviewReadyByAccount: {
-        columns: {
-          id: true,
-          firstname: true,
-          lastname: true,
-        }
       }
     }
   })

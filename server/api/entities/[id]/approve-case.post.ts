@@ -2,6 +2,9 @@ import { eq, desc, isNull } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { entities, audits } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
+import { recordEvent, getLatestEvent } from '~~/server/services/events'
+import { auditStateMachine } from '~~/server/state-machine'
+import { AuditType } from '#shared/types/enums'
 
 export default defineEventHandler(async (event) => {
   // Vérifier que l'utilisateur est connecté
@@ -70,34 +73,62 @@ export default defineEventHandler(async (event) => {
   }
 
   // Vérifier que le dossier a bien été soumis
-  if (!latestAudit.caseSubmittedAt) {
+  const submittedEvent = await getLatestEvent('AUDIT_CASE_SUBMITTED', { auditId: latestAudit.id })
+  if (!submittedEvent) {
     throw createError({
       statusCode: 400,
       message: 'Le dossier doit être soumis avant de pouvoir être approuvé',
     })
   }
 
-  // Vérifier que le dossier n'a pas déjà été approuvé
-  if (latestAudit.caseApprovedAt) {
+  // Vérifier que l'audit est bien au statut PENDING_CASE_APPROVAL
+  if (latestAudit.status !== AuditStatus.PENDING_CASE_APPROVAL) {
     throw createError({
       statusCode: 400,
-      message: 'Le dossier a déjà été approuvé le ' + new Date(latestAudit.caseApprovedAt).toLocaleDateString('fr-FR'),
+      message: `Le dossier ne peut pas être approuvé depuis le statut actuel (${latestAudit.status}). Statut attendu: PENDING_CASE_APPROVAL`,
     })
   }
 
-  // Mettre à jour l'audit avec les informations d'approbation
-  const newStatus = entity.oeId ? AuditStatus.PLANNING : AuditStatus.PENDING_OE_CHOICE
+  // Vérifier que le dossier n'a pas déjà été approuvé (double check avec les événements)
+  const approvedEvent = await getLatestEvent('AUDIT_CASE_APPROVED', { auditId: latestAudit.id })
+  if (approvedEvent) {
+    throw createError({
+      statusCode: 400,
+      message: 'Le dossier a déjà été approuvé le ' + new Date(approvedEvent.performedAt).toLocaleDateString('fr-FR'),
+    })
+  }
 
-  await db
-    .update(audits)
-    .set(forUpdate(event, {
-      caseApprovedAt: new Date(),
-      caseApprovedBy: currentUser.id,
-      status: newStatus,
-    }))
-    .where(eq(audits.id, latestAudit.id))
+  // Enregistrer l'événement d'approbation AVANT la transition
+  await recordEvent(event, {
+    type: 'AUDIT_CASE_APPROVED',
+    auditId: latestAudit.id,
+    entityId: latestAudit.entityId,
+    metadata: {
+      previousStatus: latestAudit.status,
+      timestamp: new Date(),
+    },
+  })
 
-  // Récupérer l'audit mis à jour
+  // Déterminer quelle transition utiliser selon les guards de la state machine
+  let transitionName: string
+
+  if (!entity.oeId) {
+    // Pas d'OE assigné → choisir un OE
+    transitionName = 'approve_without_oe'
+  } else if (latestAudit.type === AuditType.MONITORING) {
+    // Audit de SUIVI avec OE → planification directe
+    transitionName = 'approve_with_oe_monitoring'
+  } else {
+    // Audit INITIAL ou RENEWAL avec OE → l'OE doit accepter
+    transitionName = 'approve_with_oe_needs_acceptance'
+  }
+
+  console.log(`[approve-case] Audit type: ${latestAudit.type}, OE: ${entity.oeId ? 'assigned' : 'none'}, Transition: ${transitionName}`)
+
+  // Déclencher la transition via la state machine
+  await auditStateMachine.transition(latestAudit, transitionName, event)
+
+  // Récupérer l'audit mis à jour après la transition
   const updatedAudit = await db.query.audits.findFirst({
     where: eq(audits.id, latestAudit.id),
   })
@@ -109,13 +140,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Créer les actions pour le nouveau statut d'audit et compléter les actions en attente
-  const { createActionsForAuditStatus, checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
-  await createActionsForAuditStatus(updatedAudit, updatedAudit.status, event)
+  // Compléter les actions en attente
+  const { checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
   await checkAndCompleteAllPendingActions(updatedAudit, currentUser.id, event)
 
   // Retourner l'audit mis à jour
   return {
     data: updatedAudit,
+    message: 'Dossier approuvé avec succès',
   }
 })

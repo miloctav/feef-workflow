@@ -76,20 +76,6 @@ export default defineEventHandler(async (event) => {
           lastname: true,
         },
       },
-      entitySignedByAccount: {
-        columns: {
-          id: true,
-          firstname: true,
-          lastname: true,
-        },
-      },
-      feefSignedByAccount: {
-        columns: {
-          id: true,
-          firstname: true,
-          lastname: true,
-        },
-      },
       documentVersions: {
         orderBy: [desc(documentVersions.uploadAt)],
         limit: 1,

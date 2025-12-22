@@ -103,10 +103,16 @@ const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
 const showDocumentViewer = ref(false)
 const showOpinionViewer = ref(false)
 
+// Récupérer les événements de l'audit via le composable
+const {
+  oeOpinionTransmittedAt,
+  oeOpinionTransmittedByAccount,
+} = useAuditEvents(computed(() => currentAudit.value?.id))
+
 // Computed depuis currentAudit
 const opinion = computed(() => currentAudit.value?.oeOpinion ?? null)
-const transmittedAt = computed(() => currentAudit.value?.oeOpinionTransmittedAt ?? null)
-const transmittedByAccount = computed(() => (currentAudit.value as any)?.oeOpinionTransmittedByAccount ?? null)
+const transmittedAt = computed(() => oeOpinionTransmittedAt.value ?? null)
+const transmittedByAccount = computed(() => oeOpinionTransmittedByAccount.value ?? null)
 const auditStatus = computed(() => currentAudit.value?.status ?? null)
 
 // Dernière version du document d'avis

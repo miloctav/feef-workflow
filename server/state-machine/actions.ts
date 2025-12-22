@@ -142,11 +142,6 @@ export async function createNewAuditAfterRefusal(audit: Audit, event: H3Event): 
       type: audit.type, // Même type que l'audit refusé
       status: 'PENDING_OE_CHOICE', // Pas d'OE assigné
       previousAuditId: audit.id, // Lien vers l'audit refusé
-      // Copier les informations de soumission et d'approbation du dossier
-      caseSubmittedAt: audit.caseSubmittedAt,
-      caseSubmittedBy: audit.caseSubmittedBy,
-      caseApprovedAt: audit.caseApprovedAt,
-      caseApprovedBy: audit.caseApprovedBy,
       createdBy: user.id,
       createdAt: new Date(),
     })

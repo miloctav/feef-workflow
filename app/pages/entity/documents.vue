@@ -23,7 +23,7 @@
 
             <!-- Afficher le badge si la revue documentaire est déjà marquée comme prête -->
             <div
-              v-else-if="currentEntity?.documentaryReviewReadyAt"
+              v-else-if="documentaryReviewReadyAt"
               class="p-4 bg-green-50 rounded-lg border border-green-200"
             >
               <div class="flex items-center gap-3">
@@ -31,9 +31,9 @@
                 <div class="flex-1">
                   <h5 class="font-medium text-green-800 mb-1">Revue documentaire validée</h5>
                   <p class="text-sm text-green-700">
-                    Marquée comme prête le {{ formatDate(currentEntity.documentaryReviewReadyAt) }}
-                    <span v-if="currentEntity.documentaryReviewReadyByAccount">
-                      par {{ currentEntity.documentaryReviewReadyByAccount.firstname }} {{ currentEntity.documentaryReviewReadyByAccount.lastname }}
+                    Marquée comme prête le {{ formatDate(documentaryReviewReadyAt) }}
+                    <span v-if="documentaryReviewReadyByAccount">
+                      par {{ documentaryReviewReadyByAccount.firstname }} {{ documentaryReviewReadyByAccount.lastname }}
                     </span>
                   </p>
                 </div>
@@ -69,6 +69,18 @@ const { currentEntity, fetchEntity } = useEntities()
 
 const isModalOpen = ref(false)
 
+// Récupérer les événements de l'entité via le composable
+const {
+  documentaryReviewReadyAt,
+  documentaryReviewReadyByAccount,
+} = useEntityEvents(computed(() => currentEntity.value?.id))
+
+// Récupérer les événements du dernier audit pour la condition caseSubmittedAt
+const latestAuditId = computed(() => currentEntity.value?.audits?.[0]?.id)
+const {
+  caseSubmittedAt,
+} = useAuditEvents(latestAuditId)
+
 // Vérifier si le bouton peut être affiché
 const canMarkAsReady = computed(() => {
   if (!currentEntity.value) return false
@@ -77,10 +89,10 @@ const canMarkAsReady = computed(() => {
   if (currentEntity.value.mode !== EntityMode.MASTER) return false
 
   // Vérifier que le dossier a été déposé (dernier audit soumis)
-  if (!currentEntity.value.audits?.[0]?.caseSubmittedAt) return false
+  if (!caseSubmittedAt.value) return false
 
   // Vérifier que la revue documentaire n'est pas déjà marquée comme prête
-  if (currentEntity.value.documentaryReviewReadyAt) return false
+  if (documentaryReviewReadyAt.value) return false
 
   return true
 })

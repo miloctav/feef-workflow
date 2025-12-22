@@ -112,10 +112,16 @@ const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
 // État pour DocumentViewer
 const showAttestationViewer = ref(false)
 
+// Récupérer les événements de l'audit via le composable
+const {
+  feefDecisionAt,
+  feefDecisionByAccount,
+} = useAuditEvents(computed(() => currentAudit.value?.id))
+
 // Computed depuis currentAudit
 const feefDecision = computed(() => currentAudit.value?.feefDecision ?? null)
-const decisionAt = computed(() => currentAudit.value?.feefDecisionAt ?? null)
-const decisionByAccount = computed(() => (currentAudit.value as any)?.feefDecisionByAccount ?? null)
+const decisionAt = computed(() => feefDecisionAt.value ?? null)
+const decisionByAccount = computed(() => feefDecisionByAccount.value ?? null)
 const labelExpirationDate = computed(() => currentAudit.value?.labelExpirationDate ?? null)
 const auditStatus = computed(() => currentAudit.value?.status ?? null)
 

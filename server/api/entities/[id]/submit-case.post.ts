@@ -3,6 +3,7 @@ import { db } from '~~/server/database'
 import { entities, audits } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
 import { createAuditForEntity } from '~~/server/utils/audit'
+import { recordEvent } from '~~/server/services/events'
 
 export default defineEventHandler(async (event) => {
   // Vérifier que l'utilisateur est connecté
@@ -88,14 +89,16 @@ export default defineEventHandler(async (event) => {
   const { createActionsForAuditStatus, checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
   await createActionsForAuditStatus(audit, audit.status, event)
 
-  // Mettre à jour l'audit avec les informations de soumission
-  await db
-    .update(audits)
-    .set(forUpdate(event, {
-      caseSubmittedAt: new Date(),
-      caseSubmittedBy: currentUser.id,
-    }))
-    .where(eq(audits.id, audit.id))
+  // Enregistrer l'événement de soumission
+  await recordEvent(event, {
+    type: 'AUDIT_CASE_SUBMITTED',
+    auditId: audit.id,
+    entityId: entityIdInt,
+    metadata: {
+      plannedDate: plannedDate,
+      timestamp: new Date(),
+    },
+  })
 
   // Récupérer l'audit mis à jour
   const updatedAudit = await db.query.audits.findFirst({

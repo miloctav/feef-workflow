@@ -2,6 +2,7 @@ import { db } from '~~/server/database'
 import { audits } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { Role } from '#shared/types/roles'
+import { recordEvent, getLatestEvent } from '~~/server/services/events'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -62,24 +63,35 @@ export default defineEventHandler(async (event) => {
   }
 
   // Vérifier que le plan n'est pas déjà validé
-  if (audit.correctivePlanValidatedAt) {
+  const validatedEvent = await getLatestEvent('AUDIT_CORRECTIVE_PLAN_VALIDATED', { auditId: audit.id })
+  if (validatedEvent) {
     throw createError({
       statusCode: 400,
       message: 'Le plan d\'action correctif a déjà été validé',
     })
   }
 
-  // Mettre à jour l'audit avec la validation
+  // Mettre à jour le statut de l'audit
   await db
     .update(audits)
     .set({
-      correctivePlanValidatedAt: new Date(),
-      correctivePlanValidatedBy: user.id,
       status: 'PENDING_OE_OPINION', // Transition vers la prochaine étape
       updatedBy: user.id,
       updatedAt: new Date(),
     })
     .where(eq(audits.id, auditId))
+
+  // Enregistrer l'événement de validation du plan correctif
+  await recordEvent(event, {
+    type: 'AUDIT_CORRECTIVE_PLAN_VALIDATED',
+    auditId: auditId,
+    entityId: audit.entityId,
+    metadata: {
+      previousStatus: audit.status,
+      newStatus: 'PENDING_OE_OPINION',
+      timestamp: new Date(),
+    },
+  })
 
   // Récupérer l'audit mis à jour avec toutes ses relations
   const auditWithRelations = await db.query.audits.findFirst({
@@ -93,13 +105,6 @@ export default defineEventHandler(async (event) => {
           firstname: true,
           lastname: true,
           email: true,
-        },
-      },
-      correctivePlanValidatedByAccount: {
-        columns: {
-          id: true,
-          firstname: true,
-          lastname: true,
         },
       },
     },

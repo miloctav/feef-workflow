@@ -4,6 +4,7 @@ import { audits, oes, accounts } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
 import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
 import { auditStateMachine } from '~~/server/state-machine'
+import { recordEvent } from '~~/server/services/events'
 
 interface UpdateAuditBody {
   oeId?: number
@@ -198,11 +199,9 @@ export default defineEventHandler(async (event) => {
   if (labelingOpinion !== undefined) updateData.labelingOpinion = labelingOpinion
   if (globalScore !== undefined) updateData.globalScore = globalScore
 
-  // Gestion de l'avis OE avec timestamps automatiques
+  // Gestion de l'avis OE
   if (oeOpinion !== undefined) {
     updateData.oeOpinion = oeOpinion
-    updateData.oeOpinionTransmittedAt = new Date()
-    updateData.oeOpinionTransmittedBy = currentUser.id
   }
   if (oeOpinionArgumentaire !== undefined) {
     updateData.oeOpinionArgumentaire = oeOpinionArgumentaire
@@ -211,11 +210,9 @@ export default defineEventHandler(async (event) => {
     updateData.oeOpinionConditions = oeOpinionConditions
   }
 
-  // Gestion de la décision FEEF avec timestamps automatiques
+  // Gestion de la décision FEEF
   if (feefDecision !== undefined) {
     updateData.feefDecision = feefDecision
-    updateData.feefDecisionAt = new Date()
-    updateData.feefDecisionBy = currentUser.id
   }
 
   // Régénération d'attestation si l'audit est déjà COMPLETED et est mis à jour
@@ -250,6 +247,33 @@ export default defineEventHandler(async (event) => {
       .update(audits)
       .set(forUpdate(event, updateData))
       .where(eq(audits.id, auditIdInt))
+  }
+
+  // Enregistrer les événements correspondants
+  if (oeOpinion !== undefined) {
+    await recordEvent(event, {
+      type: 'AUDIT_OE_OPINION_TRANSMITTED',
+      auditId: auditIdInt,
+      entityId: existingAudit.entityId,
+      metadata: {
+        opinion: oeOpinion,
+        argumentaire: oeOpinionArgumentaire,
+        conditions: oeOpinionConditions,
+        timestamp: new Date(),
+      },
+    })
+  }
+
+  if (feefDecision !== undefined) {
+    await recordEvent(event, {
+      type: feefDecision === 'ACCEPTED' ? 'AUDIT_FEEF_DECISION_ACCEPTED' : 'AUDIT_FEEF_DECISION_REJECTED',
+      auditId: auditIdInt,
+      entityId: existingAudit.entityId,
+      metadata: {
+        decision: feefDecision,
+        timestamp: new Date(),
+      },
+    })
   }
 
   // Récupérer l'audit mis à jour pour la transition

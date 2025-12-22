@@ -6,7 +6,8 @@ import { AuditStatus } from '~~/shared/types/enums'
 import { Role } from '~~/shared/types/roles'
 import { auditStateMachine } from '~~/server/state-machine'
 import { forUpdate } from '~~/server/utils/tracking'
-import { detectAndCompleteActionsForAuditField } from '~~/server/services/actions'
+import { checkAndCompleteAllPendingActions } from '~~/server/services/actions'
+import { recordEvent } from '~~/server/services/events'
 
 const oeResponseSchema = z.object({
   accepted: z.boolean(),
@@ -101,11 +102,20 @@ export default defineEventHandler(async (event) => {
   await db.update(audits)
     .set(forUpdate(event, {
       oeAccepted: accepted,
-      oeResponseAt: new Date(),
-      oeResponseBy: user.id,
       oeRefusalReason: accepted ? null : refusalReason,
     }))
     .where(eq(audits.id, auditIdInt))
+
+  // Enregistrer l'événement de réponse OE
+  await recordEvent(event, {
+    type: accepted ? 'AUDIT_OE_ACCEPTED' : 'AUDIT_OE_REFUSED',
+    auditId: auditIdInt,
+    entityId: audit.entityId,
+    metadata: {
+      refusalReason: refusalReason || null,
+      timestamp: new Date(),
+    },
+  })
 
   // Récupérer l'audit mis à jour
   const updatedAudit = await db.query.audits.findFirst({
@@ -119,16 +129,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Détecter et compléter les actions liées au champ oeResponseAt
-  await detectAndCompleteActionsForAuditField(
-    updatedAudit,
-    'oeResponseAt',
-    user.id,
-    event
-  )
-
   // Déclencher l'auto-transition via la state machine
   await auditStateMachine.checkAutoTransition(updatedAudit, event)
+
+  // Vérifier et compléter les actions en attente
+  await checkAndCompleteAllPendingActions(updatedAudit, user.id, event)
 
   // Récupérer l'audit après transition pour retourner le nouveau statut
   const finalAudit = await db.query.audits.findFirst({

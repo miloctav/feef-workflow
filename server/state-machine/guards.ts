@@ -11,6 +11,7 @@ import { db } from '~~/server/database'
 import { entities, documentVersions } from '~~/server/database/schema'
 import { eq, and, isNotNull } from 'drizzle-orm'
 import type { Audit } from '~~/server/database/schema'
+import { hasEventOccurred } from '~~/server/services/events'
 
 /**
  * Vérifie si l'audit a un OE assigné
@@ -163,28 +164,30 @@ export async function hasCorrectivePlanDocument(audit: Audit): Promise<boolean> 
 /**
  * Vérifie si le plan correctif a été validé
  *
- * Vérifie que correctivePlanValidatedAt est non null.
+ * Vérifie qu'un événement AUDIT_CORRECTIVE_PLAN_VALIDATED existe.
  */
 export async function correctivePlanValidated(audit: Audit): Promise<boolean> {
-  return audit.correctivePlanValidatedAt !== null
+  return await hasEventOccurred('AUDIT_CORRECTIVE_PLAN_VALIDATED', { auditId: audit.id })
 }
 
 /**
  * Vérifie si l'avis OE a été transmis
  *
- * Vérifie que oeOpinionTransmittedAt est non null.
+ * Vérifie qu'un événement AUDIT_OE_OPINION_TRANSMITTED existe.
  */
 export async function hasOeOpinion(audit: Audit): Promise<boolean> {
-  return audit.oeOpinionTransmittedAt !== null
+  return await hasEventOccurred('AUDIT_OE_OPINION_TRANSMITTED', { auditId: audit.id })
 }
 
 /**
  * Vérifie si la décision FEEF a été prise
  *
- * Vérifie que feefDecisionAt est non null.
+ * Vérifie qu'un événement AUDIT_FEEF_DECISION_ACCEPTED ou AUDIT_FEEF_DECISION_REJECTED existe.
  */
 export async function hasFeefDecision(audit: Audit): Promise<boolean> {
-  return audit.feefDecisionAt !== null
+  const acceptedEvent = await hasEventOccurred('AUDIT_FEEF_DECISION_ACCEPTED', { auditId: audit.id })
+  const rejectedEvent = await hasEventOccurred('AUDIT_FEEF_DECISION_REJECTED', { auditId: audit.id })
+  return acceptedEvent || rejectedEvent
 }
 
 /**
@@ -208,17 +211,17 @@ export async function isMonitoringAudit(audit: Audit): Promise<boolean> {
 /**
  * Vérifie si l'OE a accepté l'audit
  *
- * Vérifie que oeAccepted === true et oeResponseAt est non null.
+ * Vérifie qu'un événement AUDIT_OE_ACCEPTED existe.
  */
 export async function oeHasAccepted(audit: Audit): Promise<boolean> {
-  return audit.oeAccepted === true && audit.oeResponseAt !== null
+  return await hasEventOccurred('AUDIT_OE_ACCEPTED', { auditId: audit.id })
 }
 
 /**
  * Vérifie si l'OE a refusé l'audit
  *
- * Vérifie que oeAccepted === false et oeResponseAt est non null.
+ * Vérifie qu'un événement AUDIT_OE_REFUSED existe.
  */
 export async function oeHasRefused(audit: Audit): Promise<boolean> {
-  return audit.oeAccepted === false && audit.oeResponseAt !== null
+  return await hasEventOccurred('AUDIT_OE_REFUSED', { auditId: audit.id })
 }

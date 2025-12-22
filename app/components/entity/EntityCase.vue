@@ -35,6 +35,14 @@ const isFollowerView = computed(() => !!props.followerEntity)
 // Dernier audit de l'entité
 const latestAudit = computed(() => displayEntity.value?.audits?.[0] || null)
 
+// Récupérer les événements de l'audit via le composable
+const {
+  caseSubmittedAt,
+  caseSubmittedByAccount,
+  caseApprovedAt,
+  caseApprovedByAccount,
+} = useAuditEvents(computed(() => latestAudit.value?.id))
+
 // Groupes de champs
 const fieldGroups = computed(() => {
   if (!displayEntity.value?.fields) return []
@@ -150,22 +158,22 @@ const hasActions = computed(() => {
   const canApprove =
     !isFollowerView.value &&
     user.value?.role === Role.FEEF &&
-    latestAudit.value?.caseSubmittedAt &&
-    !latestAudit.value?.caseApprovedAt
+    caseSubmittedAt.value &&
+    !caseApprovedAt.value
 
   const canSubmit =
     !isFollowerView.value &&
     user.value?.role === Role.ENTITY &&
-    (!latestAudit.value?.caseSubmittedAt || latestAudit.value?.status === AuditStatus.COMPLETED)
+    (!caseSubmittedAt.value || latestAudit.value?.status === AuditStatus.COMPLETED)
 
   const canAssignManager =
     !isFollowerView.value && user.value?.role === Role.OE && user.value?.oeRole === OERole.ADMIN
 
   const hasSubmissionInfo =
-    latestAudit.value?.caseSubmittedAt && latestAudit.value?.status !== AuditStatus.COMPLETED
+    caseSubmittedAt.value && latestAudit.value?.status !== AuditStatus.COMPLETED
 
   const hasApprovalInfo =
-    latestAudit.value?.caseApprovedAt && latestAudit.value?.status !== AuditStatus.COMPLETED
+    caseApprovedAt.value && latestAudit.value?.status !== AuditStatus.COMPLETED
 
   const hasAccountManager = !!displayEntity.value?.accountManager
 
@@ -569,14 +577,14 @@ const entityLevelActions = computed(() => {
               v-if="
                 !isFollowerView &&
                 user?.role === Role.FEEF &&
-                latestAudit?.caseSubmittedAt &&
-                !latestAudit?.caseApprovedAt
+                caseSubmittedAt &&
+                !caseApprovedAt
               "
               color="success"
               variant="solid"
               size="md"
               icon="i-lucide-check"
-              :disabled="!!latestAudit?.caseApprovedAt || !latestAudit?.caseSubmittedAt"
+              :disabled="!!caseApprovedAt || !caseSubmittedAt"
               @click="handleApproveCase"
             >
               Valider le dossier
@@ -587,7 +595,7 @@ const entityLevelActions = computed(() => {
               v-if="
                 !isFollowerView &&
                 user?.role === Role.ENTITY &&
-                (!latestAudit?.caseSubmittedAt || latestAudit?.status === AuditStatus.COMPLETED)
+                (!caseSubmittedAt || latestAudit?.status === AuditStatus.COMPLETED)
               "
               title="Confirmer le dépôt du dossier"
               :ui="{ footer: 'justify-end' }"
@@ -675,7 +683,7 @@ const entityLevelActions = computed(() => {
 
             <!-- Info: Dossier déposé -->
             <div
-              v-if="latestAudit?.caseSubmittedAt && latestAudit.status !== AuditStatus.COMPLETED"
+              v-if="caseSubmittedAt && latestAudit?.status !== AuditStatus.COMPLETED"
               class="text-sm text-gray-600 pt-2"
             >
               <div class="flex items-start gap-2">
@@ -685,14 +693,14 @@ const entityLevelActions = computed(() => {
                 />
                 <div>
                   <span class="font-medium">Dossier déposé</span>
-                  <div v-if="latestAudit.caseSubmittedByAccount">
-                    par {{ latestAudit.caseSubmittedByAccount.firstname }}
-                    {{ latestAudit.caseSubmittedByAccount.lastname }}
+                  <div v-if="caseSubmittedByAccount">
+                    par {{ caseSubmittedByAccount.firstname }}
+                    {{ caseSubmittedByAccount.lastname }}
                   </div>
                   <div>
                     le
                     {{
-                      new Date(latestAudit.caseSubmittedAt).toLocaleDateString('fr-FR', {
+                      new Date(caseSubmittedAt).toLocaleDateString('fr-FR', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
@@ -705,7 +713,7 @@ const entityLevelActions = computed(() => {
 
             <!-- Info: Dossier approuvé -->
             <div
-              v-if="latestAudit?.caseApprovedAt && latestAudit.status !== AuditStatus.COMPLETED"
+              v-if="caseApprovedAt && latestAudit?.status !== AuditStatus.COMPLETED"
               class="text-sm text-gray-600 pt-1"
             >
               <div class="flex items-start gap-2">
@@ -715,14 +723,14 @@ const entityLevelActions = computed(() => {
                 />
                 <div>
                   <span class="font-medium text-success">Dossier approuvé</span>
-                  <div v-if="latestAudit.caseApprovedByAccount">
-                    par {{ latestAudit.caseApprovedByAccount.firstname }}
-                    {{ latestAudit.caseApprovedByAccount.lastname }}
+                  <div v-if="caseApprovedByAccount">
+                    par {{ caseApprovedByAccount.firstname }}
+                    {{ caseApprovedByAccount.lastname }}
                   </div>
                   <div>
                     le
                     {{
-                      new Date(latestAudit.caseApprovedAt).toLocaleDateString('fr-FR', {
+                      new Date(caseApprovedAt).toLocaleDateString('fr-FR', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',

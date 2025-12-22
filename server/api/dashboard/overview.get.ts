@@ -4,7 +4,7 @@
  */
 
 import { db } from '~~/server/database'
-import { audits as auditsTable, entities as entitiesTable } from '~~/server/database/schema'
+import { audits as auditsTable, entities as entitiesTable, events as eventsTable } from '~~/server/database/schema'
 import { and, eq, inArray, isNotNull, ne, sql } from 'drizzle-orm'
 import { Role, OERole } from '#shared/types/roles'
 
@@ -105,16 +105,33 @@ export default defineEventHandler(async (event) => {
             ),
 
         // 3. Average Process Duration - Between createdAt and feefDecisionAt (in days)
+        // Using events table instead of feefDecisionAt field
         db
             .select({
-                avgDurationDays: sql<number>`AVG(EXTRACT(DAY FROM (${auditsTable.feefDecisionAt} - ${auditsTable.createdAt})))`,
+                avgDurationDays: sql<number>`
+                    AVG(
+                        EXTRACT(DAY FROM (
+                            (SELECT e.performed_at FROM ${eventsTable} e
+                             WHERE e.audit_id = ${auditsTable.id}
+                               AND e.type IN ('AUDIT_FEEF_DECISION_ACCEPTED', 'AUDIT_FEEF_DECISION_REJECTED')
+                             ORDER BY e.performed_at DESC
+                             LIMIT 1)
+                            - ${auditsTable.createdAt}
+                        ))
+                    )
+                `,
             })
             .from(auditsTable)
             .where(
                 and(
                     ...(auditWhereConditions.length > 0 ? auditWhereConditions : []),
                     eq(auditsTable.status, 'COMPLETED'),
-                    isNotNull(auditsTable.feefDecisionAt),
+                    // Check that a FEEF decision event exists
+                    sql`EXISTS (
+                        SELECT 1 FROM ${eventsTable} e
+                        WHERE e.audit_id = ${auditsTable.id}
+                          AND e.type IN ('AUDIT_FEEF_DECISION_ACCEPTED', 'AUDIT_FEEF_DECISION_REJECTED')
+                    )`,
                 ),
             ),
 
@@ -139,9 +156,18 @@ export default defineEventHandler(async (event) => {
             .orderBy(sql`TO_CHAR(${auditsTable.plannedDate}, 'YYYY-MM')`),
 
         // 5. Labeled Entities by Year - Last 5 years
+        // Using events table instead of feefDecisionAt field
         db
             .select({
-                year: sql<number>`EXTRACT(YEAR FROM ${auditsTable.feefDecisionAt})::int`,
+                year: sql<number>`
+                    EXTRACT(YEAR FROM (
+                        SELECT e.performed_at FROM ${eventsTable} e
+                        WHERE e.audit_id = ${auditsTable.id}
+                          AND e.type = 'AUDIT_FEEF_DECISION_ACCEPTED'
+                        ORDER BY e.performed_at DESC
+                        LIMIT 1
+                    ))::int
+                `,
                 type: auditsTable.type,
                 count: sql<number>`COUNT(*)::int`,
             })
@@ -151,13 +177,47 @@ export default defineEventHandler(async (event) => {
                     ...(auditWhereConditions.length > 0 ? auditWhereConditions : []),
                     eq(auditsTable.status, 'COMPLETED'),
                     eq(auditsTable.feefDecision, 'ACCEPTED'),
-                    isNotNull(auditsTable.feefDecisionAt),
+                    // Check that an ACCEPTED decision event exists
+                    sql`EXISTS (
+                        SELECT 1 FROM ${eventsTable} e
+                        WHERE e.audit_id = ${auditsTable.id}
+                          AND e.type = 'AUDIT_FEEF_DECISION_ACCEPTED'
+                    )`,
                     // Last 5 years
-                    sql`EXTRACT(YEAR FROM ${auditsTable.feefDecisionAt}) >= EXTRACT(YEAR FROM CURRENT_DATE) - 4`,
+                    sql`
+                        EXTRACT(YEAR FROM (
+                            SELECT e.performed_at FROM ${eventsTable} e
+                            WHERE e.audit_id = ${auditsTable.id}
+                              AND e.type = 'AUDIT_FEEF_DECISION_ACCEPTED'
+                            ORDER BY e.performed_at DESC
+                            LIMIT 1
+                        )) >= EXTRACT(YEAR FROM CURRENT_DATE) - 4
+                    `,
                 ),
             )
-            .groupBy(sql`EXTRACT(YEAR FROM ${auditsTable.feefDecisionAt})`, auditsTable.type)
-            .orderBy(sql`EXTRACT(YEAR FROM ${auditsTable.feefDecisionAt})`),
+            .groupBy(
+                sql`
+                    EXTRACT(YEAR FROM (
+                        SELECT e.performed_at FROM ${eventsTable} e
+                        WHERE e.audit_id = ${auditsTable.id}
+                          AND e.type = 'AUDIT_FEEF_DECISION_ACCEPTED'
+                        ORDER BY e.performed_at DESC
+                        LIMIT 1
+                    ))
+                `,
+                auditsTable.type
+            )
+            .orderBy(
+                sql`
+                    EXTRACT(YEAR FROM (
+                        SELECT e.performed_at FROM ${eventsTable} e
+                        WHERE e.audit_id = ${auditsTable.id}
+                          AND e.type = 'AUDIT_FEEF_DECISION_ACCEPTED'
+                        ORDER BY e.performed_at DESC
+                        LIMIT 1
+                    ))
+                `
+            ),
 
         // 6. Progress Bar Stats - Count audits by workflow stage (excluding COMPLETED)
         db

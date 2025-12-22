@@ -3,6 +3,7 @@ import { db } from '~~/server/database'
 import { audits, auditNotation, documentVersions } from '~~/server/database/schema'
 import { AuditStatus } from '#shared/types/enums'
 import { AuditDocumentType } from '~~/app/types/auditDocuments'
+import { hasEventOccurred } from '~~/server/services/events'
 
 /**
  * Calcule si un audit nécessite un plan correctif
@@ -124,7 +125,8 @@ export async function updateNeedsCorrectivePlan(auditId: number, currentUserId?:
   }
 
   // NOUVEAU: Avertissement si plan validé et needsCorrectivePlan change
-  if (audit && audit.correctivePlanValidatedAt && needsCorrectivePlan !== audit.needsCorrectivePlan) {
+  const planValidated = await hasEventOccurred('AUDIT_CORRECTIVE_PLAN_VALIDATED', { auditId: audit.id })
+  if (audit && planValidated && needsCorrectivePlan !== audit.needsCorrectivePlan) {
     console.warn(`⚠️ [auditCorrectivePlan] Attention: audit ${auditId} a un plan correctif déjà validé, mais needsCorrectivePlan a changé (${audit.needsCorrectivePlan} → ${needsCorrectivePlan}). Vérifier manuellement.`)
   }
 

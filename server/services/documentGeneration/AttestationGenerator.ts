@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { audits } from '~~/server/database/schema'
 import { getLatestFieldValueFromVersions } from '~~/server/utils/entity-fields'
+import { getLatestEvent } from '~~/server/services/events'
 import { DocumentGenerator } from './DocumentGenerator'
 import type { DocumentGenerationContext, DocumentGenerationResult } from './types'
 
@@ -111,7 +112,8 @@ export class AttestationGenerator extends DocumentGenerator {
     // --- Ligne 1 : "Décernée à l'entreprise : [Nom]" + "Labellisée depuis le [Date]" ---
 
     // Partie droite : Labellisée depuis... (calculer d'abord pour connaître l'espace disponible)
-    const labeledSince = this.formatDate(audit.actualEndDate || audit.feefDecisionAt)
+    const feefDecisionEvent = await getLatestEvent('AUDIT_FEEF_DECISION_ACCEPTED', { auditId: audit.id })
+    const labeledSince = this.formatDate(audit.actualEndDate || feefDecisionEvent?.performedAt || new Date())
     const dateLabelText = `Labellisée depuis le ${labeledSince}`
     const dateFontSize = 12
     const dateLabelWidth = font.widthOfTextAtSize(dateLabelText, dateFontSize)

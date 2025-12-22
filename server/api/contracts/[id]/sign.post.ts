@@ -4,6 +4,7 @@ import { eq, and, isNull } from 'drizzle-orm'
 import { uploadFile } from '~~/server/services/garage'
 import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
 import { Role } from '#shared/types/roles'
+import { recordEvent } from '~~/server/services/events'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -175,16 +176,13 @@ export default defineEventHandler(async (event) => {
     .set({ s3Key: uploadedS3Key })
     .where(eq(documentVersions.id, newVersion.id))
 
-  // Mettre à jour le contrat avec les informations de signature
+  // Mettre à jour le statut de signature du contrat
   const updateData: any = {
     updatedBy: user.id,
     updatedAt: new Date(),
   }
 
   if (isEntitySigning) {
-    updateData.entitySignedAt = new Date()
-    updateData.entitySignedBy = user.id
-
     // Changer le statut selon le type de signature requis
     if (contract.signatureType === 'ENTITY_ONLY') {
       updateData.signatureStatus = 'COMPLETED'
@@ -192,15 +190,36 @@ export default defineEventHandler(async (event) => {
       updateData.signatureStatus = 'PENDING_FEEF'
     }
   } else if (isFeefSigning) {
-    updateData.feefSignedAt = new Date()
-    updateData.feefSignedBy = user.id
     updateData.signatureStatus = 'COMPLETED'
   }
-
 
   await db.update(contracts)
     .set(updateData)
     .where(eq(contracts.id, contractId))
+
+  // Enregistrer l'événement de signature
+  if (isEntitySigning) {
+    await recordEvent(event, {
+      type: 'CONTRACT_ENTITY_SIGNED',
+      contractId: contractId,
+      entityId: contract.entityId,
+      metadata: {
+        signatureType: contract.signatureType,
+        newStatus: updateData.signatureStatus,
+        timestamp: new Date(),
+      },
+    })
+  } else if (isFeefSigning) {
+    await recordEvent(event, {
+      type: 'CONTRACT_FEEF_SIGNED',
+      contractId: contractId,
+      entityId: contract.entityId,
+      metadata: {
+        newStatus: updateData.signatureStatus,
+        timestamp: new Date(),
+      },
+    })
+  }
 
   // Récupérer le contrat mis à jour avec toutes les relations
   const updatedContract = await db.query.contracts.findFirst({
@@ -208,20 +227,6 @@ export default defineEventHandler(async (event) => {
     with: {
       entity: true,
       createdByAccount: {
-        columns: {
-          id: true,
-          firstname: true,
-          lastname: true,
-        },
-      },
-      entitySignedByAccount: {
-        columns: {
-          id: true,
-          firstname: true,
-          lastname: true,
-        },
-      },
-      feefSignedByAccount: {
         columns: {
           id: true,
           firstname: true,

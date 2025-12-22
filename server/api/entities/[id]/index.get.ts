@@ -53,27 +53,7 @@ export default defineEventHandler(async (event) => {
           type: true,
           status: true,
           labelExpirationDate: true,
-          caseSubmittedAt: true,
-          caseSubmittedBy: true,
-          caseApprovedAt: true,
-          caseApprovedBy: true,
         },
-        with: {
-          caseSubmittedByAccount: {
-            columns: {
-              id: true,
-              firstname: true,
-              lastname: true,
-            }
-          },
-          caseApprovedByAccount: {
-            columns: {
-              id: true,
-              firstname: true,
-              lastname: true,
-            }
-          }
-        }
       },
       parentGroup: true, // Si c'est une COMPANY, récupérer tous les détails du groupe parent
       childEntities: {    // Si c'est un GROUP, récupérer toutes les entreprises enfants

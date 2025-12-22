@@ -109,10 +109,16 @@ const { triggerActionRefresh } = useActionRefresh()
 const validating = ref(false)
 const showDocumentViewer = ref(false)
 
+// Récupérer les événements de l'audit via le composable
+const {
+  correctivePlanValidatedAt,
+  correctivePlanValidatedByAccount,
+} = useAuditEvents(computed(() => currentAudit.value?.id))
+
 // Computed depuis currentAudit
 const auditStatus = computed(() => currentAudit.value?.status ?? null)
-const validatedAt = computed(() => currentAudit.value?.correctivePlanValidatedAt ?? null)
-const validatedByAccount = computed(() => (currentAudit.value as any)?.correctivePlanValidatedByAccount ?? null)
+const validatedAt = computed(() => correctivePlanValidatedAt.value ?? null)
+const validatedByAccount = computed(() => correctivePlanValidatedByAccount.value ?? null)
 
 // Dernière version du plan depuis l'audit (pas d'appel API séparé)
 const lastPlanVersion = computed(() => {
