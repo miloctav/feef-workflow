@@ -50,12 +50,13 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
   <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          FEEF Workflow
-        </h1>
-        <p class="text-gray-600 dark:text-gray-400">
-          Connectez-vous à votre compte
-        </p>
+        <img
+          src="/assets/images/Logo-PMEplus.png"
+          alt="Logo PME+"
+          class="h-20 w-auto mx-auto mb-4"
+        />
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">FEEF Workflow</h1>
+        <p class="text-gray-600 dark:text-gray-400">Connectez-vous à votre compte</p>
       </div>
 
       <UCard>
