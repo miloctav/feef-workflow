@@ -42,6 +42,11 @@ export default defineNuxtConfig({
     jwtSecret: '',
     seedToken: '',
 
+    // Session configuration
+    session: {
+      maxAge: 60 * 60 * 24, // 1 day
+    },
+
     // Email (Resend)
     resend: {
       apiKey: '',
