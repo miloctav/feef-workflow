@@ -145,7 +145,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     assignedRoles: [Role.FEEF],
     defaultDurationDays: 7,
     completionCriteria: {
-      field: 'caseApprovedAt', // audits.caseApprovedAt
+      customCheck: 'checkCaseApprovedEvent',
     },
     triggers: {
       onAuditStatus: [AuditStatus.PENDING_CASE_APPROVAL],
@@ -161,7 +161,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     assignedRoles: [Role.FEEF],
     defaultDurationDays: 10,
     completionCriteria: {
-      field: 'feefDecisionAt', // audits.feefDecisionAt
+      customCheck: 'checkFeefDecisionEvent',
     },
     triggers: {
       onAuditStatus: [AuditStatus.PENDING_FEEF_DECISION],
@@ -181,7 +181,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     assignedRoles: [Role.ENTITY],
     defaultDurationDays: 30,
     completionCriteria: {
-      field: 'caseSubmittedAt', // audits.caseSubmittedAt
+      customCheck: 'checkCaseSubmittedEvent',
     },
     triggers: {
       // Pas de trigger automatique pour le moment
@@ -197,7 +197,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     assignedRoles: [Role.ENTITY],
     defaultDurationDays: 14,
     completionCriteria: {
-      field: 'documentaryReviewReadyAt', // entities.documentaryReviewReadyAt
+      customCheck: 'checkDocumentaryReviewReadyEvent',
     },
     triggers: {
       onAuditStatus: [AuditStatus.SCHEDULED],
@@ -314,7 +314,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     assignedRoles: [Role.OE],
     defaultDurationDays: 7,
     completionCriteria: {
-      field: 'oeResponseAt',
+      customCheck: 'checkOeResponseEvent',
     },
     triggers: {
       onAuditStatus: [AuditStatus.PENDING_OE_ACCEPTANCE],
@@ -382,7 +382,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     assignedRoles: [Role.OE, Role.AUDITOR],
     defaultDurationDays: 10,
     completionCriteria: {
-      field: 'correctivePlanValidatedAt',
+      customCheck: 'checkCorrectivePlanValidatedEvent',
     },
     triggers: {
       onAuditStatus: [AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION],
@@ -398,7 +398,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     assignedRoles: [Role.OE, Role.AUDITOR],
     defaultDurationDays: 15,
     completionCriteria: {
-      field: 'oeOpinionTransmittedAt',
+      customCheck: 'checkOeOpinionTransmittedEvent',
     },
     triggers: {
       onAuditStatus: [AuditStatus.PENDING_OE_OPINION],

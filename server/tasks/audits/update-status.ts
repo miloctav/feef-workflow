@@ -6,17 +6,19 @@
  *
  * Planifié pour s'exécuter chaque jour à 0h UTC (1h Paris hiver / 2h Paris été)
  */
+import { createCronLogger } from '~~/server/utils/logger/cron-logger'
+
 export default defineTask({
   meta: {
     name: 'audits:update-status',
     description: 'Met à jour les audits PLANNING/SCHEDULED → PENDING_REPORT quand actualEndDate est passée',
   },
   async run({ payload, context }) {
-    const startTime = Date.now()
+    const logger = createCronLogger('audits:update-status')
     const today = new Date().toISOString().split('T')[0] // Format YYYY-MM-DD
 
-    console.log(`[TASK] Audit Status Update - Started at ${new Date().toISOString()}`)
-    console.log(`[TASK] Looking for audits with status=PLANNING or SCHEDULED and actualEndDate < ${today}`)
+    logger.start('Starting audit status update task')
+    logger.info('Searching for audits to update', { date: today })
 
     try {
       // Import dynamique de la DB et du schema
@@ -26,6 +28,7 @@ export default defineTask({
       const { eq, and, lt, isNull, or } = await import('drizzle-orm')
 
       // Trouver les audits à mettre à jour (PLANNING ou SCHEDULED avec actualEndDate passée)
+      logger.step('Query audits from database')
       const auditsToUpdate = await db.query.audits.findMany({
         where: and(
           or(
@@ -42,19 +45,23 @@ export default defineTask({
           actualEndDate: true
         }
       })
+      logger.stepComplete('Query audits from database', { count: auditsToUpdate.length })
 
       if (auditsToUpdate.length === 0) {
-        console.log('[TASK] No audits to update')
+        logger.complete({ count: 0 }, 'No audits to update')
         return { result: 'No audits to update', count: 0 }
       }
 
-      console.log(`[TASK] Found ${auditsToUpdate.length} audits to transition`)
+      logger.info(`Found ${auditsToUpdate.length} audits to transition`)
 
       // Import state machine
       const { auditStateMachine } = await import('../../state-machine')
 
       // Mettre à jour chaque audit
+      logger.step('Process audit transitions')
       const updatedIds: number[] = []
+      const failedIds: number[] = []
+
       for (const audit of auditsToUpdate) {
         // Create a minimal mock event (no actual user for cron jobs)
         const mockEvent = {
@@ -67,27 +74,37 @@ export default defineTask({
         try {
           await auditStateMachine.transition(audit, AuditStatus.PENDING_REPORT, mockEvent)
           updatedIds.push(audit.id)
-          console.log(`[TASK] ✓ Audit #${audit.id} (entity #${audit.entityId}) ${audit.status} → PENDING_REPORT via state machine`)
+          logger.info('Successfully transitioned audit', {
+            auditId: audit.id,
+            entityId: audit.entityId,
+            fromStatus: audit.status,
+            toStatus: 'PENDING_REPORT'
+          })
         } catch (error) {
-          console.error(`[TASK] ✗ Failed to transition audit #${audit.id}:`, error)
+          failedIds.push(audit.id)
+          logger.warn('Failed to transition audit', {
+            auditId: audit.id,
+            error: error instanceof Error ? error.message : String(error)
+          })
           // Continue with next audit
         }
       }
+      logger.stepComplete('Process audit transitions')
 
-      const duration = Date.now() - startTime
-      console.log(`[TASK] Completed successfully in ${duration}ms`)
-      console.log(`[TASK] Updated audit IDs: ${updatedIds.join(', ')}`)
-
-      return {
+      const result = {
         result: 'Success',
         count: updatedIds.length,
+        failedCount: failedIds.length,
         auditIds: updatedIds,
-        duration
+        failedAuditIds: failedIds
       }
 
+      logger.complete(result, `Updated ${updatedIds.length} audits successfully, ${failedIds.length} failed`)
+
+      return result
+
     } catch (error) {
-      const duration = Date.now() - startTime
-      console.error(`[TASK] FAILED after ${duration}ms:`, error)
+      logger.error(error as Error)
       throw error
     }
   },

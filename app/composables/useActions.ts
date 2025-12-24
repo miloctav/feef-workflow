@@ -18,15 +18,45 @@ export const useActions = (options?: { auditId?: number | Ref<number | undefined
         : 'actions'
   )
 
+  // Ref pour tracker les refresh en cours et éviter les doublons
+  const refreshPending = ref(false)
+  const refreshDebounceTimer = ref<NodeJS.Timeout | null>(null)
 
   // Utilise le composable de pagination pour la liste des actions
   const paginated = usePaginatedFetch<Action>('/api/actions', {
-    key: cacheKey,
+    key: cacheKey.value,
     defaultLimit: 50,
     immediate: false, // on déclenche manuellement
     initialParams: {},
     watch: false, // on gère le watch nous-même
   })
+
+  // Fonction de refresh avec debounce pour éviter les doubles requêtes
+  const debouncedRefresh = async () => {
+    // Clear le timer existant
+    if (refreshDebounceTimer.value) {
+      clearTimeout(refreshDebounceTimer.value)
+    }
+
+    // Si un refresh est déjà en cours, on attend qu'il se termine
+    if (refreshPending.value) {
+      return
+    }
+
+    // Debounce de 100ms pour grouper les appels multiples
+    return new Promise<void>((resolve) => {
+      refreshDebounceTimer.value = setTimeout(async () => {
+        refreshPending.value = true
+        try {
+          await paginated.refresh()
+        } finally {
+          refreshPending.value = false
+          refreshDebounceTimer.value = null
+        }
+        resolve()
+      }, 100)
+    })
+  }
 
   // Watch sur auditId/entityId pour relancer le fetch si besoin, uniquement si défini
   watch([auditIdRef, entityIdRef], ([newAuditId, newEntityId]) => {
@@ -35,7 +65,7 @@ export const useActions = (options?: { auditId?: number | Ref<number | undefined
         ...(newAuditId ? { auditId: newAuditId } : {}),
         ...(newEntityId ? { entityId: newEntityId } : {}),
       })
-      paginated.refresh()
+      debouncedRefresh()
     } else {
       // Reset data when both IDs are undefined to prevent stale data
       paginated.reset()
@@ -77,7 +107,7 @@ export const useActions = (options?: { auditId?: number | Ref<number | undefined
   onActionRefresh(
     async () => {
       // Rafraîchir les actions automatiquement lors d'un événement
-      await paginated.refresh()
+      await debouncedRefresh()
     },
     {
       auditId: auditIdStringRef,

@@ -111,22 +111,26 @@ export default defineEventHandler(async (event) => {
 
   // Déterminer quelle transition utiliser selon les guards de la state machine
   let transitionName: string
+  let targetStatus: AuditStatusType
 
   if (!entity.oeId) {
     // Pas d'OE assigné → choisir un OE
     transitionName = 'approve_without_oe'
+    targetStatus = AuditStatus.PENDING_OE_CHOICE
   } else if (latestAudit.type === AuditType.MONITORING) {
     // Audit de SUIVI avec OE → planification directe
     transitionName = 'approve_with_oe_monitoring'
+    targetStatus = AuditStatus.PLANNING
   } else {
     // Audit INITIAL ou RENEWAL avec OE → l'OE doit accepter
     transitionName = 'approve_with_oe_needs_acceptance'
+    targetStatus = AuditStatus.PENDING_OE_ACCEPTANCE
   }
 
   console.log(`[approve-case] Audit type: ${latestAudit.type}, OE: ${entity.oeId ? 'assigned' : 'none'}, Transition: ${transitionName}`)
 
   // Déclencher la transition via la state machine
-  await auditStateMachine.transition(latestAudit, transitionName, event)
+  await auditStateMachine.transition(latestAudit, targetStatus, event, transitionName)
 
   // Récupérer l'audit mis à jour après la transition
   const updatedAudit = await db.query.audits.findFirst({

@@ -60,6 +60,9 @@ services:
       POSTGRES_PORT: 5432
       # Database URL (constructed from POSTGRES_* variables) - override dev value
       NUXT_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Logging configuration
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_DIR: /app/logs
       # All other NUXT_* variables are loaded from .env file via env_file directive
       # This includes: NUXT_GARAGE_*, NUXT_SESSION_PASSWORD, NUXT_JWT_SECRET,
       # NUXT_RESEND_*, NUXT_DEV_MODE, NUXT_SEED_TOKEN
@@ -72,6 +75,8 @@ services:
       - feef-network
     expose:
       - "3000"
+    volumes:
+      - cron_logs:/app/logs
 
   # Nginx Reverse Proxy
   nginx:
@@ -112,6 +117,8 @@ volumes:
   certbot_certs:
     driver: local
   certbot_www:
+    driver: local
+  cron_logs:
     driver: local
 
 networks:

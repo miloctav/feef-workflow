@@ -415,6 +415,20 @@ async function evaluateCustomCheck(checkName: string, action: any): Promise<bool
       return await checkAuditDatesSet(action)
     case 'checkAllDocumentRequestsCompleted':
       return await checkAllDocumentRequestsCompleted(action)
+    case 'checkCaseApprovedEvent':
+      return await checkCaseApprovedEvent(action)
+    case 'checkFeefDecisionEvent':
+      return await checkFeefDecisionEvent(action)
+    case 'checkCaseSubmittedEvent':
+      return await checkCaseSubmittedEvent(action)
+    case 'checkDocumentaryReviewReadyEvent':
+      return await checkDocumentaryReviewReadyEvent(action)
+    case 'checkOeResponseEvent':
+      return await checkOeResponseEvent(action)
+    case 'checkCorrectivePlanValidatedEvent':
+      return await checkCorrectivePlanValidatedEvent(action)
+    case 'checkOeOpinionTransmittedEvent':
+      return await checkOeOpinionTransmittedEvent(action)
     default:
       console.warn(`[Actions] Unknown custom check: ${checkName}`)
       return false
@@ -720,6 +734,119 @@ export async function checkAllDocumentRequestsCompleted(
   const allCompleted = pendingRequests.every(version => version.s3Key !== null)
 
   return allCompleted
+}
+
+/**
+ * Vérifie si le dossier a été approuvé via l'événement AUDIT_CASE_APPROVED
+ */
+async function checkCaseApprovedEvent(action: any): Promise<boolean> {
+  if (!action.auditId) {
+    console.warn('[Actions] checkCaseApprovedEvent: Missing auditId')
+    return false
+  }
+
+  const { hasEventOccurred } = await import('~~/server/services/events')
+  return await hasEventOccurred('AUDIT_CASE_APPROVED', {
+    auditId: action.auditId
+  })
+}
+
+/**
+ * Vérifie si la décision FEEF a été prise (acceptée OU rejetée)
+ */
+async function checkFeefDecisionEvent(action: any): Promise<boolean> {
+  if (!action.auditId) {
+    console.warn('[Actions] checkFeefDecisionEvent: Missing auditId')
+    return false
+  }
+
+  const { hasEventOccurred } = await import('~~/server/services/events')
+  const accepted = await hasEventOccurred('AUDIT_FEEF_DECISION_ACCEPTED', {
+    auditId: action.auditId
+  })
+  const rejected = await hasEventOccurred('AUDIT_FEEF_DECISION_REJECTED', {
+    auditId: action.auditId
+  })
+  return accepted || rejected
+}
+
+/**
+ * Vérifie si le dossier a été soumis via l'événement AUDIT_CASE_SUBMITTED
+ */
+async function checkCaseSubmittedEvent(action: any): Promise<boolean> {
+  if (!action.auditId) {
+    console.warn('[Actions] checkCaseSubmittedEvent: Missing auditId')
+    return false
+  }
+
+  const { hasEventOccurred } = await import('~~/server/services/events')
+  return await hasEventOccurred('AUDIT_CASE_SUBMITTED', {
+    auditId: action.auditId
+  })
+}
+
+/**
+ * Vérifie si la revue documentaire est prête via l'événement ENTITY_DOCUMENTARY_REVIEW_READY
+ */
+async function checkDocumentaryReviewReadyEvent(action: any): Promise<boolean> {
+  if (!action.entityId) {
+    console.warn('[Actions] checkDocumentaryReviewReadyEvent: Missing entityId')
+    return false
+  }
+
+  const { hasEventOccurred } = await import('~~/server/services/events')
+  return await hasEventOccurred('ENTITY_DOCUMENTARY_REVIEW_READY', {
+    entityId: action.entityId
+  })
+}
+
+/**
+ * Vérifie si l'OE a répondu (accepté OU refusé) via les événements
+ */
+async function checkOeResponseEvent(action: any): Promise<boolean> {
+  if (!action.auditId) {
+    console.warn('[Actions] checkOeResponseEvent: Missing auditId')
+    return false
+  }
+
+  const { hasEventOccurred } = await import('~~/server/services/events')
+  const accepted = await hasEventOccurred('AUDIT_OE_ACCEPTED', {
+    auditId: action.auditId
+  })
+  const refused = await hasEventOccurred('AUDIT_OE_REFUSED', {
+    auditId: action.auditId
+  })
+  return accepted || refused
+}
+
+/**
+ * Vérifie si le plan correctif a été validé via l'événement AUDIT_CORRECTIVE_PLAN_VALIDATED
+ */
+async function checkCorrectivePlanValidatedEvent(action: any): Promise<boolean> {
+  if (!action.auditId) {
+    console.warn('[Actions] checkCorrectivePlanValidatedEvent: Missing auditId')
+    return false
+  }
+
+  const { hasEventOccurred } = await import('~~/server/services/events')
+  return await hasEventOccurred('AUDIT_CORRECTIVE_PLAN_VALIDATED', {
+    auditId: action.auditId
+  })
+}
+
+/**
+ * Vérifie si l'avis de l'OE a été transmis via l'événement AUDIT_OE_OPINION_TRANSMITTED
+ */
+async function checkOeOpinionTransmittedEvent(action: any): Promise<boolean> {
+  if (!action.auditId) {
+    console.warn('[Actions] checkOeOpinionTransmittedEvent: Missing auditId')
+    return false
+  }
+
+  const { hasEventOccurred } = await import('~~/server/services/events')
+  return await hasEventOccurred('AUDIT_OE_OPINION_TRANSMITTED', {
+    auditId: action.auditId
+  })
 }
 
 /**

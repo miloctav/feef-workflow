@@ -6,13 +6,15 @@
  *
  * Scheduled for 2:40 AM UTC
  */
+import { createCronLogger } from '~~/server/utils/logger/cron-logger'
+
 export default defineTask({
     meta: {
         name: 'actions:check-label-expiration',
         description: 'Check label expiration dates and create renewal actions for MASTER entities',
     },
     async run({ payload, context }) {
-        const startTime = Date.now()
+        const logger = createCronLogger('actions:check-label-expiration')
         const now = new Date()
 
         // Calculate the threshold date (40 days from now)
@@ -20,8 +22,9 @@ export default defineTask({
         thresholdDate.setDate(thresholdDate.getDate() + 40)
         const thresholdDateStr = thresholdDate.toISOString().split('T')[0] // Format YYYY-MM-DD
 
-        console.log(`[TASK] Check Label Expiration - Started at ${now.toISOString()}`)
-        console.log(`[TASK] Looking for MASTER entities with labelExpirationDate <= ${thresholdDateStr}`)
+        logger.start('Starting label expiration check', {
+            thresholdDate: thresholdDateStr,
+        })
 
         try {
             // Dynamic imports
@@ -31,6 +34,7 @@ export default defineTask({
             const { eq, and, isNull, isNotNull, lte, desc, inArray, or } = await import('drizzle-orm')
 
             // Step 1: Find all MASTER entities
+            logger.step('Find MASTER entities')
             const masterEntities = await db.query.entities.findMany({
                 where: and(
                     eq(entities.mode, 'MASTER'),
@@ -41,18 +45,20 @@ export default defineTask({
                     name: true,
                 }
             })
+            logger.stepComplete('Find MASTER entities', { count: masterEntities.length })
 
             if (masterEntities.length === 0) {
-                console.log('[TASK] No MASTER entities found')
+                logger.complete({ count: 0 }, 'No MASTER entities found')
                 return { result: 'No MASTER entities', count: 0 }
             }
 
-            console.log(`[TASK] Found ${masterEntities.length} MASTER entities`)
+            logger.info(`Found ${masterEntities.length} MASTER entities to process`)
 
             const actionsCreated: Array<{ entityId: number, entityName: string, expirationDate: string }> = []
             const entitiesSkipped: Array<{ entityId: number, reason: string }> = []
 
             // Step 2: Process each MASTER entity
+            logger.step('Process entities for expiration')
             for (const entity of masterEntities) {
                 // Find the latest audit with labelExpirationDate not null
                 const latestAudit = await db.query.audits.findFirst({
@@ -139,19 +145,15 @@ export default defineTask({
                     expirationDate: latestAudit.labelExpirationDate,
                 })
 
-                console.log(`[TASK] ✓ Created renewal action for entity #${entity.id} (${entity.name}) - Label expires: ${latestAudit.labelExpirationDate}`)
+                logger.info('Created renewal action', {
+                    entityId: entity.id,
+                    entityName: entity.name,
+                    expirationDate: latestAudit.labelExpirationDate,
+                })
             }
+            logger.stepComplete('Process entities for expiration')
 
-            const duration = Date.now() - startTime
-            console.log(`[TASK] Completed successfully in ${duration}ms`)
-            console.log(`[TASK] Actions created: ${actionsCreated.length}`)
-            console.log(`[TASK] Entities skipped: ${entitiesSkipped.length}`)
-
-            if (actionsCreated.length > 0) {
-                console.log('[TASK] Created actions for:', actionsCreated.map(a => `Entity #${a.entityId} (${a.entityName})`).join(', '))
-            }
-
-            return {
+            const result = {
                 result: 'Success',
                 masterEntitiesCount: masterEntities.length,
                 actionsCreated: actionsCreated.length,
@@ -160,12 +162,14 @@ export default defineTask({
                     actionsCreated,
                     entitiesSkipped,
                 },
-                duration,
             }
 
+            logger.complete(result, `Created ${actionsCreated.length} renewal actions, skipped ${entitiesSkipped.length} entities`)
+
+            return result
+
         } catch (error) {
-            const duration = Date.now() - startTime
-            console.error(`[TASK] FAILED after ${duration}ms:`, error)
+            logger.error(error as Error)
             throw error
         }
     },
