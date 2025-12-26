@@ -1,6 +1,14 @@
 <template>
-  <UModal title="Ajouter un document" :ui="{ footer: 'justify-end' }">
-    <UButton icon="i-lucide-plus" size="sm" color="primary" variant="soft">
+  <UModal
+    title="Ajouter un document"
+    :ui="{ footer: 'justify-end' }"
+  >
+    <UButton
+      icon="i-lucide-plus"
+      size="sm"
+      color="primary"
+      variant="soft"
+    >
       Ajouter
     </UButton>
 
@@ -8,60 +16,127 @@
       <div class="space-y-6">
         <!-- Choix du mode de création -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Mode de création
-          </label>
+          <label class="block text-sm font-medium text-gray-700 mb-2"> Mode de création </label>
           <div class="grid grid-cols-2 gap-4">
-            <button type="button" class="p-4 border-2 rounded-lg transition-all"
-              :class="creationMode === 'manual' ? 'border-primary bg-primary-50' : 'border-gray-200 hover:border-gray-300'"
-              @click="creationMode = 'manual'">
-              <UIcon name="i-lucide-pen" class="w-6 h-6 mx-auto mb-2"
-                :class="creationMode === 'manual' ? 'text-primary' : 'text-gray-400'" />
+            <button
+              type="button"
+              class="p-4 border-2 rounded-lg transition-all"
+              :class="
+                creationMode === 'manual'
+                  ? 'border-primary bg-primary-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              "
+              @click="creationMode = 'manual'"
+            >
+              <UIcon
+                name="i-lucide-pen"
+                class="w-6 h-6 mx-auto mb-2"
+                :class="creationMode === 'manual' ? 'text-primary' : 'text-gray-400'"
+              />
               <div class="text-sm font-medium">Création manuelle</div>
             </button>
-            <button type="button" class="p-4 border-2 rounded-lg transition-all"
-              :class="creationMode === 'template' ? 'border-primary bg-primary-50' : 'border-gray-200 hover:border-gray-300'"
-              @click="creationMode = 'template'">
-              <UIcon name="i-lucide-file-text" class="w-6 h-6 mx-auto mb-2"
-                :class="creationMode === 'template' ? 'text-primary' : 'text-gray-400'" />
+            <button
+              type="button"
+              class="p-4 border-2 rounded-lg transition-all"
+              :class="
+                creationMode === 'template'
+                  ? 'border-primary bg-primary-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              "
+              @click="creationMode = 'template'"
+            >
+              <UIcon
+                name="i-lucide-file-text"
+                class="w-6 h-6 mx-auto mb-2"
+                :class="creationMode === 'template' ? 'text-primary' : 'text-gray-400'"
+              />
               <div class="text-sm font-medium">Depuis un modèle</div>
             </button>
           </div>
         </div>
 
         <!-- Formulaire création manuelle -->
-        <div v-if="creationMode === 'manual'" class="space-y-4">
-          <UFormField label="Titre" required>
-            <UInput v-model="form.title" placeholder="Titre du document" />
+        <div
+          v-if="creationMode === 'manual'"
+          class="space-y-4"
+        >
+          <UFormField
+            label="Titre"
+            required
+          >
+            <UInput
+              v-model="form.title"
+              placeholder="Titre du document"
+              class="w-full"
+            />
           </UFormField>
 
           <UFormField label="Description">
-            <UTextarea v-model="form.description" placeholder="Description du document" :rows="3" />
+            <UTextarea
+              v-model="form.description"
+              placeholder="Description du document"
+              :rows="3"
+              class="w-full"
+            />
           </UFormField>
 
-          <UFormField label="Catégorie" required>
-            <USelect v-model="form.category" :items="categoryOptions" placeholder="Sélectionner une catégorie" :disabled="!!props.category" />
+          <UFormField
+            label="Catégorie"
+            required
+          >
+            <USelect
+              v-model="form.category"
+              :items="categoryOptions"
+              placeholder="Sélectionner une catégorie"
+              :disabled="!!props.category"
+              class="w-full"
+            />
           </UFormField>
         </div>
 
         <!-- Sélection de template -->
-        <div v-else class="space-y-4">
-          <UFormField label="Type de document" required>
-            <USelectMenu v-model="form.documentTypeId" :items="documentTypeOptions"
-              placeholder="Sélectionner un type de document" :loading="documentTypesLoading" value-key="value" />
+        <div
+          v-else
+          class="space-y-4"
+        >
+          <UFormField
+            label="Type de document"
+            required
+          >
+            <USelectMenu
+              v-model="form.documentTypeId"
+              :items="documentTypeOptions"
+              placeholder="Sélectionner un type de document"
+              :loading="documentTypesLoading"
+              value-key="value"
+              class="w-full"
+            />
           </UFormField>
 
           <!-- Aperçu du template sélectionné -->
-          <div v-if="selectedDocumentType" class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div
+            v-if="selectedDocumentType"
+            class="p-4 bg-gray-50 rounded-lg border border-gray-200"
+          >
             <div class="flex items-start gap-3">
-              <UIcon :name="getCategoryIcon(selectedDocumentType.category)" class="w-5 h-5 text-primary mt-0.5" />
+              <UIcon
+                :name="getCategoryIcon(selectedDocumentType.category)"
+                class="w-5 h-5 text-primary mt-0.5"
+              />
               <div class="flex-1 min-w-0">
                 <h4 class="font-medium text-gray-900">{{ selectedDocumentType.title }}</h4>
-                <p v-if="selectedDocumentType.description" class="text-sm text-gray-600 mt-1">
+                <p
+                  v-if="selectedDocumentType.description"
+                  class="text-sm text-gray-600 mt-1"
+                >
                   {{ selectedDocumentType.description }}
                 </p>
                 <div class="flex items-center gap-2 mt-2">
-                  <UBadge :color="getCategoryColor(selectedDocumentType.category)" variant="soft" size="xs">
+                  <UBadge
+                    :color="getCategoryColor(selectedDocumentType.category)"
+                    variant="soft"
+                    size="xs"
+                  >
                     {{ getCategoryLabel(selectedDocumentType.category) }}
                   </UBadge>
                 </div>
@@ -73,8 +148,19 @@
     </template>
 
     <template #footer="{ close }">
-      <UButton label="Annuler" color="neutral" variant="outline" @click="close" />
-      <UButton label="Créer le document" color="primary" :loading="createLoading" :disabled="!isFormValid" @click="handleSubmit(close)" />
+      <UButton
+        label="Annuler"
+        color="neutral"
+        variant="outline"
+        @click="close"
+      />
+      <UButton
+        label="Créer le document"
+        color="primary"
+        :loading="createLoading"
+        :disabled="!isFormValid"
+        @click="handleSubmit(close)"
+      />
     </template>
   </UModal>
 </template>
@@ -86,7 +172,7 @@ import {
   DocumentaryReviewCategoryLabels,
   DocumentaryReviewCategoryIcons,
   DocumentaryReviewCategoryColors,
-  getDocumentaryReviewCategoryItems
+  getDocumentaryReviewCategoryItems,
 } from '#shared/types/enums'
 
 interface Props {
@@ -120,10 +206,12 @@ const categoryOptions = getDocumentaryReviewCategoryItems()
 
 // Charger les types de documents disponibles
 const documentTypesLoading = ref(false)
-const documentTypes = ref<Array<{ id: number, title: string, description: string | null, category: string }>>([])
+const documentTypes = ref<
+  Array<{ id: number; title: string; description: string | null; category: string }>
+>([])
 
 const documentTypeOptions = computed(() => {
-  return documentTypes.value.map(dt => ({
+  return documentTypes.value.map((dt) => ({
     label: dt.title,
     value: dt.id,
   }))
@@ -131,7 +219,7 @@ const documentTypeOptions = computed(() => {
 
 const selectedDocumentType = computed(() => {
   if (!form.documentTypeId) return null
-  return documentTypes.value.find(dt => dt.id === form.documentTypeId)
+  return documentTypes.value.find((dt) => dt.id === form.documentTypeId)
 })
 
 // Charger les document types au montage
@@ -194,14 +282,23 @@ const resetForm = () => {
 
 // Utilitaires pour les catégories
 const getCategoryLabel = (category: string) => {
-  return DocumentaryReviewCategoryLabels[category as keyof typeof DocumentaryReviewCategoryLabels] || category
+  return (
+    DocumentaryReviewCategoryLabels[category as keyof typeof DocumentaryReviewCategoryLabels] ||
+    category
+  )
 }
 
 const getCategoryIcon = (category: string) => {
-  return DocumentaryReviewCategoryIcons[category as keyof typeof DocumentaryReviewCategoryIcons] || 'i-lucide-folder'
+  return (
+    DocumentaryReviewCategoryIcons[category as keyof typeof DocumentaryReviewCategoryIcons] ||
+    'i-lucide-folder'
+  )
 }
 
 const getCategoryColor = (category: string) => {
-  return DocumentaryReviewCategoryColors[category as keyof typeof DocumentaryReviewCategoryColors] || 'neutral'
+  return (
+    DocumentaryReviewCategoryColors[category as keyof typeof DocumentaryReviewCategoryColors] ||
+    'neutral'
+  )
 }
 </script>

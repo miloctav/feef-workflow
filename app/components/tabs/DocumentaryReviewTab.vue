@@ -51,7 +51,7 @@
 
           <!-- Bouton ajouter document -->
           <AddDocumentaryReviewModal
-            v-if="user?.role === Role.FEEF && currentEntity"
+            v-if="(user?.role === Role.FEEF || user?.role === Role.ENTITY) && currentEntity"
             :entity-id="currentEntity.id"
           />
         </div>

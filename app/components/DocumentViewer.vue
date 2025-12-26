@@ -32,6 +32,7 @@
             </div>
             <div class="flex gap-2">
               <input
+                v-if="canUploadDocument"
                 ref="fileInputRef"
                 type="file"
                 class="hidden"
@@ -46,6 +47,7 @@
                 button-label="Demander MAJ"
               />
               <UButton
+                v-if="canUploadDocument"
                 @click="triggerFileInput"
                 color="secondary"
                 variant="outline"
@@ -129,7 +131,7 @@
             <div class="flex flex-col gap-3">
               <!-- Bouton pour ENTITY : Upload le document demandé -->
               <UButton
-                v-if="user?.role === Role.ENTITY"
+                v-if="canUploadDocument"
                 @click="triggerFileInput"
                 color="primary"
                 variant="solid"
@@ -195,6 +197,7 @@
               Ce document n'a pas encore été uploadé. Cliquez sur "Importer première version" pour ajouter la première version du document.
             </p>
             <input
+              v-if="canUploadDocument"
               ref="fileInputEmptyRef"
               type="file"
               class="hidden"
@@ -202,6 +205,7 @@
               @change="handleFileSelect"
             />
             <UButton
+              v-if="canUploadDocument"
               @click="triggerFileInputEmpty"
               color="primary"
               variant="solid"
@@ -275,6 +279,28 @@ const documentDescription = computed(() => {
 
   // Pour les autres types
   return (documentData.value as any)?.description || ''
+})
+
+// Computed pour déterminer si l'utilisateur peut uploader selon le type de document
+const canUploadDocument = computed(() => {
+  if (!user.value?.role) return false
+
+  const role = user.value.role
+
+  // Permissions par type de document
+  if (documentType.value === 'documentaryReview') {
+    return role === Role.ENTITY || role === Role.FEEF
+  }
+
+  if (documentType.value === 'contract') {
+    return role === Role.ENTITY || role === Role.FEEF || role === Role.OE
+  }
+
+  if (documentType.value === 'audit') {
+    return role === Role.AUDITOR || role === Role.FEEF
+  }
+
+  return false
 })
 
 const emit = defineEmits<{
