@@ -438,18 +438,19 @@ onMounted(async () => {
   if (props.entityId) {
     setFilters({ entityId: props.entityId })
   }
-
   // Appliquer le filtre oeId si fourni en props
-  if (props.oeId) {
+  else if (props.oeId) {
     setFilters({ oeId: props.oeId })
+  }
+  // Sinon, charger les comptes sans filtres (mode général)
+  else {
+    await fetchAccounts()
   }
 
   // Charger les listes pour les selects (sans l'option "Tous")
   // Pour les entités, charger uniquement les entités MASTER (seules elles peuvent avoir des comptes)
   oesList.value = await fetchOesForSelect({ includeAll: false })
   entitiesList.value = await fetchEntitiesForSelect({ includeAll: false, mode: EntityMode.MASTER })
-
-  // Note: Pas besoin d'appeler fetchAccounts() car setFilters() déclenche déjà le refresh
 })
 
 // Gérer les changements de filtres depuis PaginatedTable
