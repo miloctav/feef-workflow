@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({
-  layout: false
+  layout: false,
 })
 
 const router = useRouter()
@@ -15,13 +15,13 @@ async function handleSubmit() {
 
   // Validation côté client
   if (!email.value) {
-    error.value = 'L\'email est requis'
+    error.value = "L'email est requis"
     return
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(email.value)) {
-    error.value = 'Format d\'email invalide'
+    error.value = "Format d'email invalide"
     return
   }
 
@@ -31,8 +31,8 @@ async function handleSubmit() {
     await $fetch('/api/auth/forgot-password', {
       method: 'POST',
       body: {
-        email: email.value
-      }
+        email: email.value,
+      },
     })
 
     success.value = true
@@ -49,99 +49,122 @@ function goToLogin() {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-screen bg-gray-50">
-    <UCard class="w-full max-w-md mx-4">
-      <template #header>
-        <div class="text-center">
-          <h1 class="text-2xl font-bold text-gray-900">
-            FEEF Workflow
-          </h1>
-          <p class="mt-2 text-sm text-gray-600">
-            Mot de passe oublié
-          </p>
-        </div>
-      </template>
-
-      <!-- Message de succès -->
-      <div v-if="success" class="text-center py-8">
-        <UIcon name="i-lucide-mail-check" class="w-16 h-16 text-blue-500 mx-auto mb-4" />
-        <h2 class="text-lg font-semibold mb-2 text-gray-900">
-          Email envoyé !
-        </h2>
-        <p class="text-gray-600 mb-4">
-          Si un compte existe avec cet email, vous recevrez un lien de réinitialisation dans quelques instants.
-        </p>
-        <p class="text-sm text-gray-500 mb-6">
-          Pensez à vérifier vos spams si vous ne recevez pas l'email.
-        </p>
-        <UButton
-          variant="soft"
-          color="gray"
-          @click="goToLogin"
-          block
-        >
-          Retour à la connexion
-        </UButton>
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+    <div class="w-full max-w-md">
+      <div class="text-center mb-8">
+        <img
+          src="/assets/images/Logo-PMEplus.png"
+          alt="Logo PME+"
+          class="h-20 w-auto mx-auto mb-4"
+        />
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">FEEF Workflow</h1>
+        <p class="text-gray-600 dark:text-gray-400">Réinitialisation de mot de passe</p>
       </div>
 
-      <!-- Formulaire -->
-      <form v-else @submit.prevent="handleSubmit" class="space-y-6">
-        <div class="space-y-4">
-          <p class="text-sm text-gray-600">
-            Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+      <UCard>
+        <template #header>
+          <div class="text-center">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+              Mot de passe oublié ?
+            </h2>
+          </div>
+        </template>
+
+        <!-- Message de succès -->
+        <div
+          v-if="success"
+          class="text-center py-8"
+        >
+          <UIcon
+            name="i-lucide-mail-check"
+            class="w-16 h-16 text-blue-500 mx-auto mb-4"
+          />
+          <h2 class="text-lg font-semibold mb-2 text-gray-900">Email envoyé !</h2>
+          <p class="text-gray-600 mb-4">
+            Si un compte existe avec cet email, vous recevrez un lien de réinitialisation dans
+            quelques instants.
           </p>
-
-          <UFormGroup label="Adresse email" required>
-            <UInput
-              v-model="email"
-              type="email"
-              placeholder="votre.email@exemple.fr"
-              :disabled="loading"
-              size="lg"
-              autocomplete="email"
-            />
-          </UFormGroup>
-        </div>
-
-        <!-- Message d'erreur -->
-        <UAlert
-          v-if="error"
-          color="red"
-          variant="soft"
-          :title="error"
-          icon="i-lucide-alert-circle"
-        />
-
-        <!-- Boutons -->
-        <div class="space-y-3">
+          <p class="text-sm text-gray-500 mb-6">
+            Pensez à vérifier vos spams si vous ne recevez pas l'email.
+          </p>
           <UButton
-            type="submit"
-            block
-            size="lg"
-            :loading="loading"
-            :disabled="!email"
-          >
-            Envoyer le lien de réinitialisation
-          </UButton>
-
-          <UButton
-            type="button"
-            variant="ghost"
+            variant="soft"
             color="gray"
-            block
             @click="goToLogin"
-            :disabled="loading"
+            block
           >
             Retour à la connexion
           </UButton>
         </div>
-      </form>
 
-      <template #footer>
-        <div class="text-center text-sm text-gray-500">
-          <p>Besoin d'aide ? Contactez votre administrateur</p>
-        </div>
-      </template>
-    </UCard>
+        <!-- Formulaire -->
+        <form
+          v-else
+          @submit.prevent="handleSubmit"
+          class="space-y-6"
+        >
+          <div class="space-y-4">
+            <p class="text-sm text-gray-600">
+              Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot
+              de passe.
+            </p>
+
+            <UFormField
+              label="Adresse email"
+              required
+            >
+              <UInput
+                v-model="email"
+                type="email"
+                placeholder="votre.email@exemple.fr"
+                :disabled="loading"
+                size="lg"
+                autocomplete="email"
+                class="w-full"
+              />
+            </UFormField>
+          </div>
+
+          <!-- Message d'erreur -->
+          <UAlert
+            v-if="error"
+            color="red"
+            variant="soft"
+            :title="error"
+            icon="i-lucide-alert-circle"
+          />
+
+          <!-- Boutons -->
+          <div class="space-y-3">
+            <UButton
+              type="submit"
+              block
+              size="lg"
+              :loading="loading"
+              :disabled="!email"
+            >
+              Envoyer le lien de réinitialisation
+            </UButton>
+
+            <UButton
+              type="button"
+              variant="ghost"
+              color="gray"
+              block
+              @click="goToLogin"
+              :disabled="loading"
+            >
+              Retour à la connexion
+            </UButton>
+          </div>
+        </form>
+
+        <template #footer>
+          <div class="text-center text-sm text-gray-500">
+            <p>Besoin d'aide ? Contactez votre administrateur</p>
+          </div>
+        </template>
+      </UCard>
+    </div>
   </div>
 </template>
