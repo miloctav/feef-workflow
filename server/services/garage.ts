@@ -24,6 +24,7 @@ function getGarageConfig() {
       secretAccessKey: config.garage.secretKey,
     },
     forcePathStyle: true, // Important pour Garage
+    tls: false, // Désactiver SSL/TLS (Garage utilise HTTP)
   }
 }
 
