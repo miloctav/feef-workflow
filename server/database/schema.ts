@@ -202,6 +202,11 @@ export const accounts = pgTable('accounts', {
   oeRole: oeRoleEnum('oe_role'),
   currentEntityId: integer('current_entity_id').references((): AnyPgColumn => entities.id),
   passwordChangedAt: timestamp('password_changed_at'),
+
+  // Email change tracking
+  pendingEmail: varchar('pending_email', { length: 255 }),
+  emailChangeRequestedAt: timestamp('email_change_requested_at'),
+
   isActive: boolean('is_active').notNull().default(false),
   createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),

@@ -260,6 +260,13 @@
       "when": 1765984952878,
       "tag": "0036_bizarre_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1766757936265,
+      "tag": "0037_gifted_doctor_spectrum",
+      "breakpoints": true
     }
   ]
 }

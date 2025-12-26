@@ -26,6 +26,15 @@ export interface PasswordResetTokenPayload {
 }
 
 /**
+ * Interface pour les données contenues dans le token de changement d'email
+ */
+export interface EmailChangeTokenPayload {
+  accountId: number
+  newEmail: string
+  type: 'email-change'
+}
+
+/**
  * Génère un JWT pour la réinitialisation de mot de passe
  * Le token contient l'ID du compte et expire après 48 heures
  *
@@ -73,6 +82,64 @@ export async function verifyPasswordResetToken(token: string): Promise<PasswordR
     // Gérer les différents types d'erreurs JWT
     if (error.code === 'ERR_JWT_EXPIRED') {
       throw new Error('Le lien a expiré. Contactez un administrateur pour recevoir un nouveau lien.')
+    }
+    if (error.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
+      throw new Error('Token invalide : signature incorrecte')
+    }
+    throw new Error('Token invalide ou expiré')
+  }
+}
+
+/**
+ * Génère un JWT pour le changement d'email
+ * Le token contient l'ID du compte, la nouvelle adresse email et expire après 48 heures
+ *
+ * @param accountId - ID du compte pour lequel générer le token
+ * @param newEmail - Nouvelle adresse email à vérifier
+ * @returns Token JWT signé
+ */
+export async function generateEmailChangeToken(accountId: number, newEmail: string): Promise<string> {
+  const secret = getJWTSecret()
+
+  const token = await new jose.SignJWT({
+    accountId,
+    newEmail,
+    type: 'email-change'
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('48h') // Token valide pendant 48 heures
+    .sign(secret)
+
+  return token
+}
+
+/**
+ * Vérifie et décode un JWT de changement d'email
+ * Vérifie la signature, l'expiration et le type de token
+ *
+ * @param token - Token JWT à vérifier
+ * @returns Payload du token contenant l'accountId et le newEmail
+ * @throws Error si le token est invalide, expiré ou mal formaté
+ */
+export async function verifyEmailChangeToken(token: string): Promise<EmailChangeTokenPayload> {
+  try {
+    const secret = getJWTSecret()
+
+    const { payload } = await jose.jwtVerify(token, secret, {
+      algorithms: ['HS256']
+    })
+
+    // Vérifier que le payload contient les champs attendus
+    if (!payload.accountId || !payload.newEmail || payload.type !== 'email-change') {
+      throw new Error('Token invalide : format incorrect')
+    }
+
+    return payload as unknown as EmailChangeTokenPayload
+  } catch (error: any) {
+    // Gérer les différents types d'erreurs JWT
+    if (error.code === 'ERR_JWT_EXPIRED') {
+      throw new Error('Le lien a expiré. Veuillez faire une nouvelle demande de changement d\'email.')
     }
     if (error.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
       throw new Error('Token invalide : signature incorrecte')

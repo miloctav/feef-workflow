@@ -1,6 +1,7 @@
-import type { EmailConfig, EmailResult, AccountCreationEmailData, ForgotPasswordEmailData } from '~~/server/types/mail'
+import type { EmailConfig, EmailResult, AccountCreationEmailData, ForgotPasswordEmailData, EmailChangeVerificationData } from '~~/server/types/mail'
 import { accountCreationTemplate } from './templates/account-creation'
 import { forgotPasswordTemplate } from './templates/forgot-password'
+import { emailChangeVerificationTemplate } from './templates/email-verification'
 import { Resend } from 'resend'
 
 /**
@@ -142,6 +143,34 @@ export async function sendForgotPasswordEmail(
 }
 
 /**
+ * Envoie un email de vérification de changement d'adresse email
+ *
+ * @example
+ * ```typescript
+ * const result = await sendEmailChangeVerificationEmail({
+ *   email: 'newemail@example.com',
+ *   firstName: 'Jean',
+ *   lastName: 'Dupont',
+ *   oldEmail: 'oldemail@example.com',
+ *   verificationUrl: 'https://feef-workflow.com/verify-email?token=abc123',
+ *   expiresInHours: 48
+ * })
+ * ```
+ */
+export async function sendEmailChangeVerificationEmail(
+  data: EmailChangeVerificationData
+): Promise<EmailResult> {
+  const subject = emailChangeVerificationTemplate.getSubject(data)
+  const html = emailChangeVerificationTemplate.getHtml(data)
+
+  return sendEmail({
+    to: data.email,
+    subject,
+    html
+  })
+}
+
+/**
  * Fonction générique pour envoyer n'importe quel template d'email
  * Utile pour étendre le système avec de nouveaux types d'emails
  *
@@ -176,6 +205,7 @@ export async function sendTemplatedEmail<T>(
 export const mailService = {
   sendAccountCreationEmail,
   sendForgotPasswordEmail,
+  sendEmailChangeVerificationEmail,
   sendTemplatedEmail,
   sendEmail // Pour des cas d'usage avancés
 }

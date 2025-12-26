@@ -8,6 +8,7 @@
 export type EmailType =
   | 'account-creation'
   | 'password-reset'
+  | 'email-change-verification'
   | 'audit-reminder'
   | 'decision-notification'
   | 'oe-assignment'
@@ -55,6 +56,18 @@ export interface ForgotPasswordEmailData {
   firstName: string
   lastName: string
   resetPasswordUrl: string
+  expiresInHours: number
+}
+
+/**
+ * Données pour l'email de vérification de changement d'adresse email
+ */
+export interface EmailChangeVerificationData {
+  email: string          // Nouvelle adresse email
+  firstName: string
+  lastName: string
+  oldEmail: string       // Adresse email actuelle
+  verificationUrl: string
   expiresInHours: number
 }
 

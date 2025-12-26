@@ -40,6 +40,12 @@ const isSendingPasswordReset = ref(false)
 const oeName = ref<string | null>(null)
 const isLoadingOe = ref(false)
 
+// États pour le changement d'email
+const isRequestingEmailChange = ref(false)
+const isCancelingEmailChange = ref(false)
+const showEmailChangeForm = ref(false)
+const newEmailInput = ref('')
+
 // Formulaire d'édition
 const editForm = reactive({
   firstname: '',
@@ -67,6 +73,15 @@ const fetchOeName = async () => {
     isLoadingOe.value = false
   }
 }
+
+// Computed properties pour le changement d'email
+const hasPendingEmailChange = computed(() => {
+  return !!user.value?.pendingEmail
+})
+
+const pendingEmail = computed(() => {
+  return user.value?.pendingEmail || null
+})
 
 // Charger le nom de l'OE au montage
 onMounted(() => {
@@ -133,6 +148,78 @@ const saveChanges = async () => {
     })
   } finally {
     isSaving.value = false
+  }
+}
+
+// Demander un changement d'email
+const requestEmailChange = async () => {
+  if (!user.value) return
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(newEmailInput.value)) {
+    toast.add({
+      title: 'Erreur de validation',
+      description: 'Format d\'email invalide',
+      color: 'error',
+    })
+    return
+  }
+
+  isRequestingEmailChange.value = true
+  try {
+    const response = await $fetch(`/api/accounts/${user.value.id}/request-email-change`, {
+      method: 'POST',
+      body: {
+        newEmail: newEmailInput.value
+      }
+    })
+
+    await refreshSession()
+
+    toast.add({
+      title: 'Email de vérification envoyé',
+      description: response.data.message,
+      color: 'success',
+    })
+
+    showEmailChangeForm.value = false
+    newEmailInput.value = ''
+  } catch (error: any) {
+    toast.add({
+      title: 'Erreur',
+      description: error.data?.message || 'Une erreur est survenue',
+      color: 'error',
+    })
+  } finally {
+    isRequestingEmailChange.value = false
+  }
+}
+
+// Annuler le changement d'email
+const cancelEmailChange = async () => {
+  if (!user.value) return
+
+  isCancelingEmailChange.value = true
+  try {
+    await $fetch(`/api/accounts/${user.value.id}/cancel-email-change`, {
+      method: 'POST'
+    })
+
+    await refreshSession()
+
+    toast.add({
+      title: 'Demande annulée',
+      description: 'La demande de changement d\'email a été annulée',
+      color: 'success',
+    })
+  } catch (error: any) {
+    toast.add({
+      title: 'Erreur',
+      description: error.data?.message || 'Une erreur est survenue',
+      color: 'error',
+    })
+  } finally {
+    isCancelingEmailChange.value = false
   }
 }
 
@@ -250,6 +337,64 @@ const getRoleLabel = (role: string) => {
                 <UIcon name="i-lucide-mail" class="size-4 text-gray-400" />
                 <p class="text-gray-900 dark:text-white">{{ user?.email }}</p>
               </div>
+
+              <!-- Pending email alert -->
+              <UAlert
+                v-if="hasPendingEmailChange"
+                color="warning"
+                variant="soft"
+                class="mt-3"
+                icon="i-lucide-clock"
+                title="Changement d'email en attente"
+                :description="`Un email de vérification a été envoyé à ${pendingEmail}. Votre adresse actuelle restera active jusqu'à la confirmation.`"
+              >
+                <template #actions>
+                  <UButton
+                    label="Annuler"
+                    variant="ghost"
+                    size="xs"
+                    :loading="isCancelingEmailChange"
+                    @click="cancelEmailChange"
+                  />
+                </template>
+              </UAlert>
+
+              <!-- Email change form -->
+              <div v-if="!isEditing && !hasPendingEmailChange" class="mt-2">
+                <UButton
+                  v-if="!showEmailChangeForm"
+                  label="Modifier l'adresse email"
+                  icon="i-lucide-edit"
+                  variant="ghost"
+                  size="sm"
+                  @click="showEmailChangeForm = true"
+                />
+                <div v-else class="space-y-2 mt-2">
+                  <UInput
+                    v-model="newEmailInput"
+                    type="email"
+                    placeholder="Nouvelle adresse email"
+                    size="md"
+                  />
+                  <div class="flex gap-2">
+                    <UButton
+                      label="Envoyer le lien de vérification"
+                      size="sm"
+                      :loading="isRequestingEmailChange"
+                      @click="requestEmailChange"
+                    />
+                    <UButton
+                      label="Annuler"
+                      variant="outline"
+                      size="sm"
+                      @click="() => { showEmailChangeForm = false; newEmailInput = '' }"
+                    />
+                  </div>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Un email de vérification sera envoyé à la nouvelle adresse. Votre email actuel restera actif jusqu'à la confirmation.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -270,7 +415,7 @@ const getRoleLabel = (role: string) => {
               <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
               <div class="mt-1 flex items-center gap-2">
                 <UIcon name="i-lucide-mail" class="size-4 text-gray-400" />
-                <p class="text-gray-500 dark:text-gray-400">{{ user?.email }} (non modifiable)</p>
+                <p class="text-gray-500 dark:text-gray-400">{{ user?.email }}</p>
               </div>
             </div>
 

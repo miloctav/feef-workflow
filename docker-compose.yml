@@ -15,9 +15,9 @@ services:
     # Ports exposés seulement pour le développement/debug
     # En production, supprimez ces lignes pour plus de sécurité
     ports:
-      - "54320:5432"
+      - '15432:5432'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-feef_user} -d ${POSTGRES_DB:-feef_db}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-feef_user} -d ${POSTGRES_DB:-feef_db}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,9 +36,9 @@ services:
       - garage_data:/var/lib/garage/data
       - ./garage.toml:/etc/garage.toml:ro
     ports:
-      - "3900:3900"  # S3 API
-      - "3901:3901"  # RPC (internal)
-      - "3903:3903"  # Admin API
+      - '3900:3900' # S3 API
+      - '3901:3901' # RPC (internal)
+      - '3903:3903' # Admin API
     networks:
       - feef-network
 
@@ -74,7 +74,7 @@ services:
     networks:
       - feef-network
     expose:
-      - "3000"
+      - '3000'
     volumes:
       - cron_logs:/app/logs
 
@@ -84,8 +84,8 @@ services:
     container_name: feef-nginx
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
@@ -95,7 +95,7 @@ services:
       - app
     networks:
       - feef-network
-    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
 
   # Let's Encrypt Certbot
   certbot:
