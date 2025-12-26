@@ -165,6 +165,10 @@ ENV_BACKUP="$BACKUP_DIR/env_backup_$DATE"
 cp "$APP_DIR/.env" "$ENV_BACKUP"
 echo -e "${GREEN}✓ Configuration sauvegardée: $ENV_BACKUP${NC}"
 
+# Garder seulement les 10 derniers backups .env
+ls -t "$BACKUP_DIR"/env_backup_* 2>/dev/null | tail -n +11 | xargs -r rm
+echo -e "${GREEN}✓ Anciens backups .env nettoyés (max 10 conservés)${NC}"
+
 # Étape 5: Pull des dernières modifications
 echo -e "${YELLOW}[5/9] Récupération des dernières modifications...${NC}"
 git pull
@@ -269,13 +273,14 @@ echo -e "${GREEN}✓ Services redémarrés${NC}"
 echo -e "${YELLOW}Vérification de l'état des services...${NC}"
 sleep 5
 
-# Vérifier que tous les services sont up
-SERVICES_DOWN=$(docker compose ps | grep -v "Up" | grep -v "Name" | grep -v "\-\-\-" | wc -l)
+# Vérifier que tous les services configurés sont en cours d'exécution
+EXPECTED_SERVICES=$(docker compose config --services | wc -l)
+RUNNING_SERVICES=$(docker compose ps --status running --format "{{.Service}}" 2>/dev/null | wc -l)
 
-if [ "$SERVICES_DOWN" -eq 0 ]; then
-    echo -e "${GREEN}✓ Tous les services sont opérationnels${NC}"
+if [ "$RUNNING_SERVICES" -eq "$EXPECTED_SERVICES" ]; then
+    echo -e "${GREEN}✓ Tous les services sont opérationnels ($RUNNING_SERVICES/$EXPECTED_SERVICES)${NC}"
 else
-    echo -e "${RED}✗ Certains services ne sont pas démarrés${NC}"
+    echo -e "${RED}✗ Certains services ne sont pas démarrés ($RUNNING_SERVICES/$EXPECTED_SERVICES)${NC}"
     docker compose ps
     echo -e "${YELLOW}Vérifiez les logs avec: docker compose logs -f${NC}"
 fi
