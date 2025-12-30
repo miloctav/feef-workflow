@@ -4,6 +4,12 @@ export default defineNuxtConfig({
   ssr: false,
   devtools: { enabled: true },
   modules: ['@nuxt/ui', 'nuxt-auth-utils'],
+
+  // Désactiver @nuxt/fonts pour éviter les erreurs réseau pendant le build Docker
+  fonts: {
+    enabled: false
+  },
+
   css: ['~/assets/css/main.css'],
   components: [
     {
