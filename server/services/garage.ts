@@ -24,7 +24,8 @@ function getGarageConfig() {
       secretAccessKey: config.garage.secretKey,
     },
     forcePathStyle: true, // Important pour Garage
-    tls: false, // Désactiver SSL/TLS (Garage utilise HTTP)
+    // Note: Le protocole HTTP/HTTPS est automatiquement détecté depuis l'URL de l'endpoint
+    // Pas besoin d'option 'tls', le SDK AWS utilise HTTP si endpoint commence par http://
   }
 }
 
