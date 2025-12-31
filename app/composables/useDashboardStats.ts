@@ -60,6 +60,9 @@ interface DashboardCard {
     renewal: number
     monitoring: number
   }
+  trend?: 'up' | 'down'
+  lastValue?: number
+  lastDate?: string
 }
 
 interface DashboardCategory {
@@ -153,6 +156,13 @@ const CARD_MAPPINGS: Array<{
       ],
     },
   ]
+
+/**
+ * Génère une clé unique pour identifier une carte
+ */
+function generateCardKey(categoryLabel: string, card: DashboardCard): string {
+  return `${categoryLabel}_${card.shortText}`
+}
 
 function buildDashboardCategories(
   auditStats: AuditStats,
@@ -291,7 +301,27 @@ export function useDashboardStats() {
     if (!auditStats.value || !actionStats.value)
       return []
 
-    return buildDashboardCategories(auditStats.value, actionStats.value)
+    const categories = buildDashboardCategories(auditStats.value, actionStats.value)
+
+    // Enrichir avec les tendances
+    const { getTrends } = useDashboardTrends()
+    const trends = getTrends(categories)
+
+    // Ajouter les tendances à chaque carte
+    return categories.map(category => ({
+      ...category,
+      cards: category.cards.map((card) => {
+        const cardKey = generateCardKey(category.label, card)
+        const cardTrend = trends[cardKey]
+
+        return {
+          ...card,
+          trend: cardTrend?.trend,
+          lastValue: cardTrend?.lastValue,
+          lastDate: cardTrend?.lastDate,
+        }
+      }),
+    }))
   })
 
   // Calculate category totals

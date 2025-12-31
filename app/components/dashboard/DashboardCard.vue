@@ -40,7 +40,7 @@ defineProps<{
                   ? 'i-heroicons-arrow-up-right-20-solid'
                   : 'i-heroicons-arrow-down-right-20-solid'
               "
-              :class="trend === 'up' ? 'text-green-500' : 'text-red-500'"
+              :class="trend === 'up' ? 'text-red-500' : 'text-green-500'"
               class="w-5 h-5 ml-1"
             />
           </span>

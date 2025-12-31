@@ -4,6 +4,9 @@ import type { SelectItem } from '@nuxt/ui'
 // Use dashboard stats composable
 const { dashboardCategories, categoryTotals, loading, error, fetchStats } = useDashboardStats()
 
+// Use dashboard trends composable
+const { saveSnapshot } = useDashboardTrends()
+
 // Use dashboard overview composable for top stats and charts
 const {
   data,
@@ -18,10 +21,17 @@ const {
 } = useDashboardOverview()
 
 // Fetch stats and actions on mount
-onMounted(() => {
-  fetchStats()
-  fetchActions()
-  fetchOverview()
+onMounted(async () => {
+  await fetchStats()
+  await fetchActions()
+  await fetchOverview()
+})
+
+// Sauvegarder le snapshot quand l'utilisateur quitte la page
+onBeforeUnmount(() => {
+  if (!error.value && dashboardCategories.value.length > 0) {
+    saveSnapshot(dashboardCategories.value)
+  }
 })
 
 const dossiersFinalisesParAn = [
