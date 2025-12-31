@@ -15,6 +15,7 @@ import { eq } from 'drizzle-orm'
 import { forUpdate } from '~~/server/utils/tracking'
 import { auditStateMachineConfig } from './config'
 import { ACTION_TYPE_REGISTRY } from '~~/shared/types/actions'
+import { createAction } from '~~/server/services/actions'
 import type { AuditStatusType } from '~~/shared/types/enums'
 import type { Audit } from '~~/server/database/schema'
 import type { H3Event } from 'h3'
@@ -233,7 +234,7 @@ export class AuditStateMachine {
   /**
    * Crée les actions utilisateur pour un nouvel état
    *
-   * Crée les actions définies dans onEnter.createActions de l'état.
+   * Utilise la couche de service pour garantir la déduplication.
    * Ces actions sont des tâches assignées aux utilisateurs.
    *
    * @param audit - L'audit pour lequel créer les actions
@@ -262,37 +263,37 @@ export class AuditStateMachine {
         continue
       }
 
-      // Calcul de la deadline
-      let deadline: Date
-
       // Cas spécial : ENTITY_MARK_DOCUMENTARY_REVIEW_READY doit avoir une deadline 2 semaines avant actualStartDate
+      let customDuration: number | undefined
       if (actionType === 'ENTITY_MARK_DOCUMENTARY_REVIEW_READY' && audit.actualStartDate) {
-        deadline = new Date(audit.actualStartDate)
-        deadline.setDate(deadline.getDate() - actionDef.defaultDurationDays)
-        deadline.setHours(23, 59, 59, 999) // Fin de journée
-        console.log(`[State Machine] 📅 Deadline personnalisée pour ${actionType}: ${actionDef.defaultDurationDays} jours avant actualStartDate (${audit.actualStartDate})`)
-      } else {
-        // Calcul standard : deadline = maintenant + durée
-        deadline = new Date()
-        deadline.setDate(deadline.getDate() + actionDef.defaultDurationDays)
+        const daysBeforeStart = actionDef.defaultDurationDays
+        const startDate = new Date(audit.actualStartDate)
+        const now = new Date()
+        const diffInDays = Math.floor((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        customDuration = diffInDays - daysBeforeStart
+
+        console.log(`[State Machine] 📅 Durée personnalisée pour ${actionType}: ${customDuration} jours (deadline ${daysBeforeStart} jours avant actualStartDate)`)
       }
 
-      const [createdAction] = await db.insert(actions)
-        .values({
-          type: actionType,
-          entityId: audit.entityId,
+      // Utiliser la couche de service pour créer l'action (avec déduplication intégrée)
+      const createdAction = await createAction(
+        actionType,
+        audit.entityId,
+        event,
+        {
           auditId: audit.id,
-          assignedRoles: actionDef.assignedRoles,
-          durationDays: actionDef.defaultDurationDays,
-          deadline,
-          status: 'PENDING',
+          customDuration,
           metadata: {},
-          ...forUpdate(event, {})
-        })
-        .returning({ id: actions.id })
+        }
+      )
 
-      createdIds.push(createdAction.id)
-      console.log(`[State Machine] ✅ Action créée: ${actionType} (ID: ${createdAction.id})`)
+      // createAction retourne null si l'action existe déjà (déduplication)
+      if (createdAction) {
+        createdIds.push(createdAction.id)
+        console.log(`[State Machine] ✅ Action créée: ${actionType} (ID: ${createdAction.id})`)
+      } else {
+        console.log(`[State Machine] ℹ️  Action ${actionType} déjà existante, création ignorée`)
+      }
     }
 
     return createdIds

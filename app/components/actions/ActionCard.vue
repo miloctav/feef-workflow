@@ -31,6 +31,11 @@ const rolePrefix = computed(() => {
 const navigationUrl = computed(() => {
   if (!props.action) return null
 
+  // Cas spécial : rediriger vers la page des contrats pour choisir l'OE
+  if (props.action.type === 'ENTITY_CHOOSE_OE' && rolePrefix.value === '/entity') {
+    return '/entity/contracts'
+  }
+
   // If action has auditId: navigate to audit detail
   if (props.action.auditId) {
     return `${rolePrefix.value}/audits/${props.action.auditId}`

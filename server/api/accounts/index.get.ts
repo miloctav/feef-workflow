@@ -47,12 +47,12 @@ export default defineEventHandler(async (event) => {
   const roleFilter = query.role as string | undefined
 
   // Détection du cas spécial : OE sans filtre role (nécessite fusion de deux requêtes)
-  const isOeWithoutRoleFilter = user.role === Role.OE && user.oeRole === OERole.ADMIN && !roleFilter
+  const isOeWithoutRoleFilter = user.role === Role.OE && (user.oeRole === OERole.ADMIN || user.oeRole === OERole.ACCOUNT_MANAGER) && !roleFilter
 
   if (user.role === Role.FEEF) {
     // FEEF : aucun filtre automatique
 
-  } else if (user.role === Role.OE && user.oeRole === OERole.ADMIN) {
+  } else if (user.role === Role.OE && (user.oeRole === OERole.ADMIN || user.oeRole === OERole.ACCOUNT_MANAGER)) {
     // Pour les OE, filtrer selon le type de comptes recherchés
 
     // Vérifier si on cherche spécifiquement des AUDITOR

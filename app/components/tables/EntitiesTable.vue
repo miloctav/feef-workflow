@@ -129,7 +129,12 @@ import {
   getEntityTypeItems,
   getEntityModeItems,
   getEntityTypeLabel,
-  getEntityModeLabel
+  getEntityModeLabel,
+  AuditStatusLabels,
+  type AuditStatusType,
+  type AuditTypeType,
+  getAuditStatusColor,
+  getAuditTypeLabel,
 } from '#shared/types/enums'
 import { z } from 'zod'
 
@@ -342,6 +347,25 @@ const columns: TableColumn<EntityWithRelations>[] = [
     accessorKey: 'createdAt',
     header: 'Date de création',
     cell: ({ row }) => formatDate(row.original.createdAt),
+  },
+  {
+    accessorKey: 'audits',
+    header: 'Dernier audit',
+    cell: ({ row }) => {
+      const latestAudit = row.original.audits?.[0]
+
+      if (!latestAudit) {
+        return '-'
+      }
+
+      const statusLabel = AuditStatusLabels[latestAudit.status as AuditStatusType]
+      const typeLabel = getAuditTypeLabel(latestAudit.type as AuditTypeType)
+      const statusColor = getAuditStatusColor(latestAudit.status as AuditStatusType)
+
+      const displayText = `${statusLabel} - ${typeLabel}`
+
+      return h(resolveComponent('UBadge'), { color: statusColor, variant: 'soft', size: 'sm' }, () => displayText)
+    },
   },
 ]
 

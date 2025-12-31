@@ -1,6 +1,9 @@
 <template>
   <!-- Bouton désactivé avec tooltip si disabled -->
-  <UTooltip v-if="disabled" :text="disabledReason">
+  <UTooltip
+    v-if="disabled"
+    :text="disabledReason"
+  >
     <span class="inline-block">
       <UButton
         :icon="currentEntityOe ? 'i-lucide-edit' : 'i-lucide-plus'"
@@ -17,7 +20,9 @@
   <!-- Modal normal si pas disabled -->
   <UModal
     v-else
-    :title="currentEntityOe ? 'Modifier l\'Organisme Évaluateur' : 'Sélectionner un Organisme Évaluateur'"
+    :title="
+      currentEntityOe ? 'Modifier l\'Organisme Évaluateur' : 'Sélectionner un Organisme Évaluateur'
+    "
     :ui="{ footer: 'justify-end' }"
   >
     <!-- Bouton trigger du modal -->
@@ -31,16 +36,25 @@
 
     <template #body>
       <div class="space-y-4">
-        <div v-if="currentEntityOe" class="p-4 bg-blue-50 rounded-lg">
+        <div
+          v-if="currentEntityOe"
+          class="p-4 bg-blue-50 rounded-lg"
+        >
           <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-info" class="w-4 h-4 text-blue-500" />
+            <UIcon
+              name="i-lucide-info"
+              class="w-4 h-4 text-blue-500"
+            />
             <span class="text-sm text-blue-700">
               OE actuel : <strong>{{ currentEntityOe.name }}</strong>
             </span>
           </div>
         </div>
 
-        <UFormField :label="currentEntityOe ? 'Nouvel Organisme Évaluateur' : 'Organisme Évaluateur'" required>
+        <UFormField
+          :label="currentEntityOe ? 'Nouvel Organisme Évaluateur' : 'Organisme Évaluateur'"
+          required
+        >
           <USelect
             v-model="selectedOeId"
             :loading="oesLoading"
@@ -51,14 +65,23 @@
           />
         </UFormField>
 
-        <p v-if="oesError" class="text-sm text-red-600">
+        <p
+          v-if="oesError"
+          class="text-sm text-red-600"
+        >
           {{ oesError }}
         </p>
 
-        <div v-if="selectedOeId" class="space-y-4">
+        <div
+          v-if="selectedOeId"
+          class="space-y-4"
+        >
           <div class="p-4 bg-green-50 rounded-lg">
             <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-green-500" />
+              <UIcon
+                name="i-lucide-check-circle"
+                class="w-4 h-4 text-green-500"
+              />
               <span class="text-sm text-green-700">
                 {{ getSelectedOeName() }}
               </span>
@@ -73,9 +96,12 @@
             >
               <template #label>
                 <div class="flex flex-col gap-1">
-                  <span class="font-medium text-gray-900">Autoriser l'OE à consulter mes documents</span>
+                  <span class="font-medium text-gray-900"
+                    >Autoriser l'OE à consulter mes documents</span
+                  >
                   <span class="text-xs text-gray-600">
-                    En activant cette option, l'OE pourra accéder à l'ensemble de vos documents de la revue documentaire
+                    En activant cette option, l'OE pourra accéder à l'ensemble de vos documents de
+                    la revue documentaire
                   </span>
                 </div>
               </template>
@@ -115,7 +141,6 @@
 </template>
 
 <script setup lang="ts">
-
 interface Props {
   entityId?: number
   currentEntityOe?: { id: number; name: string } | null
@@ -137,7 +162,7 @@ const toast = useToast()
 
 // État local
 const selectedOeId = ref<number | undefined>(undefined)
-const allowOeAccess = ref(false)
+const allowOeAccess = ref(true)
 const oesLoading = ref(false)
 const oesError = ref<string | null>(null)
 const oeItems = ref<Array<{ label: string; value: number }>>([])
@@ -150,7 +175,7 @@ const loadOes = async () => {
   try {
     const oes = await fetchOesForSelect({ includeAll: false })
     // Filtrer pour ne garder que les OEs avec une valeur numérique (pas null)
-    oeItems.value = oes.filter(oe => oe.value !== null) as Array<{ label: string; value: number }>
+    oeItems.value = oes.filter((oe) => oe.value !== null) as Array<{ label: string; value: number }>
   } catch (error: any) {
     oesError.value = error.message || 'Erreur lors du chargement des OEs'
   } finally {
@@ -164,12 +189,12 @@ onMounted(() => {
   // Pré-sélectionner l'OE actuel s'il existe
   selectedOeId.value = props.currentEntityOe?.id || undefined
   // Par défaut, le partage est désactivé
-  allowOeAccess.value = false
+  allowOeAccess.value = true
 })
 
 // Obtenir le nom de l'OE sélectionné
 const getSelectedOeName = () => {
-  const selectedOe = oeItems.value.find(oe => oe.value === selectedOeId.value)
+  const selectedOe = oeItems.value.find((oe) => oe.value === selectedOeId.value)
   return selectedOe?.label || ''
 }
 
@@ -187,7 +212,7 @@ const handleConfirm = async (close: () => void) => {
 
       // Réinitialiser le formulaire
       selectedOeId.value = props.currentEntityOe?.id || undefined
-      allowOeAccess.value = false
+      allowOeAccess.value = true
 
       // Fermer le modal
       close()
@@ -197,7 +222,7 @@ const handleConfirm = async (close: () => void) => {
     // Gestion d'erreur de fallback (normalement géré dans assignOe)
     toast.add({
       title: 'Erreur',
-      description: error.message || 'Erreur inattendue lors de l\'assignation de l\'OE',
+      description: error.message || "Erreur inattendue lors de l'assignation de l'OE",
       color: 'error',
     })
   }
@@ -220,7 +245,7 @@ const handleTenderMode = async (close: () => void) => {
   } catch (error: any) {
     toast.add({
       title: 'Erreur',
-      description: error.message || 'Erreur inattendue lors du passage en mode appel d\'offre',
+      description: error.message || "Erreur inattendue lors du passage en mode appel d'offre",
       color: 'error',
     })
   }

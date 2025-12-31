@@ -2,9 +2,6 @@
 const { isActionsSlideoverOpen } = useDashboard()
 const route = useRoute()
 
-// Composable pour récupérer les actions
-const { actions, fetchActions, fetchLoading, fetchError } = useActions()
-
 // Detect current role from route
 const currentRole = computed(() => {
   const path = route.path
@@ -15,20 +12,25 @@ const currentRole = computed(() => {
   return null
 })
 
+// Composable pour récupérer les actions
+const { actions, fetchActions, loading: fetchLoading, error: fetchError } = useSimpleActions({
+  filters: {
+    limit: 25,
+    sort: 'deadline:asc',
+  },
+})
+
 // Charger les actions à l'ouverture du slideover
 watch(isActionsSlideoverOpen, async (isOpen) => {
   if (isOpen) {
-    const filters: Record<string, any> = {
-      limit: 25,
-      sort: 'deadline:asc'
-    }
+    const additionalFilters: Record<string, any> = {}
 
     // Pour FEEF, filtrer uniquement les actions assignées au rôle FEEF
     if (currentRole.value === 'FEEF') {
-      filters.assignedRoles = 'FEEF'
+      additionalFilters.assignedRoles = 'FEEF'
     }
 
-    await fetchActions(filters)
+    await fetchActions(additionalFilters)
   }
 })
 

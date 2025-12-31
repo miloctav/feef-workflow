@@ -1,6 +1,6 @@
 import { and, or, eq, isNull, isNotNull } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { entities as entitiesTable, accountsToEntities } from '~~/server/database/schema'
+import { entities as entitiesTable, accountsToEntities, audits } from '~~/server/database/schema'
 import {
   parsePaginationParams,
   buildWhereConditions,
@@ -140,6 +140,16 @@ export default defineEventHandler(async (event) => {
         columns: {
           id: true,
           name: true,
+        },
+      },
+      audits: {
+        orderBy: (audits, { desc }) => [desc(audits.createdAt)],
+        where: isNull(audits.deletedAt),
+        limit: 1,
+        columns: {
+          id: true,
+          type: true,
+          status: true,
         },
       },
     },

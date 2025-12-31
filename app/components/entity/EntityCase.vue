@@ -12,7 +12,7 @@ import {
 } from '~~/shared/types/enums'
 import { getAuditStatusLabel, getAuditStatusColor } from '~~/shared/types/enums'
 import ActionsList from '~/components/actions/ActionsList.vue'
-import { useActions } from '~/composables/useActions'
+import { useSimpleActions } from '~/composables/useSimpleActions'
 
 const props = defineProps<{
   followerEntity?: EntityWithRelations
@@ -190,9 +190,9 @@ const hasActions = computed(() => {
 // Actions liées à l'entité (sans auditId)
 const {
   actions: entityActions,
-  fetchLoading: actionsLoading,
-  fetchError: actionsError,
-} = useActions({
+  loading: actionsLoading,
+  error: actionsError,
+} = useSimpleActions({
   entityId: computed(() => displayEntity.value?.id),
 })
 

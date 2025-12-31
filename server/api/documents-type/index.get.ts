@@ -32,14 +32,6 @@ export default defineEventHandler(async (event) => {
   // Authentification requise
   const { user } = await requireUserSession(event)
 
-  // Vérifier que l'utilisateur a le role FEEF ou OE
-  if (user.role !== Role.FEEF && user.role !== Role.OE) {
-    throw createError({
-      statusCode: 403,
-      message: 'Accès refusé. Seuls les roles FEEF et OE peuvent accéder aux documents types.'
-    })
-  }
-
   // Configuration de la pagination
   const config = {
     table: documentsType,

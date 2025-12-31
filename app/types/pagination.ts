@@ -49,8 +49,8 @@ export interface PaginationState {
  * Options de configuration pour usePaginatedFetch
  */
 export interface PaginatedFetchOptions {
-  /** Clé unique pour le cache (défaut: URL) */
-  key?: string
+  /** Clé unique pour le cache (défaut: URL) - peut être un string fixe ou une ref/computed réactive */
+  key?: string | Ref<string> | ComputedRef<string>
   /** Limite par défaut d'éléments par page */
   defaultLimit?: number
   /** Paramètres initiaux */

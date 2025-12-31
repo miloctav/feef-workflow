@@ -88,7 +88,7 @@ export function usePaginatedFetch<T>(
     refresh,
     execute,
   } = useLazyFetch<PaginatedResponse<T>>(() => fullUrl.value, {
-    key: key, // Clé fixe pour partager le cache
+    key: () => unref(key), // Clé dynamique pour gérer les refs/computed
     immediate,
     server: true,
     lazy: true,

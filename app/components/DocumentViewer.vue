@@ -227,7 +227,7 @@ import type { ContractWithRelations } from '~~/app/types/contracts'
 import type { AuditWithRelations } from '~~/app/types/audits'
 import type { AuditDocumentTypeType } from '~~/app/types/auditDocuments'
 import { Role } from '#shared/types/roles'
-import { AuditDocumentTypeLabels } from '~~/app/types/auditDocuments'
+import { AuditDocumentTypeLabels, AuditDocumentType } from '~~/app/types/auditDocuments'
 
 interface Props {
   documentaryReview?: DocumentaryReview | null
@@ -297,7 +297,19 @@ const canUploadDocument = computed(() => {
   }
 
   if (documentType.value === 'audit') {
-    return role === Role.AUDITOR || role === Role.FEEF
+    // Vérifier le type de document d'audit pour appliquer les bonnes permissions
+    const docType = props.auditDocumentType
+
+    if (docType === AuditDocumentType.CORRECTIVE_PLAN) {
+      // Plan correctif : seuls ENTITY ou FEEF peuvent uploader
+      return role === Role.ENTITY || role === Role.FEEF
+    } else if (docType === AuditDocumentType.ATTESTATION) {
+      // Attestation : seulement FEEF
+      return role === Role.FEEF
+    } else {
+      // PLAN, REPORT, OE_OPINION : OE, AUDITOR ou FEEF peuvent uploader
+      return role === Role.OE || role === Role.AUDITOR || role === Role.FEEF
+    }
   }
 
   return false

@@ -165,12 +165,6 @@ export const useAudits = (options?: { entityId?: number }) => {
         currentAudit.value = response.data
       }
 
-      toast.add({
-        title: 'Succ�s',
-        description: 'Audit mis � jour avec succ�s',
-        color: 'success',
-      })
-
       return { success: true, data: response.data }
     } catch (e: any) {
       const errorMessage = e.data?.message || e.message || 'Erreur lors de la mise � jour de l\'audit'

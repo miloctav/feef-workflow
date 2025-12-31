@@ -143,10 +143,10 @@ const auditStatusBadgeColor = computed(() => {
 })
 
 import ActionsList from '~/components/actions/ActionsList.vue'
-import { useActions } from '~/composables/useActions'
+import { useSimpleActions } from '~/composables/useSimpleActions'
 
 // Actions liées à l'audit courant (réactif sur currentAudit)
-const { actions, fetchLoading, fetchError } = useActions({
+const { actions, loading: fetchLoading, error: fetchError } = useSimpleActions({
   auditId: computed(() => currentAudit.value?.id),
 })
 
