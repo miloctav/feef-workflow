@@ -37,7 +37,8 @@ export default defineNuxtConfig({
 
     // Garage (S3-compatible object storage)
     garage: {
-      endpoint: '',
+      endpoint: '', // Endpoint interne (uploads)
+      publicEndpoint: '', // Endpoint public (signed URLs)
       region: '',
       accessKey: '',
       secretKey: '',

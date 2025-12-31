@@ -141,11 +141,12 @@ export async function uploadFile(
 /**
  * Générer une URL signée pour accéder à un fichier (valide 1 heure)
  * @param key - Clé du fichier dans Garage
- * @returns URL signée
+ * @returns URL signée accessible publiquement
  */
 export async function getSignedUrl(key: string): Promise<string> {
   const client = getGarageClient()
   const bucketName = getBucketName()
+  const config = useRuntimeConfig()
 
   try {
     // Créer la commande GetObject
@@ -157,6 +158,19 @@ export async function getSignedUrl(key: string): Promise<string> {
 
     // Générer l'URL signée valide pendant 1 heure (3600 secondes)
     const url = await getS3SignedUrl(client, command, { expiresIn: 3600 })
+
+    // Remplacer l'endpoint interne par l'endpoint public pour que le navigateur puisse y accéder
+    // Exemple: http://garage:3900/bucket/file → https://monpmeplus.fr/storage/bucket/file
+    const internalEndpoint = config.garage.endpoint
+    const publicEndpoint = config.garage.publicEndpoint
+
+    if (publicEndpoint && publicEndpoint !== internalEndpoint) {
+      const publicUrl = url.replace(internalEndpoint, publicEndpoint)
+      console.log(`✅ URL signée générée (publique): ${publicUrl.substring(0, 100)}...`)
+      return publicUrl
+    }
+
+    console.log(`✅ URL signée générée: ${url.substring(0, 100)}...`)
     return url
   } catch (error) {
     console.error('❌ Erreur lors de la génération de l\'URL signée:', error)
