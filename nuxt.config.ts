@@ -5,6 +5,17 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxt/ui', 'nuxt-auth-utils'],
 
+  // Exclure les routes de stockage du routeur client (pour qu'elles soient gérées par le serveur/Nginx)
+  router: {
+    options: {
+      scrollBehaviorType: 'smooth'
+    }
+  },
+
+  routeRules: {
+    '/feef-storage/**': { headers: { 'Cache-Control': 'no-cache' } } // Indication pour Nitro, mais ne suffit pas pour le client
+  },
+
   // Désactiver @nuxt/fonts pour éviter les erreurs réseau pendant le build Docker
   fonts: {
     enabled: false
