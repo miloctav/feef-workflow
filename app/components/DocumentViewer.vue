@@ -1,5 +1,11 @@
 <template>
-  <USlideover v-model:open="isOpen" :title="documentTitle" side="right" class="w-full max-w-4xl" close-icon="i-lucide-arrow-right">
+  <USlideover
+    v-model:open="isOpen"
+    :title="documentTitle"
+    side="right"
+    class="w-full max-w-4xl"
+    close-icon="i-lucide-arrow-right"
+  >
     <!-- Header avec informations du document -->
     <template #header>
       <div class="flex flex-col space-y-3">
@@ -14,9 +20,14 @@
           </div>
 
           <!-- Sélecteur de version et boutons d'action -->
-          <div v-if="hasVersions" class="flex items-end gap-3 min-w-0 flex-shrink-0 ml-auto mr-4">
+          <div
+            v-if="hasVersions"
+            class="flex items-end gap-3 min-w-0 flex-shrink-0 ml-auto mr-4"
+          >
             <div class="flex flex-col gap-2">
-              <label class="text-xs font-semibold text-gray-700 uppercase tracking-wide">Version du document</label>
+              <label class="text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                >Version du document</label
+              >
               <USelect
                 v-model="selectedVersionId"
                 :items="versionSelectItems"
@@ -26,7 +37,7 @@
                 :disabled="fetchLoading"
                 :ui="{
                   base: 'min-w-0 bg-white border-gray-300',
-                  content: 'w-full'
+                  content: 'w-full',
                 }"
               />
             </div>
@@ -40,7 +51,10 @@
                 @change="handleFileSelect"
               />
               <DocumentRequestUpdateModal
-                v-if="(user?.role === Role.FEEF || user?.role === Role.OE) && !hasPendingRequestForDocument"
+                v-if="
+                  (user?.role === Role.FEEF || user?.role === Role.OE) &&
+                  !hasPendingRequestForDocument
+                "
                 :documentary-review-id="documentaryReview?.id"
                 :contract-id="contract?.id"
                 :document-title="documentTitle"
@@ -80,14 +94,24 @@
           </div>
         </div>
 
-        <div v-if="hasVersions && selectedVersionData" class="flex flex-wrap gap-4 text-xs text-gray-500">
+        <div
+          v-if="hasVersions && selectedVersionData"
+          class="flex flex-wrap gap-4 text-xs text-gray-500"
+        >
           <span>
-            <UIcon name="i-lucide-calendar" class="w-3 h-3 mr-1" />
+            <UIcon
+              name="i-lucide-calendar"
+              class="w-3 h-3 mr-1"
+            />
             Uploadé le {{ formatDate(selectedVersionData.uploadAt) }}
           </span>
           <span>
-            <UIcon name="i-lucide-user" class="w-3 h-3 mr-1" />
-            {{ selectedVersionData.uploadByAccount.firstname }} {{ selectedVersionData.uploadByAccount.lastname }}
+            <UIcon
+              name="i-lucide-user"
+              class="w-3 h-3 mr-1"
+            />
+            {{ selectedVersionData.uploadByAccount.firstname }}
+            {{ selectedVersionData.uploadByAccount.lastname }}
           </span>
         </div>
       </div>
@@ -97,35 +121,60 @@
     <template #body>
       <div class="flex flex-col h-full">
         <!-- État de chargement -->
-        <div v-if="fetchLoading" class="flex-1 flex items-center justify-center bg-gray-50 rounded-lg">
+        <div
+          v-if="fetchLoading"
+          class="flex-1 flex items-center justify-center bg-gray-50 rounded-lg"
+        >
           <div class="text-center">
-            <UIcon name="i-heroicons-arrow-path" class="animate-spin w-8 h-8 mx-auto mb-4 text-primary" />
+            <UIcon
+              name="i-heroicons-arrow-path"
+              class="animate-spin w-8 h-8 mx-auto mb-4 text-primary"
+            />
             <p class="text-gray-600">Chargement des versions...</p>
           </div>
         </div>
 
         <!-- Demande de mise à jour en attente -->
-        <div v-else-if="hasVersions && isPendingRequest" class="flex-1 flex items-center justify-center bg-gray-50 rounded-lg">
+        <div
+          v-else-if="hasVersions && isPendingRequest"
+          class="flex-1 flex items-center justify-center bg-gray-50 rounded-lg"
+        >
           <div class="text-center p-8 max-w-md">
-            <UIcon name="i-lucide-alert-circle" class="w-16 h-16 mx-auto mb-4 text-orange-500" />
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Demande de mise à jour en attente</h3>
+            <UIcon
+              name="i-lucide-alert-circle"
+              class="w-16 h-16 mx-auto mb-4 text-orange-500"
+            />
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">
+              Demande de mise à jour en attente
+            </h3>
 
-            <div v-if="selectedVersionData?.askedByAccount" class="mb-4 text-sm text-gray-600">
+            <div
+              v-if="selectedVersionData?.askedByAccount"
+              class="mb-4 text-sm text-gray-600"
+            >
               <p class="mb-2">
-                Demandée par <span class="font-medium">{{ selectedVersionData.askedByAccount.firstname }} {{ selectedVersionData.askedByAccount.lastname }}</span>
+                Demandée par
+                <span class="font-medium"
+                  >{{ selectedVersionData.askedByAccount.firstname }}
+                  {{ selectedVersionData.askedByAccount.lastname }}</span
+                >
               </p>
-              <p class="text-xs text-gray-500">
-                Le {{ formatDate(selectedVersionData.uploadAt) }}
-              </p>
+              <p class="text-xs text-gray-500">Le {{ formatDate(selectedVersionData.uploadAt) }}</p>
             </div>
 
-            <div v-if="selectedVersionData?.comment" class="bg-white rounded-lg p-4 mb-6 text-left border border-gray-200">
+            <div
+              v-if="selectedVersionData?.comment"
+              class="bg-white rounded-lg p-4 mb-6 text-left border border-gray-200"
+            >
               <p class="text-xs font-semibold text-gray-700 mb-2">Commentaire :</p>
-              <p class="text-sm text-gray-800 whitespace-pre-wrap">{{ selectedVersionData.comment }}</p>
+              <p class="text-sm text-gray-800 whitespace-pre-wrap">
+                {{ selectedVersionData.comment }}
+              </p>
             </div>
 
             <p class="text-gray-600 mb-6">
-              Ce document est en attente de mise à jour. L'entité doit uploader une nouvelle version pour répondre à cette demande.
+              Ce document est en attente de mise à jour. L'entité doit uploader une nouvelle version
+              pour répondre à cette demande.
             </p>
 
             <div class="flex flex-col gap-3">
@@ -156,11 +205,19 @@
         </div>
 
         <!-- Document avec versions disponibles -->
-        <div v-else-if="hasVersions && selectedVersionData?.s3Key && currentSignedUrl" class="flex-1 bg-gray-100 rounded-lg overflow-hidden relative">
+        <div
+          v-else-if="hasVersions && selectedVersionData?.s3Key && currentSignedUrl"
+          class="flex-1 bg-gray-100 rounded-lg overflow-hidden relative flex flex-col"
+        >
           <!-- Barre d'outils PDF -->
-          <div class="absolute top-0 left-0 right-0 bg-gray-800 text-white p-2 flex justify-between items-center z-10 text-sm">
+          <div
+            class="bg-gray-800 text-white p-2 flex justify-between items-center z-10 text-sm shrink-0"
+          >
             <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-file-text" class="w-4 h-4" />
+              <UIcon
+                name="i-lucide-file-text"
+                class="w-4 h-4"
+              />
               <span class="font-medium">{{ documentTitle }}</span>
             </div>
             <div class="flex items-center gap-2">
@@ -177,24 +234,33 @@
           </div>
 
           <!-- Viewer PDF intégré -->
-          <iframe
-            :key="currentSignedUrl"
-            :src="currentSignedUrl + '#toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH'"
-            class="w-full h-full border-0 pt-10"
-            type="application/pdf"
-            loading="lazy"
-            title="Visualiseur PDF"
-          >
-          </iframe>
+          <div class="flex-1 relative">
+            <iframe
+              :key="currentSignedUrl"
+              :src="currentSignedUrl + '#toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH'"
+              class="w-full h-full border-0 absolute inset-0"
+              type="application/pdf"
+              loading="lazy"
+              title="Visualiseur PDF"
+            >
+            </iframe>
+          </div>
         </div>
 
         <!-- Aucune version disponible -->
-        <div v-else class="flex-1 flex items-center justify-center bg-gray-50 rounded-lg">
+        <div
+          v-else
+          class="flex-1 flex items-center justify-center bg-gray-50 rounded-lg"
+        >
           <div class="text-center p-8 max-w-md">
-            <UIcon name="i-lucide-file-x" class="w-20 h-20 mx-auto mb-6 text-gray-400" />
+            <UIcon
+              name="i-lucide-file-x"
+              class="w-20 h-20 mx-auto mb-6 text-gray-400"
+            />
             <h3 class="text-xl font-medium text-gray-900 mb-3">Aucune version disponible</h3>
             <p class="text-gray-600 mb-6 leading-relaxed">
-              Ce document n'a pas encore été uploadé. Cliquez sur "Importer première version" pour ajouter la première version du document.
+              Ce document n'a pas encore été uploadé. Cliquez sur "Importer première version" pour
+              ajouter la première version du document.
             </p>
             <input
               v-if="canUploadDocument"
@@ -238,7 +304,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  open: false
+  open: false,
 })
 
 // Computed pour déterminer le type et récupérer les infos
@@ -262,9 +328,12 @@ const documentTitle = computed(() => {
     // Utiliser le type fourni en prop, sinon déduire de la première version
     const docType = props.auditDocumentType || documentVersions.value[0]?.auditDocumentType
     if (docType) {
-      return AuditDocumentTypeLabels[docType as keyof typeof AuditDocumentTypeLabels] || 'Document d\'audit'
+      return (
+        AuditDocumentTypeLabels[docType as keyof typeof AuditDocumentTypeLabels] ||
+        "Document d'audit"
+      )
     }
-    return 'Document d\'audit'
+    return "Document d'audit"
   }
 
   // Pour les autres types (documentaryReview, contract)
@@ -321,7 +390,7 @@ const emit = defineEmits<{
 
 const isOpen = computed({
   get: () => props.open,
-  set: (value: boolean) => emit('update:open', value)
+  set: (value: boolean) => emit('update:open', value),
 })
 
 // Composable pour gérer les versions
@@ -365,8 +434,14 @@ const hasVersions = computed(() => documentVersions.value.length > 0)
 const versionSelectItems = computed(() => {
   return documentVersions.value.map((version, index) => {
     const isPendingRequest = version.s3Key === null && version.askedBy !== null
-    const versionLabel = `v${documentVersions.value.length - index} - ${formatDate(version.uploadAt)}`
-    const statusLabel = isPendingRequest ? ' 🔔 Demande en attente' : (index === 0 && !isPendingRequest ? ' (Actuelle)' : '')
+    const versionLabel = `v${documentVersions.value.length - index} - ${formatDate(
+      version.uploadAt
+    )}`
+    const statusLabel = isPendingRequest
+      ? ' 🔔 Demande en attente'
+      : index === 0 && !isPendingRequest
+      ? ' (Actuelle)'
+      : ''
 
     return {
       label: `${versionLabel}${statusLabel}`,
@@ -378,7 +453,7 @@ const versionSelectItems = computed(() => {
 // Données de la version sélectionnée
 const selectedVersionData = computed(() => {
   if (selectedVersionId.value === undefined) return null
-  return documentVersions.value.find(v => v.id === selectedVersionId.value) || null
+  return documentVersions.value.find((v) => v.id === selectedVersionId.value) || null
 })
 
 // Vérifier si la version sélectionnée est une demande en attente
@@ -393,8 +468,8 @@ const canCancelRequest = computed(() => {
 
 // Vérifier si le document a une demande en attente (pour masquer le bouton "Demander MAJ")
 const hasPendingRequestForDocument = computed(() => {
-  return documentVersions.value.some(version =>
-    version.s3Key === null && version.askedBy !== null
+  return documentVersions.value.some(
+    (version) => version.s3Key === null && version.askedBy !== null
   )
 })
 
@@ -426,7 +501,12 @@ const handleFileSelect = async (event: Event) => {
 
   if (!file || !documentData.value || !documentType.value) return
 
-  const result = await createDocumentVersion(documentData.value.id, file, documentType.value, props.auditDocumentType)
+  const result = await createDocumentVersion(
+    documentData.value.id,
+    file,
+    documentType.value,
+    props.auditDocumentType
+  )
 
   if (result.success && result.data) {
     // Sélectionner automatiquement la nouvelle version (la plus récente)
@@ -456,10 +536,11 @@ const handleFileSelect = async (event: Event) => {
 
 // Gérer le téléchargement du document
 const handleDownload = () => {
-  if (!selectedVersionData.value || !documentData.value || selectedVersionId.value === undefined) return
+  if (!selectedVersionData.value || !documentData.value || selectedVersionId.value === undefined)
+    return
 
   // Calculer le numéro de version (inverse de l'index)
-  const versionIndex = documentVersions.value.findIndex(v => v.id === selectedVersionId.value)
+  const versionIndex = documentVersions.value.findIndex((v) => v.id === selectedVersionId.value)
   const versionNumber = documentVersions.value.length - versionIndex
 
   downloadVersion(
@@ -533,7 +614,11 @@ watch(isOpen, async (newValue) => {
     // Toujours fetch les versions à l'ouverture avec le bon type
     if (documentType.value === 'audit' && props.auditDocumentType) {
       // Pour les audits, passer aussi le type de document
-      await fetchDocumentVersions(documentData.value.id, documentType.value, props.auditDocumentType)
+      await fetchDocumentVersions(
+        documentData.value.id,
+        documentType.value,
+        props.auditDocumentType
+      )
     } else {
       await fetchDocumentVersions(documentData.value.id, documentType.value as any)
     }
@@ -560,19 +645,23 @@ watch(isOpen, async (newValue) => {
 // Raccourci clavier pour fermer (Échap)
 let keydownHandler: ((event: KeyboardEvent) => void) | null = null
 
-watch(isOpen, (newValue) => {
-  if (newValue && typeof window !== 'undefined') {
-    keydownHandler = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeViewer()
+watch(
+  isOpen,
+  (newValue) => {
+    if (newValue && typeof window !== 'undefined') {
+      keydownHandler = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          closeViewer()
+        }
       }
+      document.addEventListener('keydown', keydownHandler)
+    } else if (!newValue && keydownHandler && typeof window !== 'undefined') {
+      document.removeEventListener('keydown', keydownHandler)
+      keydownHandler = null
     }
-    document.addEventListener('keydown', keydownHandler)
-  } else if (!newValue && keydownHandler && typeof window !== 'undefined') {
-    document.removeEventListener('keydown', keydownHandler)
-    keydownHandler = null
-  }
-}, { immediate: true })
+  },
+  { immediate: true }
+)
 
 // Nettoyage au démontage du composant
 onUnmounted(() => {
