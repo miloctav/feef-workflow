@@ -1,12 +1,12 @@
 <template>
   <UModal v-model:open="isOpen">
     <UButton
-          color="secondary"
-          variant="outline"
-          icon="i-lucide-alert-circle"
-          :label="buttonLabel"
-          :size="buttonSize"
-        />
+      color="secondary"
+      variant="outline"
+      icon="i-lucide-alert-circle"
+      :label="buttonLabel"
+      :size="buttonSize"
+    />
     <template #content>
       <div class="p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
@@ -17,10 +17,16 @@
           {{ documentTitle }}
         </p>
 
-        <form @submit.prevent="handleSubmit" class="space-y-4">
+        <form
+          @submit.prevent="handleSubmit"
+          class="space-y-4"
+        >
           <!-- Champ commentaire (optionnel) -->
           <div>
-            <label for="comment" class="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              for="comment"
+              class="block text-sm font-medium text-gray-700 mb-2"
+            >
               Commentaire (optionnel)
             </label>
             <UTextarea
@@ -66,11 +72,15 @@ interface Props {
   documentTitle: string
   buttonLabel?: string
   buttonSize?: 'xs' | 'sm' | 'md' | 'lg'
+  color?: string
+  variant?: 'solid' | 'outline' | 'soft' | 'ghost' | 'link'
 }
 
 const props = withDefaults(defineProps<Props>(), {
   buttonLabel: 'Demander une mise à jour',
   buttonSize: 'sm',
+  color: 'secondary',
+  variant: 'outline',
 })
 
 const emit = defineEmits<{

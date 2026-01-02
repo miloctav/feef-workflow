@@ -8,111 +8,124 @@
   >
     <!-- Header avec informations du document -->
     <template #header>
-      <div class="flex flex-col space-y-3">
-        <div class="flex items-start gap-12">
-          <div class="flex-1 pr-16 max-w-2xl">
-            <h2 class="text-lg font-semibold text-gray-900">
+      <div class="flex flex-col gap-5 w-full">
+        <!-- Ligne 1 : Titre/Desc + Boutons (Droite) -->
+        <div class="flex justify-between items-start gap-4">
+          <!-- Gauche : Titre et Description -->
+          <div>
+            <h2 class="text-xl font-bold text-gray-900 leading-tight">
               {{ documentTitle }}
             </h2>
-            <p class="text-sm text-gray-600 mt-1">
+            <p class="text-sm text-gray-500 mt-1">
               {{ documentDescription }}
             </p>
           </div>
 
-          <!-- Sélecteur de version et boutons d'action -->
+          <!-- Droite : Actions (Télécharger / Ouvrir) -->
           <div
-            v-if="hasVersions"
-            class="flex items-end gap-3 min-w-0 flex-shrink-0 ml-auto mr-4"
+            v-if="hasVersions && selectedVersionData?.s3Key && currentSignedUrl"
+            class="flex gap-2 shrink-0"
           >
-            <div class="flex flex-col gap-2">
-              <label class="text-xs font-semibold text-gray-700 uppercase tracking-wide"
-                >Version du document</label
-              >
+            <UButton
+              @click="handleDownload"
+              color="secondary"
+              variant="solid"
+              icon="i-lucide-download"
+              label="Télécharger"
+              size="sm"
+            />
+            <UButton
+              :href="currentSignedUrl"
+              target="_blank"
+              color="primary"
+              variant="solid"
+              icon="i-lucide-external-link"
+              label="Ouvrir"
+              size="sm"
+            />
+          </div>
+        </div>
+
+        <!-- Ligne 2 : Contrôles (Gauche) + Métadonnées (Droite) -->
+        <div class="flex items-center justify-between gap-4">
+          <!-- Groupe Gauche : Version et demande de MAJ -->
+          <div class="flex items-center gap-3">
+            <template v-if="hasVersions">
+              <!-- Sélecteur de version -->
               <USelect
                 v-model="selectedVersionId"
                 :items="versionSelectItems"
                 size="sm"
-                class="w-48"
+                class="w-56"
                 placeholder="Choisir une version"
                 :disabled="fetchLoading"
-                :ui="{
-                  base: 'min-w-0 bg-white border-gray-300',
-                  content: 'w-full',
-                }"
+                :ui="{ base: 'bg-white border-gray-300' }"
               />
+
+              <!-- Bouton Importer (+) -->
+              <div
+                v-if="canUploadDocument"
+                class="flex items-center"
+              >
+                <input
+                  ref="fileInputRef"
+                  type="file"
+                  class="hidden"
+                  accept="*/*"
+                  @change="handleFileSelect"
+                />
+                <UTooltip text="Importer une nouvelle version">
+                  <UButton
+                    @click="triggerFileInput"
+                    color="primary"
+                    variant="soft"
+                    icon="i-lucide-plus"
+                    size="sm"
+                    :loading="createLoading"
+                    :disabled="createLoading"
+                  />
+                </UTooltip>
+              </div>
+            </template>
+
+            <!-- Bouton Demander MAJ (Mis en valeur) -->
+            <DocumentRequestUpdateModal
+              v-if="
+                (user?.role === Role.FEEF || user?.role === Role.OE) &&
+                !hasPendingRequestForDocument
+              "
+              :documentary-review-id="documentaryReview?.id"
+              :contract-id="contract?.id"
+              :document-title="documentTitle"
+              button-label="Demander MAJ"
+              color="orange"
+              variant="solid"
+            />
+          </div>
+
+          <!-- Droite : Métadonnées (Date / User) -->
+          <div
+            v-if="hasVersions && selectedVersionData"
+            class="text-xs text-gray-400 text-right hidden sm:block"
+          >
+            <div class="flex items-center justify-end gap-1">
+              <UIcon
+                name="i-lucide-calendar"
+                class="w-3 h-3"
+              />
+              <span>{{ formatDate(selectedVersionData.uploadAt) }}</span>
             </div>
-            <div class="flex gap-2">
-              <input
-                v-if="canUploadDocument"
-                ref="fileInputRef"
-                type="file"
-                class="hidden"
-                accept="*/*"
-                @change="handleFileSelect"
+            <div class="flex items-center justify-end gap-1 mt-0.5">
+              <UIcon
+                name="i-lucide-user"
+                class="w-3 h-3"
               />
-              <DocumentRequestUpdateModal
-                v-if="
-                  (user?.role === Role.FEEF || user?.role === Role.OE) &&
-                  !hasPendingRequestForDocument
-                "
-                :documentary-review-id="documentaryReview?.id"
-                :contract-id="contract?.id"
-                :document-title="documentTitle"
-                button-label="Demander MAJ"
-              />
-              <UButton
-                v-if="canUploadDocument"
-                @click="triggerFileInput"
-                color="secondary"
-                variant="outline"
-                icon="i-lucide-upload"
-                label="Importer nouvelle version"
-                size="sm"
-                :loading="createLoading"
-                :disabled="createLoading"
-              />
-              <UButton
-                v-if="selectedVersionData?.s3Key && currentSignedUrl"
-                @click="handleDownload"
-                color="secondary"
-                variant="solid"
-                icon="i-lucide-download"
-                label="Télécharger"
-                size="sm"
-              />
-              <UButton
-                v-if="selectedVersionData?.s3Key && currentSignedUrl"
-                :href="currentSignedUrl"
-                target="_blank"
-                color="primary"
-                variant="solid"
-                icon="i-lucide-external-link"
-                label="Ouvrir"
-                size="sm"
-              />
+              <span
+                >{{ selectedVersionData.uploadByAccount.firstname }}
+                {{ selectedVersionData.uploadByAccount.lastname }}</span
+              >
             </div>
           </div>
-        </div>
-
-        <div
-          v-if="hasVersions && selectedVersionData"
-          class="flex flex-wrap gap-4 text-xs text-gray-500"
-        >
-          <span>
-            <UIcon
-              name="i-lucide-calendar"
-              class="w-3 h-3 mr-1"
-            />
-            Uploadé le {{ formatDate(selectedVersionData.uploadAt) }}
-          </span>
-          <span>
-            <UIcon
-              name="i-lucide-user"
-              class="w-3 h-3 mr-1"
-            />
-            {{ selectedVersionData.uploadByAccount.firstname }}
-            {{ selectedVersionData.uploadByAccount.lastname }}
-          </span>
         </div>
       </div>
     </template>
@@ -220,25 +233,15 @@
               />
               <span class="font-medium">{{ documentTitle }}</span>
             </div>
-            <div class="flex items-center gap-2">
-              <UButton
-                :href="currentSignedUrl"
-                target="_blank"
-                size="xs"
-                color="neutral"
-                variant="ghost"
-                icon="i-lucide-external-link"
-                label="Ouvrir dans un nouvel onglet"
-              />
-            </div>
+            <div class="flex items-center gap-2"></div>
           </div>
 
           <!-- Viewer PDF intégré -->
-          <div class="flex-1 relative">
+          <div class="flex-1 relative min-h-[500px]">
             <iframe
               :key="currentSignedUrl"
               :src="currentSignedUrl + '#toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH'"
-              class="w-full h-full border-0 absolute inset-0"
+              class="w-full h-full border-0 absolute inset-0 bg-white"
               type="application/pdf"
               loading="lazy"
               title="Visualiseur PDF"
