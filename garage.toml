@@ -16,7 +16,7 @@ root_domain = ".s3.garage.localhost"
 # Configuration CORS pour permettre l'accès depuis le frontend
 # En développement : autoriser localhost:3000
 # En production : remplacer par votre domaine
-cors_allow_origins = ["http://localhost:3000", "http://127.0.0.1:3000", "http://54.38.183.70"]
+cors_allow_origins = ["http://localhost:3000", "http://127.0.0.1:3000", "http://54.38.183.70", "https://monpmeplus.fr"]
 
 [admin]
 api_bind_addr = "[::]:3903"
