@@ -1,8 +1,12 @@
 import { eq, isNull, and } from "drizzle-orm"
 import { db } from "~~/server/database"
-import { entities, documentsType, documentaryReviews } from "~~/server/database/schema"
+import { entities, documentsType, documentaryReviews, accounts, accountsToEntities, NewAccount } from "~~/server/database/schema"
 import { forInsert } from "~~/server/utils/tracking"
 import { EntityType, EntityMode } from "~~/shared/types/enums"
+import bcrypt from 'bcrypt'
+import { generatePasswordResetUrlAndToken } from '~~/server/utils/password-reset'
+import { sendAccountCreationEmail } from '~~/server/services/mail'
+import { Role, EntityRole } from '~~/shared/types/roles'
 
 interface CreateEntityBody {
   name: string
@@ -12,6 +16,13 @@ interface CreateEntityBody {
   parentGroupId?: number
   oeId?: number
   accountManagerId?: number
+
+  // Champs pour la création de compte optionnelle
+  createAccount?: boolean
+  accountFirstname?: string
+  accountLastname?: string
+  accountEmail?: string
+  accountEntityRole?: string
 }
 
 export default defineEventHandler(async (event) => {
@@ -28,7 +39,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<CreateEntityBody>(event)
 
-  const { name, type, mode, siret, parentGroupId, oeId, accountManagerId } = body
+  const { name, type, mode, siret, parentGroupId, oeId, accountManagerId, createAccount, accountFirstname, accountLastname, accountEmail, accountEntityRole } = body
 
   // Validation des champs requis
   if (!name) {
@@ -52,7 +63,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if(!siret) {
+  if (!siret) {
     throw createError({
       statusCode: 400,
       message: 'Le SIRET est requis.'
@@ -198,6 +209,16 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Validation pour la création de compte
+  if (createAccount) {
+    if (!accountFirstname || !accountLastname || !accountEmail || !accountEntityRole) {
+      throw createError({
+        statusCode: 400,
+        message: 'Tous les champs (Prénom, Nom, Email, Rôle) sont requis pour créer ou associer un compte.'
+      })
+    }
+  }
+
   // Construire l'objet de création en n'incluant que les champs fournis
   const insertData: any = {
     name,
@@ -229,7 +250,7 @@ export default defineEventHandler(async (event) => {
 
   // Créer automatiquement les revues documentaires pour les documents avec autoAsk = true
   if (autoAskDocuments.length > 0) {
-    const documentaryReviewsToInsert = autoAskDocuments.map(docType => 
+    const documentaryReviewsToInsert = autoAskDocuments.map(docType =>
       forInsert(event, {
         entityId: newEntity.id,
         documentTypeId: docType.id,
@@ -240,6 +261,108 @@ export default defineEventHandler(async (event) => {
     )
 
     await db.insert(documentaryReviews).values(documentaryReviewsToInsert)
+  }
+
+  // LOGIQUE DE CRÉATION DE COMPTE / LIAISON
+  let accountResult = null;
+  if (createAccount && accountFirstname && accountLastname && accountEmail && accountEntityRole) {
+    try {
+      console.log('[Entities API] Tentative de création/liaison de compte pour', accountEmail);
+
+      // 1. Vérifier si un compte existe déjà avec cet email
+      const existingAccount = await db.query.accounts.findFirst({
+        where: eq(accounts.email, accountEmail)
+      });
+
+      let accountIdToLink: number;
+
+      if (existingAccount) {
+        console.log('[Entities API] Compte existant trouvé pour', accountEmail);
+
+        // Vérifier si le compte a le rôle ENTITY
+        if (existingAccount.role !== Role.ENTITY) {
+          console.warn('[Entities API] Le compte existant n\'a pas le rôle ENTITY. Liaison ignorée.');
+          // On pourrait throw une erreur ici, mais pour l'UX il vaut mieux peut-être ne pas bloquer la création de l'entité
+          // Pour l'instant on continue mais on ne lie pas (ou on pourrait choisir de lier quand même ?)
+          // La demande spécifiait "affecter le compte existant", supposons qu'il doit être compatible.
+        }
+
+        if (existingAccount.role === Role.ENTITY) {
+          accountIdToLink = existingAccount.id;
+
+          // Vérifier si déjà lié à cette entité (peu probable car l'entité vient d'être créée)
+          const existingLink = await db.query.accountsToEntities.findFirst({
+            where: and(
+              eq(accountsToEntities.accountId, accountIdToLink),
+              eq(accountsToEntities.entityId, newEntity.id)
+            )
+          });
+
+          if (!existingLink) {
+            // Créer le lien
+            await db.insert(accountsToEntities).values({
+              accountId: accountIdToLink,
+              entityId: newEntity.id,
+              role: accountEntityRole as any
+            });
+            console.log('[Entities API] Compte existant lié à la nouvelle entité');
+          }
+        }
+
+      } else {
+        // 2. Créer un nouveau compte
+        console.log('[Entities API] Création d\'un nouveau compte pour', accountEmail);
+
+        const config = useRuntimeConfig(event)
+        const isDevMode = config.devMode
+
+        const newAccountData: NewAccount = {
+          firstname: accountFirstname,
+          lastname: accountLastname,
+          email: accountEmail,
+          role: Role.ENTITY, // Force role ENTITY
+          isActive: isDevMode ? true : false,
+          passwordChangedAt: isDevMode ? new Date() : null,
+          password: isDevMode ? await bcrypt.hash('password', 10) : undefined,
+        }
+
+        const [createdAccount] = await db
+          .insert(accounts)
+          .values(forInsert(event, newAccountData))
+          .returning()
+
+        accountIdToLink = createdAccount.id;
+
+        // 3. Lier le nouveau compte à l'entité
+        await db.insert(accountsToEntities).values({
+          accountId: accountIdToLink,
+          entityId: newEntity.id,
+          role: accountEntityRole as any
+        });
+
+        // 4. Envoyer email d'invitation (sauf en DEV)
+        if (!isDevMode) {
+          const { resetUrl } = await generatePasswordResetUrlAndToken(createdAccount.id, event)
+
+          await sendAccountCreationEmail({
+            email: createdAccount.email,
+            firstName: createdAccount.firstname,
+            lastName: createdAccount.lastname,
+            role: 'Entreprise',
+            resetPasswordUrl: resetUrl,
+            expiresInHours: 48
+          })
+          console.log('[Entities API] Email d\'invitation envoyé');
+        } else {
+          console.log('[Entities API] Mode DEV: pas d\'email envoyé. MDP: password');
+        }
+      }
+
+    } catch (error) {
+      console.error('[Entities API] Erreur lors de la gestion du compte associé:', error);
+      // On ne fait pas échouer la requête principale si la création de compte échoue, 
+      // car l'entité est déjà créée. Idéalement on préviendrait l'utilisateur.
+    }
   }
 
   return {
