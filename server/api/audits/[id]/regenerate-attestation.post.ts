@@ -2,6 +2,7 @@ import { Role } from '#shared/types/roles'
 import { AuditStatus } from '#shared/types/enums'
 import { audits } from '~~/server/database/schema'
 import { eq } from 'drizzle-orm'
+import { db } from '~~/server/database'
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
