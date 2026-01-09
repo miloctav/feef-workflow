@@ -235,8 +235,16 @@ const columns = computed(() => {
       accessorKey: 'auditor',
       header: 'Auditeur',
       cell: ({ row }) => {
-        const auditor = row.original.auditor
-        return auditor ? `${auditor.firstname} ${auditor.lastname}` : '-'
+        const audit = row.original
+        // Afficher le nom du compte auditeur si présent
+        if (audit.auditor) {
+          return `${audit.auditor.firstname} ${audit.auditor.lastname}`
+        }
+        // Sinon afficher le nom de l'auditeur externe
+        if (audit.externalAuditorName) {
+          return audit.externalAuditorName
+        }
+        return '-'
       },
     },
     {

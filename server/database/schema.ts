@@ -162,6 +162,7 @@ export const audits = pgTable('audits', {
   entityId: integer('entity_id').notNull().references(() => entities.id),
   oeId: integer('oe_id').references(() => oes.id),
   auditorId: integer('auditor_id').references(() => accounts.id),
+  externalAuditorName: varchar('external_auditor_name', { length: 255 }),
   type: auditTypeEnum('type').notNull(),
   plannedDate: date('planned_date'),
   actualStartDate: date('actual_start_date'),

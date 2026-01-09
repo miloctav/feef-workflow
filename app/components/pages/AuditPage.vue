@@ -285,6 +285,13 @@ const safeActions = computed(() => actions.value || [])
                   >
                 </div>
                 <div
+                  v-else-if="currentAudit?.externalAuditorName"
+                  class="flex items-center gap-2"
+                >
+                  <span class="text-sm font-medium text-gray-600">Auditeur:</span>
+                  <span class="text-gray-900">{{ currentAudit?.externalAuditorName }}</span>
+                </div>
+                <div
                   v-else
                   class="flex items-center gap-2"
                 >
@@ -301,6 +308,7 @@ const safeActions = computed(() => actions.value || [])
                       ? `${currentAudit.auditor.firstname} ${currentAudit.auditor.lastname}`
                       : null
                   "
+                  :current-external-auditor-name="currentAudit?.externalAuditorName"
                   :oe-id="currentAudit?.oeId"
                   class="mt-3"
                 />

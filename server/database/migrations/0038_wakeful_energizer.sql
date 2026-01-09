@@ -1,0 +1,1 @@
+ALTER TABLE "audits" ADD COLUMN "external_auditor_name" varchar(255);

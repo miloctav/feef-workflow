@@ -13,7 +13,8 @@ export interface CreateAuditData {
   entityId: number
   type: AuditTypeType
   oeId: number
-  auditorId: number
+  auditorId?: number
+  externalAuditorName?: string
   pannedDate?: string
   actualStartDate?: string
   actualEndDate?: string
@@ -25,7 +26,8 @@ export interface CreateAuditData {
 // IMPORTANT: entityId et type ne peuvent PAS �tre modifi�s
 export interface UpdateAuditData {
   oeId?: number
-  auditorId?: number
+  auditorId?: number | null
+  externalAuditorName?: string | null
   pannedDate?: string | null
   actualStartDate?: string | null
   actualEndDate?: string | null
@@ -105,11 +107,19 @@ export interface LastDocumentVersions {
   ATTESTATION?: LastDocumentVersion
 }
 
+// Données pour assigner un auditeur
+export interface AssignAuditorData {
+  auditorType: 'account' | 'external'
+  auditorId?: number
+  externalAuditorName?: string
+}
+
 // Audit avec relations complètes
 export interface AuditWithRelations extends AuditPublic {
   entity: AuditEntity
   oe?: AuditOE | null
   auditor?: AuditAuditor | null
+  externalAuditorName?: string | null
   caseSubmittedByAccount?: AuditAccount | null
   caseApprovedByAccount?: AuditAccount | null
   lastDocumentVersions?: LastDocumentVersions

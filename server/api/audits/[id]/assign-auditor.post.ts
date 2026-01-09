@@ -1,19 +1,23 @@
 import { and, eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { accounts, audits, auditorsToOE } from '~~/server/database/schema'
+import { validateAuditorAssignment } from '~~/server/utils/validateAuditorAssignment'
+import type { AssignAuditorData } from '~~/app/types/audits'
 
 /**
  * POST /api/audits/:id/assign-auditor
  *
- * Affecte un auditeur à un audit
+ * Affecte un auditeur à un audit (compte existant OU auditeur externe)
  *
  * Restrictions:
  * - Seuls les utilisateurs avec le rôle OE peuvent affecter un auditeur
  * - L'OE de l'utilisateur doit correspondre à l'OE de l'audit
- * - L'auditeur doit être lié à l'OE via la table auditorsToOE
+ * - Pour un compte: l'auditeur doit être lié à l'OE via la table auditorsToOE
  *
  * Body:
- * - auditorId: ID de l'auditeur à affecter
+ * - auditorType: 'account' | 'external'
+ * - auditorId?: ID de l'auditeur (requis si auditorType === 'account')
+ * - externalAuditorName?: Nom de l'auditeur externe (requis si auditorType === 'external')
  */
 export default defineEventHandler(async (event) => {
   // Authentification requise
@@ -46,17 +50,19 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Récupérer le body
-  const body = await readBody(event)
-  const { auditorId } = body
+  // Récupérer et valider le body
+  const body = await readBody<AssignAuditorData>(event)
 
-  // Validation du body
-  if (!auditorId || typeof auditorId !== 'number') {
+  // Valider les données d'assignation
+  const validation = validateAuditorAssignment(body)
+  if (!validation.isValid) {
     throw createError({
       statusCode: 400,
-      message: 'auditorId est requis et doit être un nombre',
+      message: validation.error,
     })
   }
+
+  const { auditorId, externalAuditorName } = validation.sanitizedData!
 
   // Vérifier que l'audit existe
   const existingAudit = await db.query.audits.findFirst({
@@ -82,48 +88,51 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Vérifier que l'auditeur existe et a le rôle AUDITOR
-  const auditor = await db.query.accounts.findFirst({
-    where: eq(accounts.id, auditorId),
-    columns: {
-      id: true,
-      role: true,
-    },
-  })
-
-  if (!auditor) {
-    throw createError({
-      statusCode: 404,
-      message: 'L\'auditeur spécifié n\'existe pas',
+  // Validation spécifique pour les comptes auditeurs
+  if (auditorId) {
+    // Vérifier que l'auditeur existe et a le rôle AUDITOR
+    const auditor = await db.query.accounts.findFirst({
+      where: eq(accounts.id, auditorId),
+      columns: {
+        id: true,
+        role: true,
+      },
     })
-  }
 
-  if (auditor.role !== Role.AUDITOR) {
-    throw createError({
-      statusCode: 400,
-      message: 'Le compte spécifié doit avoir le rôle AUDITOR',
+    if (!auditor) {
+      throw createError({
+        statusCode: 404,
+        message: 'L\'auditeur spécifié n\'existe pas',
+      })
+    }
+
+    if (auditor.role !== Role.AUDITOR) {
+      throw createError({
+        statusCode: 400,
+        message: 'Le compte spécifié doit avoir le rôle AUDITOR',
+      })
+    }
+
+    // Vérifier que l'auditeur est lié à l'OE de l'utilisateur
+    const auditorOeLink = await db.query.auditorsToOE.findFirst({
+      where: and(
+        eq(auditorsToOE.auditorId, auditorId),
+        eq(auditorsToOE.oeId, currentUser.oeId!)
+      ),
     })
-  }
 
-  // Vérifier que l'auditeur est lié à l'OE de l'utilisateur
-  const auditorOeLink = await db.query.auditorsToOE.findFirst({
-    where: and(
-      eq(auditorsToOE.auditorId, auditorId),
-      eq(auditorsToOE.oeId, currentUser.oeId!)
-    ),
-  })
-
-  if (!auditorOeLink) {
-    throw createError({
-      statusCode: 403,
-      message: 'Cet auditeur n\'est pas lié à votre organisation',
-    })
+    if (!auditorOeLink) {
+      throw createError({
+        statusCode: 403,
+        message: 'Cet auditeur n\'est pas lié à votre organisation',
+      })
+    }
   }
 
   // Mettre à jour l'audit avec le nouvel auditeur
   const [updatedAudit] = await db
     .update(audits)
-    .set(forUpdate(event, { auditorId }))
+    .set(forUpdate(event, { auditorId, externalAuditorName }))
     .where(eq(audits.id, auditId))
     .returning()
 

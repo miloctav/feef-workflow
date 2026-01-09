@@ -91,6 +91,7 @@
             <!-- Bouton Demander MAJ (Mis en valeur) -->
             <DocumentRequestUpdateModal
               v-if="
+                documentType === 'documentaryReview' &&
                 (user?.role === Role.FEEF || user?.role === Role.OE) &&
                 !hasPendingRequestForDocument
               "

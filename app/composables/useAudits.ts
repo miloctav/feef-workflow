@@ -223,15 +223,18 @@ export const useAudits = (options?: { entityId?: number }) => {
   }
 
   /**
-   * Affecter un auditeur � un audit
+   * Affecter un auditeur � un audit (compte ou externe)
    */
-  const assignAuditor = async (id: number, auditorId: number) => {
+  const assignAuditor = async (
+    id: number,
+    data: { auditorType: 'account' | 'external'; auditorId?: number; externalAuditorName?: string }
+  ) => {
     updateLoading.value = true
 
     try {
       const response = await $fetch<{ data: AuditWithRelations }>(`/api/audits/${id}/assign-auditor`, {
         method: 'POST',
-        body: { auditorId },
+        body: data,
       })
 
       // Mettre � jour l'audit courant si c'est celui-ci
