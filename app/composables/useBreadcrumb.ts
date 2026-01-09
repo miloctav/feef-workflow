@@ -1,4 +1,4 @@
-import type { AuditWithRelations } from '~/app/types/audits'
+import type { AuditWithRelations } from '~~/app/types/audits'
 
 // Interface pour les éléments du breadcrumb
 interface BreadcrumbItem {

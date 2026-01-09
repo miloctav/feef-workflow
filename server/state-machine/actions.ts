@@ -88,11 +88,23 @@ export async function resetEntityWorkflow(audit: Audit, event: H3Event): Promise
  * la transition vers COMPLETED réussit quand même.
  */
 export async function generateAttestation(audit: Audit, event: H3Event): Promise<void> {
+  console.log(`[State Machine Action] 🔄 Génération de l'attestation pour l'audit #${audit.id}`)
+
   try {
-    console.log(`[State Machine Action] Génération de l'attestation pour audit ${audit.id}`)
+    // Vérifier les prérequis
+    if (!audit.globalScore) {
+      console.error(`[State Machine Action] ❌ globalScore manquant pour l'audit #${audit.id}`)
+      return
+    }
+    if (!audit.labelExpirationDate) {
+      console.error(`[State Machine Action] ❌ labelExpirationDate manquant pour l'audit #${audit.id}`)
+      return
+    }
 
     const { AttestationGenerator } = await import('~~/server/services/documentGeneration/AttestationGenerator')
     const generator = new AttestationGenerator()
+
+    console.log(`[State Machine Action] ⏳ Appel à AttestationGenerator.generate() pour l'audit #${audit.id}`)
 
     await generator.generate(
       { event, data: { auditId: audit.id } },
@@ -103,9 +115,10 @@ export async function generateAttestation(audit: Audit, event: H3Event): Promise
       }
     )
 
-    console.log(`[State Machine Action] ✅ Attestation générée avec succès pour audit ${audit.id}`)
+    console.log(`[State Machine Action] ✅ Attestation générée avec succès pour l'audit #${audit.id}`)
   } catch (error) {
-    console.error(`[State Machine Action] ❌ Erreur lors de la génération de l'attestation pour audit ${audit.id}:`, error)
+    console.error(`[State Machine Action] ❌ Erreur lors de la génération de l'attestation pour l'audit #${audit.id}`)
+    console.error('[State Machine Action] Stack trace:', error)
     // Non-blocking: ne pas empêcher la transition de réussir
     // L'attestation peut être régénérée manuellement si nécessaire
   }

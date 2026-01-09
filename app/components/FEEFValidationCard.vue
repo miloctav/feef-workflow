@@ -62,6 +62,20 @@
         clickable-text="Cliquer pour voir l'attestation"
         @click="handleResultCardClick"
       >
+        <template #actions>
+          <!-- Bouton pour régénération (si attestation manquante) -->
+          <div v-if="canRegenerateAttestation">
+            <UButton
+              @click="handleRegenerateAttestation"
+              label="Régénérer l'attestation"
+              icon="i-lucide-refresh-cw"
+              color="orange"
+              :loading="regenerating"
+              :disabled="regenerating"
+            />
+          </div>
+        </template>
+
         <template #content>
           <div v-if="hasDecision">
             <div v-if="feefDecision === 'ACCEPTED'">
@@ -105,12 +119,16 @@ import { AuditDocumentType } from '~/types/auditDocuments'
 
 const { user } = useAuth()
 const { currentAudit, fetchAudit } = useAudits()
+const toast = useToast()
 
 // Inject isAuditEditable from parent (DecisionTab)
 const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
 
 // État pour DocumentViewer
 const showAttestationViewer = ref(false)
+
+// État de régénération
+const regenerating = ref(false)
 
 // Récupérer les événements de l'audit via le composable
 const {
@@ -141,6 +159,13 @@ const hasDecision = computed(() => {
 const canSubmitDecision = computed(() => {
   // La FEEF peut prendre la décision si PENDING_FEEF_DECISION et audit modifiable
   return user.value?.role === Role.FEEF && auditStatus.value === AuditStatus.PENDING_FEEF_DECISION && !hasDecision.value && isAuditEditable.value
+})
+
+const canRegenerateAttestation = computed(() => {
+  return user.value?.role === Role.FEEF
+    && hasDecision.value
+    && feefDecision.value === 'ACCEPTED'
+    && !hasAttestation.value
 })
 
 const decisionLabel = computed(() => {
@@ -182,6 +207,35 @@ function handleResultCardClick() {
     showAttestationViewer.value = true
   } else {
     console.log('Conditions non remplies pour ouvrir le DocumentViewer')
+  }
+}
+
+// Méthode de régénération de l'attestation
+async function handleRegenerateAttestation() {
+  if (!currentAudit.value) return
+
+  regenerating.value = true
+  try {
+    await $fetch(`/api/audits/${currentAudit.value.id}/regenerate-attestation`, {
+      method: 'POST'
+    })
+
+    await fetchAudit(currentAudit.value.id)
+
+    toast.add({
+      title: 'Attestation générée',
+      description: 'L\'attestation de labellisation a été générée avec succès',
+      color: 'green'
+    })
+  } catch (error) {
+    console.error('Erreur lors de la régénération:', error)
+    toast.add({
+      title: 'Erreur',
+      description: 'Impossible de générer l\'attestation',
+      color: 'red'
+    })
+  } finally {
+    regenerating.value = false
   }
 }
 </script>

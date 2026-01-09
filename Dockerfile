@@ -69,6 +69,9 @@ COPY --from=build /app/.output ./
 # Copy migration files (needed for runtime execution)
 COPY --from=build /app/server/database/migrations ./server/database/migrations
 
+# Copy PDF templates (needed for document generation)
+COPY --from=build /app/app/assets/templates ./app/assets/templates
+
 # Copy TypeScript source files needed for database config
 COPY --from=build /app/server/database/schema.ts ./server/database/schema.ts
 COPY --from=build /app/server/database/index.ts ./server/database/index.ts

@@ -1,4 +1,3 @@
-import type { H3Event } from 'h3'
 import { and, or, sql, asc, desc, ilike, inArray, isNull, type SQL } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import type { PgTable } from 'drizzle-orm/pg-core'
