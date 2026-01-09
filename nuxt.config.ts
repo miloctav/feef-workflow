@@ -5,6 +5,27 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxt/ui', 'nuxt-auth-utils'],
 
+  // Charger Google Fonts via le head HTML pour éviter @nuxt/fonts
+  app: {
+    head: {
+      link: [
+        {
+          rel: 'preconnect',
+          href: 'https://fonts.googleapis.com'
+        },
+        {
+          rel: 'preconnect',
+          href: 'https://fonts.gstatic.com',
+          crossorigin: 'anonymous'
+        },
+        {
+          rel: 'stylesheet',
+          href: 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&display=swap'
+        }
+      ]
+    }
+  },
+
   // Exclure les routes de stockage du routeur client (pour qu'elles soient gérées par le serveur/Nginx)
   router: {
     options: {
@@ -18,7 +39,16 @@ export default defineNuxtConfig({
 
   // Désactiver @nuxt/fonts pour éviter les erreurs réseau pendant le build Docker
   fonts: {
-    enabled: false
+    enabled: false,
+    // Désactiver complètement les optimisations de polices
+    experimental: {
+      processCSSVariables: false
+    }
+  },
+
+  // Configuration Nuxt UI pour ne pas utiliser @nuxt/fonts
+  ui: {
+    fonts: false
   },
 
   css: ['~/assets/css/main.css'],

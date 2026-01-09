@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&display=swap');
+/* Google Fonts (Source Sans Pro) est chargé via nuxt.config.ts dans app.head.link */
+/* Ceci évite les erreurs de build Docker avec @nuxt/fonts */
 @import "tailwindcss";
 @import "@nuxt/ui";
 
