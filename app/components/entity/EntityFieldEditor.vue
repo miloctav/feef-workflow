@@ -2,61 +2,10 @@
   <USlideover
     v-model:open="isOpen"
     :title="currentField?.label || 'Champ'"
-    side="right"
     class="w-full max-w-2xl"
-    close-icon="i-lucide-arrow-right"
+    close-icon="i-lucide-x"
     :dismissible="isReadOnly"
   >
-    <!-- Header avec navigation -->
-    <template #header>
-      <div class="flex flex-col space-y-3">
-        <div class="flex items-start gap-12">
-          <div class="flex-1 pr-16 max-w-2xl">
-            <h2 class="text-lg font-semibold text-gray-900">
-              {{ currentField?.label }}
-              <span
-                v-if="currentField?.unit"
-                class="text-gray-500 text-base font-normal"
-              >
-                ({{ currentField.unit }})
-              </span>
-            </h2>
-            <p
-              v-if="currentFieldDefinition?.description"
-              class="text-sm text-gray-600 mt-1"
-            >
-              {{ currentFieldDefinition.description }}
-            </p>
-          </div>
-
-          <!-- Boutons de navigation -->
-          <div class="flex items-center gap-2 min-w-0 flex-shrink-0 ml-auto mr-4">
-            <UButton
-              icon="i-lucide-chevron-left"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              :disabled="!hasPreviousField"
-              @click="navigateToPrevious"
-              title="Champ précédent"
-            />
-            <span class="text-xs text-gray-500 font-medium w-14 text-center">
-              {{ currentFieldIndex + 1 }} / {{ fields.length }}
-            </span>
-            <UButton
-              icon="i-lucide-chevron-right"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              :disabled="!hasNextField"
-              @click="navigateToNext"
-              title="Champ suivant"
-            />
-          </div>
-        </div>
-      </div>
-    </template>
-
     <!-- Corps avec input et timeline -->
     <template #body>
       <div class="flex flex-col h-full space-y-8">
@@ -337,22 +286,6 @@ const currentFieldDefinition = computed(() => {
 
 // Valeur en cours d'édition
 const editValue = ref<any>(null)
-
-// Navigation
-const hasPreviousField = computed(() => currentFieldIndex.value > 0)
-const hasNextField = computed(() => currentFieldIndex.value < props.fields.length - 1)
-
-const navigateToPrevious = () => {
-  if (hasPreviousField.value) {
-    currentFieldIndex.value--
-  }
-}
-
-const navigateToNext = () => {
-  if (hasNextField.value) {
-    currentFieldIndex.value++
-  }
-}
 
 // Détecter si la valeur a changé
 const hasChanges = computed(() => {
