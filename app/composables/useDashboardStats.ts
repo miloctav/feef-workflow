@@ -84,10 +84,10 @@ const CARD_MAPPINGS: Array<{
       category: 'Demande de dossiers',
       cards: [
         {
-          shortText: 'En attente validation FEEF',
-          auditStatus: 'PENDING_CASE_APPROVAL',
-          color: 'border-green-500',
-          bgColor: 'bg-green-50',
+          shortText: 'Dépôt en cours',
+          auditStatus: 'CASE_SUBMISSION_IN_PROGRESS',
+          color: 'border-blue-500',
+          bgColor: 'bg-blue-50',
         },
         {
           shortText: 'En attente de signature contrat FEEF',
@@ -96,10 +96,10 @@ const CARD_MAPPINGS: Array<{
           bgColor: 'bg-yellow-50',
         },
         {
-          shortText: 'Dépôt en cours',
-          auditStatus: 'CASE_SUBMISSION_IN_PROGRESS',
-          color: 'border-blue-500',
-          bgColor: 'bg-blue-50',
+          shortText: 'En attente validation FEEF',
+          auditStatus: 'PENDING_CASE_APPROVAL',
+          color: 'border-green-500',
+          bgColor: 'bg-green-50',
         },
       ],
     },
@@ -113,16 +113,16 @@ const CARD_MAPPINGS: Array<{
           bgColor: 'bg-orange-50',
         },
         {
-          shortText: 'Audit planifié',
-          auditStatus: 'SCHEDULED',
-          color: 'border-indigo-500',
-          bgColor: 'bg-indigo-50',
-        },
-        {
           shortText: 'En cours de planification',
           auditStatus: 'PLANNING',
           color: 'border-green-500',
           bgColor: 'bg-green-50',
+        },
+        {
+          shortText: 'Audit planifié',
+          auditStatus: 'SCHEDULED',
+          color: 'border-indigo-500',
+          bgColor: 'bg-indigo-50',
         },
         {
           shortText: 'Rapport attendu audit',

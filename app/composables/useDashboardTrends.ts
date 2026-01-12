@@ -11,7 +11,7 @@ interface DashboardSnapshot {
 }
 
 interface CardTrend {
-  trend: 'up' | 'down' | null
+  trend: 'up' | 'down'
   lastValue: number | undefined
   lastDate: string | undefined
 }
