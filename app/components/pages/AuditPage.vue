@@ -26,7 +26,11 @@ const getInitialTab = () => {
   }
 
   // Si statut PLANNING → onglet planification d'audit
-  if (status === AuditStatus.PLANNING || status === AuditStatus.SCHEDULED || status === AuditStatus.PENDING_OE_ACCEPTANCE) {
+  if (
+    status === AuditStatus.PLANNING ||
+    status === AuditStatus.SCHEDULED ||
+    status === AuditStatus.PENDING_OE_ACCEPTANCE
+  ) {
     return 'audit'
   }
 
@@ -146,12 +150,23 @@ import ActionsList from '~/components/actions/ActionsList.vue'
 import { useSimpleActions } from '~/composables/useSimpleActions'
 
 // Actions liées à l'audit courant (réactif sur currentAudit)
-const { actions, loading: fetchLoading, error: fetchError } = useSimpleActions({
+const {
+  actions,
+  loading: fetchLoading,
+  error: fetchError,
+} = useSimpleActions({
   auditId: computed(() => currentAudit.value?.id),
 })
 
 // S'assurer que actions est toujours un tableau
 const safeActions = computed(() => actions.value || [])
+
+// Helper pour récupérer la valeur d'un champ
+const getFieldValue = (key: string) => {
+  if (!currentEntity.value?.fields) return null
+  const field = currentEntity.value.fields.find((f) => f.key === key)
+  return field?.value
+}
 </script>
 
 <template>
@@ -211,7 +226,18 @@ const safeActions = computed(() => actions.value || [])
 
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-gray-600">Localisation:</span>
-                  <span class="text-gray-900">Paris, Île-de-France</span>
+                  <span
+                    v-if="currentEntity?.city"
+                    class="text-gray-900"
+                  >
+                    {{ currentEntity.city }}
+                    <span v-if="currentEntity.region">({{ currentEntity.region }})</span>
+                  </span>
+                  <span
+                    v-else
+                    class="text-gray-500 italic"
+                    >Non assigné</span
+                  >
                 </div>
               </div>
             </div>
@@ -223,12 +249,32 @@ const safeActions = computed(() => actions.value || [])
               <div class="space-y-3">
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-gray-600">Nom:</span>
-                  <span class="text-gray-900 font-medium">Jean Dupont</span>
+                  <span
+                    v-if="getFieldValue('pilotLastName')"
+                    class="text-gray-900 font-medium"
+                  >
+                    {{ getFieldValue('pilotFirstName') || '' }} {{ getFieldValue('pilotLastName') }}
+                  </span>
+                  <span
+                    v-else
+                    class="text-gray-500 italic"
+                    >Non assigné</span
+                  >
                 </div>
 
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-gray-600">Fonction:</span>
-                  <span class="text-gray-900">Responsable Qualité</span>
+                  <span
+                    v-if="getFieldValue('pilotRole')"
+                    class="text-gray-900"
+                  >
+                    {{ getFieldValue('pilotRole') }}
+                  </span>
+                  <span
+                    v-else
+                    class="text-gray-500 italic"
+                    >Non assigné</span
+                  >
                 </div>
 
                 <div class="flex items-center gap-2">
@@ -236,7 +282,17 @@ const safeActions = computed(() => actions.value || [])
                     name="i-lucide-phone"
                     class="w-4 h-4 text-gray-500"
                   />
-                  <span class="text-gray-900">01 23 45 67 89</span>
+                  <span
+                    v-if="getFieldValue('pilotPhone')"
+                    class="text-gray-900"
+                  >
+                    {{ getFieldValue('pilotPhone') }}
+                  </span>
+                  <span
+                    v-else
+                    class="text-gray-500 italic"
+                    >Non assigné</span
+                  >
                 </div>
 
                 <div class="flex items-center gap-2">
@@ -245,11 +301,18 @@ const safeActions = computed(() => actions.value || [])
                     class="w-4 h-4 text-gray-500"
                   />
                   <a
-                    href="mailto:jean.dupont@example.com"
+                    v-if="getFieldValue('pilotEmail')"
+                    :href="`mailto:${getFieldValue('pilotEmail')}`"
                     class="text-primary hover:underline"
                   >
-                    jean.dupont@example.com
+                    {{ getFieldValue('pilotEmail') }}
                   </a>
+                  <span
+                    v-else
+                    class="text-gray-500 italic"
+                  >
+                    Non assigné
+                  </span>
                 </div>
               </div>
             </div>
