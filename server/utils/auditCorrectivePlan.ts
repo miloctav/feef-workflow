@@ -3,20 +3,20 @@ import { db } from '~~/server/database'
 import { audits, auditNotation, documentVersions } from '~~/server/database/schema'
 import { AuditStatus } from '#shared/types/enums'
 import { AuditDocumentType } from '~~/app/types/auditDocuments'
-import { hasEventOccurred } from '~~/server/services/events'
+import { getLatestEvent } from '~~/server/services/events'
 
 /**
- * Calcule si un audit nécessite un plan correctif
+ * Calcule le type de plan d'action nécessaire pour un audit
  *
  * Règles:
- * - needsCorrectivePlan = true si globalScore < 65
- * - needsCorrectivePlan = true si au moins une notation a un score >= 3 (C ou D)
- * - needsCorrectivePlan = false sinon
+ * - LONG si globalScore < 65 (priorité)
+ * - SHORT si globalScore >= 65 ET au moins une notation >= 3 (C ou D)
+ * - NONE sinon
  *
  * @param auditId - ID de l'audit
- * @returns boolean - true si un plan correctif est nécessaire
+ * @returns Le type de plan d'action requis ('NONE', 'SHORT', 'LONG')
  */
-export async function calculateNeedsCorrectivePlan(auditId: number): Promise<boolean> {
+export async function calculateActionPlanType(auditId: number): Promise<'NONE' | 'SHORT' | 'LONG'> {
   // 1. Récupérer l'audit pour obtenir le globalScore
   const audit = await db.query.audits.findFirst({
     where: eq(audits.id, auditId),
@@ -30,8 +30,10 @@ export async function calculateNeedsCorrectivePlan(auditId: number): Promise<boo
     throw new Error(`Audit ${auditId} not found`)
   }
 
-  // 2. Vérifier si globalScore < 65
-  const hasLowGlobalScore = audit.globalScore !== null && audit.globalScore < 65
+  // 2. Vérifier si globalScore < 65 → LONG PLAN (priorité)
+  if (audit.globalScore !== null && audit.globalScore < 65) {
+    return 'LONG'
+  }
 
   // 3. Récupérer les notations pour vérifier les scores C ou D
   const notations = await db.query.auditNotation.findMany({
@@ -41,24 +43,69 @@ export async function calculateNeedsCorrectivePlan(auditId: number): Promise<boo
     },
   })
 
-  // 4. Vérifier s'il y a au moins un score >= 3 (C ou D)
+  // 4. Vérifier s'il y a au moins un score >= 3 (C ou D) → SHORT PLAN
   const hasBadNotation = notations.some(notation => notation.score >= 3)
 
-  // 5. Retourner true si l'une des deux conditions est vraie
-  return hasLowGlobalScore || hasBadNotation
+  if (audit.globalScore !== null && audit.globalScore >= 65 && hasBadNotation) {
+    return 'SHORT'
+  }
+
+  // 5. Aucun plan nécessaire
+  return 'NONE'
 }
 
 /**
- * Vérifie si un plan correctif a déjà été uploadé pour cet audit
+ * Calcule la deadline du plan d'action basée sur le type et la date d'upload du rapport
  *
  * @param auditId - ID de l'audit
- * @returns boolean - true si un plan correctif existe (avec s3Key non null)
+ * @param planType - Type de plan ('SHORT' ou 'LONG' ou 'NONE')
+ * @returns Date de deadline ou null si pas de plan
  */
-export async function correctivePlanExists(auditId: number): Promise<boolean> {
-  const correctivePlanDoc = await db.query.documentVersions.findFirst({
+export async function calculateActionPlanDeadline(
+  auditId: number,
+  planType: 'SHORT' | 'LONG' | 'NONE'
+): Promise<Date | null> {
+  if (planType === 'NONE') return null
+
+  // Récupérer la date d'upload du rapport via l'événement AUDIT_REPORT_UPLOADED
+  const reportUploadEvent = await getLatestEvent('AUDIT_REPORT_UPLOADED', { auditId })
+
+  if (!reportUploadEvent) {
+    console.warn(`⚠️ [calculateActionPlanDeadline] Aucun événement AUDIT_REPORT_UPLOADED trouvé pour audit ${auditId}`)
+    return null
+  }
+
+  const reportUploadDate = new Date(reportUploadEvent.performedAt)
+  const deadline = new Date(reportUploadDate)
+
+  // Ajouter le délai selon le type de plan
+  if (planType === 'SHORT') {
+    deadline.setDate(deadline.getDate() + 15) // 15 jours
+  }
+  else if (planType === 'LONG') {
+    deadline.setDate(deadline.getDate() + 180) // 6 mois (180 jours)
+  }
+
+  return deadline
+}
+
+/**
+ * Vérifie si un plan d'action du type spécifié a déjà été uploadé pour cet audit
+ *
+ * @param auditId - ID de l'audit
+ * @param planType - Type de plan ('SHORT' ou 'LONG')
+ * @returns boolean - true si un plan du type spécifié existe (avec s3Key non null)
+ */
+export async function actionPlanDocumentExists(
+  auditId: number,
+  planType: 'SHORT' | 'LONG'
+): Promise<boolean> {
+  const documentType = planType === 'SHORT' ? AuditDocumentType.SHORT_ACTION_PLAN : AuditDocumentType.LONG_ACTION_PLAN
+
+  const doc = await db.query.documentVersions.findFirst({
     where: and(
       eq(documentVersions.auditId, auditId),
-      eq(documentVersions.auditDocumentType, AuditDocumentType.CORRECTIVE_PLAN),
+      eq(documentVersions.auditDocumentType, documentType),
       isNotNull(documentVersions.s3Key) // Document uploadé (pas en attente)
     ),
     columns: {
@@ -66,19 +113,20 @@ export async function correctivePlanExists(auditId: number): Promise<boolean> {
     },
   })
 
-  return !!correctivePlanDoc
+  return !!doc
 }
 
 /**
- * Met à jour le champ needsCorrectivePlan d'un audit
- * en le recalculant automatiquement
+ * Met à jour les champs actionPlanType et actionPlanDeadline d'un audit
+ * en les recalculant automatiquement
  *
  * @param auditId - ID de l'audit
  * @param currentUserId - ID de l'utilisateur effectuant la modification (optionnel)
- * @returns boolean - La nouvelle valeur de needsCorrectivePlan
+ * @returns Le type de plan d'action calculé
  */
-export async function updateNeedsCorrectivePlan(auditId: number, currentUserId?: number): Promise<boolean> {
-  const needsCorrectivePlan = await calculateNeedsCorrectivePlan(auditId)
+export async function updateActionPlanType(auditId: number, currentUserId?: number): Promise<'NONE' | 'SHORT' | 'LONG'> {
+  const actionPlanType = await calculateActionPlanType(auditId)
+  const actionPlanDeadline = await calculateActionPlanDeadline(auditId, actionPlanType)
 
   // Récupérer l'audit pour obtenir le status actuel
   const audit = await db.query.audits.findFirst({
@@ -86,36 +134,41 @@ export async function updateNeedsCorrectivePlan(auditId: number, currentUserId?:
     columns: {
       id: true,
       status: true,
+      actionPlanType: true,
     },
   })
 
-  const updateData: any = { needsCorrectivePlan }
+  const updateData: any = {
+    actionPlanType,
+    actionPlanDeadline,
+  }
 
-  // Si le plan correctif n'est plus nécessaire et le status est en attente de plan correctif ou validation, passer à PENDING_OE_OPINION
+  // Si le plan n'est plus nécessaire et le status est en attente de plan correctif ou validation, passer à PENDING_OE_OPINION
   if (
-    !needsCorrectivePlan &&
-    audit &&
-    (audit.status === AuditStatus.PENDING_CORRECTIVE_PLAN || audit.status === AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION)
+    actionPlanType === 'NONE'
+    && audit
+    && (audit.status === AuditStatus.PENDING_CORRECTIVE_PLAN || audit.status === AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION)
   ) {
     updateData.status = AuditStatus.PENDING_OE_OPINION
   }
 
-  // Si le plan correctif devient nécessaire et le status est PENDING_OE_OPINION
+  // Si un plan devient nécessaire et le status est PENDING_OE_OPINION
   if (
-    needsCorrectivePlan &&
-    audit &&
-    audit.status === AuditStatus.PENDING_OE_OPINION
+    actionPlanType !== 'NONE'
+    && audit
+    && audit.status === AuditStatus.PENDING_OE_OPINION
   ) {
-    // NOUVEAU: Vérifier si un plan correctif existe déjà
-    const planExists = await correctivePlanExists(auditId)
+    // Vérifier si un plan existe déjà
+    const planExists = await actionPlanDocumentExists(auditId, actionPlanType)
 
     if (planExists) {
-      console.log(`⚠️ [auditCorrectivePlan] Plan correctif nécessaire pour audit ${auditId}, mais un plan existe déjà. Pas de changement de statut.`)
+      console.log(`⚠️ [updateActionPlanType] Plan ${actionPlanType} nécessaire pour audit ${auditId}, mais un plan existe déjà. Pas de changement de statut.`)
       // Ne pas changer le statut si un plan existe déjà
-    } else {
+    }
+    else {
       // Aucun plan n'existe encore, transition vers PENDING_CORRECTIVE_PLAN
       updateData.status = AuditStatus.PENDING_CORRECTIVE_PLAN
-      console.log(`✅ [auditCorrectivePlan] Transition PENDING_OE_OPINION → PENDING_CORRECTIVE_PLAN pour audit ${auditId}`)
+      console.log(`✅ [updateActionPlanType] Transition PENDING_OE_OPINION → PENDING_CORRECTIVE_PLAN pour audit ${auditId} (type: ${actionPlanType})`)
     }
   }
 
@@ -124,15 +177,17 @@ export async function updateNeedsCorrectivePlan(auditId: number, currentUserId?:
     updateData.updatedAt = new Date()
   }
 
-  // NOUVEAU: Avertissement si plan validé et needsCorrectivePlan change
-  const planValidated = await hasEventOccurred('AUDIT_CORRECTIVE_PLAN_VALIDATED', { auditId: audit.id })
-  if (audit && planValidated && needsCorrectivePlan !== audit.needsCorrectivePlan) {
-    console.warn(`⚠️ [auditCorrectivePlan] Attention: audit ${auditId} a un plan correctif déjà validé, mais needsCorrectivePlan a changé (${audit.needsCorrectivePlan} → ${needsCorrectivePlan}). Vérifier manuellement.`)
+  // Avertissement si le type de plan a changé et qu'un plan était déjà validé
+  if (audit && audit.actionPlanType && audit.actionPlanType !== 'NONE' && actionPlanType !== audit.actionPlanType) {
+    const planValidated = await getLatestEvent('AUDIT_CORRECTIVE_PLAN_VALIDATED', { auditId: audit.id })
+    if (planValidated) {
+      console.warn(`⚠️ [updateActionPlanType] Attention: audit ${auditId} a un plan d'action déjà validé, mais le type a changé (${audit.actionPlanType} → ${actionPlanType}). Vérifier manuellement.`)
+    }
   }
 
   await db.update(audits)
     .set(updateData)
     .where(eq(audits.id, auditId))
 
-  return needsCorrectivePlan
+  return actionPlanType
 }

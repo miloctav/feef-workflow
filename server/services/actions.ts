@@ -115,12 +115,32 @@ export async function createActionsForAuditStatus(
   // Find all action types that should be created for this status
   for (const [actionType, definition] of Object.entries(ACTION_TYPE_REGISTRY)) {
     if (definition.triggers.onAuditStatus?.includes(newStatus as any)) {
+      // Cas spécial : ENTITY_UPLOAD_CORRECTIVE_PLAN doit utiliser audit.actionPlanDeadline
+      let customDuration: number | undefined
+      let customMetadata: any = {}
+
+      if (actionType === 'ENTITY_UPLOAD_CORRECTIVE_PLAN' && audit.actionPlanDeadline) {
+        const now = new Date()
+        const deadline = new Date(audit.actionPlanDeadline)
+        const diffInDays = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        customDuration = diffInDays > 0 ? diffInDays : 1
+
+        customMetadata = {
+          actionPlanType: audit.actionPlanType,
+          originalDeadline: audit.actionPlanDeadline.toISOString()
+        }
+
+        console.log(`[Actions] 📅 Durée personnalisée pour ${actionType}: ${customDuration} jours (deadline: ${audit.actionPlanDeadline}, type: ${audit.actionPlanType})`)
+      }
+
       await createAction(
         actionType as ActionTypeType,
         audit.entityId,
         event,
         {
           auditId: audit.id,
+          customDuration,
+          metadata: customMetadata,
         },
       )
     }

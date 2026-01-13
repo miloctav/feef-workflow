@@ -11,8 +11,8 @@
     <!-- Rapports d'audit -->
     <AuditReportsCard v-if="currentAudit" />
 
-    <!-- Plan d'action corrective -->
-    <ActionPlanCard v-if="currentAudit && currentAudit.needsCorrectivePlan" />
+    <!-- Plan d'action -->
+    <ActionPlanCard v-if="currentAudit && currentAudit.actionPlanType && currentAudit.actionPlanType !== 'NONE'" />
 
     <!-- Avis de l'Organisme Évaluateur -->
     <OEOpinionCard v-if="currentAudit" />

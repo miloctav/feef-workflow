@@ -265,6 +265,8 @@ export class AuditStateMachine {
 
       // Cas spécial : ENTITY_MARK_DOCUMENTARY_REVIEW_READY doit avoir une deadline 2 semaines avant actualStartDate
       let customDuration: number | undefined
+      let customMetadata: any = {}
+
       if (actionType === 'ENTITY_MARK_DOCUMENTARY_REVIEW_READY' && audit.actualStartDate) {
         const daysBeforeStart = actionDef.defaultDurationDays
         const startDate = new Date(audit.actualStartDate)
@@ -275,6 +277,23 @@ export class AuditStateMachine {
         console.log(`[State Machine] 📅 Durée personnalisée pour ${actionType}: ${customDuration} jours (deadline ${daysBeforeStart} jours avant actualStartDate)`)
       }
 
+      // Cas spécial : ENTITY_UPLOAD_CORRECTIVE_PLAN doit utiliser audit.actionPlanDeadline
+      if (actionType === 'ENTITY_UPLOAD_CORRECTIVE_PLAN' && audit.actionPlanDeadline) {
+        // Calculer la durée en jours entre maintenant et actionPlanDeadline
+        const now = new Date()
+        const deadline = new Date(audit.actionPlanDeadline)
+        const diffInDays = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        customDuration = diffInDays > 0 ? diffInDays : 1 // Minimum 1 jour
+
+        // Ajouter le type de plan dans les métadonnées pour affichage dynamique
+        customMetadata = {
+          actionPlanType: audit.actionPlanType, // 'SHORT' ou 'LONG'
+          originalDeadline: audit.actionPlanDeadline.toISOString()
+        }
+
+        console.log(`[State Machine] 📅 Durée personnalisée pour ${actionType}: ${customDuration} jours (deadline: ${audit.actionPlanDeadline}, type: ${audit.actionPlanType})`)
+      }
+
       // Utiliser la couche de service pour créer l'action (avec déduplication intégrée)
       const createdAction = await createAction(
         actionType,
@@ -283,7 +302,7 @@ export class AuditStateMachine {
         {
           auditId: audit.id,
           customDuration,
-          metadata: {},
+          metadata: customMetadata,
         }
       )
 

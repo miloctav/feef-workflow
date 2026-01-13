@@ -2,7 +2,8 @@
 export const AuditDocumentType = {
   PLAN: 'PLAN',
   REPORT: 'REPORT',
-  CORRECTIVE_PLAN: 'CORRECTIVE_PLAN',
+  SHORT_ACTION_PLAN: 'SHORT_ACTION_PLAN',
+  LONG_ACTION_PLAN: 'LONG_ACTION_PLAN',
   OE_OPINION: 'OE_OPINION',
   ATTESTATION: 'ATTESTATION',
 } as const
@@ -13,7 +14,8 @@ export type AuditDocumentTypeType = typeof AuditDocumentType[keyof typeof AuditD
 export const AuditDocumentTypeLabels: Record<AuditDocumentTypeType, string> = {
   PLAN: 'Plan d\'audit',
   REPORT: 'Rapport d\'audit',
-  CORRECTIVE_PLAN: 'Plan d\'action correctif',
+  SHORT_ACTION_PLAN: 'Plan d\'action court terme (15 jours)',
+  LONG_ACTION_PLAN: 'Plan d\'action long terme (6 mois)',
   OE_OPINION: 'Avis de labellisation',
   ATTESTATION: 'Attestation de labellisation',
 }
@@ -22,7 +24,8 @@ export const AuditDocumentTypeLabels: Record<AuditDocumentTypeType, string> = {
 export const AuditDocumentTypeIcons: Record<AuditDocumentTypeType, string> = {
   PLAN: 'i-lucide-calendar-check',
   REPORT: 'i-lucide-file-text',
-  CORRECTIVE_PLAN: 'i-lucide-list-checks',
+  SHORT_ACTION_PLAN: 'i-lucide-list-checks',
+  LONG_ACTION_PLAN: 'i-lucide-clipboard-list',
   OE_OPINION: 'i-lucide-shield-check',
   ATTESTATION: 'i-lucide-award',
 }
@@ -31,7 +34,8 @@ export const AuditDocumentTypeIcons: Record<AuditDocumentTypeType, string> = {
 export const AuditDocumentTypeColors: Record<AuditDocumentTypeType, 'primary' | 'success' | 'warning' | 'neutral'> = {
   PLAN: 'primary',
   REPORT: 'success',
-  CORRECTIVE_PLAN: 'warning',
+  SHORT_ACTION_PLAN: 'warning',
+  LONG_ACTION_PLAN: 'warning',
   OE_OPINION: 'neutral',
   ATTESTATION: 'success',
 }

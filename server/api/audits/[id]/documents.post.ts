@@ -5,6 +5,7 @@ import { uploadFile } from '~~/server/services/garage'
 import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
 import { auditStateMachine } from '~~/server/state-machine'
 import { detectAndCompleteActionsForDocumentUpload, checkAndCompleteAllPendingActions } from '~~/server/services/actions'
+import { recordEvent } from '~~/server/services/events'
 import { Role } from '#shared/types/roles'
 import type { AuditDocumentTypeType } from '~~/app/types/auditDocuments'
 
@@ -56,7 +57,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Valider que le type de document est bien un des types attendus
-  const validTypes = ['PLAN', 'REPORT', 'CORRECTIVE_PLAN', 'OE_OPINION']
+  const validTypes = ['PLAN', 'REPORT', 'SHORT_ACTION_PLAN', 'LONG_ACTION_PLAN', 'OE_OPINION']
   if (!validTypes.includes(auditDocumentType)) {
     throw createError({
       statusCode: 400,
@@ -99,7 +100,7 @@ export default defineEventHandler(async (event) => {
 
   // Autorisation selon le type de document
   // PLAN et REPORT: FEEF, OE (qui gère l'audit), AUDITOR (assigné à l'audit)
-  // CORRECTIVE_PLAN: FEEF, OE, ENTITY (qui appartient à l'entité de l'audit)
+  // SHORT_ACTION_PLAN et LONG_ACTION_PLAN: FEEF, OE, ENTITY (qui appartient à l'entité de l'audit)
   if (user.role === Role.FEEF) {
     // FEEF a accès à tout
   } else if (auditDocumentType === 'PLAN' || auditDocumentType === 'REPORT') {
@@ -126,8 +127,8 @@ export default defineEventHandler(async (event) => {
         message: 'Seuls OE et AUDITOR peuvent uploader le plan ou le rapport d\'audit',
       })
     }
-  } else if (auditDocumentType === 'CORRECTIVE_PLAN') {
-    // Pour CORRECTIVE_PLAN: ENTITY uniquement (celle de l'audit)
+  } else if (auditDocumentType === 'SHORT_ACTION_PLAN' || auditDocumentType === 'LONG_ACTION_PLAN') {
+    // Pour SHORT_ACTION_PLAN et LONG_ACTION_PLAN: ENTITY uniquement (celle de l'audit)
     if (user.role === Role.ENTITY) {
       // Vérifier que l'utilisateur appartient bien à l'entité de l'audit
       const accountToEntity = await db.query.accountsToEntities.findFirst({
@@ -144,7 +145,7 @@ export default defineEventHandler(async (event) => {
         })
       }
     } else if (user.role === Role.OE) {
-      // L'OE peut aussi uploader le plan correctif si besoin
+      // L'OE peut aussi uploader le plan d'action si besoin
       if (audit.oeId !== user.oeId) {
         throw createError({
           statusCode: 403,
@@ -154,7 +155,17 @@ export default defineEventHandler(async (event) => {
     } else {
       throw createError({
         statusCode: 403,
-        message: 'Seule l\'entreprise peut uploader le plan d\'action correctif',
+        message: 'Seule l\'entreprise peut uploader le plan d\'action',
+      })
+    }
+
+    // VALIDATION SUPPLÉMENTAIRE : Vérifier que le type de plan uploadé correspond au type requis
+    const expectedPlanType = audit.actionPlanType === 'SHORT' ? 'SHORT_ACTION_PLAN' : 'LONG_ACTION_PLAN'
+    if (auditDocumentType !== expectedPlanType) {
+      const planTypeLabel = audit.actionPlanType === 'SHORT' ? 'court terme (15 jours)' : 'long terme (6 mois)'
+      throw createError({
+        statusCode: 400,
+        message: `Type de plan incorrect. Cet audit nécessite un plan d'action ${planTypeLabel}`,
       })
     }
   } else if (auditDocumentType === 'OE_OPINION') {
@@ -245,6 +256,21 @@ export default defineEventHandler(async (event) => {
     .set({ s3Key: uploadedS3Key })
     .where(eq(documentVersions.id, newVersion.id))
 
+  // Enregistrer l'événement d'upload basé sur le type de document
+  if (auditDocumentType === 'REPORT') {
+    await recordEvent(event, {
+      type: 'AUDIT_REPORT_UPLOADED',
+      auditId,
+      entityId: audit.entityId,
+      metadata: {
+        filename: fileData.filename,
+        s3Key: uploadedS3Key,
+        timestamp: new Date(),
+      },
+    })
+    console.log(`✅ Event AUDIT_REPORT_UPLOADED recorded for audit ${auditId}`)
+  }
+
   // Recharger l'audit pour avoir le statut le plus récent avant de vérifier les auto-transitions
   const freshAudit = await db.query.audits.findFirst({
     where: eq(audits.id, auditId)
@@ -254,8 +280,15 @@ export default defineEventHandler(async (event) => {
     // Vérifier les auto-transitions via la state machine
     await auditStateMachine.checkAutoTransition(freshAudit, event)
 
-    // Vérifier et compléter les actions en attente (ex: UPLOAD_AUDIT_PLAN)
-    await checkAndCompleteAllPendingActions(freshAudit, user.id, event)
+    // Recharger l'audit après la transition pour avoir le statut à jour
+    const auditAfterTransition = await db.query.audits.findFirst({
+      where: eq(audits.id, auditId)
+    })
+
+    if (auditAfterTransition) {
+      // Vérifier et compléter les actions en attente avec le statut à jour
+      await checkAndCompleteAllPendingActions(auditAfterTransition, user.id, event)
+    }
   }
 
   // Récupérer la version créée avec les infos de l'uploader

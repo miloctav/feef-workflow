@@ -206,14 +206,14 @@ export const auditStateMachineConfig: StateMachineConfig = {
         createActions: [
           ActionType.UPLOAD_LABELING_OPINION
         ],
-        executeActions: ['check_if_corrective_plan_needed']
+        executeActions: ['check_if_action_plan_needed']
       },
       transitions: {
         to_corrective_plan: {
           target: AuditStatus.PENDING_CORRECTIVE_PLAN,
-          guards: ['needs_corrective_plan', 'no_corrective_plan_uploaded'],
+          guards: ['needs_action_plan', 'no_action_plan_uploaded'],
           trigger: 'AUTO_DOCUMENT',
-          description: 'Score < 65 ou mauvaise notation + pas de plan'
+          description: 'Plan d\'action requis (score < 65 ou note C/D) + pas de plan uploadé'
         },
         to_feef_decision: {
           target: AuditStatus.PENDING_FEEF_DECISION,
@@ -239,10 +239,10 @@ export const auditStateMachineConfig: StateMachineConfig = {
       transitions: {
         to_validation: {
           target: AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION,
-          guards: ['has_corrective_plan_document'],
+          guards: ['has_action_plan_document'],
           trigger: 'AUTO_DOCUMENT',
           triggerOnActions: [ActionType.ENTITY_UPLOAD_CORRECTIVE_PLAN],
-          description: 'Plan correctif uploadé'
+          description: 'Plan d\'action uploadé (court ou long terme)'
         }
       }
     },
@@ -261,10 +261,10 @@ export const auditStateMachineConfig: StateMachineConfig = {
       transitions: {
         to_pending_opinion: {
           target: AuditStatus.PENDING_OE_OPINION,
-          guards: ['corrective_plan_validated'],
+          guards: ['action_plan_validated'],
           trigger: 'AUTO_DOCUMENT',
           triggerOnActions: [ActionType.VALIDATE_CORRECTIVE_PLAN],
-          description: 'Plan validé par OE'
+          description: 'Plan d\'action validé par OE/FEEF'
         }
       }
     },
@@ -329,10 +329,10 @@ export const auditStateMachineConfig: StateMachineConfig = {
     actual_end_date_passed: guards.actualEndDatePassed,
     has_report_document: guards.hasReportDocument,
     has_global_score: guards.hasGlobalScore,
-    needs_corrective_plan: guards.needsCorrectivePlan,
-    no_corrective_plan_uploaded: guards.noCorrectivePlanUploaded,
-    has_corrective_plan_document: guards.hasCorrectivePlanDocument,
-    corrective_plan_validated: guards.correctivePlanValidated,
+    needs_action_plan: guards.needsActionPlan,
+    no_action_plan_uploaded: guards.noActionPlanUploaded,
+    has_action_plan_document: guards.hasActionPlanDocument,
+    action_plan_validated: guards.actionPlanValidated,
     has_oe_opinion: guards.hasOeOpinion,
     has_feef_decision: guards.hasFeefDecision,
     requires_oe_acceptance: guards.requiresOeAcceptance,
@@ -345,7 +345,7 @@ export const auditStateMachineConfig: StateMachineConfig = {
   // Registry des actions (side-effects)
   // ============================================
   actions: {
-    check_if_corrective_plan_needed: actions.checkIfCorrectivePlanNeeded,
+    check_if_action_plan_needed: actions.checkIfActionPlanNeeded,
     calculate_label_expiration: actions.calculateLabelExpiration,
     reset_entity_workflow: actions.resetEntityWorkflow,
     generate_attestation: actions.generateAttestation,

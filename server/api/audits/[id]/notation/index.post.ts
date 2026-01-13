@@ -1,11 +1,11 @@
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { auditNotation } from '~~/server/database/schema'
+import { auditNotation, audits } from '~~/server/database/schema'
 import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
 import { forInsert } from '~~/server/utils/tracking'
 import { getAuditScoreDefinition } from '~~/server/config/auditNotation.config'
 import type { AuditScoreKey } from '~~/server/config/auditNotation.config'
-import { updateNeedsCorrectivePlan } from '~~/server/utils/auditCorrectivePlan'
+import { updateActionPlanType } from '~~/server/utils/auditCorrectivePlan'
 
 interface ScoreInput {
   criterionKey: number
@@ -157,10 +157,79 @@ export default defineEventHandler(async (event) => {
 
   console.log(`✅ ${insertedNotations.length} scores inserted for audit ${auditId}`)
 
-  // Recalculer needsCorrectivePlan après modification des notations
-  const needsCorrectivePlan = await updateNeedsCorrectivePlan(auditId, currentUser.id)
+  // Récupérer l'audit AVANT updateActionPlanType pour détecter le changement de statut
+  const auditBefore = await db.query.audits.findFirst({
+    where: eq(audits.id, auditId),
+  })
 
-  console.log(`📊 needsCorrectivePlan updated to ${needsCorrectivePlan} for audit ${auditId}`)
+  if (!auditBefore) {
+    throw createError({
+      statusCode: 404,
+      message: 'Audit introuvable',
+    })
+  }
+
+  const oldStatus = auditBefore.status
+
+  // Recalculer actionPlanType après modification des notations
+  const actionPlanType = await updateActionPlanType(auditId, currentUser.id)
+
+  console.log(`📊 actionPlanType updated to ${actionPlanType} for audit ${auditId}`)
+
+  // Récupérer l'audit frais après updateActionPlanType
+  const freshAudit = await db.query.audits.findFirst({
+    where: eq(audits.id, auditId),
+  })
+
+  if (freshAudit && freshAudit.status !== oldStatus) {
+    // Le statut a changé ! Il faut créer les actions pour le nouveau statut
+    console.log(`📝 Status changed from ${oldStatus} to ${freshAudit.status}, creating actions...`)
+
+    const { createActionsForAuditStatus } = await import('~~/server/services/actions')
+    await createActionsForAuditStatus(freshAudit, freshAudit.status, event)
+  }
+
+  // NOUVEAU : Mettre à jour la deadline de l'action existante si elle existe
+  if (freshAudit && freshAudit.actionPlanDeadline) {
+    const { actions } = await import('~~/server/database/schema')
+    const { isNull } = await import('drizzle-orm')
+
+    // Chercher l'action existante
+    const existingAction = await db.query.actions.findFirst({
+      where: and(
+        eq(actions.auditId, auditId),
+        eq(actions.type, 'ENTITY_UPLOAD_CORRECTIVE_PLAN'),
+        eq(actions.status, 'PENDING'),
+        isNull(actions.deletedAt)
+      )
+    })
+
+    if (existingAction) {
+      // Recalculer la durée basée sur la nouvelle deadline
+      const now = new Date()
+      const deadline = new Date(freshAudit.actionPlanDeadline)
+      const diffInDays = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      const newDuration = diffInDays > 0 ? diffInDays : 1
+      const newDeadline = new Date()
+      newDeadline.setDate(newDeadline.getDate() + newDuration)
+
+      // Mettre à jour l'action
+      await db.update(actions)
+        .set({
+          deadline: newDeadline,
+          durationDays: newDuration,
+          metadata: {
+            actionPlanType: freshAudit.actionPlanType,
+            originalDeadline: freshAudit.actionPlanDeadline.toISOString()
+          },
+          updatedBy: currentUser.id,
+          updatedAt: new Date()
+        })
+        .where(eq(actions.id, existingAction.id))
+
+      console.log(`✅ Action ${existingAction.id} deadline updated: ${newDuration} days (type: ${freshAudit.actionPlanType})`)
+    }
+  }
 
   return {
     data: insertedNotations,

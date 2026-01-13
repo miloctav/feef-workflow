@@ -1,16 +1,26 @@
 <template>
   <UCard class="mb-6">
     <template #header>
-      <div class="flex items-center gap-2">
-        <UIcon name="i-lucide-clipboard-check" class="w-5 h-5 text-orange-500" />
-        <h4 class="font-semibold">Plan d'action corrective</h4>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <UIcon :name="planTypeIcon" class="w-5 h-5 text-orange-500" />
+          <h4 class="font-semibold">{{ planTypeTitle }}</h4>
+        </div>
+        <!-- Badge de deadline avec indicateur visuel -->
+        <div v-if="currentAudit?.actionPlanDeadline" class="flex items-center gap-2">
+          <UIcon :name="deadlineIcon" :class="deadlineColorClass" class="w-4 h-4" />
+          <span class="text-sm" :class="deadlineColorClass">
+            Échéance : {{ formatDate(currentAudit.actionPlanDeadline) }}
+            <span v-if="isOverdue">(Dépassée)</span>
+          </span>
+        </div>
       </div>
     </template>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <!-- Card 1: Plan d'action -->
       <AuditStepCard
-        title="Plan d'action corrective"
+        :title="planTypeTitle"
         :state="hasPlan ? 'success' : 'warning'"
         icon-success="i-lucide-file-check"
         icon-warning="i-lucide-file-x"
@@ -84,7 +94,7 @@
     <!-- DocumentViewer pour consulter le plan d'action -->
     <DocumentViewer
       :audit="currentAudit!"
-      :audit-document-type="AuditDocumentType.CORRECTIVE_PLAN"
+      :audit-document-type="documentType"
       v-model:open="showDocumentViewer"
     />
   </UCard>
@@ -120,9 +130,57 @@ const auditStatus = computed(() => currentAudit.value?.status ?? null)
 const validatedAt = computed(() => correctivePlanValidatedAt.value ?? null)
 const validatedByAccount = computed(() => correctivePlanValidatedByAccount.value ?? null)
 
+// Type de plan requis
+const actionPlanType = computed(() => currentAudit.value?.actionPlanType ?? 'NONE')
+
+// Type de document correspondant
+const documentType = computed(() => {
+  return actionPlanType.value === 'SHORT' ? AuditDocumentType.SHORT_ACTION_PLAN : AuditDocumentType.LONG_ACTION_PLAN
+})
+
+// Titre et icône selon le type de plan
+const planTypeTitle = computed(() => {
+  return actionPlanType.value === 'SHORT' ? 'Plan d\'action court terme (15 jours)' : 'Plan d\'action long terme (6 mois)'
+})
+
+const planTypeIcon = computed(() => {
+  return actionPlanType.value === 'SHORT' ? 'i-lucide-list-checks' : 'i-lucide-clipboard-list'
+})
+
 // Dernière version du plan depuis l'audit (pas d'appel API séparé)
 const lastPlanVersion = computed(() => {
-  return currentAudit.value?.lastDocumentVersions?.CORRECTIVE_PLAN ?? null
+  const docType = actionPlanType.value === 'SHORT' ? 'SHORT_ACTION_PLAN' : 'LONG_ACTION_PLAN'
+  return currentAudit.value?.lastDocumentVersions?.[docType] ?? null
+})
+
+// Gestion de la deadline
+const deadline = computed(() => {
+  return currentAudit.value?.actionPlanDeadline ? new Date(currentAudit.value.actionPlanDeadline) : null
+})
+
+const daysRemaining = computed(() => {
+  if (!deadline.value) return null
+  const now = new Date()
+  const diffTime = deadline.value.getTime() - now.getTime()
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+})
+
+const isOverdue = computed(() => {
+  return daysRemaining.value !== null && daysRemaining.value < 0
+})
+
+const deadlineIcon = computed(() => {
+  if (!daysRemaining.value) return 'i-lucide-calendar'
+  if (daysRemaining.value < 0) return 'i-lucide-alert-triangle'
+  if (daysRemaining.value <= 7) return 'i-lucide-clock-alert'
+  return 'i-lucide-calendar-check'
+})
+
+const deadlineColorClass = computed(() => {
+  if (!daysRemaining.value) return 'text-gray-400'
+  if (daysRemaining.value < 0) return 'text-red-500'
+  if (daysRemaining.value <= 7) return 'text-orange-500'
+  return 'text-green-500'
 })
 
 // Computed

@@ -273,10 +273,10 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
 
   [ActionType.ENTITY_UPLOAD_CORRECTIVE_PLAN]: {
     key: ActionType.ENTITY_UPLOAD_CORRECTIVE_PLAN,
-    titleFr: 'Mettre en ligne son plan d\'action correctif',
-    descriptionFr: 'Téléverser le plan d\'action pour corriger les non-conformités',
+    titleFr: 'Mettre en ligne votre plan d\'action correctif',
+    descriptionFr: 'Téléverser le plan d\'action pour corriger les non-conformités identifiées lors de l\'audit',
     assignedRoles: [Role.ENTITY],
-    defaultDurationDays: 30,
+    defaultDurationDays: 30, // Fallback si actionPlanDeadline non définie
     completionCriteria: {
       auditStatus: AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION,
     },

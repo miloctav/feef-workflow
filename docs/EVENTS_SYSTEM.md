@@ -24,7 +24,7 @@ export const events = pgTable('events', {
   id: serial('id').primaryKey(),
 
   // Identification de l'événement
-  type: eventTypeEnum('type').notNull(),        // ex: AUDIT_CASE_SUBMITTED
+  type: eventTypeEnum('type').notNull(), // ex: AUDIT_CASE_SUBMITTED
   category: eventCategoryEnum('category').notNull(), // AUDIT, ENTITY, CONTRACT, SYSTEM
 
   // Références polymorphiques (au moins une doit être remplie)
@@ -33,7 +33,9 @@ export const events = pgTable('events', {
   contractId: integer('contract_id').references(() => contracts.id),
 
   // Qui et quand (immuable)
-  performedBy: integer('performed_by').notNull().references(() => accounts.id),
+  performedBy: integer('performed_by')
+    .notNull()
+    .references(() => accounts.id),
   performedAt: timestamp('performed_at').notNull().defaultNow(),
 
   // Contexte flexible (JSON)
@@ -42,6 +44,7 @@ export const events = pgTable('events', {
 ```
 
 **Points clés** :
+
 - **Polymorphique** : Un événement peut concerner un audit, une entité OU un contrat
 - **Immuable** : Les événements ne sont jamais modifiés après création
 - **Métadonnées flexibles** : Permet de stocker du contexte spécifique à chaque type d'événement
@@ -96,6 +99,7 @@ await recordEvent(event, {
 ```
 
 **Validation automatique** :
+
 - Type d'événement valide
 - Références requises présentes
 - Utilisateur connecté
@@ -105,7 +109,7 @@ await recordEvent(event, {
 ```typescript
 // Utilisé par les guards de la state machine
 const hasDecision = await hasEventOccurred('AUDIT_FEEF_DECISION_ACCEPTED', {
-  auditId: audit.id
+  auditId: audit.id,
 })
 ```
 
@@ -114,12 +118,12 @@ const hasDecision = await hasEventOccurred('AUDIT_FEEF_DECISION_ACCEPTED', {
 ```typescript
 // Utilisé pour les validations API
 const approvedEvent = await getLatestEvent('AUDIT_CASE_APPROVED', {
-  auditId: latestAudit.id
+  auditId: latestAudit.id,
 })
 
 if (approvedEvent) {
   throw createError({
-    message: `Déjà approuvé le ${approvedEvent.performedAt.toLocaleDateString('fr-FR')}`
+    message: `Déjà approuvé le ${approvedEvent.performedAt.toLocaleDateString('fr-FR')}`,
   })
 }
 ```
@@ -130,7 +134,7 @@ if (approvedEvent) {
 // Récupérer tous les événements d'un audit
 const events = await getAuditEvents(auditId, {
   types: ['AUDIT_CASE_SUBMITTED', 'AUDIT_CASE_APPROVED'],
-  limit: 50
+  limit: 50,
 })
 ```
 
@@ -140,7 +144,7 @@ const events = await getAuditEvents(auditId, {
 // Inclut événements de l'entité + ses audits + ses contrats
 const timeline = await getEntityTimeline(entityId, {
   categories: ['AUDIT', 'CONTRACT'],
-  limit: 100
+  limit: 100,
 })
 ```
 
@@ -166,8 +170,12 @@ export async function oeHasAccepted(audit: Audit): Promise<boolean> {
  * Vérifie si la décision FEEF a été prise
  */
 export async function hasFeefDecision(audit: Audit): Promise<boolean> {
-  const acceptedEvent = await hasEventOccurred('AUDIT_FEEF_DECISION_ACCEPTED', { auditId: audit.id })
-  const rejectedEvent = await hasEventOccurred('AUDIT_FEEF_DECISION_REJECTED', { auditId: audit.id })
+  const acceptedEvent = await hasEventOccurred('AUDIT_FEEF_DECISION_ACCEPTED', {
+    auditId: audit.id,
+  })
+  const rejectedEvent = await hasEventOccurred('AUDIT_FEEF_DECISION_REJECTED', {
+    auditId: audit.id,
+  })
   return acceptedEvent || rejectedEvent
 }
 ```
@@ -180,7 +188,8 @@ Les transitions de la state machine enregistrent automatiquement des événement
 
 ```typescript
 // 1. Mettre à jour le statut
-await db.update(audits)
+await db
+  .update(audits)
   .set({ status: 'PENDING_OE_OPINION', updatedBy: user.id, updatedAt: new Date() })
   .where(eq(audits.id, auditId))
 
@@ -217,13 +226,13 @@ Les transitions peuvent spécifier des événements à enregistrer :
 
 ### 3.1 Différence Events vs Actions
 
-| Aspect | **Events** | **Actions** |
-|--------|-----------|------------|
-| **Nature** | Ce qui **s'est passé** (historique) | Ce qui **doit être fait** (tâches) |
-| **Mutabilité** | Immuable | Mutable (status: PENDING → COMPLETED) |
-| **Utilisateur** | `performedBy` (qui a fait) | `assignedTo` / `completedBy` |
-| **Timestamp** | `performedAt` (quand c'est arrivé) | `deadline` / `completedAt` |
-| **Métadonnées** | Contexte de l'action (raison, score) | Instructions pour l'utilisateur |
+| Aspect          | **Events**                           | **Actions**                           |
+| --------------- | ------------------------------------ | ------------------------------------- |
+| **Nature**      | Ce qui **s'est passé** (historique)  | Ce qui **doit être fait** (tâches)    |
+| **Mutabilité**  | Immuable                             | Mutable (status: PENDING → COMPLETED) |
+| **Utilisateur** | `performedBy` (qui a fait)           | `assignedTo` / `completedBy`          |
+| **Timestamp**   | `performedAt` (quand c'est arrivé)   | `deadline` / `completedAt`            |
+| **Métadonnées** | Contexte de l'action (raison, score) | Instructions pour l'utilisateur       |
 
 ### 3.2 Complétion d'action = Enregistrement d'événement
 
@@ -233,7 +242,8 @@ Quand une action est complétée, un événement correspondant est souvent enreg
 
 ```typescript
 // 1. Mettre à jour l'entité
-await db.update(entities)
+await db
+  .update(entities)
   .set({ updatedBy: currentUser.id, updatedAt: new Date() })
   .where(eq(entities.id, entityIdInt))
 
@@ -288,17 +298,17 @@ db.select({
     )
   `,
 })
-.from(auditsTable)
-.where(
-  and(
-    eq(auditsTable.status, 'COMPLETED'),
-    sql`EXISTS (
+  .from(auditsTable)
+  .where(
+    and(
+      eq(auditsTable.status, 'COMPLETED'),
+      sql`EXISTS (
       SELECT 1 FROM ${eventsTable} e
       WHERE e.audit_id = ${auditsTable.id}
         AND e.type IN ('AUDIT_FEEF_DECISION_ACCEPTED', 'AUDIT_FEEF_DECISION_REJECTED')
-    )`,
-  ),
-)
+    )`
+    )
+  )
 ```
 
 **Exemple - Entités labellisées par année** :
@@ -360,15 +370,18 @@ ON events (audit_id, type, performed_at DESC);
 Récupère tous les événements d'un audit avec filtrage optionnel.
 
 **Query params** :
+
 - `types` : string[] - Filtrer par types (ex: `AUDIT_CASE_SUBMITTED,AUDIT_CASE_APPROVED`)
 - `limit` : number - Limiter le nombre de résultats
 
 **Exemple** :
+
 ```bash
 GET /api/audits/123/events?types=AUDIT_CASE_SUBMITTED,AUDIT_CASE_APPROVED&limit=10
 ```
 
 **Response** :
+
 ```json
 {
   "data": [
@@ -399,25 +412,19 @@ GET /api/audits/123/events?types=AUDIT_CASE_SUBMITTED,AUDIT_CASE_APPROVED&limit=
 Récupère la timeline complète d'une entité (tous événements liés).
 
 **Query params** :
+
 - `categories` : string[] - Filtrer par catégories (ex: `AUDIT,CONTRACT`)
 - `limit` : number - Limiter le nombre de résultats
 
 **Exemple** :
+
 ```bash
 GET /api/entities/45/timeline?categories=AUDIT,CONTRACT
 ```
 
 ---
 
-## 6. Composant Frontend AuditTimeline.vue
-
 ### 6.1 Utilisation
-
-```vue
-<template>
-  <AuditTimeline :audit-id="audit.id" />
-</template>
-```
 
 ### 6.2 Fonctionnalités
 
@@ -460,7 +467,7 @@ export default defineEventHandler(async (event) => {
 
   // 1. Vérifier que le dossier a été soumis (validation basée sur événement)
   const submittedEvent = await getLatestEvent('AUDIT_CASE_SUBMITTED', {
-    auditId: latestAudit.id
+    auditId: latestAudit.id,
   })
   if (!submittedEvent) {
     throw createError({
@@ -471,7 +478,7 @@ export default defineEventHandler(async (event) => {
 
   // 2. Vérifier que le dossier n'est pas déjà approuvé
   const approvedEvent = await getLatestEvent('AUDIT_CASE_APPROVED', {
-    auditId: latestAudit.id
+    auditId: latestAudit.id,
   })
   if (approvedEvent) {
     throw createError({
@@ -482,7 +489,8 @@ export default defineEventHandler(async (event) => {
 
   // 3. Mettre à jour le statut
   const newStatus = entity.oeId ? AuditStatus.PLANNING : AuditStatus.PENDING_OE_CHOICE
-  await db.update(audits)
+  await db
+    .update(audits)
     .set(forUpdate(event, { status: newStatus }))
     .where(eq(audits.id, latestAudit.id))
 
@@ -529,17 +537,18 @@ export default defineEventHandler(async (event) => {
 
   // 2. Vérifier que le plan n'est pas déjà validé (guard basé sur événement)
   const validatedEvent = await getLatestEvent('AUDIT_CORRECTIVE_PLAN_VALIDATED', {
-    auditId: audit.id
+    auditId: audit.id,
   })
   if (validatedEvent) {
     throw createError({
       statusCode: 400,
-      message: 'Le plan d\'action correctif a déjà été validé',
+      message: "Le plan d'action correctif a déjà été validé",
     })
   }
 
   // 3. Mettre à jour le statut
-  await db.update(audits)
+  await db
+    .update(audits)
     .set({
       status: 'PENDING_OE_OPINION',
       updatedBy: user.id,
@@ -576,21 +585,24 @@ export default defineEventHandler(async (event) => {
 ### 8.1 Nommage des types d'événements
 
 ✅ **Bon** : Nom descriptif au passé composé
+
 ```typescript
-'AUDIT_CASE_SUBMITTED'       // Le dossier a été soumis
-'CONTRACT_ENTITY_SIGNED'     // Le contrat a été signé par l'entité
+'AUDIT_CASE_SUBMITTED' // Le dossier a été soumis
+'CONTRACT_ENTITY_SIGNED' // Le contrat a été signé par l'entité
 'AUDIT_FEEF_DECISION_ACCEPTED' // La décision FEEF a été acceptée
 ```
 
 ❌ **Mauvais** : Verbe à l'infinitif ou présent
+
 ```typescript
-'SUBMIT_CASE'       // Pas clair
-'SIGNING_CONTRACT'  // Présent continu, ambigu
+'SUBMIT_CASE' // Pas clair
+'SIGNING_CONTRACT' // Présent continu, ambigu
 ```
 
 ### 8.2 Métadonnées flexibles
 
 ✅ **Bon** : Stocker le contexte pertinent
+
 ```typescript
 metadata: {
   score: 85,
@@ -602,6 +614,7 @@ metadata: {
 ```
 
 ❌ **Mauvais** : Duplication de données déjà en DB
+
 ```typescript
 metadata: {
   auditId: 123,        // Déjà dans event.auditId
@@ -648,6 +661,7 @@ try {
 ### 8.5 Tests et debugging
 
 **Vérifier les événements dans la DB** :
+
 ```sql
 -- Derniers événements d'un audit
 SELECT e.*, a.firstname, a.lastname
@@ -690,6 +704,7 @@ ORDER BY e.performed_at DESC;
 ⚠️ **Les données antérieures à la migration ne sont PAS dans `events`**
 
 Si besoin d'accéder aux anciennes données (avant migration) :
+
 - Les colonnes ont été supprimées → données perdues
 - Pas de backfill prévu (selon décision initiale du plan)
 
@@ -698,6 +713,7 @@ Si besoin d'accéder aux anciennes données (avant migration) :
 **Étapes** :
 
 1. Ajouter le type dans l'enum (`server/database/schema.ts`) :
+
    ```typescript
    export const eventTypeEnum = pgEnum('event_type', [
      // ... types existants
@@ -706,12 +722,14 @@ Si besoin d'accéder aux anciennes données (avant migration) :
    ```
 
 2. Générer la migration :
+
    ```bash
    npm run db:generate
    npm run db:migrate
    ```
 
 3. Ajouter la définition dans le registre (`server/services/events.ts`) :
+
    ```typescript
    export const EVENT_TYPE_REGISTRY: Record<string, EventTypeDefinition> = {
      // ... types existants
@@ -724,6 +742,7 @@ Si besoin d'accéder aux anciennes données (avant migration) :
    ```
 
 4. Utiliser dans l'endpoint :
+
    ```typescript
    await recordEvent(event, {
      type: 'AUDIT_NEW_EVENT_TYPE',
@@ -734,6 +753,7 @@ Si besoin d'accéder aux anciennes données (avant migration) :
    ```
 
 5. Mettre à jour le composant Timeline (`AuditTimeline.vue`) :
+
    ```typescript
    const iconMap: Record<string, string> = {
      // ... icônes existantes
@@ -742,7 +762,7 @@ Si besoin d'accéder aux anciennes données (avant migration) :
 
    const titleMap: Record<string, string> = {
      // ... titres existants
-     AUDIT_NEW_EVENT_TYPE: 'Nouveau type d\'événement',
+     AUDIT_NEW_EVENT_TYPE: "Nouveau type d'événement",
    }
    ```
 

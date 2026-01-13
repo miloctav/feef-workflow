@@ -14,22 +14,40 @@ import type { Audit } from '~~/server/database/schema'
 import type { H3Event } from 'h3'
 
 /**
- * Vérifie si un plan correctif est nécessaire et met à jour needsCorrectivePlan
+ * Vérifie le type de plan d'action nécessaire et met à jour actionPlanType
  *
- * Cette action appelle updateNeedsCorrectivePlan() qui recalcule le flag
+ * Cette action appelle updateActionPlanType() qui recalcule le type de plan
  * basé sur le score global et les notations individuelles.
  *
- * Logique : needsCorrectivePlan = true si score < 65 OU notation C/D détectée
+ * Logique :
+ * - LONG si score < 65 (priorité)
+ * - SHORT si score >= 65 ET notation C/D détectée
+ * - NONE sinon
  */
-export async function checkIfCorrectivePlanNeeded(audit: Audit, event: H3Event): Promise<void> {
+export async function checkIfActionPlanNeeded(audit: Audit, event: H3Event): Promise<void> {
   const { user } = await requireUserSession(event)
-  const { updateNeedsCorrectivePlan } = await import('~~/server/utils/auditCorrectivePlan')
+  const { updateActionPlanType } = await import('~~/server/utils/auditCorrectivePlan')
 
-  console.log(`[State Machine Action] Vérification si plan correctif nécessaire pour audit ${audit.id}`)
+  console.log(`[State Machine Action] Vérification du type de plan d'action nécessaire pour audit ${audit.id}`)
 
-  await updateNeedsCorrectivePlan(audit.id, user.id)
+  const oldStatus = audit.status
 
-  console.log(`[State Machine Action] ✅ Plan correctif vérifié pour audit ${audit.id}`)
+  const actionPlanType = await updateActionPlanType(audit.id, user.id)
+
+  console.log(`[State Machine Action] ✅ Type de plan d'action vérifié pour audit ${audit.id}: ${actionPlanType}`)
+
+  // Récupérer l'audit après updateActionPlanType pour vérifier si le statut a changé
+  const freshAudit = await db.query.audits.findFirst({
+    where: eq(audits.id, audit.id),
+  })
+
+  if (freshAudit && freshAudit.status !== oldStatus) {
+    // Le statut a changé ! Il faut créer les actions pour le nouveau statut
+    console.log(`[State Machine Action] 📝 Status changed from ${oldStatus} to ${freshAudit.status}, creating actions...`)
+
+    const { createActionsForAuditStatus } = await import('~~/server/services/actions')
+    await createActionsForAuditStatus(freshAudit, freshAudit.status, event)
+  }
 }
 
 /**

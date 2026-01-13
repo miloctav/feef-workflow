@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { audits, oes, accounts } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
@@ -306,19 +306,71 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Si globalScore a été modifié, recalculer needsCorrectivePlan
+  // Si globalScore a été modifié, recalculer actionPlanType
   if (globalScore !== undefined) {
-    const { updateNeedsCorrectivePlan } = await import('~~/server/utils/auditCorrectivePlan')
-    await updateNeedsCorrectivePlan(auditIdInt, currentUser.id)
+    const oldStatus = updatedAudit.status
 
-    // Récupérer l'audit après updateNeedsCorrectivePlan
-    const auditAfterCorrectivePlan = await db.query.audits.findFirst({
+    const { updateActionPlanType } = await import('~~/server/utils/auditCorrectivePlan')
+    await updateActionPlanType(auditIdInt, currentUser.id)
+
+    // Récupérer l'audit après updateActionPlanType
+    const auditAfterActionPlan = await db.query.audits.findFirst({
       where: eq(audits.id, auditIdInt),
     })
 
-    if (auditAfterCorrectivePlan) {
-      // Vérifier les auto-transitions après le calcul du needsCorrectivePlan
-      await auditStateMachine.checkAutoTransition(auditAfterCorrectivePlan, event)
+    if (auditAfterActionPlan && auditAfterActionPlan.status !== oldStatus) {
+      // Le statut a changé ! Il faut créer les actions pour le nouveau statut
+      console.log(`📝 Status changed from ${oldStatus} to ${auditAfterActionPlan.status}, creating actions...`)
+
+      const { createActionsForAuditStatus } = await import('~~/server/services/actions')
+      await createActionsForAuditStatus(auditAfterActionPlan, auditAfterActionPlan.status, event)
+    }
+
+    // NOUVEAU : Mettre à jour la deadline de l'action existante si elle existe
+    if (auditAfterActionPlan && auditAfterActionPlan.actionPlanDeadline) {
+      const { actions } = await import('~~/server/database/schema')
+      const { isNull } = await import('drizzle-orm')
+
+      // Chercher l'action existante
+      const existingAction = await db.query.actions.findFirst({
+        where: and(
+          eq(actions.auditId, auditIdInt),
+          eq(actions.type, 'ENTITY_UPLOAD_CORRECTIVE_PLAN'),
+          eq(actions.status, 'PENDING'),
+          isNull(actions.deletedAt)
+        )
+      })
+
+      if (existingAction) {
+        // Recalculer la durée basée sur la nouvelle deadline
+        const now = new Date()
+        const deadline = new Date(auditAfterActionPlan.actionPlanDeadline)
+        const diffInDays = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        const newDuration = diffInDays > 0 ? diffInDays : 1
+        const newDeadline = new Date()
+        newDeadline.setDate(newDeadline.getDate() + newDuration)
+
+        // Mettre à jour l'action
+        await db.update(actions)
+          .set({
+            deadline: newDeadline,
+            durationDays: newDuration,
+            metadata: {
+              actionPlanType: auditAfterActionPlan.actionPlanType,
+              originalDeadline: auditAfterActionPlan.actionPlanDeadline.toISOString()
+            },
+            updatedBy: currentUser.id,
+            updatedAt: new Date()
+          })
+          .where(eq(actions.id, existingAction.id))
+
+        console.log(`✅ Action ${existingAction.id} deadline updated: ${newDuration} days (type: ${auditAfterActionPlan.actionPlanType})`)
+      }
+    }
+
+    if (auditAfterActionPlan) {
+      // Vérifier les auto-transitions après le calcul du actionPlanType
+      await auditStateMachine.checkAutoTransition(auditAfterActionPlan, event)
     }
   }
 
@@ -326,9 +378,21 @@ export default defineEventHandler(async (event) => {
   // (ex: dates changées, score mis à jour, etc.)
   await auditStateMachine.checkAutoTransition(updatedAudit, event)
 
+  // Recharger l'audit après toutes les transitions pour avoir le statut le plus récent
+  const auditAfterAllTransitions = await db.query.audits.findFirst({
+    where: eq(audits.id, auditIdInt),
+  })
+
+  if (!auditAfterAllTransitions) {
+    throw createError({
+      statusCode: 404,
+      message: 'Audit introuvable après transitions',
+    })
+  }
+
   // Compléter les actions en attente basées sur le nouvel état de l'audit
   const { checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
-  await checkAndCompleteAllPendingActions(updatedAudit, currentUser.id, event)
+  await checkAndCompleteAllPendingActions(auditAfterAllTransitions, currentUser.id, event)
 
   // Récupérer l'audit final après toutes les transitions
   const finalAudit = await db.query.audits.findFirst({

@@ -22,7 +22,10 @@ export const accountEntityRoleEnum = pgEnum('account_entity_role', ['SIGNATORY',
 export const documentCategoryEnum = pgEnum('document_category', ['CANDIDACY', 'AUDIT', 'OTHER'])
 
 // Define audit document type enum
-export const auditDocumentTypeEnum = pgEnum('audit_document_type', ['PLAN', 'REPORT', 'CORRECTIVE_PLAN', 'OE_OPINION', 'ATTESTATION'])
+export const auditDocumentTypeEnum = pgEnum('audit_document_type', ['PLAN', 'REPORT', 'SHORT_ACTION_PLAN', 'LONG_ACTION_PLAN', 'OE_OPINION', 'ATTESTATION'])
+
+// Define action plan type enum
+export const actionPlanTypeEnum = pgEnum('action_plan_type', ['NONE', 'SHORT', 'LONG'])
 
 // Define signature type enum
 export const signatureTypeEnum = pgEnum('signature_type', ['ENTITY_ONLY', 'ENTITY_AND_FEEF'])
@@ -175,8 +178,9 @@ export const audits = pgTable('audits', {
   oeOpinion: oeOpinionEnum('oe_opinion'),
   oeOpinionArgumentaire: text('oe_opinion_argumentaire'),
   oeOpinionConditions: text('oe_opinion_conditions'),
-  // Corrective plan validation
-  needsCorrectivePlan: boolean('needs_corrective_plan').default(false),
+  // Action plan fields
+  actionPlanType: actionPlanTypeEnum('action_plan_type').default('NONE'),
+  actionPlanDeadline: timestamp('action_plan_deadline'),
   // FEEF Decision fields
   feefDecision: feefDecisionEnum('feef_decision'),
   labelExpirationDate: date('label_expiration_date'),

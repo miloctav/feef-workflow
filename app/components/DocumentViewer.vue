@@ -373,8 +373,8 @@ const canUploadDocument = computed(() => {
     // Vérifier le type de document d'audit pour appliquer les bonnes permissions
     const docType = props.auditDocumentType
 
-    if (docType === AuditDocumentType.CORRECTIVE_PLAN) {
-      // Plan correctif : seuls ENTITY ou FEEF peuvent uploader
+    if (docType === AuditDocumentType.SHORT_ACTION_PLAN || docType === AuditDocumentType.LONG_ACTION_PLAN) {
+      // Plans d'action : seuls ENTITY ou FEEF peuvent uploader
       return role === Role.ENTITY || role === Role.FEEF
     } else if (docType === AuditDocumentType.ATTESTATION) {
       // Attestation : seulement FEEF

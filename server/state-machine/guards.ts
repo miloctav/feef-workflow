@@ -9,9 +9,10 @@
 
 import { db } from '~~/server/database'
 import { entities, documentVersions } from '~~/server/database/schema'
-import { eq, and, isNotNull } from 'drizzle-orm'
+import { eq, and, isNotNull, or } from 'drizzle-orm'
 import type { Audit } from '~~/server/database/schema'
 import { hasEventOccurred } from '~~/server/services/events'
+import { AuditDocumentType } from '~~/app/types/auditDocuments'
 
 /**
  * Vérifie si l'audit a un OE assigné
@@ -125,48 +126,51 @@ export async function hasGlobalScore(audit: Audit): Promise<boolean> {
 }
 
 /**
- * Vérifie si un plan correctif est nécessaire
+ * Vérifie si un plan d'action est nécessaire
  *
- * Vérifie le flag needsCorrectivePlan calculé par updateNeedsCorrectivePlan().
- * Ce flag est true si score < 65 OU si notation C/D détectée.
+ * Vérifie le champ actionPlanType calculé par updateActionPlanType().
+ * Retourne true si le type est SHORT ou LONG (pas NONE).
  */
-export async function needsCorrectivePlan(audit: Audit): Promise<boolean> {
-  return audit.needsCorrectivePlan === true
+export async function needsActionPlan(audit: Audit): Promise<boolean> {
+  return audit.actionPlanType !== 'NONE' && audit.actionPlanType !== null
 }
 
 /**
- * Vérifie qu'aucun plan correctif n'a été uploadé
+ * Vérifie qu'aucun plan d'action n'a été uploadé
  *
- * Recherche un document de type CORRECTIVE_PLAN avec s3Key non null.
+ * Recherche un document de type SHORT_ACTION_PLAN ou LONG_ACTION_PLAN avec s3Key non null.
  * Retourne true si AUCUN plan n'existe.
  */
-export async function noCorrectivePlanUploaded(audit: Audit): Promise<boolean> {
-  const correctivePlanDocument = await db.query.documentVersions.findFirst({
+export async function noActionPlanUploaded(audit: Audit): Promise<boolean> {
+  const actionPlanDocument = await db.query.documentVersions.findFirst({
     where: and(
       eq(documentVersions.auditId, audit.id),
-      eq(documentVersions.auditDocumentType, 'CORRECTIVE_PLAN'),
+      or(
+        eq(documentVersions.auditDocumentType, AuditDocumentType.SHORT_ACTION_PLAN),
+        eq(documentVersions.auditDocumentType, AuditDocumentType.LONG_ACTION_PLAN)
+      ),
       isNotNull(documentVersions.s3Key)
     )
   })
 
-  return correctivePlanDocument === undefined
+  return actionPlanDocument === undefined
 }
 
 /**
- * Vérifie si un plan correctif existe
+ * Vérifie si un plan d'action existe
  *
- * Inverse de noCorrectivePlanUploaded.
+ * Inverse de noActionPlanUploaded.
  */
-export async function hasCorrectivePlanDocument(audit: Audit): Promise<boolean> {
-  return !(await noCorrectivePlanUploaded(audit))
+export async function hasActionPlanDocument(audit: Audit): Promise<boolean> {
+  return !(await noActionPlanUploaded(audit))
 }
 
 /**
- * Vérifie si le plan correctif a été validé
+ * Vérifie si le plan d'action a été validé
  *
  * Vérifie qu'un événement AUDIT_CORRECTIVE_PLAN_VALIDATED existe.
  */
-export async function correctivePlanValidated(audit: Audit): Promise<boolean> {
+export async function actionPlanValidated(audit: Audit): Promise<boolean> {
   return await hasEventOccurred('AUDIT_CORRECTIVE_PLAN_VALIDATED', { auditId: audit.id })
 }
 

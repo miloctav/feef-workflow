@@ -73,13 +73,33 @@ const formatDate = (date: Date | string | null | undefined) => {
 // Get the French label for an action type
 const getActionLabel = (actionType: string) => {
   const actionDef = ACTION_TYPE_REGISTRY[actionType as keyof typeof ACTION_TYPE_REGISTRY]
-  return actionDef?.titleFr || actionType
+  const baseTitle = actionDef?.titleFr || actionType
+
+  // Cas spécial : afficher le type de plan pour ENTITY_UPLOAD_CORRECTIVE_PLAN
+  if (actionType === 'ENTITY_UPLOAD_CORRECTIVE_PLAN' && props.action.metadata?.actionPlanType) {
+    const planTypeLabel = props.action.metadata.actionPlanType === 'SHORT'
+      ? 'COURT TERME'
+      : 'LONG TERME'
+    return `${baseTitle} (${planTypeLabel})`
+  }
+
+  return baseTitle
 }
 
 // Get the description for an action type
 const getActionDescription = (actionType: string) => {
   const actionDef = ACTION_TYPE_REGISTRY[actionType as keyof typeof ACTION_TYPE_REGISTRY]
-  return actionDef?.descriptionFr || ''
+  const baseDescription = actionDef?.descriptionFr || ''
+
+  // Cas spécial : ajouter des détails sur le type de plan pour ENTITY_UPLOAD_CORRECTIVE_PLAN
+  if (actionType === 'ENTITY_UPLOAD_CORRECTIVE_PLAN' && props.action.metadata?.actionPlanType) {
+    const planTypeDetails = props.action.metadata.actionPlanType === 'SHORT'
+      ? 'Plan d\'action court terme (15 jours) requis suite à des non-conformités mineures.'
+      : 'Plan d\'action long terme (6 mois) requis suite à un score global inférieur à 65.'
+    return `${baseDescription}. ${planTypeDetails}`
+  }
+
+  return baseDescription
 }
 
 // Calculate deadline urgency and return color class
