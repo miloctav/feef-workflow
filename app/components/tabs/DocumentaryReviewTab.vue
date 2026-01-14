@@ -53,6 +53,9 @@
           <AddDocumentaryReviewModal
             v-if="(user?.role === Role.FEEF || user?.role === Role.ENTITY) && currentEntity"
             :entity-id="currentEntity.id"
+            button-label="Ajouter un document"
+            button-size="md"
+            button-variant="solid"
           />
         </div>
       </div>
@@ -127,7 +130,7 @@
         <UAccordion
           type="single"
           :items="[category]"
-          :default-value="[category.value]"
+          :default-value="category.value"
         >
           <template #leading="{ item }">
             <div class="flex items-center gap-4">
@@ -152,9 +155,12 @@
 
           <template #trailing="{ item }">
             <AddDocumentaryReviewModal
-              v-if="user?.role === Role.FEEF && currentEntity"
+              v-if="(user?.role === Role.FEEF || user?.role === Role.ENTITY) && currentEntity"
               :entity-id="currentEntity.id"
-              :category="item.value"
+              :category="item.value as DocumentaryReviewCategoryType"
+              button-label="Ajouter un document"
+              button-size="md"
+              button-variant="solid"
             />
           </template>
 

@@ -5,11 +5,11 @@
   >
     <UButton
       icon="i-lucide-plus"
-      size="sm"
-      color="primary"
-      variant="soft"
+      :size="props.buttonSize"
+      :color="props.buttonColor"
+      :variant="props.buttonVariant"
     >
-      Ajouter
+      {{ props.buttonLabel }}
     </UButton>
 
     <template #body>
@@ -178,9 +178,18 @@ import {
 interface Props {
   entityId: number
   category?: DocumentaryReviewCategoryType
+  buttonLabel?: string
+  buttonSize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  buttonVariant?: 'solid' | 'outline' | 'soft' | 'subtle' | 'ghost' | 'link'
+  buttonColor?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'neutral'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  buttonLabel: 'Ajouter',
+  buttonSize: 'sm',
+  buttonVariant: 'soft',
+  buttonColor: 'primary',
+})
 
 const { createDocumentaryReview, createLoading, fetchDocumentaryReviews } = useDocumentaryReviews()
 const { fetchAllDocumentsType } = useDocumentsType()
