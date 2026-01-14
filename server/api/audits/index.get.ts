@@ -52,13 +52,13 @@ export default defineEventHandler(async (event) => {
       local: ['type', 'entityId', 'oeId', 'auditorId'],
     },
     allowedSorts: {
-      local: ['createdAt', 'plannedDate', 'actualDate', 'score', 'type'],
+      local: ['createdAt', 'updatedAt','plannedDate', 'actualStartDate', 'actualEndDate', 'globalScore', 'type'],
     },
-    defaultSort: 'createdAt:desc',
+    defaultSort: 'updatedAt:desc',
   }
 
   if (user.role === Role.AUDITOR) {
-    query.auditorId = String(user.id)
+      query.auditorId = String(user.id)
   }
 
   // 1. Parser les paramètres de pagination

@@ -143,7 +143,7 @@ export const entities = pgTable('entities', {
   createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
-  updatedAt: timestamp('updated_at'),
+  updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 })
 
@@ -192,7 +192,7 @@ export const audits = pgTable('audits', {
   createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
-  updatedAt: timestamp('updated_at'),
+  updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 })
 
@@ -216,7 +216,7 @@ export const accounts = pgTable('accounts', {
   createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
-  updatedAt: timestamp('updated_at'),
+  updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 })
 
@@ -229,7 +229,7 @@ export const documentsType = pgTable('documents_type', {
   createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
-  updatedAt: timestamp('updated_at'),
+  updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 })
 
@@ -243,7 +243,7 @@ export const documentaryReviews = pgTable('documentary_reviews', {
   createdBy: integer('created_by').notNull().references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
-  updatedAt: timestamp('updated_at'),
+  updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 })
 
@@ -261,7 +261,7 @@ export const documentVersions = pgTable('document_versions', {
   askedAt: timestamp('asked_at'),
   comment: text('comment'),
   updatedBy: integer('updated_by').references(() => accounts.id),
-  updatedAt: timestamp('updated_at'),
+  updatedAt: timestamp('updated_at').defaultNow(),
 })
 
 export const contracts = pgTable('contracts', {
@@ -279,7 +279,7 @@ export const contracts = pgTable('contracts', {
   createdBy: integer('created_by').notNull().references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
-  updatedAt: timestamp('updated_at'),
+  updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 })
 
@@ -290,7 +290,7 @@ export const auditNotation = pgTable('audit_notation', {
   description: text('description').notNull(),
   score: integer('score').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at'),
+  updatedAt: timestamp('updated_at').defaultNow(),
 })
 
 // Junction table for many-to-many relationship between accounts and entities
@@ -342,7 +342,7 @@ export const actions = pgTable('actions', {
   createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
-  updatedAt: timestamp('updated_at'),
+  updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'), // Soft delete / annulation
 }, (table) => [
   // Index pour filtrage par audit (critique pour le JOIN avec audits.oeId/auditorId)

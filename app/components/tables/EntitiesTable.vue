@@ -602,11 +602,6 @@ const columns: TableColumn<EntityWithRelations>[] = [
     },
   },
   {
-    accessorKey: 'createdAt',
-    header: 'Date de création',
-    cell: ({ row }) => formatDate(row.original.createdAt),
-  },
-  {
     accessorKey: 'audits',
     header: 'Dernier audit',
     cell: ({ row }) => {
@@ -628,6 +623,11 @@ const columns: TableColumn<EntityWithRelations>[] = [
         () => displayText
       )
     },
+  },
+  {
+    accessorKey: 'updatedAt',
+    header: 'Dernière mise à jour',
+    cell: ({ row }) => formatDate(row.original.updatedAt || row.original.createdAt),
   },
 ]
 

@@ -3,7 +3,8 @@
     "allow": [
       "mcp__ide__getDiagnostics",
       "Bash(find:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "mcp__distill__smart_file_read"
     ],
     "deny": [],
     "ask": []

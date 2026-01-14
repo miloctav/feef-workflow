@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
       local: ['type', 'mode', 'oeId', 'accountManagerId', 'parentGroupId'],
     },
     allowedSorts: {
-      local: ['createdAt', 'name', 'type', 'mode'],
+      local: ['createdAt', 'updatedAt', 'name', 'type', 'mode'],
       relations: ['oe.name', 'accountManager.lastname', 'accountManager.firstname'],
     },
     // Filtre via table de jonction pour les comptes ENTITY
@@ -81,7 +81,7 @@ export default defineEventHandler(async (event) => {
         roleParam: 'accountIdRole',                    // Nom du paramètre pour filtrer par rôle
       },
     },
-    defaultSort: 'createdAt:desc',
+    defaultSort: 'updatedAt:desc',
   }
 
   // 1. Parser les paramètres de pagination

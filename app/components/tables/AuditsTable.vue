@@ -1,72 +1,31 @@
 <template>
   <div class="w-full space-y-4">
     <!-- Table paginée -->
-    <PaginatedTable
-      :has-filters="hasFilters"
-      filters-title="Filtres audits"
-      :on-filters-change="handleFiltersChange"
-      :data="audits"
-      :pagination="pagination"
-      :loading="fetchLoading"
-      :error="fetchError"
-      :columns="columns"
-      :has-add-button="false"
-      :has-search="false"
-      :on-page-change="goToPage"
-      :on-row-click="handleRowClick"
+    <PaginatedTable :has-filters="hasFilters" filters-title="Filtres audits" :on-filters-change="handleFiltersChange"
+      :data="audits" :pagination="pagination" :loading="fetchLoading" :error="fetchError" :columns="columns"
+      :has-add-button="false" :has-search="false" :on-page-change="goToPage" :on-row-click="handleRowClick"
       :on-delete="canDeleteAudit ? handleDelete : undefined"
-      :get-item-name="(audit) => `l'audit de ${audit.entity.name}`"
-    >
+      :get-item-name="(audit) => `l'audit de ${audit.entity.name}`">
       <template #filters="{ filters, updateFilter }">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FilterSelect
-            label="Type d'audit"
-            :model-value="filters.type"
-            @update:model-value="updateFilter('type', $event)"
-            :items="auditTypeItems"
-            placeholder="Type d'audit"
-          />
-          <FilterSelect
-            label="Organisme Évaluateur"
-            :model-value="filters.oeId"
-            @update:model-value="updateFilter('oeId', $event)"
-            :items="oeItems"
-            placeholder="OE"
-          />
-          <FilterSelect
-            v-if="user?.role !== Role.AUDITOR"
-            label="Auditeur"
-            :model-value="filters.auditorId"
-            @update:model-value="updateFilter('auditorId', $event)"
-            :items="auditorItems"
-            placeholder="Auditeur"
-          />
+          <FilterSelect label="Type d'audit" :model-value="filters.type"
+            @update:model-value="updateFilter('type', $event)" :items="auditTypeItems" placeholder="Type d'audit" />
+          <FilterSelect label="Organisme Évaluateur" :model-value="filters.oeId"
+            @update:model-value="updateFilter('oeId', $event)" :items="oeItems" placeholder="OE" />
+          <FilterSelect v-if="user?.role !== Role.AUDITOR" label="Auditeur" :model-value="filters.auditorId"
+            @update:model-value="updateFilter('auditorId', $event)" :items="auditorItems" placeholder="Auditeur" />
         </div>
       </template>
 
       <template #filter-badges="{ filters }">
-        <UBadge
-          v-if="filters.type !== null"
-          variant="subtle"
-          color="primary"
-          size="sm"
-        >
+        <UBadge v-if="filters.type !== null" variant="subtle" color="primary" size="sm">
           Type: {{ getFilterLabel('type', filters.type) }}
         </UBadge>
-        <UBadge
-          v-if="filters.oeId !== null"
-          variant="subtle"
-          color="info"
-          size="sm"
-        >
+        <UBadge v-if="filters.oeId !== null" variant="subtle" color="info" size="sm">
           OE: {{ getFilterLabel('oeId', filters.oeId) }}
         </UBadge>
-        <UBadge
-          v-if="filters.auditorId !== null && user?.role !== Role.AUDITOR"
-          variant="subtle"
-          color="success"
-          size="sm"
-        >
+        <UBadge v-if="filters.auditorId !== null && user?.role !== Role.AUDITOR" variant="subtle" color="success"
+          size="sm">
           Auditeur: {{ getFilterLabel('auditorId', filters.auditorId) }}
         </UBadge>
       </template>
@@ -290,6 +249,11 @@ const columns = computed(() => {
           () => `${count} action${count > 1 ? 's' : ''}`
         )
       },
+    },
+    {
+      accessorKey: 'updatedAt',
+      header: 'Dernière mise à jour',
+      cell: ({ row }) => formatDate(row.original.updatedAt || row.original.createdAt),
     },
   ]
 
