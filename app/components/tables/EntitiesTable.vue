@@ -335,7 +335,11 @@ const {
   deleteEntity,
   createEntity,
   fetchEntities,
+  setSort,
+  params,
 } = useEntities()
+
+const { createSortableHeader } = useSortableColumn(params.sort, setSort)
 
 // Items pour les filtres avec labels en français
 const entityTypeItems = getEntityTypeItems(true) // true = inclure "Tous les types"
@@ -557,7 +561,7 @@ const handleCreate = async (close: () => void) => {
 }
 
 // Colonnes du tableau
-const columns: TableColumn<EntityWithRelations>[] = [
+const columns = computed<TableColumn<EntityWithRelations>[]>(() => [
   {
     accessorKey: 'name',
     header: 'Nom',
@@ -626,10 +630,10 @@ const columns: TableColumn<EntityWithRelations>[] = [
   },
   {
     accessorKey: 'updatedAt',
-    header: 'Dernière mise à jour',
+    header: createSortableHeader('Dernière mise à jour', 'updatedAt'),
     cell: ({ row }) => formatDate(row.original.updatedAt || row.original.createdAt),
   },
-]
+])
 
 // Navigation vers le détail d'une entité au clic sur une ligne
 const handleRowClick = (entity: EntityWithRelations) => {

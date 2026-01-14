@@ -52,51 +52,50 @@ export function usePaginatedFetch<T>(
   const { page: _p, limit: _l, search: _s, sort: _so, ...initialFilters } = initialParams
   filters.value = initialFilters
 
-  // Construire l'URL avec les query params de manière réactive
-  const queryString = computed(() => {
-    const params = new URLSearchParams()
+  // Construire les query params pour useFetch
+  const queryParams = computed(() => {
+    const params: Record<string, any> = {
+      page: page.value,
+      limit: limit.value,
+    }
 
-    if (page.value) params.append('page', page.value.toString())
-    if (limit.value) params.append('limit', limit.value.toString())
-    if (search.value) params.append('search', search.value)
-    if (sort.value) params.append('sort', sort.value)
+    if (search.value) params.search = search.value
+    if (sort.value) params.sort = sort.value
 
     // Ajouter les filtres dynamiques
     Object.entries(filters.value).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         if (Array.isArray(value)) {
-          params.append(key, value.join(','))
+          params[key] = value.join(',')
         } else {
-          params.append(key, value.toString())
+          params[key] = value
         }
       }
     })
 
-    return params.toString()
+    return params
   })
 
-  const fullUrl = computed(() => {
-    const qs = queryString.value
-    return qs ? `${url}?${qs}` : url
-  })
-
-  // Utiliser useLazyFetch pour un contrôle manuel
+  // Utiliser useLazyFetch avec l'option query
   const {
     data: response,
     status,
     error,
     refresh,
     execute,
-  } = useLazyFetch<PaginatedResponse<T>>(() => fullUrl.value, {
+  } = useLazyFetch<PaginatedResponse<T>>(url, {
     key: () => unref(key), // Clé dynamique pour gérer les refs/computed
+    query: queryParams,
     immediate,
     server: true,
     lazy: true,
+    watch: false, // On gère le watch manuellement ci-dessous si enableWatch est true
   })
 
   // Watch manuel sur les paramètres pour déclencher le refetch
   if (enableWatch) {
     watch([page, limit, search, sort, filters], () => {
+      console.log('[usePaginatedFetch] Watcher triggered. Refreshing...', { query: queryParams.value })
       refresh()
     })
   }
@@ -147,6 +146,7 @@ export function usePaginatedFetch<T>(
   }
 
   const setSort = (sortValue: string) => {
+    console.log('[usePaginatedFetch] Setting sort to:', sortValue)
     sort.value = sortValue
     page.value = 1 // Réinitialiser à la première page lors d'un tri
   }
