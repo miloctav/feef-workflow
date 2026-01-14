@@ -86,6 +86,7 @@ const handleSubmitCaseAndClose = async (close: () => void) => {
 const handleApproveCase = async () => {
   if (!displayEntity.value) return
   const result = await approveCase(displayEntity.value.id)
+  await handleRefreshEntity()
 
   // Déclencher le rafraîchissement des actions
   // L'approbation du dossier peut créer/compléter des actions et créer un audit
