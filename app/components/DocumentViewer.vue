@@ -8,284 +8,119 @@
   >
     <!-- Header avec informations du document -->
     <template #header>
-      <div class="flex flex-col gap-5 w-full">
-        <!-- Ligne 1 : Titre/Desc + Boutons (Droite) -->
-        <div class="flex justify-between items-start gap-4">
-          <!-- Gauche : Titre et Description -->
-          <div>
-            <h2 class="text-xl font-bold text-gray-900 leading-tight">
-              {{ documentTitle }}
-            </h2>
-            <p class="text-sm text-gray-500 mt-1">
-              {{ documentDescription }}
-            </p>
-          </div>
-
-          <!-- Droite : Actions (Télécharger / Ouvrir) -->
-          <div
-            v-if="hasVersions && selectedVersionData?.s3Key && currentSignedUrl"
-            class="flex gap-2 shrink-0"
-          >
-            <UButton
-              @click="handleDownload"
-              color="secondary"
-              variant="solid"
-              icon="i-lucide-download"
-              label="Télécharger"
-              size="sm"
-            />
-            <UButton
-              :href="currentSignedUrl"
-              target="_blank"
-              color="primary"
-              variant="solid"
-              icon="i-lucide-external-link"
-              label="Ouvrir"
-              size="sm"
-            />
-          </div>
-        </div>
-
-        <!-- Ligne 2 : Contrôles (Gauche) + Métadonnées (Droite) -->
-        <div class="flex items-center justify-between gap-4">
-          <!-- Groupe Gauche : Version et demande de MAJ -->
-          <div class="flex items-center gap-3">
-            <template v-if="hasVersions">
-              <!-- Sélecteur de version -->
-              <USelect
-                v-model="selectedVersionId"
-                :items="versionSelectItems"
-                size="sm"
-                class="w-56"
-                placeholder="Choisir une version"
-                :disabled="fetchLoading"
-                :ui="{ base: 'bg-white border-gray-300' }"
-              />
-
-              <!-- Bouton Importer (+) -->
-              <div
-                v-if="canUploadDocument"
-                class="flex items-center"
-              >
-                <input
-                  ref="fileInputRef"
-                  type="file"
-                  class="hidden"
-                  accept="*/*"
-                  @change="handleFileSelect"
-                />
-                <UTooltip text="Importer une nouvelle version">
-                  <UButton
-                    @click="triggerFileInput"
-                    color="primary"
-                    variant="soft"
-                    icon="i-lucide-plus"
-                    size="sm"
-                    :loading="createLoading"
-                    :disabled="createLoading"
-                  />
-                </UTooltip>
-              </div>
-            </template>
-
-            <!-- Bouton Demander MAJ (Mis en valeur) -->
-            <DocumentRequestUpdateModal
-              v-if="
-                documentType === 'documentaryReview' &&
-                (user?.role === Role.FEEF || user?.role === Role.OE) &&
-                !hasPendingRequestForDocument
-              "
-              :documentary-review-id="documentaryReview?.id"
-              :contract-id="contract?.id"
-              :document-title="documentTitle"
-              button-label="Demander MAJ"
-              color="orange"
-              variant="solid"
-            />
-          </div>
-
-          <!-- Droite : Métadonnées (Date / User) -->
-          <div
-            v-if="hasVersions && selectedVersionData"
-            class="text-xs text-gray-400 text-right hidden sm:block"
-          >
-            <div class="flex items-center justify-end gap-1">
-              <UIcon
-                name="i-lucide-calendar"
-                class="w-3 h-3"
-              />
-              <span>{{ formatDate(selectedVersionData.uploadAt) }}</span>
-            </div>
-            <div class="flex items-center justify-end gap-1 mt-0.5">
-              <UIcon
-                name="i-lucide-user"
-                class="w-3 h-3"
-              />
-              <span
-                >{{ selectedVersionData.uploadByAccount.firstname }}
-                {{ selectedVersionData.uploadByAccount.lastname }}</span
-              >
-            </div>
-          </div>
-        </div>
-      </div>
+      <DocumentViewerHeader
+        v-model="selectedVersionId"
+        :document-title="documentTitle"
+        :document-description="documentDescription"
+        :has-versions="hasVersions"
+        :selected-version-data="selectedVersionData"
+        :current-signed-url="currentSignedUrl"
+        :fetch-loading="fetchLoading"
+        :can-upload-document="canUploadDocument"
+        :create-loading="createLoading"
+        :document-type="documentType"
+        :documentary-review="documentaryReview"
+        :contract="contract"
+        :has-pending-request-for-document="hasPendingRequestForDocument"
+        :version-select-items="versionSelectItems"
+        @download="handleDownload"
+        @trigger-file-input="triggerFileInput"
+      />
     </template>
 
     <!-- Corps avec affichage du PDF -->
     <template #body>
       <div class="flex flex-col h-full">
+        <!-- Input File caché (Global pour le composant) -->
+        <input
+          ref="fileInputRef"
+          type="file"
+          class="hidden"
+          accept="*/*"
+          @change="handleFileSelect"
+        />
+
         <!-- État de chargement -->
-        <div
-          v-if="fetchLoading"
-          class="flex-1 flex items-center justify-center bg-gray-50 rounded-lg"
-        >
-          <div class="text-center">
-            <UIcon
-              name="i-heroicons-arrow-path"
-              class="animate-spin w-8 h-8 mx-auto mb-4 text-primary"
-            />
-            <p class="text-gray-600">Chargement des versions...</p>
-          </div>
-        </div>
+        <DocumentViewerLoading v-if="fetchLoading" />
 
         <!-- Demande de mise à jour en attente -->
-        <div
+        <DocumentViewerPendingRequest
           v-else-if="hasVersions && isPendingRequest"
-          class="flex-1 flex items-center justify-center bg-gray-50 rounded-lg"
-        >
-          <div class="text-center p-8 max-w-md">
-            <UIcon
-              name="i-lucide-alert-circle"
-              class="w-16 h-16 mx-auto mb-4 text-orange-500"
-            />
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">
-              Demande de mise à jour en attente
-            </h3>
-
-            <div
-              v-if="selectedVersionData?.askedByAccount"
-              class="mb-4 text-sm text-gray-600"
-            >
-              <p class="mb-2">
-                Demandée par
-                <span class="font-medium"
-                  >{{ selectedVersionData.askedByAccount.firstname }}
-                  {{ selectedVersionData.askedByAccount.lastname }}</span
-                >
-              </p>
-              <p class="text-xs text-gray-500">Le {{ formatDate(selectedVersionData.uploadAt) }}</p>
-            </div>
-
-            <div
-              v-if="selectedVersionData?.comment"
-              class="bg-white rounded-lg p-4 mb-6 text-left border border-gray-200"
-            >
-              <p class="text-xs font-semibold text-gray-700 mb-2">Commentaire :</p>
-              <p class="text-sm text-gray-800 whitespace-pre-wrap">
-                {{ selectedVersionData.comment }}
-              </p>
-            </div>
-
-            <p class="text-gray-600 mb-6">
-              Ce document est en attente de mise à jour. L'entité doit uploader une nouvelle version
-              pour répondre à cette demande.
-            </p>
-
-            <div class="flex flex-col gap-3">
-              <!-- Bouton pour ENTITY : Upload le document demandé -->
-              <UButton
-                v-if="canUploadDocument"
-                @click="triggerFileInput"
-                color="primary"
-                variant="solid"
-                icon="i-lucide-upload"
-                label="Importer le document mis à jour"
-                size="lg"
-                :loading="createLoading"
-                :disabled="createLoading"
-              />
-
-              <!-- Bouton pour annuler (celui qui a demandé) -->
-              <UButton
-                v-if="canCancelRequest"
-                @click="handleCancelRequest"
-                color="error"
-                variant="outline"
-                icon="i-lucide-x"
-                label="Annuler cette demande"
-              />
-            </div>
-          </div>
-        </div>
+          :selected-version-data="selectedVersionData"
+          :can-upload-document="canUploadDocument"
+          :can-cancel-request="canCancelRequest"
+          :create-loading="createLoading"
+          @trigger-file-input="triggerFileInput"
+          @cancel-request="handleCancelRequest"
+        />
 
         <!-- Document avec versions disponibles -->
         <div
           v-else-if="hasVersions && selectedVersionData?.s3Key && currentSignedUrl"
           class="flex-1 bg-gray-100 rounded-lg overflow-hidden relative flex flex-col"
         >
-          <!-- Barre d'outils PDF -->
+          <!-- Barre d'outils avec icône contextuelle -->
           <div
             class="bg-gray-800 text-white p-2 flex justify-between items-center z-10 text-sm shrink-0"
           >
             <div class="flex items-center gap-2">
               <UIcon
-                name="i-lucide-file-text"
+                :name="getFileTypeIcon(selectedVersionData.mimeType)"
                 class="w-4 h-4"
               />
               <span class="font-medium">{{ documentTitle }}</span>
             </div>
-            <div class="flex items-center gap-2"></div>
+            <div class="flex items-center gap-2">
+              <UBadge
+                color="neutral"
+                variant="soft"
+                size="xs"
+              >
+                {{ getFileTypeLabel(selectedVersionData.mimeType) }}
+              </UBadge>
+            </div>
           </div>
 
-          <!-- Viewer PDF intégré -->
-          <div class="flex-1 relative min-h-[500px]">
-            <iframe
-              :key="currentSignedUrl"
-              :src="currentSignedUrl + '#toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH'"
-              class="w-full h-full border-0 absolute inset-0 bg-white"
-              type="application/pdf"
-              loading="lazy"
-              title="Visualiseur PDF"
-            >
-            </iframe>
-          </div>
+          <!-- PDF Viewer -->
+          <DocumentViewerPdf
+            v-if="documentViewerType === DocumentViewerType.PDF"
+            :current-signed-url="currentSignedUrl"
+          />
+
+          <!-- Image Viewer -->
+          <DocumentViewerImage
+            v-else-if="documentViewerType === DocumentViewerType.IMAGE"
+            :current-signed-url="currentSignedUrl"
+            :document-title="documentTitle"
+            :selected-version-id="selectedVersionId"
+          />
+
+          <!-- Text Viewer -->
+          <DocumentViewerText
+            v-else-if="documentViewerType === DocumentViewerType.TEXT"
+            :content="textContent"
+            :loading="textLoading"
+            :error="textError"
+            :error-message="textErrorMessage"
+            @retry="retryTextLoad"
+          />
+
+          <!-- Unsupported File Fallback -->
+          <DocumentViewerUnsupported
+            v-else
+            :selected-version-data="selectedVersionData"
+            :current-signed-url="currentSignedUrl"
+            @download="handleDownload"
+          />
         </div>
 
         <!-- Aucune version disponible -->
-        <div
+        <DocumentViewerEmpty
           v-else
-          class="flex-1 flex items-center justify-center bg-gray-50 rounded-lg"
-        >
-          <div class="text-center p-8 max-w-md">
-            <UIcon
-              name="i-lucide-file-x"
-              class="w-20 h-20 mx-auto mb-6 text-gray-400"
-            />
-            <h3 class="text-xl font-medium text-gray-900 mb-3">Aucune version disponible</h3>
-            <p class="text-gray-600 mb-6 leading-relaxed">
-              Ce document n'a pas encore été uploadé. Cliquez sur "Importer première version" pour
-              ajouter la première version du document.
-            </p>
-            <input
-              v-if="canUploadDocument"
-              ref="fileInputEmptyRef"
-              type="file"
-              class="hidden"
-              accept="*/*"
-              @change="handleFileSelect"
-            />
-            <UButton
-              v-if="canUploadDocument"
-              @click="triggerFileInputEmpty"
-              color="primary"
-              variant="solid"
-              icon="i-lucide-upload"
-              label="Importer première version"
-              :loading="createLoading"
-              :disabled="createLoading"
-            />
-          </div>
-        </div>
+          :can-upload-document="canUploadDocument"
+          :create-loading="createLoading"
+          @trigger-file-input="triggerFileInput"
+        />
       </div>
     </template>
   </USlideover>
@@ -298,6 +133,20 @@ import type { AuditWithRelations } from '~~/app/types/audits'
 import type { AuditDocumentTypeType } from '~~/app/types/auditDocuments'
 import { Role } from '#shared/types/roles'
 import { AuditDocumentTypeLabels, AuditDocumentType } from '~~/app/types/auditDocuments'
+import DocumentViewerHeader from './document-viewer/DocumentViewerHeader.vue'
+import DocumentViewerLoading from './document-viewer/DocumentViewerLoading.vue'
+import DocumentViewerPendingRequest from './document-viewer/DocumentViewerPendingRequest.vue'
+import DocumentViewerEmpty from './document-viewer/DocumentViewerEmpty.vue'
+import DocumentViewerPdf from './document-viewer/DocumentViewerPdf.vue'
+import DocumentViewerImage from './document-viewer/DocumentViewerImage.vue'
+import DocumentViewerText from './document-viewer/DocumentViewerText.vue'
+import DocumentViewerUnsupported from './document-viewer/DocumentViewerUnsupported.vue'
+import {
+  getFileTypeIcon,
+  getFileTypeLabel,
+  isPreviewableImage,
+  isPreviewableText,
+} from '~~/app/utils/documentMimeTypes'
 
 interface Props {
   documentaryReview?: DocumentaryReview | null
@@ -310,6 +159,14 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   open: false,
 })
+
+// Types de viewers supportés
+enum DocumentViewerType {
+  PDF = 'pdf',
+  IMAGE = 'image',
+  TEXT = 'text',
+  UNSUPPORTED = 'unsupported',
+}
 
 // Computed pour déterminer le type et récupérer les infos
 const documentType = computed(() => {
@@ -373,7 +230,10 @@ const canUploadDocument = computed(() => {
     // Vérifier le type de document d'audit pour appliquer les bonnes permissions
     const docType = props.auditDocumentType
 
-    if (docType === AuditDocumentType.SHORT_ACTION_PLAN || docType === AuditDocumentType.LONG_ACTION_PLAN) {
+    if (
+      docType === AuditDocumentType.SHORT_ACTION_PLAN ||
+      docType === AuditDocumentType.LONG_ACTION_PLAN
+    ) {
       // Plans d'action : seuls ENTITY ou FEEF peuvent uploader
       return role === Role.ENTITY || role === Role.FEEF
     } else if (docType === AuditDocumentType.ATTESTATION) {
@@ -402,10 +262,8 @@ const {
   documentVersions,
   fetchLoading,
   createLoading,
-  requestUpdateLoading,
   fetchDocumentVersions,
   createDocumentVersion,
-  requestDocumentUpdate,
   cancelDocumentRequest,
   getVersionUrl,
   downloadVersion,
@@ -420,7 +278,12 @@ const { triggerActionRefresh } = useActionRefresh()
 
 // Refs pour les inputs file
 const fileInputRef = ref<HTMLInputElement | null>(null)
-const fileInputEmptyRef = ref<HTMLInputElement | null>(null)
+
+// États réactifs pour le viewer de texte
+const textLoading = ref(false)
+const textError = ref(false)
+const textErrorMessage = ref('')
+const textContent = ref('')
 
 // ID de la version sélectionnée (undefined pour USelect)
 const selectedVersionId = ref<number | undefined>(undefined)
@@ -477,6 +340,18 @@ const hasPendingRequestForDocument = computed(() => {
   )
 })
 
+// Computed property pour déterminer le type de viewer à utiliser
+const documentViewerType = computed<DocumentViewerType>(() => {
+  const mimeType = selectedVersionData.value?.mimeType
+  if (!mimeType) return DocumentViewerType.UNSUPPORTED
+
+  if (mimeType === 'application/pdf') return DocumentViewerType.PDF
+  if (isPreviewableImage(mimeType)) return DocumentViewerType.IMAGE
+  if (isPreviewableText(mimeType)) return DocumentViewerType.TEXT
+
+  return DocumentViewerType.UNSUPPORTED
+})
+
 // Fonction pour formater une date
 function formatDate(date: Date | string): string {
   if (!date) return ''
@@ -491,11 +366,6 @@ function formatDate(date: Date | string): string {
 // Trigger l'input file (header)
 const triggerFileInput = () => {
   fileInputRef.value?.click()
-}
-
-// Trigger l'input file (empty state)
-const triggerFileInputEmpty = () => {
-  fileInputEmptyRef.value?.click()
 }
 
 // Gérer la sélection d'un fichier
@@ -517,7 +387,6 @@ const handleFileSelect = async (event: Event) => {
     selectedVersionId.value = result.data.id
 
     // Déclencher le rafraîchissement des actions
-    // L'upload d'un document peut créer/compléter des actions
     if (props.audit) {
       triggerActionRefresh({
         auditId: props.audit.id.toString(),
@@ -568,8 +437,41 @@ const handleCancelRequest = async () => {
   }
 }
 
+// Fonctions pour le viewer de texte
+async function loadTextContent(versionId: number) {
+  textLoading.value = true
+  textError.value = false
+  textErrorMessage.value = ''
+
+  try {
+    const response = await $fetch<{ data: { content: string; size: number } }>(
+      `/api/documents-versions/${versionId}/text-content`
+    )
+
+    textContent.value = response.data.content
+  } catch (error: any) {
+    textError.value = true
+    textErrorMessage.value = error.data?.message || error.message || 'Erreur lors du chargement'
+  } finally {
+    textLoading.value = false
+  }
+}
+
+function retryTextLoad() {
+  if (selectedVersionId.value) {
+    loadTextContent(selectedVersionId.value)
+  }
+}
+
 // Watcher pour charger l'URL signée quand la version sélectionnée change
 watch(selectedVersionId, async (newVersionId) => {
+  // Reset états des viewers
+  textContent.value = ''
+  textError.value = false
+
+  // IMPORTANT : Reset l'URL signée pour forcer le loading state
+  currentSignedUrl.value = null
+
   // Annuler toute requête en cours
   if (urlFetchController) {
     urlFetchController.abort()
@@ -578,7 +480,6 @@ watch(selectedVersionId, async (newVersionId) => {
 
   // Ne rien faire si le viewer est fermé
   if (!isOpen.value) {
-    currentSignedUrl.value = null
     return
   }
 
@@ -600,6 +501,13 @@ watch(selectedVersionId, async (newVersionId) => {
     }
   } else {
     currentSignedUrl.value = null
+  }
+})
+
+// Watcher pour charger le contenu texte si nécessaire
+watch([selectedVersionId, documentViewerType], ([versionId, type]) => {
+  if (versionId && type === DocumentViewerType.TEXT) {
+    loadTextContent(versionId)
   }
 })
 
