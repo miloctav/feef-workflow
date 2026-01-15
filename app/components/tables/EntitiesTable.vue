@@ -40,7 +40,6 @@
             :model-value="filters.mode"
             @update:model-value="updateFilter('mode', $event)"
             :items="entityModeItems"
-            :disabled="true"
             placeholder="Mode"
           />
           <FilterSelect
@@ -149,6 +148,7 @@
                   placeholder="Sélectionner un mode"
                   size="lg"
                   class="w-full"
+                  disabled
                 />
               </UFormField>
             </div>
@@ -180,6 +180,21 @@
                   class="w-full"
                 />
               </UFormField>
+            </div>
+          </div>
+
+          <!-- Options de workflow (Uniquement pour MASTER) -->
+          <div
+            v-if="!isEditing && state.mode === EntityMode.MASTER"
+            class="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4"
+          >
+            <div class="flex items-start gap-3">
+              <UCheckbox
+                v-model="state.triggerCaseSubmission"
+                name="triggerCaseSubmission"
+                label="Mettre l'entité en état d'attente du dépôt de son dossier"
+                help="Si coché, l'action 'Déposer son dossier' sera créée automatiquement."
+              />
             </div>
           </div>
 
@@ -451,6 +466,9 @@ const schema = z
     accountLastname: z.string().optional(),
     accountEmail: z.string().email('Email invalide').optional().or(z.literal('')),
     accountEntityRole: z.string().optional(),
+
+    // Option workflow
+    triggerCaseSubmission: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
     if (data.createAccount) {
@@ -500,6 +518,9 @@ const state = reactive({
   accountLastname: undefined as string | undefined,
   accountEmail: undefined as string | undefined,
   accountEntityRole: undefined as string | undefined,
+
+  // Option workflow
+  triggerCaseSubmission: true,
 })
 
 const createLoading = ref(false)
@@ -519,6 +540,9 @@ const handleFormReset = () => {
   state.accountLastname = undefined
   state.accountEmail = undefined
   state.accountEntityRole = undefined
+
+  // Reset workflow
+  state.triggerCaseSubmission = true
 }
 
 // Créer une entité
@@ -537,7 +561,9 @@ const handleCreate = async (close: () => void) => {
   const data: any = {
     name: state.name,
     type: state.type,
+    type: state.type,
     mode: state.mode,
+    triggerCaseSubmission: state.triggerCaseSubmission,
   }
 
   if (state.siret) data.siret = state.siret

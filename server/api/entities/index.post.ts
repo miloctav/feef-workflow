@@ -24,6 +24,9 @@ interface CreateEntityBody {
   accountLastname?: string
   accountEmail?: string
   accountEntityRole?: string
+
+  // Option de workflow
+  triggerCaseSubmission?: boolean
 }
 
 export default defineEventHandler(async (event) => {
@@ -40,7 +43,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<CreateEntityBody>(event)
 
-  const { name, type, mode, siret, parentGroupId, oeId, accountManagerId, createAccount, accountFirstname, accountLastname, accountEmail, accountEntityRole } = body
+  const { name, type, mode, siret, parentGroupId, oeId, accountManagerId, createAccount, accountFirstname, accountLastname, accountEmail, accountEntityRole, triggerCaseSubmission } = body
 
   // Validation des champs requis
   if (!name) {
@@ -264,8 +267,9 @@ export default defineEventHandler(async (event) => {
     await db.insert(documentaryReviews).values(documentaryReviewsToInsert)
   }
 
-  // Si c'est une entité MASTER, créer l'action "Dépôt de dossier" (ENTITY_SUBMIT_CASE)
-  if (newEntity.mode === EntityMode.MASTER) {
+  // Si c'est une entité MASTER, créer l'action "Dépôt de dossier" (ENTITY_SUBMIT_CASE) uniquement si demandé
+  // Par défaut (triggerCaseSubmission === undefined) on ne le fait pas, mais le front l'envoie à true par défaut
+  if (newEntity.mode === EntityMode.MASTER && triggerCaseSubmission) {
     const { createAction } = await import('~~/server/services/actions')
     await createAction(ActionType.ENTITY_SUBMIT_CASE, newEntity.id, event)
   }

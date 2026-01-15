@@ -36,12 +36,8 @@ const isFollowerView = computed(() => !!props.followerEntity)
 const latestAudit = computed(() => displayEntity.value?.audits?.[0] || null)
 
 // Récupérer les événements de l'audit via le composable
-const {
-  caseSubmittedAt,
-  caseSubmittedByAccount,
-  caseApprovedAt,
-  caseApprovedByAccount,
-} = useAuditEvents(computed(() => latestAudit.value?.id))
+const { caseSubmittedAt, caseSubmittedByAccount, caseApprovedAt, caseApprovedByAccount } =
+  useAuditEvents(computed(() => latestAudit.value?.id))
 
 // Groupes de champs
 const fieldGroups = computed(() => {
@@ -202,6 +198,16 @@ const entityLevelActions = computed(() => {
   if (!entityActions.value) return []
   return entityActions.value.filter((action) => !action.auditId)
 })
+
+const getEntityLink = (entityId: number | string) => {
+  if (user.value?.role === Role.FEEF) {
+    return `/feef/entities/${entityId}`
+  }
+  if (user.value?.role === Role.OE) {
+    return `/oe/entities/${entityId}`
+  }
+  return `/entity/followers/${entityId}`
+}
 </script>
 
 <template>
@@ -517,9 +523,9 @@ const entityLevelActions = computed(() => {
               <a
                 v-for="child in displayEntity.childEntities"
                 :key="child.id"
-                :href="`/entity/followers/${child.id}`"
+                :href="getEntityLink(child.id)"
                 class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-primary"
-                @click.prevent="navigateTo(`/entity/followers/${child.id}`)"
+                @click.prevent="navigateTo(getEntityLink(child.id))"
               >
                 <UIcon
                   name="i-lucide-building"
@@ -539,9 +545,9 @@ const entityLevelActions = computed(() => {
               v-else-if="displayEntity.parentGroup && displayEntity.parentGroup.mode === 'FOLLOWER'"
             >
               <a
-                :href="`/entity/followers/${displayEntity.parentGroup.id}`"
+                :href="getEntityLink(displayEntity.parentGroup.id)"
                 class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-primary"
-                @click.prevent="navigateTo(`/entity/followers/${displayEntity.parentGroup.id}`)"
+                @click.prevent="navigateTo(getEntityLink(displayEntity.parentGroup.id))"
               >
                 <UIcon
                   name="i-lucide-network"
@@ -576,10 +582,7 @@ const entityLevelActions = computed(() => {
             <!-- Approve Case Button (FEEF) -->
             <UButton
               v-if="
-                !isFollowerView &&
-                user?.role === Role.FEEF &&
-                caseSubmittedAt &&
-                !caseApprovedAt
+                !isFollowerView && user?.role === Role.FEEF && caseSubmittedAt && !caseApprovedAt
               "
               color="success"
               variant="solid"
