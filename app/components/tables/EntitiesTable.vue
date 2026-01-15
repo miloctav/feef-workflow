@@ -40,6 +40,7 @@
             :model-value="filters.mode"
             @update:model-value="updateFilter('mode', $event)"
             :items="entityModeItems"
+            :disabled="true"
             placeholder="Mode"
           />
           <FilterSelect

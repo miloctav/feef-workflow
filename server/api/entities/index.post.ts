@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt'
 import { generatePasswordResetUrlAndToken } from '~~/server/utils/password-reset'
 import { sendAccountCreationEmail } from '~~/server/services/mail'
 import { Role, EntityRole } from '~~/shared/types/roles'
+import { ActionType } from '~~/shared/types/actions'
 
 interface CreateEntityBody {
   name: string
@@ -261,6 +262,12 @@ export default defineEventHandler(async (event) => {
     )
 
     await db.insert(documentaryReviews).values(documentaryReviewsToInsert)
+  }
+
+  // Si c'est une entité MASTER, créer l'action "Dépôt de dossier" (ENTITY_SUBMIT_CASE)
+  if (newEntity.mode === EntityMode.MASTER) {
+    const { createAction } = await import('~~/server/services/actions')
+    await createAction(ActionType.ENTITY_SUBMIT_CASE, newEntity.id, event)
   }
 
   // LOGIQUE DE CRÉATION DE COMPTE / LIAISON
