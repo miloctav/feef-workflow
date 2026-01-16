@@ -3,13 +3,26 @@
     <template #header>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <UIcon :name="planTypeIcon" class="w-5 h-5 text-orange-500" />
+          <UIcon
+            :name="planTypeIcon"
+            class="w-5 h-5 text-orange-500"
+          />
           <h4 class="font-semibold">{{ planTypeTitle }}</h4>
         </div>
         <!-- Badge de deadline avec indicateur visuel -->
-        <div v-if="currentAudit?.actionPlanDeadline" class="flex items-center gap-2">
-          <UIcon :name="deadlineIcon" :class="deadlineColorClass" class="w-4 h-4" />
-          <span class="text-sm" :class="deadlineColorClass">
+        <div
+          v-if="currentAudit?.actionPlanDeadline"
+          class="flex items-center gap-2"
+        >
+          <UIcon
+            :name="deadlineIcon"
+            :class="deadlineColorClass"
+            class="w-4 h-4"
+          />
+          <span
+            class="text-sm"
+            :class="deadlineColorClass"
+          >
             Échéance : {{ formatDate(currentAudit.actionPlanDeadline) }}
             <span v-if="isOverdue">(Dépassée)</span>
           </span>
@@ -28,7 +41,9 @@
         label-warning="À uploader"
         color-scheme="orange"
         :clickable="hasPlan || canUploadPlan"
-        :clickable-text="hasPlan ? 'Cliquer pour consulter le plan' : 'Cliquer pour importer un plan'"
+        :clickable-text="
+          hasPlan ? 'Cliquer pour consulter le plan' : 'Cliquer pour importer un plan'
+        "
         @click="viewPlan"
       >
         <template #content>
@@ -44,7 +59,7 @@
       <!-- Card 2: Validation OE -->
       <AuditStepCard
         title="Validation OE"
-        :state="isValidated ? 'success' : (hasPlan ? 'pending' : 'disabled')"
+        :state="isValidated ? 'success' : hasPlan ? 'warning' : 'disabled'"
         icon-success="i-lucide-check-circle"
         icon-pending="i-lucide-clock"
         icon-disabled="i-lucide-lock"
@@ -70,22 +85,19 @@
 
         <template #content>
           <div v-if="isValidated">
-            <p class="text-xs text-gray-700">
-              Validé le {{ formatDate(validatedAt) }}
-            </p>
-            <p class="text-xs text-gray-600 mt-1" v-if="validatedByAccount">
+            <p class="text-xs text-gray-700">Validé le {{ formatDate(validatedAt) }}</p>
+            <p
+              class="text-xs text-gray-600 mt-1"
+              v-if="validatedByAccount"
+            >
               Par {{ validatedByAccount.firstname }} {{ validatedByAccount.lastname }}
             </p>
           </div>
           <div v-else-if="hasPlan">
-            <p class="text-xs text-gray-600">
-              En cours d'examen par l'Organisme Évaluateur
-            </p>
+            <p class="text-xs text-gray-600">En cours d'examen par l'Organisme Évaluateur</p>
           </div>
           <div v-else>
-            <p class="text-xs text-gray-600">
-              En attente du dépôt du plan d'action
-            </p>
+            <p class="text-xs text-gray-600">En attente du dépôt du plan d'action</p>
           </div>
         </template>
       </AuditStepCard>
@@ -120,10 +132,9 @@ const validating = ref(false)
 const showDocumentViewer = ref(false)
 
 // Récupérer les événements de l'audit via le composable
-const {
-  correctivePlanValidatedAt,
-  correctivePlanValidatedByAccount,
-} = useAuditEvents(computed(() => currentAudit.value?.id))
+const { correctivePlanValidatedAt, correctivePlanValidatedByAccount } = useAuditEvents(
+  computed(() => currentAudit.value?.id)
+)
 
 // Computed depuis currentAudit
 const auditStatus = computed(() => currentAudit.value?.status ?? null)
@@ -135,12 +146,16 @@ const actionPlanType = computed(() => currentAudit.value?.actionPlanType ?? 'NON
 
 // Type de document correspondant
 const documentType = computed(() => {
-  return actionPlanType.value === 'SHORT' ? AuditDocumentType.SHORT_ACTION_PLAN : AuditDocumentType.LONG_ACTION_PLAN
+  return actionPlanType.value === 'SHORT'
+    ? AuditDocumentType.SHORT_ACTION_PLAN
+    : AuditDocumentType.LONG_ACTION_PLAN
 })
 
 // Titre et icône selon le type de plan
 const planTypeTitle = computed(() => {
-  return actionPlanType.value === 'SHORT' ? 'Plan d\'action court terme (15 jours)' : 'Plan d\'action long terme (6 mois)'
+  return actionPlanType.value === 'SHORT'
+    ? "Plan d'action court terme (15 jours)"
+    : "Plan d'action long terme (6 mois)"
 })
 
 const planTypeIcon = computed(() => {
@@ -155,7 +170,9 @@ const lastPlanVersion = computed(() => {
 
 // Gestion de la deadline
 const deadline = computed(() => {
-  return currentAudit.value?.actionPlanDeadline ? new Date(currentAudit.value.actionPlanDeadline) : null
+  return currentAudit.value?.actionPlanDeadline
+    ? new Date(currentAudit.value.actionPlanDeadline)
+    : null
 })
 
 const daysRemaining = computed(() => {
@@ -194,12 +211,20 @@ const isValidated = computed(() => {
 
 const canUploadPlan = computed(() => {
   // L'entreprise peut uploader le plan si PENDING_CORRECTIVE_PLAN et audit modifiable
-  return user.value?.role === Role.ENTITY && auditStatus.value === AuditStatus.PENDING_CORRECTIVE_PLAN && isAuditEditable.value
+  return (
+    user.value?.role === Role.ENTITY &&
+    auditStatus.value === AuditStatus.PENDING_CORRECTIVE_PLAN &&
+    isAuditEditable.value
+  )
 })
 
 const canValidatePlan = computed(() => {
   // L'OE peut valider si PENDING_CORRECTIVE_PLAN_VALIDATION et audit modifiable
-  return user.value?.role === Role.OE && auditStatus.value === AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION && isAuditEditable.value
+  return (
+    user.value?.role === Role.OE &&
+    auditStatus.value === AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION &&
+    isAuditEditable.value
+  )
 })
 
 // Méthodes
@@ -209,7 +234,7 @@ function formatVersionInfo(version: any) {
   const formattedDate = date.toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
+    year: 'numeric',
   })
   const uploaderName = version.uploadByAccount
     ? `${version.uploadByAccount.firstname} ${version.uploadByAccount.lastname}`
@@ -223,7 +248,7 @@ function formatDate(date: Date | string | null | undefined) {
   return d.toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
+    year: 'numeric',
   })
 }
 
@@ -244,13 +269,13 @@ async function handleValidatePlan() {
   validating.value = true
   try {
     await $fetch(`/api/audits/${currentAudit.value.id}/validate-corrective-plan`, {
-      method: 'PUT'
+      method: 'PUT',
     })
 
     toast.add({
       title: 'Succès',
-      description: 'Plan d\'action validé avec succès',
-      color: 'success'
+      description: "Plan d'action validé avec succès",
+      color: 'success',
     })
 
     // Recharger l'audit
@@ -266,7 +291,7 @@ async function handleValidatePlan() {
     toast.add({
       title: 'Erreur',
       description: error.data?.message || 'Impossible de valider le plan',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     validating.value = false

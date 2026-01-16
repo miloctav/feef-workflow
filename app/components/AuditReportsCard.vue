@@ -3,8 +3,11 @@
     <template #header>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-file-chart-column" class="w-5 h-5 text-purple-600" />
-          <h4 class="font-semibold">Rapports d'audit</h4>
+          <UIcon
+            name="i-lucide-file-chart-column"
+            class="w-5 h-5 text-purple-600"
+          />
+          <h4 class="font-semibold">Rapport d'audit</h4>
         </div>
 
         <!-- Badge de statut de l'étape -->
@@ -30,7 +33,9 @@
         label-warning="À uploader"
         color-scheme="green"
         :clickable="hasReport || canUploadReport"
-        :clickable-text="hasReport ? 'Cliquer pour consulter le rapport' : 'Cliquer pour importer un rapport'"
+        :clickable-text="
+          hasReport ? 'Cliquer pour consulter le rapport' : 'Cliquer pour importer un rapport'
+        "
         @click="viewReport"
       >
         <template #actions>
@@ -46,9 +51,7 @@
           </div>
           <!-- Message quand pas de rapport disponible -->
           <div v-else>
-            <p class="text-xs text-gray-600">
-              Aucun rapport d'audit uploadé pour le moment
-            </p>
+            <p class="text-xs text-gray-600">Aucun rapport d'audit uploadé pour le moment</p>
           </div>
         </template>
       </AuditStepCard>
@@ -61,30 +64,29 @@
         icon-warning="i-lucide-target"
         label-success="Attribué"
         label-warning="Non attribué"
-        color-scheme="blue"
+        color-scheme="green"
         :clickable="true"
         clickable-text="Cliquer pour gérer la notation"
         @click="showScoreViewer = true"
       >
         <template #content>
-          <div v-if="hasGlobalScore" class="space-y-2">
-            <div class="text-2xl font-bold text-green-600">
-              {{ globalScore }}%
-            </div>
+          <div
+            v-if="hasGlobalScore"
+            class="space-y-2"
+          >
+            <div class="text-2xl font-bold text-green-600">{{ globalScore }}%</div>
             <UBadge
-              :color="globalScore >= 80 ? 'success' :
-                     globalScore >= 60 ? 'warning' : 'error'"
+              :color="globalScore >= 80 ? 'success' : globalScore >= 60 ? 'warning' : 'error'"
               variant="soft"
               size="xs"
             >
-              {{ globalScore >= 80 ? 'Excellent' :
-                 globalScore >= 60 ? 'Satisfaisant' : 'À améliorer' }}
+              {{
+                globalScore >= 80 ? 'Excellent' : globalScore >= 60 ? 'Satisfaisant' : 'À améliorer'
+              }}
             </UBadge>
           </div>
           <div v-else>
-            <p class="text-xs text-gray-600">
-              Le score sera attribué lors de l'upload du rapport
-            </p>
+            <p class="text-xs text-gray-600">Le score sera attribué lors de l'upload du rapport</p>
           </div>
         </template>
       </AuditStepCard>
@@ -150,14 +152,17 @@ const hasReport = computed(() => {
 
 const canUploadReport = computed(() => {
   // OE peut uploader si PENDING_REPORT et pas de rapport et audit modifiable
-  return user.value?.role === Role.OE && auditStatus.value === AuditStatus.PENDING_REPORT && !hasReport.value && isAuditEditable.value
+  return (
+    user.value?.role === Role.OE &&
+    auditStatus.value === AuditStatus.PENDING_REPORT &&
+    !hasReport.value &&
+    isAuditEditable.value
+  )
 })
 
 const canModifyReport = computed(() => {
   // OE peut modifier le rapport tant que l'audit n'est pas terminé
-  return user.value?.role === Role.OE &&
-    hasReport.value &&
-    isAuditEditable.value
+  return user.value?.role === Role.OE && hasReport.value && isAuditEditable.value
 })
 
 // Computed pour déterminer si l'étape rapport est complète
@@ -168,7 +173,7 @@ const isReportStepComplete = computed(() => {
 // Computed pour identifier les éléments manquants
 const missingItems = computed(() => {
   const missing: string[] = []
-  if (!hasReport.value) missing.push('rapport d\'audit')
+  if (!hasReport.value) missing.push("rapport d'audit")
   if (!hasGlobalScore.value) missing.push('score global')
   return missing
 })
@@ -179,12 +184,12 @@ const incompleteMessage = computed(() => {
 
   const missing = missingItems.value
   if (missing.length === 2) {
-    return 'Pour finaliser l\'étape du rapport, veuillez uploader le rapport d\'audit et saisir le score global'
+    return "Pour finaliser l'étape du rapport, veuillez uploader le rapport d'audit et saisir le score global"
   }
-  if (missing.includes('rapport d\'audit')) {
-    return 'Pour finaliser l\'étape du rapport, veuillez également uploader le rapport d\'audit'
+  if (missing.includes("rapport d'audit")) {
+    return "Pour finaliser l'étape du rapport, veuillez également uploader le rapport d'audit"
   }
-  return 'Pour finaliser l\'étape du rapport, veuillez également saisir le score global'
+  return "Pour finaliser l'étape du rapport, veuillez également saisir le score global"
 })
 
 // Computed pour le statut du badge
@@ -210,7 +215,7 @@ function formatVersionInfo(version: any) {
   const formattedDate = date.toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
+    year: 'numeric',
   })
   const uploaderName = version.uploadByAccount
     ? `${version.uploadByAccount.firstname} ${version.uploadByAccount.lastname}`

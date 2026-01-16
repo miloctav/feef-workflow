@@ -2,7 +2,10 @@
   <UCard class="mb-6">
     <template #header>
       <div class="flex items-center gap-2">
-        <UIcon name="i-lucide-file-badge-2" class="w-5 h-5 text-emerald-600" />
+        <UIcon
+          name="i-lucide-file-badge-2"
+          class="w-5 h-5 text-emerald-600"
+        />
         <h4 class="font-semibold">Validation FEEF</h4>
       </div>
     </template>
@@ -11,7 +14,7 @@
       <!-- Card 1: Décision FEEF -->
       <AuditStepCard
         title="Décision FEEF"
-        :state="hasDecision ? 'success' : (canSubmitDecision ? 'warning' : 'pending')"
+        :state="hasDecision ? 'success' : 'warning'"
         icon-success="i-lucide-check-circle"
         icon-warning="i-lucide-file-pen"
         icon-pending="i-lucide-clock"
@@ -32,16 +35,17 @@
 
         <template #content>
           <div v-if="hasDecision">
-            <p class="text-xs text-gray-700">
-              Décidé le {{ formatDate(decisionAt) }}
-            </p>
-            <p class="text-xs text-gray-600 mt-1" v-if="decisionByAccount">
+            <p class="text-xs text-gray-700">Décidé le {{ formatDate(decisionAt) }}</p>
+            <p
+              class="text-xs text-gray-600 mt-1"
+              v-if="decisionByAccount"
+            >
               Par {{ decisionByAccount.firstname }} {{ decisionByAccount.lastname }}
             </p>
           </div>
           <div v-else>
             <p class="text-xs text-gray-600">
-              {{ canSubmitDecision ? 'Prêt à décider' : 'En attente de l\'avis OE' }}
+              {{ canSubmitDecision ? 'Prêt à décider' : "En attente de l'avis OE" }}
             </p>
           </div>
         </template>
@@ -79,23 +83,20 @@
         <template #content>
           <div v-if="hasDecision">
             <div v-if="feefDecision === 'ACCEPTED'">
-              <p class="text-xs text-green-700">
-                L'entité est labellisée FEEF
-              </p>
-              <p v-if="labelExpirationDate" class="text-xs text-green-600 mt-1">
+              <p class="text-xs text-green-700">L'entité est labellisée FEEF</p>
+              <p
+                v-if="labelExpirationDate"
+                class="text-xs text-green-600 mt-1"
+              >
                 Jusqu'au {{ formatDate(labelExpirationDate) }}
               </p>
             </div>
             <div v-else>
-              <p class="text-xs text-red-700">
-                La demande a été refusée
-              </p>
+              <p class="text-xs text-red-700">La demande a été refusée</p>
             </div>
           </div>
           <div v-else>
-            <p class="text-xs text-gray-600">
-              Le résultat sera disponible après la décision
-            </p>
+            <p class="text-xs text-gray-600">Le résultat sera disponible après la décision</p>
           </div>
         </template>
       </AuditStepCard>
@@ -131,10 +132,9 @@ const showAttestationViewer = ref(false)
 const regenerating = ref(false)
 
 // Récupérer les événements de l'audit via le composable
-const {
-  feefDecisionAt,
-  feefDecisionByAccount,
-} = useAuditEvents(computed(() => currentAudit.value?.id))
+const { feefDecisionAt, feefDecisionByAccount } = useAuditEvents(
+  computed(() => currentAudit.value?.id)
+)
 
 // Computed depuis currentAudit
 const feefDecision = computed(() => currentAudit.value?.feefDecision ?? null)
@@ -147,33 +147,47 @@ const auditStatus = computed(() => currentAudit.value?.status ?? null)
 const hasAttestation = computed(() => {
   console.log('hasAttestation - currentAudit:', currentAudit.value)
   console.log('hasAttestation - lastDocumentVersions:', currentAudit.value?.lastDocumentVersions)
-  console.log('hasAttestation - ATTESTATION:', currentAudit.value?.lastDocumentVersions?.ATTESTATION)
+  console.log(
+    'hasAttestation - ATTESTATION:',
+    currentAudit.value?.lastDocumentVersions?.ATTESTATION
+  )
   return !!currentAudit.value?.lastDocumentVersions?.ATTESTATION
 })
 
 // Computed
 const hasDecision = computed(() => {
-  return feefDecision.value !== null && feefDecision.value !== undefined && feefDecision.value !== 'PENDING'
+  return (
+    feefDecision.value !== null &&
+    feefDecision.value !== undefined &&
+    feefDecision.value !== 'PENDING'
+  )
 })
 
 const canSubmitDecision = computed(() => {
   // La FEEF peut prendre la décision si PENDING_FEEF_DECISION et audit modifiable
-  return user.value?.role === Role.FEEF && auditStatus.value === AuditStatus.PENDING_FEEF_DECISION && !hasDecision.value && isAuditEditable.value
+  return (
+    user.value?.role === Role.FEEF &&
+    auditStatus.value === AuditStatus.PENDING_FEEF_DECISION &&
+    !hasDecision.value &&
+    isAuditEditable.value
+  )
 })
 
 const canRegenerateAttestation = computed(() => {
-  return user.value?.role === Role.FEEF
-    && hasDecision.value
-    && feefDecision.value === 'ACCEPTED'
-    && !hasAttestation.value
+  return (
+    user.value?.role === Role.FEEF &&
+    hasDecision.value &&
+    feefDecision.value === 'ACCEPTED' &&
+    !hasAttestation.value
+  )
 })
 
 const decisionLabel = computed(() => {
   if (!feefDecision.value) return ''
   const labels: Record<string, string> = {
-    'PENDING': 'En attente',
-    'ACCEPTED': 'Acceptée',
-    'REJECTED': 'Refusée'
+    PENDING: 'En attente',
+    ACCEPTED: 'Acceptée',
+    REJECTED: 'Refusée',
   }
   return labels[feefDecision.value] || feefDecision.value
 })
@@ -185,7 +199,7 @@ function formatDate(date: Date | string | null | undefined) {
   return d.toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
+    year: 'numeric',
   })
 }
 
@@ -217,22 +231,22 @@ async function handleRegenerateAttestation() {
   regenerating.value = true
   try {
     await $fetch(`/api/audits/${currentAudit.value.id}/regenerate-attestation`, {
-      method: 'POST'
+      method: 'POST',
     })
 
     await fetchAudit(currentAudit.value.id)
 
     toast.add({
       title: 'Attestation générée',
-      description: 'L\'attestation de labellisation a été générée avec succès',
-      color: 'green'
+      description: "L'attestation de labellisation a été générée avec succès",
+      color: 'green',
     })
   } catch (error) {
     console.error('Erreur lors de la régénération:', error)
     toast.add({
       title: 'Erreur',
-      description: 'Impossible de générer l\'attestation',
-      color: 'red'
+      description: "Impossible de générer l'attestation",
+      color: 'red',
     })
   } finally {
     regenerating.value = false

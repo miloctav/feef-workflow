@@ -1,12 +1,13 @@
 <template>
-  <div class="bg-gray-50 rounded-b-lg p-6 min-h-[300px]">
-    <div class="flex items-start gap-4 mb-6">
+  <div class="px-4 pb-4 pt-2 min-h-[300px]">
+    <div class="flex items-center gap-3 mb-4">
       <UIcon
         name="i-lucide-search"
-        class="w-6 h-6 text-primary mt-1"
+        class="w-5 h-5 text-primary"
       />
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">Phase d'audit</h3>
+      <div class="flex items-baseline gap-2">
+        <h3 class="font-semibold text-gray-900">Phase d'audit</h3>
+        <span class="text-gray-400 hidden sm:inline">-</span>
         <p class="text-gray-600 text-sm">Suivi de l'audit réalisé par l'Organisme Évaluateur</p>
       </div>
     </div>
@@ -134,12 +135,12 @@
           <!-- Card 2: Plan d'audit -->
           <AuditStepCard
             title="Plan d'audit"
-            :state="'warning'"
+            :state="hasPlan ? 'success' : 'warning'"
             icon-warning="i-lucide-file-plus"
             icon-success="i-lucide-file-check"
             label-warning="À consulter"
             label-success="Disponible"
-            color-scheme="blue"
+            color-scheme="green"
             :clickable="hasPlan || canUploadPlan"
             :clickable-text="
               hasPlan ? 'Cliquer pour consulter le plan' : 'Cliquer pour importer un plan'
@@ -151,14 +152,14 @@
           <!-- Card 3: Dates d'audit -->
           <AuditStepCard
             title="Dates d'audit"
-            :state="plannedDatesSet ? 'success' : 'warning'"
+            :state="plannedDatesSet || actualDatesSet ? 'success' : 'warning'"
             icon-pending="i-lucide-calendar-plus"
             icon-success="i-lucide-calendar-check"
             icon-warning="i-lucide-calendar-plus"
             label-pending="À programmer"
             label-success="Programmé"
             label-warning="À programmer"
-            color-scheme="orange"
+            color-scheme="green"
           >
             <template #actions>
               <!-- Bouton pour programmer les dates (OE/FEEF seulement) -->

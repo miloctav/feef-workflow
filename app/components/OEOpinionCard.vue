@@ -2,7 +2,10 @@
   <UCard class="mb-6">
     <template #header>
       <div class="flex items-center gap-2">
-        <UIcon name="i-lucide-shield-check" class="w-5 h-5 text-purple-600" />
+        <UIcon
+          name="i-lucide-shield-check"
+          class="w-5 h-5 text-purple-600"
+        />
         <h4 class="font-semibold">Avis de l'Organisme Évaluateur</h4>
       </div>
     </template>
@@ -19,7 +22,9 @@
         label-warning="À uploader"
         color-scheme="gray"
         :clickable="hasDocument || canEditOpinion"
-        :clickable-text="hasDocument ? 'Cliquer pour consulter le document' : 'Cliquer pour importer un document'"
+        :clickable-text="
+          hasDocument ? 'Cliquer pour consulter le document' : 'Cliquer pour importer un document'
+        "
         @click="viewDocument"
       >
         <template #content>
@@ -29,9 +34,7 @@
             </p>
           </div>
           <div v-else>
-            <p class="text-xs text-gray-600">
-              Le document sera uploadé avec l'avis
-            </p>
+            <p class="text-xs text-gray-600">Le document sera uploadé avec l'avis</p>
           </div>
         </template>
       </AuditStepCard>
@@ -51,21 +54,26 @@
         label-pending="En attente"
         color-scheme="gray"
         :clickable="true"
-        :clickable-text="canEditOpinion ? 'Cliquer pour émettre/modifier l\'avis' : 'Cliquer pour consulter l\'avis'"
+        :clickable-text="
+          canEditOpinion
+            ? 'Cliquer pour émettre/modifier l\'avis'
+            : 'Cliquer pour consulter l\'avis'
+        "
         @click="showOpinionViewer = true"
       >
         <template #content>
           <div v-if="hasOpinion">
-            <p class="text-xs text-gray-700">
-              Transmis le {{ formatDate(transmittedAt) }}
-            </p>
-            <p class="text-xs text-gray-600 mt-1" v-if="transmittedByAccount">
+            <p class="text-xs text-gray-700">Transmis le {{ formatDate(transmittedAt) }}</p>
+            <p
+              class="text-xs text-gray-600 mt-1"
+              v-if="transmittedByAccount"
+            >
               Par {{ transmittedByAccount.firstname }} {{ transmittedByAccount.lastname }}
             </p>
           </div>
           <div v-else>
             <p class="text-xs text-gray-600">
-              {{ canEditOpinion ? 'Prêt à émettre l\'avis' : 'En attente de l\'avis de l\'OE' }}
+              {{ canEditOpinion ? "Prêt à émettre l'avis" : "En attente de l'avis de l'OE" }}
             </p>
           </div>
         </template>
@@ -104,10 +112,9 @@ const showDocumentViewer = ref(false)
 const showOpinionViewer = ref(false)
 
 // Récupérer les événements de l'audit via le composable
-const {
-  oeOpinionTransmittedAt,
-  oeOpinionTransmittedByAccount,
-} = useAuditEvents(computed(() => currentAudit.value?.id))
+const { oeOpinionTransmittedAt, oeOpinionTransmittedByAccount } = useAuditEvents(
+  computed(() => currentAudit.value?.id)
+)
 
 // Computed depuis currentAudit
 const opinion = computed(() => currentAudit.value?.oeOpinion ?? null)
@@ -127,7 +134,7 @@ const hasOpinion = computed(() => {
 
 const opinionState = computed(() => {
   if (!hasOpinion.value) {
-    return canEditOpinion.value ? 'warning' : 'pending'
+    return canEditOpinion.value ? 'warning' : 'warning'
   }
   if (opinion.value === 'FAVORABLE') return 'success'
   if (opinion.value === 'RESERVED') return 'warning'
@@ -144,8 +151,9 @@ const canEditOpinion = computed(() => {
 
   // OE peut éditer
   if (user.value?.role === Role.OE) {
-    return [AuditStatus.PENDING_OE_OPINION, AuditStatus.PENDING_FEEF_DECISION]
-      .includes(auditStatus.value)
+    return [AuditStatus.PENDING_OE_OPINION, AuditStatus.PENDING_FEEF_DECISION].includes(
+      auditStatus.value
+    )
   }
 
   // FEEF peut aussi éditer
@@ -159,9 +167,9 @@ const canEditOpinion = computed(() => {
 const opinionLabel = computed(() => {
   if (!opinion.value) return ''
   const labels: Record<string, string> = {
-    'FAVORABLE': 'Favorable',
-    'UNFAVORABLE': 'Défavorable',
-    'RESERVED': 'Réservé'
+    FAVORABLE: 'Favorable',
+    UNFAVORABLE: 'Défavorable',
+    RESERVED: 'Réservé',
   }
   return labels[opinion.value] || opinion.value
 })
@@ -173,7 +181,7 @@ function formatDate(date: Date | string | null | undefined) {
   return d.toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
+    year: 'numeric',
   })
 }
 
@@ -183,7 +191,7 @@ function formatVersionInfo(version: any) {
   const formattedDate = date.toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
+    year: 'numeric',
   })
   const uploaderName = version.uploadByAccount
     ? `${version.uploadByAccount.firstname} ${version.uploadByAccount.lastname}`

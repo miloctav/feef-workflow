@@ -1,9 +1,13 @@
 <template>
-  <div class="bg-gray-50 rounded-b-lg p-6 min-h-[300px]">
-    <div class="flex items-start gap-4 mb-6">
-      <UIcon name="i-lucide-scale" class="w-6 h-6 text-primary mt-1" />
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">Phase de décision</h3>
+  <div class="px-4 pb-4 pt-2 min-h-[300px]">
+    <div class="flex items-center gap-3 mb-4">
+      <UIcon
+        name="i-lucide-scale"
+        class="w-5 h-5 text-primary"
+      />
+      <div class="flex items-baseline gap-2">
+        <h3 class="font-semibold text-gray-900">Phase de décision</h3>
+        <span class="text-gray-400 hidden sm:inline">-</span>
         <p class="text-gray-600 text-sm">Analyse du rapport et émission de l'avis</p>
       </div>
     </div>
@@ -12,7 +16,9 @@
     <AuditReportsCard v-if="currentAudit" />
 
     <!-- Plan d'action -->
-    <ActionPlanCard v-if="currentAudit && currentAudit.actionPlanType && currentAudit.actionPlanType !== 'NONE'" />
+    <ActionPlanCard
+      v-if="currentAudit && currentAudit.actionPlanType && currentAudit.actionPlanType !== 'NONE'"
+    />
 
     <!-- Avis de l'Organisme Évaluateur -->
     <OEOpinionCard v-if="currentAudit" />
@@ -31,7 +37,7 @@ interface Props {
 }
 
 withDefaults(defineProps<Props>(), {
-  role: 'feef'
+  role: 'feef',
 })
 
 // Composables
@@ -44,5 +50,4 @@ const isAuditEditable = computed(() => {
 
 // Provide isEditable aux composants enfants
 provide('isAuditEditable', isAuditEditable)
-
 </script>
