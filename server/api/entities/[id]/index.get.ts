@@ -55,7 +55,16 @@ export default defineEventHandler(async (event) => {
           labelExpirationDate: true,
         },
       },
-      parentGroup: true, // Si c'est une COMPANY, récupérer tous les détails du groupe parent
+      parentGroup: { // Si c'est une COMPANY, récupérer tous les détails du groupe parent
+        with: {
+          oe: {
+            columns: {
+              id: true,
+              name: true,
+            }
+          }
+        }
+      },
       childEntities: {    // Si c'est un GROUP, récupérer toutes les entreprises enfants
         with: {
           oe: {

@@ -208,6 +208,29 @@ const getEntityLink = (entityId: number | string) => {
   }
   return `/entity/followers/${entityId}`
 }
+
+const getMasterEntityLink = (entityId: number | string) => {
+  if (user.value?.role === Role.FEEF) {
+    return `/feef/entities/${entityId}`
+  }
+  if (user.value?.role === Role.OE) {
+    return `/oe/entities/${entityId}`
+  }
+  // For Entity users, clicking on Master Entity should go to the dashboard /entity
+  return `/entity`
+}
+
+const effectiveMasterEntity = computed(() => {
+  if (props.masterEntity) return props.masterEntity
+  if (displayEntity.value?.mode === EntityMode.FOLLOWER && displayEntity.value.parentGroup) {
+    return displayEntity.value.parentGroup
+  }
+  return null
+})
+
+const hasMasterEntityInfo = computed(() => {
+  return !!effectiveMasterEntity.value
+})
 </script>
 
 <template>
@@ -470,106 +493,157 @@ const getEntityLink = (entityId: number | string) => {
           </div>
         </div>
 
-        <!-- Colonne du milieu : Entités liées (pour MASTER uniquement) -->
+        <!-- Colonne du milieu : Entités liées (pour MASTER ou FOLLOWER) -->
         <div
           v-if="
-            displayEntity.mode === EntityMode.MASTER &&
-            !isFollowerView &&
-            (user?.role === Role.FEEF || user?.role === Role.ENTITY)
+            (displayEntity.mode === EntityMode.MASTER &&
+              (user?.role === Role.FEEF || user?.role === Role.ENTITY || user?.role === Role.OE)) ||
+            hasMasterEntityInfo
           "
           class="w-64 flex-shrink-0 px-6 border-l border-gray-200"
         >
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
-              <UIcon
-                :name="
+          <!-- Section Entités suiveuses (Vue MASTER) -->
+          <template v-if="displayEntity.mode === EntityMode.MASTER">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <UIcon
+                  :name="
+                    displayEntity.type === EntityType.GROUP
+                      ? 'i-lucide-building-2'
+                      : 'i-lucide-network'
+                  "
+                  class="w-4 h-4 text-gray-500"
+                />
+                <h3 class="font-bold text-lg text-gray-900">
+                  {{ displayEntity.type === EntityType.GROUP ? 'Entreprises' : 'Groupe' }}
+                </h3>
+              </div>
+              <AddFollowerModal
+                v-if="displayEntity"
+                :entity-id="displayEntity.id"
+                :entity-type="displayEntity.type"
+                :existing-count="
                   displayEntity.type === EntityType.GROUP
-                    ? 'i-lucide-building-2'
-                    : 'i-lucide-network'
+                    ? displayEntity.childEntities?.length || 0
+                    : displayEntity.parentGroupId
+                    ? 1
+                    : 0
                 "
-                class="w-4 h-4 text-gray-500"
+                :on-created="handleRefreshEntity"
               />
-              <h3 class="font-bold text-lg text-gray-900">
-                {{ displayEntity.type === EntityType.GROUP ? 'Entreprises' : 'Groupe' }}
-              </h3>
             </div>
-            <AddFollowerModal
-              v-if="displayEntity"
-              :entity-id="displayEntity.id"
-              :entity-type="displayEntity.type"
-              :existing-count="
-                displayEntity.type === EntityType.GROUP
-                  ? displayEntity.childEntities?.length || 0
-                  : displayEntity.parentGroupId
-                  ? 1
-                  : 0
+
+            <!-- Liste des entités liées -->
+            <div
+              v-if="
+                (displayEntity.type === EntityType.GROUP &&
+                  displayEntity.childEntities &&
+                  displayEntity.childEntities.length > 0) ||
+                (displayEntity.type === EntityType.COMPANY && displayEntity.parentGroup)
               "
-              :on-created="handleRefreshEntity"
-            />
-          </div>
-
-          <!-- Liste des entités liées -->
-          <div
-            v-if="
-              (displayEntity.type === EntityType.GROUP &&
-                displayEntity.childEntities &&
-                displayEntity.childEntities.length > 0) ||
-              (displayEntity.type === EntityType.COMPANY && displayEntity.parentGroup)
-            "
-            class="space-y-1"
-          >
-            <!-- Pour un GROUPE: lister les entreprises suiveuses -->
-            <template v-if="displayEntity.type === EntityType.GROUP">
-              <a
-                v-for="child in displayEntity.childEntities"
-                :key="child.id"
-                :href="getEntityLink(child.id)"
-                class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-primary"
-                @click.prevent="navigateTo(getEntityLink(child.id))"
-              >
-                <UIcon
-                  name="i-lucide-building"
-                  class="w-3.5 h-3.5 flex-shrink-0"
-                />
-                <span class="truncate">{{ child.name }}</span>
-                <span
-                  v-if="child.oe"
-                  class="text-xs text-gray-400 ml-auto"
-                  >({{ child.oe.name }})</span
-                >
-              </a>
-            </template>
-
-            <!-- Pour une COMPANY: afficher le groupe lié si c'est un follower -->
-            <template
-              v-else-if="displayEntity.parentGroup && displayEntity.parentGroup.mode === 'FOLLOWER'"
+              class="space-y-1"
             >
+              <!-- Pour un GROUPE: lister les entreprises suiveuses -->
+              <template v-if="displayEntity.type === EntityType.GROUP">
+                <a
+                  v-for="child in displayEntity.childEntities"
+                  :key="child.id"
+                  :href="getEntityLink(child.id)"
+                  class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-primary"
+                  @click.prevent="navigateTo(getEntityLink(child.id))"
+                >
+                  <UIcon
+                    name="i-lucide-building"
+                    class="w-3.5 h-3.5 flex-shrink-0"
+                  />
+                  <span class="truncate">{{ child.name }}</span>
+                  <span
+                    v-if="child.oe"
+                    class="text-xs text-gray-400 ml-auto"
+                    >({{ child.oe.name }})</span
+                  >
+                </a>
+              </template>
+
+              <!-- Pour une COMPANY: afficher le groupe lié si c'est un follower -->
+              <template
+                v-else-if="
+                  displayEntity.parentGroup && displayEntity.parentGroup.mode === 'FOLLOWER'
+                "
+              >
+                <a
+                  :href="getEntityLink(displayEntity.parentGroup.id)"
+                  class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-primary"
+                  @click.prevent="navigateTo(getEntityLink(displayEntity.parentGroup.id))"
+                >
+                  <UIcon
+                    name="i-lucide-network"
+                    class="w-3.5 h-3.5 flex-shrink-0"
+                  />
+                  <span class="truncate">{{ displayEntity.parentGroup.name }}</span>
+                  <span
+                    v-if="displayEntity.parentGroup.oe"
+                    class="text-xs text-gray-400 ml-auto"
+                    >({{ displayEntity.parentGroup.oe.name }})</span
+                  >
+                </a>
+              </template>
+            </div>
+
+            <!-- Message si aucune entité liée -->
+            <div
+              v-else
+              class="text-sm text-gray-400 italic px-2 py-1"
+            >
+              {{ displayEntity.type === EntityType.GROUP ? 'Aucune entreprise' : 'Aucun groupe' }}
+            </div>
+          </template>
+
+          <!-- Section Entité Maître (Vue FOLLOWER) -->
+          <template v-else-if="effectiveMasterEntity">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <UIcon
+                  :name="
+                    effectiveMasterEntity.type === EntityType.GROUP
+                      ? 'i-lucide-building-2'
+                      : 'i-lucide-network'
+                  "
+                  class="w-4 h-4 text-gray-500"
+                />
+                <h3 class="font-bold text-lg text-gray-900">
+                  {{
+                    effectiveMasterEntity.type === EntityType.GROUP
+                      ? 'Entreprise Maître'
+                      : 'Groupe Maître'
+                  }}
+                </h3>
+              </div>
+            </div>
+
+            <div class="space-y-1">
               <a
-                :href="getEntityLink(displayEntity.parentGroup.id)"
+                :href="getMasterEntityLink(effectiveMasterEntity.id)"
                 class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 transition-colors text-sm text-gray-700 hover:text-primary"
-                @click.prevent="navigateTo(getEntityLink(displayEntity.parentGroup.id))"
+                @click.prevent="navigateTo(getMasterEntityLink(effectiveMasterEntity.id))"
               >
                 <UIcon
-                  name="i-lucide-network"
+                  :name="
+                    effectiveMasterEntity.type === EntityType.GROUP
+                      ? 'i-lucide-building'
+                      : 'i-lucide-network'
+                  "
                   class="w-3.5 h-3.5 flex-shrink-0"
                 />
-                <span class="truncate">{{ displayEntity.parentGroup.name }}</span>
+                <span class="truncate font-medium">{{ effectiveMasterEntity.name }}</span>
                 <span
-                  v-if="displayEntity.parentGroup.oe"
+                  v-if="effectiveMasterEntity.oe"
                   class="text-xs text-gray-400 ml-auto"
-                  >({{ displayEntity.parentGroup.oe.name }})</span
+                  >({{ effectiveMasterEntity.oe.name }})</span
                 >
               </a>
-            </template>
-          </div>
-
-          <!-- Message si aucune entité liée -->
-          <div
-            v-else
-            class="text-sm text-gray-400 italic px-2 py-1"
-          >
-            {{ displayEntity.type === EntityType.GROUP ? 'Aucune entreprise' : 'Aucun groupe' }}
-          </div>
+            </div>
+          </template>
         </div>
 
         <!-- Colonne droite : Actions -->

@@ -46,6 +46,9 @@ export interface EntityAccountManager {
 export interface EntityParentGroup {
   id: number
   name: string
+  type: EntityTypeType
+  mode: EntityModeType
+  oe?: EntityOE | null
 }
 
 export interface EntityAccount {

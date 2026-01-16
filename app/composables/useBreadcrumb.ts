@@ -67,6 +67,16 @@ export function useBreadcrumb() {
 
       // Gérer les segments mappés (statiques)
       if (mapping) {
+        // Special override for 'followers' segment to show Master Entity name and link back to dashboard
+        if (segment === 'followers' && dataSource.value === 'entity') {
+          items.push({
+            label: currentEntity.value?.name || "Entité Maître",
+            icon: 'i-heroicons-building-storefront',
+            to: '/entity'
+          })
+          continue
+        }
+
         items.push({
           label: mapping.label,
           icon: mapping.icon,

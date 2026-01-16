@@ -73,6 +73,14 @@ export async function verifyEntityAccessForUser(
         where: isNull(audits.deletedAt),
         orderBy: [desc(audits.createdAt)],
         limit: 1
+      },
+      // NEW: Charger le groupe parent pour vérifier les permissions OE héritées
+      parentGroup: {
+        columns: {
+          id: true,
+          oeId: true,
+          accountManagerId: true
+        }
       }
     }
   })
@@ -83,9 +91,18 @@ export async function verifyEntityAccessForUser(
 
   // OE : accès complet si entité assignée
   if (user.role === Role.OE) {
-    // Accès complet (read + write) si l'entité est assignée à l'OE
+    // 1. Accès direct : l'entité est assignée à l'OE
     if (entity.oeId === user.oeId) {
-      if(user.oeRole === OERole.ACCOUNT_MANAGER && entity.accountManagerId !== user.id) {
+      if (user.oeRole === OERole.ACCOUNT_MANAGER && entity.accountManagerId !== user.id) {
+        return false
+      }
+      return true
+    }
+
+    // 2. Accès hérité : l'entité est une suiveuse et son parent est assigné à l'OE
+    if (entity.mode === 'FOLLOWER' && entity.parentGroup?.oeId === user.oeId) {
+      // Si Account Manager, doit être responsable du parent
+      if (user.oeRole === OERole.ACCOUNT_MANAGER && entity.parentGroup.accountManagerId !== user.id) {
         return false
       }
       return true

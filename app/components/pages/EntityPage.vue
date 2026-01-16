@@ -18,9 +18,19 @@
       </div>
     </div>
 
-    <!-- Onglets -->
+    <!-- Contenu principal -->
     <div class="px-6">
+      <!-- Cas Entité Suiveuse : Pas d'onglets, direct le dossier -->
+      <div
+        v-if="currentEntity.mode === EntityMode.FOLLOWER"
+        class="py-6"
+      >
+        <EntityCase />
+      </div>
+
+      <!-- Cas Entité Maître : Onglets complets -->
       <UTabs
+        v-else
         v-model="selectedTab"
         :items="tabs"
       >
