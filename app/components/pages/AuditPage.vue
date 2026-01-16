@@ -154,12 +154,18 @@ const {
   actions,
   loading: fetchLoading,
   error: fetchError,
+  fetchActions,
 } = useSimpleActions({
   auditId: computed(() => currentAudit.value?.id),
 })
 
 // S'assurer que actions est toujours un tableau
 const safeActions = computed(() => actions.value || [])
+
+// Handler pour rafraîchir les actions après complétion manuelle
+const handleActionCompleted = async () => {
+  await fetchActions()
+}
 
 // Helper pour récupérer la valeur d'un champ
 const getFieldValue = (key: string) => {
@@ -393,6 +399,7 @@ const getFieldValue = (key: string) => {
         :actions="safeActions"
         :loading="fetchLoading"
         :error="fetchError"
+        @action-completed="handleActionCompleted"
       />
     </div>
 

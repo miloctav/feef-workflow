@@ -15,6 +15,10 @@ const props = withDefaults(
   }
 )
 
+const emit = defineEmits<{
+  'action-completed': [action: Action]
+}>()
+
 // Create a local computed that ensures we always have a valid array
 const safeActions = computed(() => {
   if (!props.actions || !Array.isArray(props.actions)) {
@@ -56,6 +60,7 @@ const hasActions = computed(() => safeActions.value.length > 0)
             :key="`action-${action.id}-${index}`"
             :action="action"
             :clickable="true"
+            @action-completed="emit('action-completed', $event)"
           />
         </div>
       </div>

@@ -224,7 +224,7 @@ const tabs = [
               class="flex justify-center"
             >
               <UAlert
-                color="red"
+                color="error"
                 :title="error"
               />
             </div>
@@ -283,7 +283,7 @@ const tabs = [
               class="flex justify-center"
             >
               <UAlert
-                color="red"
+                color="error"
                 icon="i-lucide-alert-triangle"
                 :title="actionsError"
               />
@@ -301,10 +301,13 @@ const tabs = [
                   &nbsp;Actions FEEF
                 </h2>
                 <div class="flex flex-col gap-3">
-                  <DashboardActionCard
+                  <ActionCard
                     v-for="action in actionsByRole.feef"
                     :key="action.id"
                     :action="action"
+                    :hide-roles="true"
+                    :show-context="true"
+                    :hide-description="true"
                   />
                   <div
                     v-if="actionsByRole.feef.length === 0"
@@ -322,10 +325,13 @@ const tabs = [
                   &nbsp;Actions OE
                 </h2>
                 <div class="flex flex-col gap-3">
-                  <DashboardActionCard
+                  <ActionCard
                     v-for="action in actionsByRole.oe"
                     :key="action.id"
                     :action="action"
+                    :hide-roles="true"
+                    :show-context="true"
+                    :hide-description="true"
                   />
                   <div
                     v-if="actionsByRole.oe.length === 0"
@@ -343,10 +349,13 @@ const tabs = [
                   &nbsp;Actions Entités
                 </h2>
                 <div class="flex flex-col gap-3">
-                  <DashboardActionCard
+                  <ActionCard
                     v-for="action in actionsByRole.entity"
                     :key="action.id"
                     :action="action"
+                    :hide-roles="true"
+                    :show-context="true"
+                    :hide-description="true"
                   />
                   <div
                     v-if="actionsByRole.entity.length === 0"

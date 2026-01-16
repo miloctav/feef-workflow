@@ -38,6 +38,18 @@ watch(isActionsSlideoverOpen, async (isOpen) => {
 watch(() => route.fullPath, () => {
   isActionsSlideoverOpen.value = false
 })
+
+// Handle action completion - refresh actions list
+const handleActionCompleted = async () => {
+  const additionalFilters: Record<string, any> = {}
+
+  // Pour FEEF, filtrer uniquement les actions assignées au rôle FEEF
+  if (currentRole.value === 'FEEF') {
+    additionalFilters.assignedRoles = 'FEEF'
+  }
+
+  await fetchActions(additionalFilters)
+}
 </script>
 
 <template>
@@ -107,6 +119,7 @@ watch(() => route.fullPath, () => {
           :clickable="true"
           :compact="true"
           @click="isActionsSlideoverOpen = false"
+          @action-completed="handleActionCompleted"
         />
       </div>
     </template>
