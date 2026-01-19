@@ -1,7 +1,8 @@
-import type { EmailConfig, EmailResult, AccountCreationEmailData, ForgotPasswordEmailData, EmailChangeVerificationData } from '~~/server/types/mail'
+import type { EmailConfig, EmailResult, AccountCreationEmailData, ForgotPasswordEmailData, EmailChangeVerificationData, TwoFactorCodeData } from '~~/server/types/mail'
 import { accountCreationTemplate } from './templates/account-creation'
 import { forgotPasswordTemplate } from './templates/forgot-password'
 import { emailChangeVerificationTemplate } from './templates/email-verification'
+import { twoFactorCodeTemplate } from './templates/two-factor-code'
 import { Resend } from 'resend'
 
 /**
@@ -171,6 +172,33 @@ export async function sendEmailChangeVerificationEmail(
 }
 
 /**
+ * Envoie un email avec le code 2FA
+ *
+ * @example
+ * ```typescript
+ * const result = await send2FACodeEmail({
+ *   email: 'user@example.com',
+ *   firstName: 'Jean',
+ *   lastName: 'Dupont',
+ *   code: '1234567',
+ *   expiresInMinutes: 5
+ * })
+ * ```
+ */
+export async function send2FACodeEmail(
+  data: TwoFactorCodeData
+): Promise<EmailResult> {
+  const subject = twoFactorCodeTemplate.getSubject(data)
+  const html = twoFactorCodeTemplate.getHtml(data)
+
+  return sendEmail({
+    to: data.email,
+    subject,
+    html
+  })
+}
+
+/**
  * Fonction générique pour envoyer n'importe quel template d'email
  * Utile pour étendre le système avec de nouveaux types d'emails
  *
@@ -206,6 +234,7 @@ export const mailService = {
   sendAccountCreationEmail,
   sendForgotPasswordEmail,
   sendEmailChangeVerificationEmail,
+  send2FACodeEmail,
   sendTemplatedEmail,
   sendEmail // Pour des cas d'usage avancés
 }

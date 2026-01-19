@@ -7,7 +7,7 @@ definePageMeta({
 })
 
 const router = useRouter()
-const { login, loginLoading, loginError, clearLoginError } = useAuth()
+const { login, loginLoading, loginError, clearLoginError, set2FAAccountId } = useAuth()
 
 const fields: AuthFormField[] = [
   {
@@ -40,8 +40,16 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
   })
 
   if (result.success) {
-    // Rediriger vers la page d'accueil
-    await router.push('/')
+    // Vérifier si 2FA est requis
+    if (result.requiresTwoFactor && result.accountId) {
+      // Stocker l'accountId
+      set2FAAccountId(result.accountId)
+      // Rediriger vers la page de vérification 2FA
+      await router.push('/verify-2fa')
+    } else {
+      // Rediriger vers la page d'accueil
+      await router.push('/')
+    }
   }
 }
 </script>

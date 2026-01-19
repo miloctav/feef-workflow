@@ -9,6 +9,7 @@ export type EmailType =
   | 'account-creation'
   | 'password-reset'
   | 'email-change-verification'
+  | 'two-factor-code'
   | 'audit-reminder'
   | 'decision-notification'
   | 'oe-assignment'
@@ -69,6 +70,17 @@ export interface EmailChangeVerificationData {
   oldEmail: string       // Adresse email actuelle
   verificationUrl: string
   expiresInHours: number
+}
+
+/**
+ * Données pour l'email de code 2FA
+ */
+export interface TwoFactorCodeData {
+  email: string
+  firstName: string
+  lastName: string
+  code: string
+  expiresInMinutes: number
 }
 
 /**

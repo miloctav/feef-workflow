@@ -5,13 +5,26 @@ interface LoginCredentials {
   password: string
 }
 
+interface LoginResponse {
+  requiresTwoFactor?: boolean
+  accountId?: number
+  user?: SessionUser
+}
+
+interface LoginResult {
+  success: boolean
+  requiresTwoFactor?: boolean
+  accountId?: number
+  error?: string
+}
+
 export const useAuth = () => {
   // State partagé avec nuxt-auth-utils - protégé pour SSR
   const session = process.client ? useUserSession() : {
     loggedIn: ref(false),
     user: ref(null),
-    fetch: async () => {},
-    clear: async () => {},
+    fetch: async () => { },
+    clear: async () => { },
   }
 
   const { loggedIn, user, fetch: refreshSession, clear } = session
@@ -20,21 +33,47 @@ export const useAuth = () => {
   const loginLoading = useState('auth:loginLoading', () => false)
   const loginError = useState<string | null>('auth:loginError', () => null)
 
+  // États 2FA with persistence
+  const twoFactorAccountId = useState<number | null>('auth:twoFactorAccountId', () => {
+    if (process.client) {
+      const stored = sessionStorage.getItem('2fa:accountId')
+      return stored ? parseInt(stored, 10) : null
+    }
+    return null
+  })
+
+  const twoFactorExpiresAt = useState<Date | null>('auth:twoFactorExpiresAt', () => {
+    if (process.client) {
+      const stored = sessionStorage.getItem('2fa:expiresAt')
+      return stored ? new Date(stored) : null
+    }
+    return null
+  })
+
   /**
    * Connexion utilisateur
    */
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials: LoginCredentials): Promise<LoginResult> => {
     loginLoading.value = true
     loginError.value = null
 
     try {
       // Appel API de login
-      await $fetch('/api/auth/login', {
+      const response = await $fetch<LoginResponse>('/api/auth/login', {
         method: 'POST',
         body: credentials,
       })
 
-      // Rafraîchir la session côté client
+      // Vérifier si 2FA est requis
+      if (response.requiresTwoFactor && response.accountId) {
+        return {
+          success: true,
+          requiresTwoFactor: true,
+          accountId: response.accountId,
+        }
+      }
+
+      // Rafraîchir la session côté client (cas sans 2FA, ne devrait pas arriver)
       await refreshSession()
 
       return { success: true }
@@ -94,6 +133,41 @@ export const useAuth = () => {
   }
 
   /**
+   * Définir l'accountId pour le 2FA
+   */
+  const set2FAAccountId = (accountId: number) => {
+    twoFactorAccountId.value = accountId
+    twoFactorExpiresAt.value = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+
+    // Persist to sessionStorage
+    if (process.client) {
+      sessionStorage.setItem('2fa:accountId', accountId.toString())
+      sessionStorage.setItem('2fa:expiresAt', twoFactorExpiresAt.value.toISOString())
+    }
+  }
+
+  /**
+   * Nettoyer les données 2FA
+   */
+  const clear2FA = () => {
+    twoFactorAccountId.value = null
+    twoFactorExpiresAt.value = null
+
+    // Clear from sessionStorage
+    if (process.client) {
+      sessionStorage.removeItem('2fa:accountId')
+      sessionStorage.removeItem('2fa:expiresAt')
+    }
+  }
+
+  /**
+   * Vérifier si le code 2FA a expiré
+   */
+  const is2FAExpired = (): boolean => {
+    return twoFactorExpiresAt.value ? new Date() > twoFactorExpiresAt.value : true
+  }
+
+  /**
    * Changer l'entité courante pour un compte ENTITY
    */
   const switchEntity = async (entityId: number) => {
@@ -130,11 +204,20 @@ export const useAuth = () => {
     loginLoading: readonly(loginLoading),
     loginError: readonly(loginError),
 
+    // 2FA states
+    twoFactorAccountId: readonly(twoFactorAccountId),
+    twoFactorExpiresAt: readonly(twoFactorExpiresAt),
+
     // Actions
     login,
     logout,
     refreshSession,
     clearLoginError,
     switchEntity,
+
+    // 2FA actions
+    set2FAAccountId,
+    clear2FA,
+    is2FAExpired,
   }
 }

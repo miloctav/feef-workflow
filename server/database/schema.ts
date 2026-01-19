@@ -220,6 +220,19 @@ export const accounts = pgTable('accounts', {
   deletedAt: timestamp('deleted_at'),
 })
 
+export const twoFactorCodes = pgTable('two_factor_codes', {
+  id: serial('id').primaryKey(),
+  accountId: integer('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  code: varchar('code', { length: 7 }).notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  expiresAt: timestamp('expires_at').notNull(),
+  verifiedAt: timestamp('verified_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('idx_two_factor_codes_account_id').on(table.accountId),
+  index('idx_two_factor_codes_expires_at').on(table.expiresAt),
+])
+
 export const documentsType = pgTable('documents_type', {
   id: serial('id').primaryKey(),
   title: varchar('title', { length: 255 }).notNull(),
@@ -456,6 +469,10 @@ export type NewAction = typeof actions.$inferInsert
 export type Event = typeof events.$inferSelect
 export type NewEvent = typeof events.$inferInsert
 
+// Type pour TwoFactorCode
+export type TwoFactorCode = typeof twoFactorCodes.$inferSelect
+export type NewTwoFactorCode = typeof twoFactorCodes.$inferInsert
+
 // ========================================
 // Relations Drizzle pour les queries relationnelles
 // ========================================
@@ -521,6 +538,7 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
   eventsPerformed: many(events, {
     relationName: 'eventPerformedBy',
   }),
+  twoFactorCodes: many(twoFactorCodes),
 }))
 
 export const oeRelations = relations(oes, ({ many }) => ({
@@ -733,5 +751,12 @@ export const eventsRelations = relations(events, ({ one }) => ({
     fields: [events.performedBy],
     references: [accounts.id],
     relationName: 'eventPerformedBy',
+  }),
+}))
+
+export const twoFactorCodesRelations = relations(twoFactorCodes, ({ one }) => ({
+  account: one(accounts, {
+    fields: [twoFactorCodes.accountId],
+    references: [accounts.id],
   }),
 }))
