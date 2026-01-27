@@ -10,11 +10,24 @@ import { DocumentGenerator } from './DocumentGenerator'
 import type { DocumentGenerationContext, DocumentGenerationResult } from './types'
 
 /**
+ * Données personnalisées pour l'attestation
+ * Ces valeurs sont utilisées à la place des valeurs BDD si fournies
+ */
+export interface AttestationCustomData {
+  customScope?: string
+  customExclusions?: string
+  customCompanies?: string
+}
+
+/**
  * Générateur d'attestations de labellisation
  *
  * Utilise pdf-lib pour remplir un template PDF existant
  */
 export class AttestationGenerator extends DocumentGenerator {
+  // Stocker les données personnalisées
+  private customData?: AttestationCustomData
+
   /**
    * Récupère l'audit, l'entité, et l'OE
    */
@@ -32,6 +45,7 @@ export class AttestationGenerator extends DocumentGenerator {
         entity: {
           with: {
             fieldVersions: true,
+            childEntities: true, // Pour les groupes
           },
         },
         oe: true,
@@ -66,6 +80,18 @@ export class AttestationGenerator extends DocumentGenerator {
     // OE optionnel (peut être null pour certains audits)
   }
 
+
+  /**
+   * Méthode publique pour générer avec données personnalisées
+   */
+  async generateWithCustomData(
+    context: DocumentGenerationContext,
+    saveOptions: any,
+    customData?: AttestationCustomData
+  ): Promise<number> {
+    this.customData = customData
+    return this.generate(context, saveOptions)
+  }
 
   /**
    * Génère le PDF de l'attestation en remplissant le template
@@ -187,8 +213,12 @@ export class AttestationGenerator extends DocumentGenerator {
       color: darkBlue,
     })
 
-    // Récupérer la dernière version du champ labelingScopeRequestedScope
-    const activity = getLatestFieldValueFromVersions(entity.fieldVersions, 'labelingScopeRequestedScope') || entity.activity || entity.description || ''
+    // Utiliser customScope si fourni, sinon valeur BDD
+    const activity = this.customData?.customScope ||
+      getLatestFieldValueFromVersions(entity.fieldVersions, 'labelingScopeRequestedScope') ||
+      entity.activity ||
+      entity.description ||
+      ''
 
     // Fonction pour découper le texte en lignes selon la largeur max
     const wrapText = (text: string, maxWidth: number, fontSize: number, fontToUse: any): string[] => {
@@ -222,15 +252,82 @@ export class AttestationGenerator extends DocumentGenerator {
     const activityLines = wrapText(activity, maxActivityWidth, 18, fontRegular)
 
     // Dessiner chaque ligne de l'activité
+    let currentY = startY - lineHeight
     activityLines.forEach((line, index) => {
       page.drawText(line, {
         x: marginX + activityLabelWidth,
-        y: startY - lineHeight - (index * 22),
+        y: currentY - (index * 22),
         size: 18,
         font: fontRegular,
         color: darkBlue,
       })
     })
+
+    // Calculer la position Y après l'activité
+    let nextY = currentY - (activityLines.length * 22) - 15
+
+    // --- NOUVEAU : Afficher les exclusions si présentes ---
+    const exclusionsRaw = this.customData?.customExclusions ||
+      getLatestFieldValueFromVersions(entity.fieldVersions, 'labelingScopeExcludeActivities')
+    const exclusions = exclusionsRaw ? String(exclusionsRaw) : ''
+
+    if (exclusions) {
+      const exclusionsLabel = "Exclusions du périmètre : "
+      const exclusionsLabelWidth = font.widthOfTextAtSize(exclusionsLabel, 14)
+
+      page.drawText(exclusionsLabel, {
+        x: marginX,
+        y: nextY,
+        size: 14,
+        font: font,
+        color: darkBlue,
+      })
+
+      const maxExclusionsWidth = rightMarginX - (marginX + exclusionsLabelWidth)
+      const exclusionsLines = wrapText(exclusions, maxExclusionsWidth, 14, fontRegular)
+
+      exclusionsLines.forEach((line, index) => {
+        page.drawText(line, {
+          x: marginX + exclusionsLabelWidth,
+          y: nextY - (index * 18),
+          size: 14,
+          font: fontRegular,
+          color: darkBlue,
+        })
+      })
+
+      nextY -= (exclusionsLines.length * 18) + 10
+    }
+
+    // --- NOUVEAU : Afficher la liste des entreprises si GROUP ---
+    const companiesRaw = this.customData?.customCompanies
+    const companies = companiesRaw ? String(companiesRaw) : ''
+
+    if (entity.type === 'GROUP' && companies) {
+      const companiesLabel = "Entreprises du groupe : "
+      const companiesLabelWidth = font.widthOfTextAtSize(companiesLabel, 14)
+
+      page.drawText(companiesLabel, {
+        x: marginX,
+        y: nextY,
+        size: 14,
+        font: font,
+        color: darkBlue,
+      })
+
+      const maxCompaniesWidth = rightMarginX - (marginX + companiesLabelWidth)
+      const companiesLines = wrapText(companies, maxCompaniesWidth, 14, fontRegular)
+
+      companiesLines.forEach((line, index) => {
+        page.drawText(line, {
+          x: marginX + companiesLabelWidth,
+          y: nextY - (index * 18),
+          size: 14,
+          font: fontRegular,
+          color: darkBlue,
+        })
+      })
+    }
 
     // --- Score global avec fond vert ---
     const scoreFullText = `Niveau de performance obtenu sur les exigences du label : ${audit.globalScore || 0} %`

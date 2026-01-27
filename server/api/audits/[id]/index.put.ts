@@ -18,6 +18,12 @@ interface UpdateAuditBody {
   oeOpinionArgumentaire?: string
   oeOpinionConditions?: string | null
   feefDecision?: string
+  // Données personnalisées pour l'attestation
+  attestationCustomData?: {
+    customScope?: string
+    customExclusions?: string
+    customCompanies?: string
+  }
 }
 
 /**
@@ -107,6 +113,7 @@ export default defineEventHandler(async (event) => {
     oeOpinionArgumentaire,
     oeOpinionConditions,
     feefDecision,
+    attestationCustomData,
     // labelExpirationDate n'est plus accepté du frontend - sera calculé automatiquement par le backend si nécessaire
   } = body
 
@@ -215,6 +222,11 @@ export default defineEventHandler(async (event) => {
     updateData.feefDecision = feefDecision
   }
 
+  // Sauvegarder les données personnalisées pour l'attestation
+  if (attestationCustomData !== undefined) {
+    updateData.attestationMetadata = attestationCustomData
+  }
+
   // Régénération d'attestation si l'audit est déjà COMPLETED et est mis à jour
   if (existingAudit.status === AuditStatus.COMPLETED && !status) {
     console.log('[PUT /api/audits/:id] Audit déjà COMPLETED, régénération de l\'attestation')
@@ -223,13 +235,14 @@ export default defineEventHandler(async (event) => {
       const { AttestationGenerator } = await import('~~/server/services/documentGeneration/AttestationGenerator')
       const generator = new AttestationGenerator()
 
-      await generator.generate(
+      await generator.generateWithCustomData(
         { event, data: { auditId: existingAudit.id } },
         {
           auditId: existingAudit.id,
           auditDocumentType: 'ATTESTATION',
           entityId: existingAudit.entityId,
-        }
+        },
+        attestationCustomData
       )
 
       console.log('[PUT /api/audits/:id] Attestation régénérée avec succès')

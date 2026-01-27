@@ -31,8 +31,18 @@ export interface UpdateAuditData {
   pannedDate?: string | null
   actualStartDate?: string | null
   actualEndDate?: string | null
-  score?: number | null
+  globalScore?: number | null
   labelingOpinion?: any | null
+  status?: string
+  oeOpinion?: string
+  oeOpinionArgumentaire?: string
+  oeOpinionConditions?: string | null
+  feefDecision?: string
+  attestationCustomData?: {
+    customScope?: string
+    customExclusions?: string
+    customCompanies?: string
+  }
 }
 
 // Types pour les relations
@@ -58,6 +68,17 @@ export interface AuditEntity {
     name: string
     type: string
   } | null
+  fields?: Array<{
+    key: string
+    label: string
+    type: string
+    value: any
+  }>
+  childEntities?: Array<{
+    id: number
+    name: string
+    type: string
+  }>
 }
 
 export interface AuditOE {

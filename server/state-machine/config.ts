@@ -298,8 +298,8 @@ export const auditStateMachineConfig: StateMachineConfig = {
     [AuditStatus.COMPLETED]: {
       status: AuditStatus.COMPLETED,
       onEnter: {
-        createActions: [],
-        executeActions: ['generate_attestation']
+        createActions: []
+        // executeActions supprimé - génération manuelle uniquement
       },
       transitions: {} // État final, pas de transitions
     },

@@ -1,7 +1,8 @@
-import { eq, and, desc, isNotNull } from 'drizzle-orm'
+import { eq, and, desc, isNotNull, isNull } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { audits, documentVersions } from '~~/server/database/schema'
+import { audits, documentVersions, entities } from '~~/server/database/schema'
 import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
+import { getFormattedEntityFields } from '~~/server/utils/entity-fields-formatter'
 
 /**
  * GET /api/audits/:id
@@ -66,6 +67,15 @@ export default defineEventHandler(async (event) => {
             },
           },
           parentGroup: {
+            columns: {
+              id: true,
+              name: true,
+              type: true,
+            },
+          },
+          fieldVersions: true,
+          childEntities: {
+            where: isNull(entities.deletedAt),
             columns: {
               id: true,
               name: true,
@@ -141,9 +151,16 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Formater les champs de l'entité
+  const formattedFields = await getFormattedEntityFields(audit.entity.id)
+
   return {
     data: {
       ...audit,
+      entity: {
+        ...audit.entity,
+        fields: formattedFields,
+      },
       lastDocumentVersions,
     },
   }

@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, timestamp, pgEnum, json, integer, date, primaryKey, type AnyPgColumn, boolean, text, numeric, index } from 'drizzle-orm/pg-core'
+import { pgTable, serial, varchar, timestamp, pgEnum, json, jsonb, integer, date, primaryKey, type AnyPgColumn, boolean, text, numeric, index } from 'drizzle-orm/pg-core'
 import { relations, sql } from 'drizzle-orm'
 
 // Define role enum
@@ -184,6 +184,11 @@ export const audits = pgTable('audits', {
   // FEEF Decision fields
   feefDecision: feefDecisionEnum('feef_decision'),
   labelExpirationDate: date('label_expiration_date'),
+  attestationMetadata: jsonb('attestation_metadata').$type<{
+    customScope?: string
+    customExclusions?: string
+    customCompanies?: string
+  }>(),
   // OE Response fields (acceptance/refusal)
   oeAccepted: boolean('oe_accepted'),
   oeRefusalReason: text('oe_refusal_reason'),

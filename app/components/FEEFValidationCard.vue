@@ -67,15 +67,12 @@
         @click="handleResultCardClick"
       >
         <template #actions>
-          <!-- Bouton pour régénération (si attestation manquante) -->
-          <div v-if="canRegenerateAttestation">
-            <UButton
-              @click="handleRegenerateAttestation"
-              label="Régénérer l'attestation"
-              icon="i-lucide-refresh-cw"
-              color="orange"
-              :loading="regenerating"
-              :disabled="regenerating"
+          <!-- Modal pour générer/régénérer l'attestation -->
+          <div v-if="canGenerateOrRegenerateAttestation" @click.stop>
+            <GenerateAttestationModal
+              :audit-id="currentAudit!.id"
+              :has-attestation="hasAttestation"
+              @generated="handleAttestationGenerated"
             />
           </div>
         </template>
@@ -89,6 +86,9 @@
                 class="text-xs text-green-600 mt-1"
               >
                 Jusqu'au {{ formatDate(labelExpirationDate) }}
+              </p>
+              <p v-if="!hasAttestation" class="text-xs text-orange-600 mt-2 font-medium">
+                ⚠️ Attestation non générée - Cliquez sur "Générer l'attestation"
               </p>
             </div>
             <div v-else>
@@ -128,8 +128,6 @@ const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
 // État pour DocumentViewer
 const showAttestationViewer = ref(false)
 
-// État de régénération
-const regenerating = ref(false)
 
 // Récupérer les événements de l'audit via le composable
 const { feefDecisionAt, feefDecisionByAccount } = useAuditEvents(
@@ -173,12 +171,13 @@ const canSubmitDecision = computed(() => {
   )
 })
 
-const canRegenerateAttestation = computed(() => {
+// Bouton "Générer" ou "Régénérer" selon si attestation existe
+const canGenerateOrRegenerateAttestation = computed(() => {
   return (
     user.value?.role === Role.FEEF &&
     hasDecision.value &&
-    feefDecision.value === 'ACCEPTED' &&
-    !hasAttestation.value
+    feefDecision.value === 'ACCEPTED'
+    // S'affiche toujours après décision ACCEPTED (attestation existe ou non)
   )
 })
 
@@ -224,32 +223,10 @@ function handleResultCardClick() {
   }
 }
 
-// Méthode de régénération de l'attestation
-async function handleRegenerateAttestation() {
-  if (!currentAudit.value) return
-
-  regenerating.value = true
-  try {
-    await $fetch(`/api/audits/${currentAudit.value.id}/regenerate-attestation`, {
-      method: 'POST',
-    })
-
+// Méthode appelée après génération/régénération réussie
+async function handleAttestationGenerated() {
+  if (currentAudit.value) {
     await fetchAudit(currentAudit.value.id)
-
-    toast.add({
-      title: 'Attestation générée',
-      description: "L'attestation de labellisation a été générée avec succès",
-      color: 'green',
-    })
-  } catch (error) {
-    console.error('Erreur lors de la régénération:', error)
-    toast.add({
-      title: 'Erreur',
-      description: "Impossible de générer l'attestation",
-      color: 'red',
-    })
-  } finally {
-    regenerating.value = false
   }
 }
 </script>

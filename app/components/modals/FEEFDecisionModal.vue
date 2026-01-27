@@ -3,7 +3,7 @@
     title="Valider la labellisation"
     :ui="{
       content: 'w-full max-w-md',
-      footer: 'justify-end'
+      footer: 'justify-end',
     }"
   >
     <!-- Bouton déclencheur -->
@@ -19,13 +19,15 @@
       <div class="space-y-4">
         <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
           <div class="flex items-start gap-3">
-            <UIcon name="i-lucide-award" class="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+            <UIcon
+              name="i-lucide-award"
+              class="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5"
+            />
             <div>
-              <p class="text-sm font-medium text-green-800 mb-1">
-                Attribution du label FEEF
-              </p>
+              <p class="text-sm font-medium text-green-800 mb-1">Attribution du label FEEF</p>
               <p class="text-sm text-green-700">
-                Vous êtes sur le point de valider la labellisation de cette entité pour une durée de 1 an.
+                Vous êtes sur le point de valider la labellisation de cette entité pour une durée de
+                1 an.
               </p>
             </div>
           </div>
@@ -35,8 +37,15 @@
           Cette action confirmera définitivement l'attribution du label FEEF à l'entité auditée.
         </p>
 
+        <p class="text-sm text-gray-500 italic mt-2">
+          Après validation, vous pourrez générer l'attestation de labellisation avec les informations personnalisées.
+        </p>
+
         <!-- Validation -->
-        <div v-if="validationError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
+        <div
+          v-if="validationError"
+          class="p-3 bg-red-50 border border-red-200 rounded-lg"
+        >
           <p class="text-sm text-red-700">{{ validationError }}</p>
         </div>
       </div>
@@ -71,11 +80,11 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  'submitted': [data: any]
+  submitted: [data: any]
 }>()
 
 // Composables
-const { updateAudit } = useAudits()
+const { updateAudit, fetchAudit, currentAudit } = useAudits()
 const { triggerActionRefresh } = useActionRefresh()
 const toast = useToast()
 
@@ -89,7 +98,8 @@ const submitDecision = async (closeModal?: () => void) => {
   submitting.value = true
 
   try {
-    // La date d'expiration sera calculée automatiquement par le backend
+    // Le status passera à COMPLETED via la state machine automatiquement
+    // La génération de l'attestation sera manuelle (via GenerateAttestationModal)
     const result = await updateAudit(props.auditId, {
       feefDecision: 'ACCEPTED',
       status: AuditStatus.COMPLETED,

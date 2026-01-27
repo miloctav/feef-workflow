@@ -33,18 +33,46 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Récupérer les données personnalisées du body ou fallback sur attestationMetadata
+  const body = await readBody(event)
+  const customData = {
+    ...(audit.attestationMetadata || {}),
+    ...(body || {}),
+  }
+  const { customScope, customExclusions, customCompanies } = customData
+
   try {
     const { AttestationGenerator } = await import('~~/server/services/documentGeneration/AttestationGenerator')
     const generator = new AttestationGenerator()
 
-    await generator.generate(
+    // Utiliser generateWithCustomData pour passer les données personnalisées
+    await generator.generateWithCustomData(
       { event, data: { auditId: audit.id } },
       {
         auditId: audit.id,
         auditDocumentType: 'ATTESTATION',
         entityId: audit.entityId,
+      },
+      // Passer les données personnalisées (avec fallback sur les données sauvegardées)
+      {
+        customScope,
+        customExclusions,
+        customCompanies,
       }
     )
+
+    // Sauvegarder les métadonnées dans la base de données
+    await db.update(audits)
+      .set({
+        attestationMetadata: {
+          customScope,
+          customExclusions,
+          customCompanies,
+        },
+        updatedAt: new Date(),
+        updatedBy: user.id,
+      })
+      .where(eq(audits.id, audit.id))
 
     return { data: { success: true, message: 'Attestation générée avec succès' } }
   } catch (error: any) {
