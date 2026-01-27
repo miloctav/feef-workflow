@@ -395,6 +395,7 @@ const documentsByCategory = computed(() => {
     CANDIDACY: [],
     AUDIT: [],
     OTHER: [],
+    CORRECTIVE_ACTION_PROOF: [],
   }
 
   documentaryReviews.value.forEach((doc) => {
@@ -426,6 +427,7 @@ function getCategoryIconColor(categoryKey: string): string {
     CANDIDACY: 'text-blue-500',
     AUDIT: 'text-green-500',
     OTHER: 'text-gray-500',
+    CORRECTIVE_ACTION_PROOF: 'text-orange-500',
   }
   return colors[categoryKey] || 'text-gray-500'
 }
@@ -435,6 +437,7 @@ function getCategoryBackgroundClass(color: string): string {
     primary: 'bg-blue-100',
     success: 'bg-green-100',
     neutral: 'bg-gray-100',
+    warning: 'bg-orange-100',
   }
   return colorMap[color] || 'bg-gray-100'
 }

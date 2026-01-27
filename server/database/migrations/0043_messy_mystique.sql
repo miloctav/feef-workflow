@@ -1,0 +1,1 @@
+ALTER TYPE "public"."document_category" ADD VALUE 'CORRECTIVE_ACTION_PROOF';

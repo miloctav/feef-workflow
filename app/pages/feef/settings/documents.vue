@@ -191,7 +191,7 @@ const autoAskFilterOptions = [
 const schema = z.object({
   title: z.string().min(1, 'Le titre est requis').min(3, 'Le titre doit contenir au moins 3 caractères'),
   description: z.string().optional(),
-  category: z.enum(['CANDIDACY', 'AUDIT', 'OTHER'], {
+  category: z.enum(['CANDIDACY', 'AUDIT', 'OTHER', 'CORRECTIVE_ACTION_PROOF'], {
     message: 'La catégorie est requise',
   }),
   autoAsk: z.boolean().optional(),

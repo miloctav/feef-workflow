@@ -226,6 +226,7 @@ export const DocumentaryReviewCategory = {
   CANDIDACY: 'CANDIDACY',
   AUDIT: 'AUDIT',
   OTHER: 'OTHER',
+  CORRECTIVE_ACTION_PROOF: 'CORRECTIVE_ACTION_PROOF',
 } as const
 
 export type DocumentaryReviewCategoryType = typeof DocumentaryReviewCategory[keyof typeof DocumentaryReviewCategory]
@@ -237,6 +238,7 @@ export const DocumentaryReviewCategoryLabels: Record<DocumentaryReviewCategoryTy
   [DocumentaryReviewCategory.CANDIDACY]: 'Documents de candidature',
   [DocumentaryReviewCategory.AUDIT]: 'Documents d\'audits',
   [DocumentaryReviewCategory.OTHER]: 'Autres',
+  [DocumentaryReviewCategory.CORRECTIVE_ACTION_PROOF]: 'Preuves du plan d\'action correctif',
 }
 
 /**
@@ -246,15 +248,17 @@ export const DocumentaryReviewCategoryIcons: Record<DocumentaryReviewCategoryTyp
   [DocumentaryReviewCategory.CANDIDACY]: 'i-lucide-file-check',
   [DocumentaryReviewCategory.AUDIT]: 'i-lucide-clipboard-check',
   [DocumentaryReviewCategory.OTHER]: 'i-lucide-file',
+  [DocumentaryReviewCategory.CORRECTIVE_ACTION_PROOF]: 'i-lucide-file-badge',
 }
 
 /**
  * Couleurs de badge pour les catégories (pour Nuxt UI)
  */
-export const DocumentaryReviewCategoryColors: Record<DocumentaryReviewCategoryType, 'primary' | 'success' | 'neutral'> = {
+export const DocumentaryReviewCategoryColors: Record<DocumentaryReviewCategoryType, 'primary' | 'success' | 'neutral' | 'warning'> = {
   [DocumentaryReviewCategory.CANDIDACY]: 'primary',
   [DocumentaryReviewCategory.AUDIT]: 'success',
   [DocumentaryReviewCategory.OTHER]: 'neutral',
+  [DocumentaryReviewCategory.CORRECTIVE_ACTION_PROOF]: 'warning',
 }
 
 /**
@@ -274,7 +278,7 @@ export function getDocumentaryReviewCategoryIcon(category: DocumentaryReviewCate
 /**
  * Obtenir la couleur du badge d'une catégorie
  */
-export function getDocumentaryReviewCategoryColor(category: DocumentaryReviewCategoryType): 'primary' | 'success' | 'neutral' {
+export function getDocumentaryReviewCategoryColor(category: DocumentaryReviewCategoryType): 'primary' | 'success' | 'neutral' | 'warning' {
   return DocumentaryReviewCategoryColors[category] || 'neutral'
 }
 
