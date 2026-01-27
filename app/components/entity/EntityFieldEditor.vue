@@ -9,6 +9,16 @@
     <!-- Corps avec input et timeline -->
     <template #body>
       <div class="flex flex-col h-full space-y-8">
+        <!-- Alerte verrouillage audit -->
+        <UAlert
+          v-if="locked && lockReason"
+          color="warning"
+          icon="i-lucide-lock"
+          title="Champs verrouillés"
+          :description="lockReason"
+          class="mb-6"
+        />
+
         <!-- Zone d'édition mise en évidence (seulement si pas en lecture seule) -->
         <div
           v-if="!isReadOnly"
@@ -237,11 +247,15 @@ interface Props {
   fields?: EntityField[]
   initialFieldKey?: string
   open?: boolean
+  locked?: boolean
+  lockReason?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
   open: false,
   fields: () => [],
+  locked: false,
+  lockReason: null,
 })
 
 const emit = defineEmits<{
@@ -266,6 +280,10 @@ const { user } = useAuth()
 
 // Computed: est-ce que l'utilisateur est en mode lecture seule ?
 const isReadOnly = computed(() => {
+  // Si verrouillé explicitement (audit), toujours read-only
+  if (props.locked) return true
+
+  // Sinon, vérifier le rôle (OE/AUDITOR)
   return user.value?.role === Role.OE || user.value?.role === Role.AUDITOR
 })
 

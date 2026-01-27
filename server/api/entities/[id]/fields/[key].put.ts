@@ -6,6 +6,7 @@
 
 import { setEntityField, type EntityFieldValue } from '~~/server/utils/entity-fields'
 import { isValidFieldKey, type EntityFieldKey } from '~~/server/database/entity-fields-config'
+import { requireVersionedFieldsEditAccess } from '~~/server/utils/audit-lock'
 
 export default defineEventHandler(async (event) => {
   const { id, key } = getRouterParams(event)
@@ -37,6 +38,9 @@ export default defineEventHandler(async (event) => {
       accessType: AccessType.WRITE,
       errorMessage: 'Vous n\'avez pas accès à cette entité'
   })
+
+  // Vérifier le verrouillage audit pour champs versionnés
+  await requireVersionedFieldsEditAccess(user, entityId)
 
   try {
     // Créer une nouvelle version du champ

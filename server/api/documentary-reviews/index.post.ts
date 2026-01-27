@@ -9,13 +9,6 @@ export default defineEventHandler(async (event) => {
   // Authentification et vérification du rôle FEEF
   const { user } = await requireUserSession(event)
 
-  if (user.role !== Role.FEEF) {
-    throw createError({
-      statusCode: 403,
-      message: 'Seul le rôle FEEF peut créer des documents de revue documentaire',
-    })
-  }
-
   const body = await readBody(event)
 
   // Validation du entityId (obligatoire dans tous les cas)

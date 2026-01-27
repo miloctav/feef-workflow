@@ -11,6 +11,8 @@ import {
   type AuditStatusType,
 } from '~~/shared/types/enums'
 import { getAuditStatusLabel, getAuditStatusColor } from '~~/shared/types/enums'
+import { isAuditStatusActive, getAuditLockReason } from '#shared/utils/audit-status'
+import { Role, OERole } from '#shared/types/roles'
 import ActionsList from '~/components/actions/ActionsList.vue'
 import { useSimpleActions } from '~/composables/useSimpleActions'
 
@@ -34,6 +36,30 @@ const isFollowerView = computed(() => !!props.followerEntity)
 
 // Dernier audit de l'entité
 const latestAudit = computed(() => displayEntity.value?.audits?.[0] || null)
+
+// Vérifier si les champs versionnés sont verrouillés
+const isVersionedFieldsLocked = computed(() => {
+  // FEEF peut toujours éditer (bypass)
+  if (user.value?.role === Role.FEEF) {
+    return false
+  }
+
+  // ENTITY : verrouillé si audit actif
+  if (user.value?.role === Role.ENTITY) {
+    if (!latestAudit.value) return false
+    return isAuditStatusActive(latestAudit.value.status)
+  }
+
+  // OE/AUDITOR : toujours verrouillé (lecture seule)
+  return user.value?.role === Role.OE || user.value?.role === Role.AUDITOR
+})
+
+// Message d'explication du verrouillage
+const versionedFieldsLockReason = computed(() => {
+  if (!isVersionedFieldsLocked.value) return null
+  if (!latestAudit.value) return null
+  return getAuditLockReason(latestAudit.value.status)
+})
 
 // Récupérer les événements de l'audit via le composable
 const { caseSubmittedAt, caseSubmittedByAccount, caseApprovedAt, caseApprovedByAccount } =
@@ -1612,6 +1638,8 @@ const hasMasterEntityInfo = computed(() => {
     :entity-id="displayEntity.id"
     :fields="displayEntity.fields || []"
     :initial-field-key="selectedFieldKey"
+    :locked="isVersionedFieldsLocked"
+    :lock-reason="versionedFieldsLockReason"
   />
 
   <!-- Slideover d'édition des groupes de champs -->
@@ -1621,6 +1649,8 @@ const hasMasterEntityInfo = computed(() => {
     :entity-id="displayEntity.id"
     :group-key="selectedGroupKey"
     :fields="displayEntity.fields || []"
+    :locked="isVersionedFieldsLocked"
+    :lock-reason="versionedFieldsLockReason"
     @updated="handleRefreshEntity"
   />
 </template>
