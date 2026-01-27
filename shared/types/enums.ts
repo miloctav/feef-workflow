@@ -220,6 +220,49 @@ export function getAuditStatusColor(status: AuditStatusType): 'primary' | 'warni
 }
 
 /**
+ * Flow des statuts d'audit (ordre chronologique)
+ * Exclut REFUSED_BY_OE qui est hors du flow normal
+ */
+export const AuditStatusFlow: AuditStatusType[] = [
+  AuditStatus.PENDING_CASE_APPROVAL,
+  AuditStatus.PENDING_OE_CHOICE,
+  AuditStatus.PENDING_OE_ACCEPTANCE,
+  AuditStatus.PLANNING,
+  AuditStatus.SCHEDULED,
+  AuditStatus.PENDING_REPORT,
+  AuditStatus.PENDING_CORRECTIVE_PLAN,
+  AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION,
+  AuditStatus.PENDING_OE_OPINION,
+  AuditStatus.PENDING_FEEF_DECISION,
+  AuditStatus.COMPLETED,
+]
+
+/**
+ * Descriptions détaillées pour les statuts d'audit
+ */
+export const AuditStatusDescriptions: Record<AuditStatusType, string> = {
+  [AuditStatus.PENDING_CASE_APPROVAL]: 'Le dossier attend la validation par FEEF',
+  [AuditStatus.PENDING_OE_CHOICE]: "Sélection de l'organisme évaluateur",
+  [AuditStatus.PENDING_OE_ACCEPTANCE]: "En attente de l'acceptation par l'OE",
+  [AuditStatus.PLANNING]: "Planification de l'audit avec l'auditeur",
+  [AuditStatus.SCHEDULED]: 'Audit planifié, en attente de réalisation',
+  [AuditStatus.PENDING_REPORT]: "Rédaction du rapport d'audit",
+  [AuditStatus.PENDING_CORRECTIVE_PLAN]: "Élaboration du plan d'action correctif",
+  [AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION]: "Validation du plan correctif par l'OE",
+  [AuditStatus.PENDING_OE_OPINION]: "Rédaction de l'avis par l'organisme évaluateur",
+  [AuditStatus.PENDING_FEEF_DECISION]: 'Décision finale de labellisation par FEEF',
+  [AuditStatus.COMPLETED]: 'Label obtenu avec succès !',
+  [AuditStatus.REFUSED_BY_OE]: "Audit refusé par l'organisme évaluateur"
+}
+
+/**
+ * Obtenir la description d'un statut d'audit
+ */
+export function getAuditStatusDescription(status: AuditStatusType): string {
+  return AuditStatusDescriptions[status] || ''
+}
+
+/**
  * Catégories de documents de revue documentaire
  */
 export const DocumentaryReviewCategory = {

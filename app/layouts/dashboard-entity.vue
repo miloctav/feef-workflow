@@ -50,7 +50,8 @@
 
 <script setup lang="ts">
 const items = [
-  { label: 'Mon dossier', icon: 'i-lucide-home', to: `/entity` },
+  { label: 'Tableau de bord', icon: 'i-lucide-layout-dashboard', to: `/entity` },
+  { label: 'Mon dossier', icon: 'i-lucide-home', to: `/entity/case` },
   { label: 'Mon espace documentaire', icon: 'i-lucide-folder-open', to: `/entity/documents` },
   { label: 'Mes contrats', icon: 'i-lucide-file-signature', to: `/entity/contracts` },
   { label: 'Mes audits', icon: 'i-lucide-clipboard-list', to: `/entity/audits` },
