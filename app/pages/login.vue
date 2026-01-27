@@ -63,7 +63,9 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
           alt="Logo PME+"
           class="h-20 w-auto mx-auto mb-4"
         />
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">FEEF Workflow</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          Bienvenue dans la plateforme de suivi des processus de labellisation PME+
+        </h1>
         <p class="text-gray-600 dark:text-gray-400">Connectez-vous à votre compte</p>
       </div>
 
