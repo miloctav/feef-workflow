@@ -96,7 +96,7 @@ export function usePaginatedFetch<T>(
   if (enableWatch) {
     watch([page, limit, search, sort, filters], () => {
       console.log('[usePaginatedFetch] Watcher triggered. Refreshing...', { query: queryParams.value })
-      refresh()
+      execute()
     })
   }
 

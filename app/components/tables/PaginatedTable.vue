@@ -227,16 +227,15 @@ const currentPage = computed({
 // Debounce pour la recherche
 let searchTimeout: NodeJS.Timeout | null = null
 
-const handleSearchInput = (event: Event) => {
+const handleSearchInput = () => {
   if(!setSearch) return
-  const value = (event.target as HTMLInputElement).value
 
   if (searchTimeout) {
     clearTimeout(searchTimeout)
   }
 
   searchTimeout = setTimeout(() => {
-    setSearch(value)
+    setSearch(searchQuery.value)
   }, 300)
 }
 
