@@ -229,3 +229,55 @@ export async function oeHasAccepted(audit: Audit): Promise<boolean> {
 export async function oeHasRefused(audit: Audit): Promise<boolean> {
   return await hasEventOccurred('AUDIT_OE_REFUSED', { auditId: audit.id })
 }
+
+// ============================================
+// Guards pour l'audit complémentaire
+// ============================================
+
+/**
+ * Vérifie si le plan d'action a été refusé
+ *
+ * Vérifie qu'un événement AUDIT_CORRECTIVE_PLAN_REFUSED existe.
+ */
+export async function actionPlanRefused(audit: Audit): Promise<boolean> {
+  return await hasEventOccurred('AUDIT_CORRECTIVE_PLAN_REFUSED', { auditId: audit.id })
+}
+
+/**
+ * Vérifie si un audit complémentaire a été demandé
+ *
+ * Vérifie qu'un événement AUDIT_COMPLEMENTARY_REQUESTED existe.
+ */
+export async function complementaryAuditRequested(audit: Audit): Promise<boolean> {
+  return await hasEventOccurred('AUDIT_COMPLEMENTARY_REQUESTED', { auditId: audit.id })
+}
+
+/**
+ * Vérifie qu'aucun audit complémentaire n'a été fait précédemment
+ *
+ * Vérifie que hasComplementaryAudit est false.
+ */
+export async function noPreviousComplementaryAudit(audit: Audit): Promise<boolean> {
+  return audit.hasComplementaryAudit !== true
+}
+
+/**
+ * Vérifie si le score global complémentaire est défini
+ *
+ * Vérifie que complementaryGlobalScore est non null.
+ */
+export async function hasComplementaryGlobalScore(audit: Audit): Promise<boolean> {
+  return audit.complementaryGlobalScore !== null && audit.complementaryGlobalScore !== undefined
+}
+
+/**
+ * Vérifie si un rapport d'audit complémentaire existe
+ *
+ * Recherche un document de type REPORT uploadé après le début de l'audit complémentaire
+ * ou vérifie que complementaryGlobalScore est défini (rapport uploadé avec score).
+ */
+export async function hasComplementaryReport(audit: Audit): Promise<boolean> {
+  // Un rapport complémentaire est considéré comme uploadé si le score complémentaire est défini
+  // car le score n'est défini que lors de l'upload du rapport complémentaire
+  return audit.complementaryGlobalScore !== null && audit.complementaryGlobalScore !== undefined
+}

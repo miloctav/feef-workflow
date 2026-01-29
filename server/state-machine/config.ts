@@ -265,6 +265,19 @@ export const auditStateMachineConfig: StateMachineConfig = {
           trigger: 'AUTO_DOCUMENT',
           triggerOnActions: [ActionType.VALIDATE_CORRECTIVE_PLAN],
           description: 'Plan d\'action validé par OE/FEEF'
+        },
+        refuse_plan: {
+          target: AuditStatus.REFUSED_PLAN,
+          guards: ['action_plan_refused'],
+          trigger: 'MANUAL',
+          description: 'Plan d\'action refusé définitivement par OE/FEEF'
+        },
+        request_complementary_audit: {
+          target: AuditStatus.PENDING_COMPLEMENTARY_AUDIT,
+          guards: ['complementary_audit_requested', 'no_previous_complementary_audit'],
+          trigger: 'MANUAL',
+          actions: ['mark_complementary_audit_started'],
+          description: 'Demande d\'audit complémentaire (première fois uniquement)'
         }
       }
     },
@@ -314,6 +327,42 @@ export const auditStateMachineConfig: StateMachineConfig = {
         createActions: []
       },
       transitions: {} // État terminal, pas de transitions
+    },
+
+    // ============================================
+    // État: REFUSED_PLAN
+    // Description: Plan d'action refusé définitivement (terminal)
+    // ============================================
+    [AuditStatus.REFUSED_PLAN]: {
+      status: AuditStatus.REFUSED_PLAN,
+      onEnter: {
+        createActions: []
+      },
+      transitions: {} // État terminal, pas de transitions
+    },
+
+    // ============================================
+    // État: PENDING_COMPLEMENTARY_AUDIT
+    // Description: En attente d'un audit complémentaire (phase 2)
+    // ============================================
+    [AuditStatus.PENDING_COMPLEMENTARY_AUDIT]: {
+      status: AuditStatus.PENDING_COMPLEMENTARY_AUDIT,
+      onEnter: {
+        createActions: [
+          ActionType.SET_COMPLEMENTARY_AUDIT_DATES,
+          ActionType.UPLOAD_COMPLEMENTARY_REPORT
+        ]
+      },
+      transitions: {
+        to_pending_opinion: {
+          target: AuditStatus.PENDING_OE_OPINION,
+          guards: ['has_complementary_report', 'has_complementary_global_score'],
+          trigger: 'AUTO_DOCUMENT',
+          triggerOnActions: [ActionType.UPLOAD_COMPLEMENTARY_REPORT],
+          actions: ['check_if_action_plan_needed_phase2'],
+          description: 'Rapport complémentaire uploadé + score phase 2 défini'
+        }
+      }
     }
   },
 
@@ -339,6 +388,12 @@ export const auditStateMachineConfig: StateMachineConfig = {
     is_monitoring_audit: guards.isMonitoringAudit,
     oe_has_accepted: guards.oeHasAccepted,
     oe_has_refused: guards.oeHasRefused,
+    // Complementary audit guards
+    action_plan_refused: guards.actionPlanRefused,
+    complementary_audit_requested: guards.complementaryAuditRequested,
+    no_previous_complementary_audit: guards.noPreviousComplementaryAudit,
+    has_complementary_report: guards.hasComplementaryReport,
+    has_complementary_global_score: guards.hasComplementaryGlobalScore,
   },
 
   // ============================================
@@ -350,5 +405,8 @@ export const auditStateMachineConfig: StateMachineConfig = {
     reset_entity_workflow: actions.resetEntityWorkflow,
     generate_attestation: actions.generateAttestation,
     create_new_audit_after_refusal: actions.createNewAuditAfterRefusal,
+    // Complementary audit actions
+    mark_complementary_audit_started: actions.markComplementaryAuditStarted,
+    check_if_action_plan_needed_phase2: actions.checkIfActionPlanNeededPhase2,
   }
 }

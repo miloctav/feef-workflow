@@ -1,25 +1,26 @@
 <template>
   <UModal
-    title="Dates d'audit"
+    :title="modalTitle"
     :ui="{
       content: 'w-full max-w-lg',
       footer: 'justify-end',
     }"
   >
-    <!-- Bouton déclencheur -->
+    <!-- Bouton déclencheur (optionnel) -->
     <UButton
+      v-if="props.showTriggerButton"
       size="xs"
       color="neutral"
       variant="outline"
       icon="i-lucide-edit"
-      label="Modifier dates réelles"
+      :label="props.mode === 'phase2' ? 'Modifier dates complémentaires' : 'Modifier dates réelles'"
     />
 
     <template #body>
       <div class="space-y-6">
-        <!-- Date prévisionnelle (lecture seule) -->
+        <!-- Date prévisionnelle (lecture seule) - uniquement mode phase1 -->
         <div
-          v-if="hasPlannedDate"
+          v-if="props.mode === 'phase1' && hasPlannedDate"
           class="space-y-4"
         >
           <div class="flex items-center gap-2">
@@ -58,7 +59,7 @@
         </div>
 
         <div
-          v-else
+          v-else-if="props.mode === 'phase1'"
           class="p-4 bg-gray-50 border border-gray-200 rounded-lg"
         >
           <div class="flex items-start gap-2">
@@ -75,10 +76,12 @@
           </div>
         </div>
 
-        <!-- Dates réelles (modifiables) -->
+        <!-- Dates à saisir (modifiables) -->
         <div class="space-y-4">
           <div class="flex items-center gap-2">
-            <h4 class="font-medium text-gray-900">Dates réelles de l'audit</h4>
+            <h4 class="font-medium text-gray-900">
+              {{ props.mode === 'phase1' ? "Dates réelles de l'audit" : "Dates de l'audit complémentaire" }}
+            </h4>
             <UBadge
               size="xs"
               color="success"
@@ -120,7 +123,7 @@
           </UInputDate>
 
           <div
-            v-if="form.actualStartDate && form.actualEndDate"
+            v-if="(props.mode === 'phase1' && form.actualStartDate && form.actualEndDate) || (props.mode === 'phase2' && form.complementaryStartDate && form.complementaryEndDate)"
             class="text-xs text-gray-600 mt-2"
           >
             <p>Durée : {{ auditDuration }} jour{{ auditDuration > 1 ? 's' : '' }}</p>
@@ -144,7 +147,7 @@
         @click="close"
       />
       <UButton
-        label="Enregistrer les dates réelles"
+        :label="saveButtonLabel"
         icon="i-lucide-save"
         :loading="saving"
         :disabled="!!dateError || saving"
@@ -159,15 +162,26 @@ import { CalendarDate, parseDate } from '@internationalized/date'
 
 interface Props {
   auditId: number
+  // Props existantes pour phase 1
   initialPlannedDate?: string | null
   initialActualStartDate?: string | null
   initialActualEndDate?: string | null
+  // NOUVELLES props pour phase 2
+  mode?: 'phase1' | 'phase2'
+  initialComplementaryStartDate?: string | null
+  initialComplementaryEndDate?: string | null
+  // Contrôle de l'affichage du bouton déclencheur
+  showTriggerButton?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  mode: 'phase1',
   initialPlannedDate: null,
   initialActualStartDate: null,
   initialActualEndDate: null,
+  initialComplementaryStartDate: null,
+  initialComplementaryEndDate: null,
+  showTriggerButton: true,
 })
 
 const emit = defineEmits<{
@@ -193,15 +207,38 @@ const hasPlannedDate = computed(() => {
   return !!props.initialPlannedDate
 })
 
-// Formulaire (uniquement les dates réelles)
+// Formulaire pour les deux modes
 const form = reactive({
   actualStartDate: '',
   actualEndDate: '',
+  complementaryStartDate: '',
+  complementaryEndDate: '',
+})
+
+// Computed pour le titre du modal
+const modalTitle = computed(() => {
+  return props.mode === 'phase1' ? "Dates d'audit" : "Dates de l'audit complémentaire"
+})
+
+// Computed pour le label du bouton de sauvegarde
+const saveButtonLabel = computed(() => {
+  return props.mode === 'phase1' ? 'Enregistrer les dates réelles' : 'Enregistrer les dates complémentaires'
 })
 
 // Computed pour convertir les dates string en objet CalendarDate range
 const dateRange = computed({
   get() {
+    if (props.mode === 'phase2') {
+      if (!form.complementaryStartDate || !form.complementaryEndDate) {
+        return undefined
+      }
+      return {
+        start: parseDate(form.complementaryStartDate),
+        end: parseDate(form.complementaryEndDate),
+      }
+    }
+
+    // Mode phase1 (logique existante)
     if (!form.actualStartDate || !form.actualEndDate) {
       return undefined
     }
@@ -212,6 +249,18 @@ const dateRange = computed({
     }
   },
   set(value: { start?: CalendarDate; end?: CalendarDate } | null | undefined) {
+    if (props.mode === 'phase2') {
+      if (!value || !value.start || !value.end) {
+        form.complementaryStartDate = value?.start?.toString() || ''
+        form.complementaryEndDate = value?.end?.toString() || ''
+        return
+      }
+      form.complementaryStartDate = value.start.toString()
+      form.complementaryEndDate = value.end.toString()
+      return
+    }
+
+    // Mode phase1 (logique existante)
     if (!value || !value.start || !value.end) {
       form.actualStartDate = value?.start?.toString() || ''
       form.actualEndDate = value?.end?.toString() || ''
@@ -239,8 +288,18 @@ const depositDeadline = computed(() => {
   })
 })
 
-// Durée de l'audit réel
+// Durée de l'audit
 const auditDuration = computed(() => {
+  if (props.mode === 'phase2') {
+    if (!form.complementaryStartDate || !form.complementaryEndDate) return 0
+    const start = new Date(form.complementaryStartDate)
+    const end = new Date(form.complementaryEndDate)
+    const diffTime = Math.abs(end.getTime() - start.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays + 1
+  }
+
+  // Mode phase1 (logique existante)
   if (!form.actualStartDate || !form.actualEndDate) return 0
 
   const start = new Date(form.actualStartDate)
@@ -251,29 +310,49 @@ const auditDuration = computed(() => {
   return diffDays + 1 // +1 pour inclure le jour de début
 })
 
-// Erreur de validation des dates réelles
+// Erreur de validation des dates
 const dateError = computed(() => {
-  // Vérifier les dates réelles si elles sont toutes deux renseignées
-  if (form.actualStartDate && form.actualEndDate) {
-    const actualStart = new Date(form.actualStartDate)
-    const actualEnd = new Date(form.actualEndDate)
+  if (props.mode === 'phase2') {
+    if (form.complementaryStartDate && form.complementaryEndDate) {
+      const start = new Date(form.complementaryStartDate)
+      const end = new Date(form.complementaryEndDate)
 
-    if (actualEnd < actualStart) {
-      return 'La date de fin réelle ne peut pas être antérieure à la date de début réelle'
+      if (end < start) {
+        return "La date de fin de l'audit complémentaire ne peut pas être antérieure à la date de début"
+      }
+    }
+  } else {
+    // Vérifier les dates réelles si elles sont toutes deux renseignées
+    if (form.actualStartDate && form.actualEndDate) {
+      const actualStart = new Date(form.actualStartDate)
+      const actualEnd = new Date(form.actualEndDate)
+
+      if (actualEnd < actualStart) {
+        return 'La date de fin réelle ne peut pas être antérieure à la date de début réelle'
+      }
     }
   }
 
   return null
 })
 
-// Initialiser le formulaire avec les valeurs existantes (uniquement dates réelles)
+// Initialiser le formulaire avec les valeurs existantes
 const initForm = () => {
-  form.actualStartDate = props.initialActualStartDate
-    ? new Date(props.initialActualStartDate).toISOString().split('T')[0] || ''
-    : ''
-  form.actualEndDate = props.initialActualEndDate
-    ? new Date(props.initialActualEndDate).toISOString().split('T')[0] || ''
-    : ''
+  if (props.mode === 'phase2') {
+    form.complementaryStartDate = props.initialComplementaryStartDate
+      ? new Date(props.initialComplementaryStartDate).toISOString().split('T')[0] || ''
+      : ''
+    form.complementaryEndDate = props.initialComplementaryEndDate
+      ? new Date(props.initialComplementaryEndDate).toISOString().split('T')[0] || ''
+      : ''
+  } else {
+    form.actualStartDate = props.initialActualStartDate
+      ? new Date(props.initialActualStartDate).toISOString().split('T')[0] || ''
+      : ''
+    form.actualEndDate = props.initialActualEndDate
+      ? new Date(props.initialActualEndDate).toISOString().split('T')[0] || ''
+      : ''
+  }
 }
 
 // Formater une date pour l'affichage en lecture seule
@@ -293,16 +372,22 @@ onMounted(() => {
   initForm()
 })
 
-// Sauvegarder les dates réelles
+// Sauvegarder les dates
 const saveDates = async (closeModal?: () => void) => {
   saving.value = true
 
   try {
-    // Envoyer uniquement les dates réelles (peuvent être null)
-    const updateData: any = {
-      actualStartDate: form.actualStartDate || null,
-      actualEndDate: form.actualEndDate || null,
-    }
+    // Construire les données selon le mode
+    const updateData: any =
+      props.mode === 'phase2'
+        ? {
+            complementaryStartDate: form.complementaryStartDate || null,
+            complementaryEndDate: form.complementaryEndDate || null,
+          }
+        : {
+            actualStartDate: form.actualStartDate || null,
+            actualEndDate: form.actualEndDate || null,
+          }
 
     const result = await updateAudit(props.auditId, updateData)
 
@@ -323,15 +408,21 @@ const saveDates = async (closeModal?: () => void) => {
       }
       toast.add({
         title: 'Succès',
-        description: 'Dates réelles enregistrées avec succès',
+        description:
+          props.mode === 'phase2'
+            ? 'Dates complémentaires enregistrées avec succès'
+            : 'Dates réelles enregistrées avec succès',
         color: 'success',
       })
     }
   } catch (error) {
-    console.error('Erreur sauvegarde dates réelles:', error)
+    console.error('Erreur sauvegarde dates:', error)
     toast.add({
       title: 'Erreur',
-      description: "Impossible d'enregistrer les dates réelles",
+      description:
+        props.mode === 'phase2'
+          ? "Impossible d'enregistrer les dates complémentaires"
+          : "Impossible d'enregistrer les dates réelles",
       color: 'error',
     })
   } finally {

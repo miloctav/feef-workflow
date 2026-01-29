@@ -4,6 +4,7 @@ import type {
   ScoreInput,
   UpdateAuditNotationData,
 } from '~~/app/types/auditNotation'
+import { AuditPhase, type AuditPhaseType } from '#shared/types/enums'
 
 export const useAuditNotation = () => {
   const toast = useToast()
@@ -20,13 +21,19 @@ export const useAuditNotation = () => {
 
   /**
    * Récupérer tous les scores de notation d'un audit
+   * @param auditId - ID de l'audit
+   * @param phase - Phase optionnelle (PHASE_1 ou PHASE_2), si non fourni retourne tous les scores
    */
-  const fetchAuditNotations = async (auditId: number) => {
+  const fetchAuditNotations = async (auditId: number, phase?: AuditPhaseType) => {
     fetchLoading.value = true
     fetchError.value = null
 
     try {
-      const response = await $fetch<{ data: AuditNotationWithEnrichment[] }>(`/api/audits/${auditId}/notation`)
+      const url = phase
+        ? `/api/audits/${auditId}/notation?phase=${phase}`
+        : `/api/audits/${auditId}/notation`
+
+      const response = await $fetch<{ data: AuditNotationWithEnrichment[] }>(url)
 
       auditNotations.value = response.data
 
@@ -52,21 +59,24 @@ export const useAuditNotation = () => {
 
   /**
    * Mettre à jour les scores de notation d'un audit (upsert complet)
-   * Remplace tous les scores existants par les nouveaux
+   * Remplace tous les scores existants de la phase par les nouveaux
+   * @param auditId - ID de l'audit
+   * @param scores - Liste des scores à enregistrer
+   * @param phase - Phase (PHASE_1 par défaut)
    */
-  const updateAuditNotations = async (auditId: number, scores: ScoreInput[]) => {
+  const updateAuditNotations = async (auditId: number, scores: ScoreInput[], phase: AuditPhaseType = AuditPhase.PHASE_1) => {
     updateLoading.value = true
 
     try {
-      const body: UpdateAuditNotationData = { scores }
+      const body: UpdateAuditNotationData = { scores, phase }
 
       const response = await $fetch<{ data: AuditNotationWithEnrichment[] }>(`/api/audits/${auditId}/notation`, {
         method: 'POST',
         body,
       })
 
-      // Rafraîchir la liste après la mise à jour
-      await fetchAuditNotations(auditId)
+      // Rafraîchir la liste après la mise à jour (même phase)
+      await fetchAuditNotations(auditId, phase)
 
       toast.add({
         title: 'Succès',

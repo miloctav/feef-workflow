@@ -186,3 +186,57 @@ export async function createNewAuditAfterRefusal(audit: Audit, event: H3Event): 
 
   console.log(`[State Machine Action] ✅ Actions créées pour le nouvel audit ${newAudit.id}`)
 }
+
+// ============================================
+// Actions pour l'audit complémentaire
+// ============================================
+
+/**
+ * Marque le début de l'audit complémentaire
+ *
+ * Cette action est exécutée lors de la transition vers PENDING_COMPLEMENTARY_AUDIT.
+ * Elle met à jour le flag hasComplementaryAudit à true.
+ */
+export async function markComplementaryAuditStarted(audit: Audit, event: H3Event): Promise<void> {
+  console.log(`[State Machine Action] Marquage du début de l'audit complémentaire pour audit ${audit.id}`)
+
+  await db.update(audits)
+    .set(forUpdate(event, {
+      hasComplementaryAudit: true,
+    }))
+    .where(eq(audits.id, audit.id))
+
+  console.log(`[State Machine Action] ✅ hasComplementaryAudit mis à true pour audit ${audit.id}`)
+}
+
+/**
+ * Vérifie le type de plan d'action nécessaire pour la phase 2 (audit complémentaire)
+ *
+ * Cette action est similaire à checkIfActionPlanNeeded mais utilise
+ * le score complémentaire (complementaryGlobalScore) et les notations PHASE_2.
+ */
+export async function checkIfActionPlanNeededPhase2(audit: Audit, event: H3Event): Promise<void> {
+  const { user } = await requireUserSession(event)
+  const { updateActionPlanTypePhase2 } = await import('~~/server/utils/auditCorrectivePlan')
+
+  console.log(`[State Machine Action] Vérification du type de plan d'action nécessaire (phase 2) pour audit ${audit.id}`)
+
+  const oldStatus = audit.status
+
+  const actionPlanType = await updateActionPlanTypePhase2(audit.id, user.id)
+
+  console.log(`[State Machine Action] ✅ Type de plan d'action vérifié (phase 2) pour audit ${audit.id}: ${actionPlanType}`)
+
+  // Récupérer l'audit après updateActionPlanTypePhase2 pour vérifier si le statut a changé
+  const freshAudit = await db.query.audits.findFirst({
+    where: eq(audits.id, audit.id),
+  })
+
+  if (freshAudit && freshAudit.status !== oldStatus) {
+    // Le statut a changé ! Il faut créer les actions pour le nouveau statut
+    console.log(`[State Machine Action] 📝 Status changed from ${oldStatus} to ${freshAudit.status}, creating actions...`)
+
+    const { createActionsForAuditStatus } = await import('~~/server/services/actions')
+    await createActionsForAuditStatus(freshAudit, freshAudit.status, event)
+  }
+}

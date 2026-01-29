@@ -165,6 +165,8 @@ export const AuditStatus = {
   PENDING_FEEF_DECISION: 'PENDING_FEEF_DECISION',
   COMPLETED: 'COMPLETED',
   REFUSED_BY_OE: 'REFUSED_BY_OE',
+  REFUSED_PLAN: 'REFUSED_PLAN',
+  PENDING_COMPLEMENTARY_AUDIT: 'PENDING_COMPLEMENTARY_AUDIT',
 } as const
 
 export type AuditStatusType = typeof AuditStatus[keyof typeof AuditStatus]
@@ -184,7 +186,9 @@ export const AuditStatusLabels: Record<AuditStatusType, string> = {
   [AuditStatus.PENDING_CASE_APPROVAL]: "En attente d'approbation du dossier",
   [AuditStatus.PENDING_OE_ACCEPTANCE]: "En attente de l'acceptation OE",
   [AuditStatus.PENDING_OE_CHOICE]: "En attente du choix de l'OE",
-  [AuditStatus.REFUSED_BY_OE]: "Refusé par l'OE"
+  [AuditStatus.REFUSED_BY_OE]: "Refusé par l'OE",
+  [AuditStatus.REFUSED_PLAN]: "Plan d'action refusé",
+  [AuditStatus.PENDING_COMPLEMENTARY_AUDIT]: 'Audit complémentaire',
 }
 
 /**
@@ -202,7 +206,9 @@ export const AuditStatusColors: Record<AuditStatusType, 'primary' | 'warning' | 
   [AuditStatus.PENDING_OE_OPINION]: 'warning',
   [AuditStatus.PENDING_FEEF_DECISION]: 'primary',
   [AuditStatus.COMPLETED]: 'success',
-  [AuditStatus.REFUSED_BY_OE]: 'error'
+  [AuditStatus.REFUSED_BY_OE]: 'error',
+  [AuditStatus.REFUSED_PLAN]: 'error',
+  [AuditStatus.PENDING_COMPLEMENTARY_AUDIT]: 'warning',
 }
 
 /**
@@ -252,7 +258,9 @@ export const AuditStatusDescriptions: Record<AuditStatusType, string> = {
   [AuditStatus.PENDING_OE_OPINION]: "Rédaction de l'avis par l'organisme évaluateur",
   [AuditStatus.PENDING_FEEF_DECISION]: 'Décision finale de labellisation par FEEF',
   [AuditStatus.COMPLETED]: 'Label obtenu avec succès !',
-  [AuditStatus.REFUSED_BY_OE]: "Audit refusé par l'organisme évaluateur"
+  [AuditStatus.REFUSED_BY_OE]: "Audit refusé par l'organisme évaluateur",
+  [AuditStatus.REFUSED_PLAN]: "Le plan d'action correctif a été refusé définitivement",
+  [AuditStatus.PENDING_COMPLEMENTARY_AUDIT]: "Un audit complémentaire est en cours pour vérifier les corrections",
 }
 
 /**
@@ -333,4 +341,29 @@ export function getDocumentaryReviewCategoryItems(): Array<{ label: string; valu
     label: DocumentaryReviewCategoryLabels[value as DocumentaryReviewCategoryType],
     value: value as DocumentaryReviewCategoryType,
   }))
+}
+
+/**
+ * Phases d'audit (pour les notations)
+ */
+export const AuditPhase = {
+  PHASE_1: 'PHASE_1',
+  PHASE_2: 'PHASE_2',
+} as const
+
+export type AuditPhaseType = typeof AuditPhase[keyof typeof AuditPhase]
+
+/**
+ * Labels français pour les phases d'audit
+ */
+export const AuditPhaseLabels: Record<AuditPhaseType, string> = {
+  [AuditPhase.PHASE_1]: 'Phase 1 - Audit initial',
+  [AuditPhase.PHASE_2]: 'Phase 2 - Audit complémentaire',
+}
+
+/**
+ * Obtenir le label d'une phase d'audit
+ */
+export function getAuditPhaseLabel(phase: AuditPhaseType): string {
+  return AuditPhaseLabels[phase] || phase
 }

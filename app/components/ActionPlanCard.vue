@@ -59,18 +59,23 @@
       <!-- Card 2: Validation OE -->
       <AuditStepCard
         title="Validation OE"
-        :state="isValidated ? 'success' : hasPlan ? 'warning' : 'disabled'"
+        :state="validationCardState"
         icon-success="i-lucide-check-circle"
+        icon-warning="i-lucide-refresh-cw"
         icon-pending="i-lucide-clock"
         icon-disabled="i-lucide-lock"
-        label-success="Validé"
+        :label-success="isValidatedViaComplementaryAudit ? 'Validé (Phase 2)' : 'Validé'"
+        label-warning="Audit complémentaire"
         label-pending="En attente"
         label-disabled="En attente du plan"
         color-scheme="green"
       >
         <template #actions>
-          <!-- Bouton pour valider le plan (OE uniquement, si PENDING_CORRECTIVE_PLAN_VALIDATION) -->
-          <div v-if="canValidatePlan">
+          <!-- Boutons pour valider, refuser ou demander un audit complémentaire (OE uniquement, si PENDING_CORRECTIVE_PLAN_VALIDATION) -->
+          <div
+            v-if="canValidatePlan"
+            class="flex flex-wrap gap-2"
+          >
             <UButton
               @click="handleValidatePlan"
               color="success"
@@ -78,13 +83,40 @@
               icon="i-lucide-check"
               :loading="validating"
             >
-              Valider le plan
+              Valider
+            </UButton>
+            <UButton
+              v-if="!currentAudit?.hasComplementaryAudit"
+              @click="showComplementaryModal = true"
+              color="warning"
+              variant="soft"
+              size="xs"
+              icon="i-lucide-calendar-plus"
+            >
+              Audit complémentaire
+            </UButton>
+            <UButton
+              @click="showRefuseModal = true"
+              color="error"
+              variant="soft"
+              size="xs"
+              icon="i-lucide-x"
+            >
+              Refuser
             </UButton>
           </div>
         </template>
 
         <template #content>
-          <div v-if="isValidated">
+          <!-- Validé via audit complémentaire -->
+          <div v-if="isValidatedViaComplementaryAudit">
+            <p class="text-xs text-gray-700">Validé via audit complémentaire</p>
+            <p class="text-xs text-gray-600 mt-1">
+              Score phase 2 : {{ currentAudit?.complementaryGlobalScore }}%
+            </p>
+          </div>
+          <!-- Validé directement par l'OE -->
+          <div v-else-if="isValidated">
             <p class="text-xs text-gray-700">Validé le {{ formatDate(validatedAt) }}</p>
             <p
               class="text-xs text-gray-600 mt-1"
@@ -93,9 +125,18 @@
               Par {{ validatedByAccount.firstname }} {{ validatedByAccount.lastname }}
             </p>
           </div>
+          <!-- Audit complémentaire en cours -->
+          <div v-else-if="isComplementaryAuditInProgress">
+            <p class="text-xs text-orange-600 font-medium">Refusé - En cours d'audit complémentaire</p>
+            <p class="text-xs text-gray-600 mt-1">
+              {{ complementaryAuditProgressText }}
+            </p>
+          </div>
+          <!-- En attente de validation OE (pas d'audit complémentaire) -->
           <div v-else-if="hasPlan">
             <p class="text-xs text-gray-600">En cours d'examen par l'Organisme Évaluateur</p>
           </div>
+          <!-- En attente du dépôt du plan -->
           <div v-else>
             <p class="text-xs text-gray-600">En attente du dépôt du plan d'action</p>
           </div>
@@ -109,6 +150,112 @@
       :audit-document-type="documentType"
       v-model:open="showDocumentViewer"
     />
+
+    <!-- Modal de refus du plan -->
+    <UModal v-model:open="showRefuseModal">
+      <template #header>
+        <div class="flex items-center gap-2 text-red-600">
+          <UIcon
+            name="i-lucide-alert-triangle"
+            class="w-5 h-5"
+          />
+          <span class="font-semibold">Refuser le plan d'action</span>
+        </div>
+      </template>
+
+      <template #body>
+        <div class="space-y-4">
+          <UAlert
+            color="warning"
+            variant="soft"
+            icon="i-lucide-info"
+            title="Attention"
+            description="Le refus du plan d'action met fin à la procédure de labellisation. Cette action est irréversible."
+          />
+
+          <UFormField
+            label="Motif du refus"
+            required
+          >
+            <UTextarea
+              v-model="refuseReason"
+              placeholder="Expliquez les raisons du refus du plan d'action..."
+              :rows="4"
+            />
+          </UFormField>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="showRefuseModal = false"
+          >
+            Annuler
+          </UButton>
+          <UButton
+            color="error"
+            :disabled="!refuseReason.trim()"
+            :loading="refusing"
+            @click="handleRefusePlan"
+          >
+            Confirmer le refus
+          </UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Modal de demande d'audit complémentaire -->
+    <UModal v-model:open="showComplementaryModal">
+      <template #header>
+        <div class="flex items-center gap-2 text-orange-600">
+          <UIcon
+            name="i-lucide-calendar-plus"
+            class="w-5 h-5"
+          />
+          <span class="font-semibold">Demander un audit complémentaire</span>
+        </div>
+      </template>
+
+      <template #body>
+        <div class="space-y-4">
+          <UAlert
+            color="info"
+            variant="soft"
+            icon="i-lucide-info"
+            title="Audit complémentaire"
+            description="Un audit complémentaire permet de vérifier la mise en œuvre des actions correctives. Vous devrez ensuite définir les dates de l'audit et soumettre un nouveau rapport avec les scores de la phase 2."
+          />
+
+          <p class="text-sm text-gray-600">
+            Un seul audit complémentaire est autorisé par dossier.
+            Si les résultats de la phase 2 nécessitent également un plan d'action,
+            celui-ci devra être validé ou refusé sans possibilité d'un second audit complémentaire.
+          </p>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            @click="showComplementaryModal = false"
+          >
+            Annuler
+          </UButton>
+          <UButton
+            color="warning"
+            :loading="requestingComplementary"
+            @click="handleRequestComplementaryAudit"
+          >
+            Confirmer
+          </UButton>
+        </div>
+      </template>
+    </UModal>
   </UCard>
 </template>
 
@@ -130,6 +277,11 @@ const { triggerActionRefresh } = useActionRefresh()
 // État local
 const validating = ref(false)
 const showDocumentViewer = ref(false)
+const showRefuseModal = ref(false)
+const showComplementaryModal = ref(false)
+const refuseReason = ref('')
+const refusing = ref(false)
+const requestingComplementary = ref(false)
 
 // Récupérer les événements de l'audit via le composable
 const { correctivePlanValidatedAt, correctivePlanValidatedByAccount } = useAuditEvents(
@@ -205,8 +357,65 @@ const hasPlan = computed(() => {
   return lastPlanVersion.value !== null
 })
 
+// Vérifier si l'audit complémentaire a validé le plan (score >= 65%)
+const isValidatedViaComplementaryAudit = computed(() => {
+  return (
+    currentAudit.value?.hasComplementaryAudit === true &&
+    currentAudit.value?.complementaryGlobalScore !== null &&
+    currentAudit.value?.complementaryGlobalScore >= 65
+  )
+})
+
+// Vérifier si un audit complémentaire est en cours (demandé mais pas encore terminé avec score suffisant)
+const isComplementaryAuditInProgress = computed(() => {
+  return (
+    currentAudit.value?.hasComplementaryAudit === true &&
+    (currentAudit.value?.complementaryGlobalScore === null ||
+      currentAudit.value?.complementaryGlobalScore < 65)
+  )
+})
+
+// Texte de progression de l'audit complémentaire
+const complementaryAuditProgressText = computed(() => {
+  if (!currentAudit.value?.hasComplementaryAudit) return ''
+
+  const hasComplementaryDates =
+    currentAudit.value?.complementaryStartDate !== null &&
+    currentAudit.value?.complementaryEndDate !== null
+
+  const hasComplementaryScore = currentAudit.value?.complementaryGlobalScore !== null
+
+  // Si score < 65%, nouveau plan requis
+  if (hasComplementaryScore && currentAudit.value.complementaryGlobalScore! < 65) {
+    return 'Score phase 2 insuffisant - Nouveau plan requis'
+  }
+
+  // Progression de l'audit complémentaire
+  if (!hasComplementaryDates) {
+    return 'En attente de la définition des dates'
+  }
+
+  if (!hasComplementaryScore) {
+    return 'En attente du rapport et du score'
+  }
+
+  return ''
+})
+
 const isValidated = computed(() => {
-  return validatedAt.value !== null && validatedAt.value !== undefined
+  // Validé soit par validation directe, soit via audit complémentaire réussi
+  return (
+    (validatedAt.value !== null && validatedAt.value !== undefined) ||
+    isValidatedViaComplementaryAudit.value
+  )
+})
+
+// État de la card de validation
+const validationCardState = computed(() => {
+  if (isValidated.value) return 'success'
+  if (isComplementaryAuditInProgress.value) return 'warning'
+  if (hasPlan.value) return 'pending'
+  return 'disabled'
 })
 
 const canUploadPlan = computed(() => {
@@ -295,6 +504,82 @@ async function handleValidatePlan() {
     })
   } finally {
     validating.value = false
+  }
+}
+
+async function handleRefusePlan() {
+  if (!currentAudit.value || !refuseReason.value.trim()) return
+
+  refusing.value = true
+  try {
+    await $fetch(`/api/audits/${currentAudit.value.id}/refuse-corrective-plan`, {
+      method: 'PUT',
+      body: {
+        reason: refuseReason.value.trim(),
+      },
+    })
+
+    toast.add({
+      title: 'Plan refusé',
+      description: "Le plan d'action a été refusé. La procédure de labellisation est terminée.",
+      color: 'warning',
+    })
+
+    showRefuseModal.value = false
+    refuseReason.value = ''
+
+    // Recharger l'audit
+    await fetchAudit(currentAudit.value.id)
+
+    // Déclencher le rafraîchissement des actions
+    triggerActionRefresh({
+      auditId: currentAudit.value.id.toString(),
+      entityId: currentAudit.value.entityId.toString(),
+    })
+  } catch (error: any) {
+    toast.add({
+      title: 'Erreur',
+      description: error.data?.message || 'Impossible de refuser le plan',
+      color: 'error',
+    })
+  } finally {
+    refusing.value = false
+  }
+}
+
+async function handleRequestComplementaryAudit() {
+  if (!currentAudit.value) return
+
+  requestingComplementary.value = true
+  try {
+    await $fetch(`/api/audits/${currentAudit.value.id}/request-complementary-audit`, {
+      method: 'PUT',
+    })
+
+    toast.add({
+      title: 'Audit complémentaire demandé',
+      description: "L'audit complémentaire a été demandé. Définissez les dates de l'audit.",
+      color: 'success',
+    })
+
+    showComplementaryModal.value = false
+
+    // Recharger l'audit
+    await fetchAudit(currentAudit.value.id)
+
+    // Déclencher le rafraîchissement des actions
+    triggerActionRefresh({
+      auditId: currentAudit.value.id.toString(),
+      entityId: currentAudit.value.entityId.toString(),
+    })
+  } catch (error: any) {
+    toast.add({
+      title: 'Erreur',
+      description: error.data?.message || "Impossible de demander l'audit complémentaire",
+      color: 'error',
+    })
+  } finally {
+    requestingComplementary.value = false
   }
 }
 </script>

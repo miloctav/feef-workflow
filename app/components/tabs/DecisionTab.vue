@@ -15,6 +15,11 @@
     <!-- Rapports d'audit -->
     <AuditReportsCard v-if="currentAudit" />
 
+    <!-- Audit complémentaire (affiché si hasComplementaryAudit est true) -->
+    <ComplementaryAuditCard
+      v-if="currentAudit && currentAudit.hasComplementaryAudit"
+    />
+
     <!-- Plan d'action -->
     <ActionPlanCard
       v-if="currentAudit && currentAudit.actionPlanType && currentAudit.actionPlanType !== 'NONE'"
@@ -43,9 +48,10 @@ withDefaults(defineProps<Props>(), {
 // Composables
 const { currentAudit } = useAudits()
 
-// Computed: Audit modifiable?
+// Computed: Audit modifiable? (Non modifiable si terminé ou plan refusé)
 const isAuditEditable = computed(() => {
-  return currentAudit.value?.status !== AuditStatus.COMPLETED
+  const status = currentAudit.value?.status
+  return status !== AuditStatus.COMPLETED && status !== AuditStatus.REFUSED_PLAN
 })
 
 // Provide isEditable aux composants enfants

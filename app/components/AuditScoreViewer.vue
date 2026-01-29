@@ -15,6 +15,19 @@
           <p class="text-sm text-gray-600">
             {{ audit.entity.name }} - {{ audit.type }}
           </p>
+
+          <!-- Sélecteur de phase (si audit complémentaire) -->
+          <div
+            v-if="hasComplementaryAudit"
+            class="mt-2"
+          >
+            <URadioGroup
+              v-model="selectedPhase"
+              :items="phaseOptions"
+              orientation="horizontal"
+              @update:model-value="handlePhaseChange"
+            />
+          </div>
         </div>
 
         <!-- Bouton Enregistrer (OE uniquement) -->
@@ -133,6 +146,7 @@
 
 <script setup lang="ts">
 import { Role } from '#shared/types/roles'
+import { AuditPhase, type AuditPhaseType } from '#shared/types/enums'
 import type { AuditWithRelations } from '~~/app/types/audits'
 import type { ScoreInput } from '~~/app/types/auditNotation'
 import {
@@ -146,6 +160,7 @@ import {
 interface Props {
   audit: AuditWithRelations
   open?: boolean
+  initialPhase?: AuditPhaseType
 }
 
 const props = defineProps<Props>()
@@ -166,6 +181,16 @@ const isOpen = defineModel<boolean>('open', { default: false })
 const localScores = ref<Record<number, number>>({})
 const localGlobalScore = ref<number | null>(null)
 const hasChanges = ref(false)
+const selectedPhase = ref<AuditPhaseType>(props.initialPhase || AuditPhase.PHASE_1)
+
+// L'audit a-t-il un audit complémentaire ?
+const hasComplementaryAudit = computed(() => props.audit.hasComplementaryAudit === true)
+
+// Options pour le sélecteur de phase
+const phaseOptions = [
+  { value: AuditPhase.PHASE_1, label: 'Phase 1 - Audit initial' },
+  { value: AuditPhase.PHASE_2, label: 'Phase 2 - Audit complémentaire' },
+]
 
 // Loading consolidé
 const updateLoading = computed(() => notationUpdateLoading.value || auditUpdateLoading.value)
@@ -205,8 +230,8 @@ function getScoreColor(scoreValue: number): string {
 
 // Initialiser les scores depuis l'audit
 async function initializeScores() {
-  // Charger les notations existantes
-  await fetchAuditNotations(props.audit.id)
+  // Charger les notations existantes pour la phase sélectionnée
+  await fetchAuditNotations(props.audit.id, selectedPhase.value)
 
   // Initialiser localScores depuis les notations
   localScores.value = {}
@@ -214,10 +239,21 @@ async function initializeScores() {
     localScores.value[notation.criterionKey] = notation.score
   })
 
-  // Initialiser localGlobalScore depuis l'audit
-  localGlobalScore.value = props.audit.globalScore ?? null
+  // Initialiser localGlobalScore depuis l'audit (selon la phase)
+  if (selectedPhase.value === AuditPhase.PHASE_2) {
+    localGlobalScore.value = props.audit.complementaryGlobalScore ?? null
+  }
+  else {
+    localGlobalScore.value = props.audit.globalScore ?? null
+  }
 
   hasChanges.value = false
+}
+
+// Changer de phase
+function handlePhaseChange(newPhase: AuditPhaseType) {
+  selectedPhase.value = newPhase
+  initializeScores()
 }
 
 // Définir un score pour un critère
@@ -230,24 +266,30 @@ function setScore(criterionKey: number, scoreValue: number) {
 async function handleSave() {
   let success = true
 
-  // 1. Enregistrer les notations (si des scores sont définis)
+  // 1. Enregistrer les notations (si des scores sont définis) avec la phase
   const scores: ScoreInput[] = Object.entries(localScores.value).map(([key, score]) => ({
     criterionKey: parseInt(key),
     score,
   }))
 
   if (scores.length > 0) {
-    const notationResult = await updateAuditNotations(props.audit.id, scores)
+    const notationResult = await updateAuditNotations(props.audit.id, scores, selectedPhase.value)
     if (!notationResult.success) {
       success = false
     }
   }
 
-  // 2. Enregistrer le globalScore (si modifié)
-  if (localGlobalScore.value !== props.audit.globalScore) {
-    const auditResult = await updateAudit(props.audit.id, {
-      globalScore: localGlobalScore.value,
-    })
+  // 2. Enregistrer le globalScore (si modifié) selon la phase
+  const currentGlobalScore = selectedPhase.value === AuditPhase.PHASE_2
+    ? props.audit.complementaryGlobalScore
+    : props.audit.globalScore
+
+  if (localGlobalScore.value !== currentGlobalScore) {
+    const updateData = selectedPhase.value === AuditPhase.PHASE_2
+      ? { complementaryGlobalScore: localGlobalScore.value }
+      : { globalScore: localGlobalScore.value }
+
+    const auditResult = await updateAudit(props.audit.id, updateData)
     if (!auditResult.success) {
       success = false
     }
@@ -273,6 +315,10 @@ async function handleSave() {
 // Initialiser au montage et à chaque ouverture
 watchEffect(() => {
   if (isOpen.value) {
+    // Si initialPhase est fourni, l'utiliser
+    if (props.initialPhase) {
+      selectedPhase.value = props.initialPhase
+    }
     initializeScores()
   }
 })

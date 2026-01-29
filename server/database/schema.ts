@@ -34,7 +34,10 @@ export const signatureTypeEnum = pgEnum('signature_type', ['ENTITY_ONLY', 'ENTIT
 export const signatureStatusEnum = pgEnum('signature_status', ['DRAFT', 'PENDING_ENTITY', 'PENDING_FEEF', 'COMPLETED'])
 
 // Define audit status enum
-export const auditStatusEnum = pgEnum('audit_status', ['PENDING_CASE_APPROVAL', 'PENDING_OE_ACCEPTANCE', 'PENDING_OE_CHOICE', 'PLANNING', 'SCHEDULED', 'PENDING_REPORT', 'PENDING_CORRECTIVE_PLAN', 'PENDING_CORRECTIVE_PLAN_VALIDATION', 'PENDING_OE_OPINION', 'PENDING_FEEF_DECISION', 'COMPLETED', 'REFUSED_BY_OE'])
+export const auditStatusEnum = pgEnum('audit_status', ['PENDING_CASE_APPROVAL', 'PENDING_OE_ACCEPTANCE', 'PENDING_OE_CHOICE', 'PLANNING', 'SCHEDULED', 'PENDING_REPORT', 'PENDING_CORRECTIVE_PLAN', 'PENDING_CORRECTIVE_PLAN_VALIDATION', 'PENDING_OE_OPINION', 'PENDING_FEEF_DECISION', 'COMPLETED', 'REFUSED_BY_OE', 'REFUSED_PLAN', 'PENDING_COMPLEMENTARY_AUDIT'])
+
+// Define audit phase enum (for notation scoring)
+export const auditPhaseEnum = pgEnum('audit_phase', ['PHASE_1', 'PHASE_2'])
 
 // Define OE opinion enum
 export const oeOpinionEnum = pgEnum('oe_opinion', ['FAVORABLE', 'UNFAVORABLE', 'RESERVED'])
@@ -64,6 +67,9 @@ export const actionTypeEnum = pgEnum('action_type', [
   'UPLOAD_AUDIT_REPORT',
   'VALIDATE_CORRECTIVE_PLAN',
   'UPLOAD_LABELING_OPINION',
+  // Complementary audit actions
+  'SET_COMPLEMENTARY_AUDIT_DATES',
+  'UPLOAD_COMPLEMENTARY_REPORT',
 ])
 
 // Define action status enum
@@ -86,6 +92,10 @@ export const eventTypeEnum = pgEnum('event_type', [
   'AUDIT_REPORT_UPLOADED',
   'AUDIT_CORRECTIVE_PLAN_UPLOADED',
   'AUDIT_CORRECTIVE_PLAN_VALIDATED',
+  'AUDIT_CORRECTIVE_PLAN_REFUSED',
+  'AUDIT_COMPLEMENTARY_REQUESTED',
+  'AUDIT_COMPLEMENTARY_DATES_SET',
+  'AUDIT_COMPLEMENTARY_REPORT_UPLOADED',
   'AUDIT_OE_OPINION_TRANSMITTED',
   'AUDIT_FEEF_DECISION_ACCEPTED',
   'AUDIT_FEEF_DECISION_REJECTED',
@@ -194,6 +204,12 @@ export const audits = pgTable('audits', {
   oeRefusalReason: text('oe_refusal_reason'),
   // Link to previous audit in case of refusal
   previousAuditId: integer('previous_audit_id').references((): AnyPgColumn => audits.id),
+  // Complementary audit fields (phase 2)
+  hasComplementaryAudit: boolean('has_complementary_audit').default(false),
+  complementaryStartDate: date('complementary_start_date'),
+  complementaryEndDate: date('complementary_end_date'),
+  complementaryGlobalScore: integer('complementary_global_score'),
+  planRefusalReason: text('plan_refusal_reason'),
   createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
@@ -307,6 +323,7 @@ export const auditNotation = pgTable('audit_notation', {
   criterionKey: integer('criterion_key').notNull(),
   description: text('description').notNull(),
   score: integer('score').notNull(),
+  phase: auditPhaseEnum('phase').notNull().default('PHASE_1'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 })

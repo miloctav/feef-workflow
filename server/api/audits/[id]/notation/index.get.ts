@@ -1,14 +1,18 @@
-import { eq, asc } from 'drizzle-orm'
+import { eq, asc, and } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { auditNotation } from '~~/server/database/schema'
 import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
 import { getAuditScoreDefinition, toScoreLetter } from '~~/server/config/auditNotation.config'
 import type { AuditScoreValue } from '~~/server/config/auditNotation.config'
+import { AuditPhase, type AuditPhaseType } from '#shared/types/enums'
 
 /**
  * GET /api/audits/:id/notation
  *
  * Récupère tous les scores de notation d'un audit
+ *
+ * Query params:
+ * - phase: 'PHASE_1' | 'PHASE_2' (optionnel, si non fourni retourne tous les scores)
  *
  * Les scores sont enrichis avec :
  * - theme : le thème RSE depuis la configuration
@@ -48,9 +52,26 @@ export default defineEventHandler(async (event) => {
     accessType: AccessType.READ,
   })
 
+  // Récupérer le paramètre de phase (optionnel)
+  const query = getQuery(event)
+  const phase = query.phase as AuditPhaseType | undefined
+
+  // Valider la phase si fournie
+  if (phase && phase !== AuditPhase.PHASE_1 && phase !== AuditPhase.PHASE_2) {
+    throw createError({
+      statusCode: 400,
+      message: 'La phase doit être "PHASE_1" ou "PHASE_2"',
+    })
+  }
+
+  // Construire la condition WHERE
+  const whereCondition = phase
+    ? and(eq(auditNotation.auditId, auditId), eq(auditNotation.phase, phase))
+    : eq(auditNotation.auditId, auditId)
+
   // Récupérer tous les scores depuis la base de données, triés par criterionKey
   const notations = await db.query.auditNotation.findMany({
-    where: eq(auditNotation.auditId, auditId),
+    where: whereCondition,
     orderBy: [asc(auditNotation.criterionKey)],
   })
 

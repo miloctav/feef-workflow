@@ -24,6 +24,10 @@ interface UpdateAuditBody {
     customExclusions?: string
     customCompanies?: string
   }
+  // Champs pour l'audit complémentaire (phase 2)
+  complementaryStartDate?: string | null
+  complementaryEndDate?: string | null
+  complementaryGlobalScore?: number | null
 }
 
 /**
@@ -114,6 +118,10 @@ export default defineEventHandler(async (event) => {
     oeOpinionConditions,
     feefDecision,
     attestationCustomData,
+    // Champs pour l'audit complémentaire (phase 2)
+    complementaryStartDate,
+    complementaryEndDate,
+    complementaryGlobalScore,
     // labelExpirationDate n'est plus accepté du frontend - sera calculé automatiquement par le backend si nécessaire
   } = body
 
@@ -129,7 +137,10 @@ export default defineEventHandler(async (event) => {
     oeOpinion === undefined &&
     oeOpinionArgumentaire === undefined &&
     oeOpinionConditions === undefined &&
-    feefDecision === undefined
+    feefDecision === undefined &&
+    complementaryStartDate === undefined &&
+    complementaryEndDate === undefined &&
+    complementaryGlobalScore === undefined
   ) {
     throw createError({
       statusCode: 400,
@@ -205,6 +216,10 @@ export default defineEventHandler(async (event) => {
   if (actualEndDate !== undefined) updateData.actualEndDate = actualEndDate
   if (labelingOpinion !== undefined) updateData.labelingOpinion = labelingOpinion
   if (globalScore !== undefined) updateData.globalScore = globalScore
+  // Champs pour l'audit complémentaire (phase 2)
+  if (complementaryStartDate !== undefined) updateData.complementaryStartDate = complementaryStartDate
+  if (complementaryEndDate !== undefined) updateData.complementaryEndDate = complementaryEndDate
+  if (complementaryGlobalScore !== undefined) updateData.complementaryGlobalScore = complementaryGlobalScore
 
   // Gestion de l'avis OE
   if (oeOpinion !== undefined) {
@@ -284,6 +299,33 @@ export default defineEventHandler(async (event) => {
       entityId: existingAudit.entityId,
       metadata: {
         decision: feefDecision,
+        timestamp: new Date(),
+      },
+    })
+  }
+
+  // Enregistrer l'événement de définition des dates de l'audit complémentaire
+  if (complementaryStartDate !== undefined || complementaryEndDate !== undefined) {
+    await recordEvent(event, {
+      type: 'AUDIT_COMPLEMENTARY_DATES_SET',
+      auditId: auditIdInt,
+      entityId: existingAudit.entityId,
+      metadata: {
+        complementaryStartDate,
+        complementaryEndDate,
+        timestamp: new Date(),
+      },
+    })
+  }
+
+  // Enregistrer l'événement d'upload du rapport complémentaire (si score défini)
+  if (complementaryGlobalScore !== undefined) {
+    await recordEvent(event, {
+      type: 'AUDIT_COMPLEMENTARY_REPORT_UPLOADED',
+      auditId: auditIdInt,
+      entityId: existingAudit.entityId,
+      metadata: {
+        complementaryGlobalScore,
         timestamp: new Date(),
       },
     })
@@ -383,6 +425,32 @@ export default defineEventHandler(async (event) => {
 
     if (auditAfterActionPlan) {
       // Vérifier les auto-transitions après le calcul du actionPlanType
+      await auditStateMachine.checkAutoTransition(auditAfterActionPlan, event)
+    }
+  }
+
+  // Si complementaryGlobalScore a été modifié, recalculer actionPlanType pour la phase 2
+  if (complementaryGlobalScore !== undefined) {
+    const oldStatus = updatedAudit.status
+
+    const { updateActionPlanTypePhase2 } = await import('~~/server/utils/auditCorrectivePlan')
+    await updateActionPlanTypePhase2(auditIdInt, currentUser.id)
+
+    // Récupérer l'audit après updateActionPlanTypePhase2
+    const auditAfterActionPlan = await db.query.audits.findFirst({
+      where: eq(audits.id, auditIdInt),
+    })
+
+    if (auditAfterActionPlan && auditAfterActionPlan.status !== oldStatus) {
+      // Le statut a changé ! Il faut créer les actions pour le nouveau statut
+      console.log(`📝 [Phase 2] Status changed from ${oldStatus} to ${auditAfterActionPlan.status}, creating actions...`)
+
+      const { createActionsForAuditStatus } = await import('~~/server/services/actions')
+      await createActionsForAuditStatus(auditAfterActionPlan, auditAfterActionPlan.status, event)
+    }
+
+    if (auditAfterActionPlan) {
+      // Vérifier les auto-transitions après le calcul du actionPlanType phase 2
       await auditStateMachine.checkAutoTransition(auditAfterActionPlan, event)
     }
   }

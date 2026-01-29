@@ -5,7 +5,8 @@ import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
 import { forInsert } from '~~/server/utils/tracking'
 import { getAuditScoreDefinition } from '~~/server/config/auditNotation.config'
 import type { AuditScoreKey } from '~~/server/config/auditNotation.config'
-import { updateActionPlanType } from '~~/server/utils/auditCorrectivePlan'
+import { updateActionPlanType, updateActionPlanTypePhase2 } from '~~/server/utils/auditCorrectivePlan'
+import { AuditPhase, type AuditPhaseType } from '#shared/types/enums'
 
 interface ScoreInput {
   criterionKey: number
@@ -14,6 +15,7 @@ interface ScoreInput {
 
 interface CreateNotationBody {
   scores: ScoreInput[]
+  phase?: AuditPhaseType // 'PHASE_1' (default) ou 'PHASE_2'
 }
 
 /**
@@ -25,13 +27,15 @@ interface CreateNotationBody {
  *   scores: Array<{
  *     criterionKey: number  // 0-20
  *     score: number         // 1-4 (A=1, B=2, C=3, D=4)
- *   }>
+ *   }>,
+ *   phase?: 'PHASE_1' | 'PHASE_2'  // Défaut: 'PHASE_1'
  * }
  *
  * Comportement :
- * - Supprime tous les scores existants pour cet audit
+ * - Supprime tous les scores existants pour cet audit ET cette phase
  * - Insère tous les nouveaux scores dans une transaction atomique
  * - Enrichit automatiquement avec la description depuis la configuration
+ * - Les scores de l'autre phase sont conservés
  *
  * Autorisations : OE, AUDITOR (via requireAuditAccess)
  */
@@ -83,6 +87,18 @@ export default defineEventHandler(async (event) => {
       message: 'Le tableau "scores" ne peut pas être vide',
     })
   }
+
+  // Valider et définir la phase (défaut: PHASE_1)
+  const phase = body.phase || AuditPhase.PHASE_1
+
+  if (phase !== AuditPhase.PHASE_1 && phase !== AuditPhase.PHASE_2) {
+    throw createError({
+      statusCode: 400,
+      message: 'La phase doit être "PHASE_1" ou "PHASE_2"',
+    })
+  }
+
+  console.log(`📝 Saving scores for audit ${auditId}, phase: ${phase}`)
 
   // Valider chaque score
   const seenCriterionKeys = new Set<number>()
@@ -141,13 +157,19 @@ export default defineEventHandler(async (event) => {
       criterionKey: scoreInput.criterionKey,
       description: definition.description,
       score: scoreInput.score,
+      phase, // Ajouter la phase
     })
   })
 
   // Exécuter l'upsert complet dans une transaction atomique
   const insertedNotations = await db.transaction(async (tx) => {
-    // 1. Supprimer tous les scores existants pour cet audit
-    await tx.delete(auditNotation).where(eq(auditNotation.auditId, auditId))
+    // 1. Supprimer tous les scores existants pour cet audit ET cette phase uniquement
+    await tx.delete(auditNotation).where(
+      and(
+        eq(auditNotation.auditId, auditId),
+        eq(auditNotation.phase, phase)
+      )
+    )
 
     // 2. Insérer tous les nouveaux scores
     const inserted = await tx.insert(auditNotation).values(notationsToInsert).returning()
@@ -172,9 +194,16 @@ export default defineEventHandler(async (event) => {
   const oldStatus = auditBefore.status
 
   // Recalculer actionPlanType après modification des notations
-  const actionPlanType = await updateActionPlanType(auditId, currentUser.id)
+  // Utiliser la fonction appropriée selon la phase
+  let actionPlanType: 'NONE' | 'SHORT' | 'LONG'
+  if (phase === AuditPhase.PHASE_2) {
+    actionPlanType = await updateActionPlanTypePhase2(auditId, currentUser.id)
+  }
+  else {
+    actionPlanType = await updateActionPlanType(auditId, currentUser.id)
+  }
 
-  console.log(`📊 actionPlanType updated to ${actionPlanType} for audit ${auditId}`)
+  console.log(`📊 actionPlanType updated to ${actionPlanType} for audit ${auditId} (phase: ${phase})`)
 
   // Récupérer l'audit frais après updateActionPlanType
   const freshAudit = await db.query.audits.findFirst({

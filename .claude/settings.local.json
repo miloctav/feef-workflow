@@ -5,7 +5,8 @@
       "Bash(find:*)",
       "Bash(cat:*)",
       "mcp__distill__smart_file_read",
-      "mcp__distill__code_execute"
+      "mcp__distill__code_execute",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

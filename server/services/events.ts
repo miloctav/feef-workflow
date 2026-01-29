@@ -74,6 +74,26 @@ export const EVENT_TYPE_REGISTRY: Record<string, EventTypeDefinition> = {
     category: 'AUDIT',
     requiredReferences: ['auditId', 'entityId'],
   },
+  AUDIT_CORRECTIVE_PLAN_REFUSED: {
+    type: 'AUDIT_CORRECTIVE_PLAN_REFUSED',
+    category: 'AUDIT',
+    requiredReferences: ['auditId', 'entityId'],
+  },
+  AUDIT_COMPLEMENTARY_REQUESTED: {
+    type: 'AUDIT_COMPLEMENTARY_REQUESTED',
+    category: 'AUDIT',
+    requiredReferences: ['auditId', 'entityId'],
+  },
+  AUDIT_COMPLEMENTARY_DATES_SET: {
+    type: 'AUDIT_COMPLEMENTARY_DATES_SET',
+    category: 'AUDIT',
+    requiredReferences: ['auditId', 'entityId'],
+  },
+  AUDIT_COMPLEMENTARY_REPORT_UPLOADED: {
+    type: 'AUDIT_COMPLEMENTARY_REPORT_UPLOADED',
+    category: 'AUDIT',
+    requiredReferences: ['auditId', 'entityId'],
+  },
   AUDIT_OE_OPINION_TRANSMITTED: {
     type: 'AUDIT_OE_OPINION_TRANSMITTED',
     category: 'AUDIT',

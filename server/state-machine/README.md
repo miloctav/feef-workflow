@@ -6,6 +6,8 @@ Ce dossier contient l'implémentation de la **state machine** (machine à états
 
 La state machine centralise toute la logique de gestion des statuts d'audit, remplaçant l'ancienne approche dispersée dans plusieurs fichiers. Elle garantit que toutes les transitions de statuts sont valides, exécute automatiquement les actions associées, et facilite grandement l'ajout de nouveaux statuts.
 
+**12 statuts d'audit** sont gérés, incluant la gestion de l'audit complémentaire (phase 2) pour les cas où le plan d'action correctif nécessite une vérification supplémentaire.
+
 ## Architecture
 
 ### Fichiers
@@ -147,6 +149,11 @@ Les guards sont des fonctions qui vérifient si une transition est autorisée.
 | `is_monitoring_audit` | Vérifie si c'est un audit de surveillance (MONITORING) |
 | `oe_has_accepted` | Vérifie que l'OE a accepté l'audit |
 | `oe_has_refused` | Vérifie que l'OE a refusé l'audit |
+| `action_plan_refused` | Vérifie que le plan d'action a été refusé (événement AUDIT_CORRECTIVE_PLAN_REFUSED) |
+| `complementary_audit_requested` | Vérifie qu'un audit complémentaire a été demandé (événement AUDIT_COMPLEMENTARY_REQUESTED) |
+| `no_previous_complementary_audit` | Vérifie qu'aucun audit complémentaire n'a été fait (hasComplementaryAudit = false) |
+| `has_complementary_report` | Vérifie qu'un rapport d'audit complémentaire existe (complementaryGlobalScore défini) |
+| `has_complementary_global_score` | Vérifie que le score global complémentaire est défini |
 
 ### Ajouter un nouveau guard
 
@@ -193,6 +200,8 @@ Les actions sont des fonctions qui exécutent des effets de bord lors des transi
 | `reset_entity_workflow` | Réinitialise les champs de workflow de l'entité |
 | `generate_attestation` | Génère l'attestation de labellisation (manuel uniquement) |
 | `create_new_audit_after_refusal` | Crée un nouvel audit après le refus de l'OE |
+| `mark_complementary_audit_started` | Marque le début de l'audit complémentaire (hasComplementaryAudit = true) |
+| `check_if_action_plan_needed_phase2` | Vérifie le type de plan d'action nécessaire pour la phase 2 (utilise complementaryGlobalScore) |
 
 ### Ajouter une nouvelle action
 
@@ -231,6 +240,16 @@ onEnter: {
   executeActions: ['my_new_action']
 }
 ```
+
+## Statuts terminaux
+
+Certains statuts sont des états finaux sans transitions sortantes :
+
+| Statut | Description |
+|--------|-------------|
+| `COMPLETED` | Audit terminé avec succès, certificat émis |
+| `REFUSED_BY_OE` | Audit refusé par l'OE avant planification |
+| `REFUSED_PLAN` | Plan d'action correctif refusé définitivement après audit complémentaire |
 
 ## Ajouter un nouveau statut
 
@@ -303,41 +322,91 @@ npm run db:migrate   # Applique la migration
 
 **C'est tout !** Le reste du système s'adapte automatiquement.
 
+### Exemple réel : Configuration de PENDING_COMPLEMENTARY_AUDIT
+
+Voici la configuration complète du statut d'audit complémentaire ajouté récemment :
+
+```typescript
+// server/state-machine/config.ts
+
+[AuditStatus.PENDING_COMPLEMENTARY_AUDIT]: {
+  status: AuditStatus.PENDING_COMPLEMENTARY_AUDIT,
+  onEnter: {
+    createActions: [
+      ActionType.SET_COMPLEMENTARY_AUDIT_DATES,
+      ActionType.UPLOAD_COMPLEMENTARY_REPORT
+    ]
+  },
+  transitions: {
+    to_pending_opinion: {
+      target: AuditStatus.PENDING_OE_OPINION,
+      guards: ['has_complementary_report', 'has_complementary_global_score'],
+      trigger: 'AUTO_DOCUMENT',
+      triggerOnActions: [ActionType.UPLOAD_COMPLEMENTARY_REPORT],
+      actions: ['check_if_action_plan_needed_phase2'],
+      description: 'Rapport complémentaire uploadé + score phase 2 défini'
+    }
+  }
+}
+```
+
+Cette configuration :
+1. Crée automatiquement 2 actions lors de l'entrée dans le statut (dates + rapport)
+2. Définit une transition automatique vers `PENDING_OE_OPINION` quand le rapport est uploadé
+3. Exécute l'action `check_if_action_plan_needed_phase2` pour recalculer le type de plan d'action
+
 ## Diagramme de flux complet
 
 ```
-                    PENDING_CASE_APPROVAL
-                            │
-          ┌─────────────────┼─────────────────┐
-          │                 │                 │
-          ↓                 ↓                 ↓
-   PENDING_OE_CHOICE  PENDING_OE_ACCEPTANCE  PLANNING
-          │                 │              (monitoring)
-          │            ┌────┴────┐
-          │            ↓         ↓
-          │        PLANNING  REFUSED_BY_OE
-          │            │       (terminal)
-          └────────────┘
-                 │
-            ┌────┴────┐
-            ↓         ↓
-        SCHEDULED → PENDING_REPORT
-                    │
-                    ↓
-            PENDING_OE_OPINION
-                    │
-       ┌────────────┼────────────┐
-       │            │            │
-       ↓            ↓            ↓
-PENDING_FEEF_  (plan OK)  PENDING_CORRECTIVE_PLAN
-DECISION                        │
-       │                        ↓
-       │       PENDING_CORRECTIVE_PLAN_VALIDATION
-       │                        │
-       └────────────┬───────────┘
-                    ↓
-                COMPLETED
+                        PENDING_CASE_APPROVAL
+                                │
+              ┌─────────────────┼─────────────────┐
+              │                 │                 │
+              ↓                 ↓                 ↓
+       PENDING_OE_CHOICE  PENDING_OE_ACCEPTANCE  PLANNING
+              │                 │              (monitoring)
+              │            ┌────┴────┐
+              │            ↓         ↓
+              │        PLANNING  REFUSED_BY_OE
+              │            │       (terminal)
+              └────────────┘
+                     │
+                ┌────┴────┐
+                ↓         ↓
+            SCHEDULED → PENDING_REPORT
+                        │
+                        ↓
+                PENDING_OE_OPINION ←─────────────────────┐
+                        │                                │
+           ┌────────────┼────────────┐                   │
+           │            │            │                   │
+           ↓            ↓            ↓                   │
+    PENDING_FEEF_  (plan OK)  PENDING_CORRECTIVE_PLAN    │
+    DECISION                        │                    │
+           │                        ↓                    │
+           │       PENDING_CORRECTIVE_PLAN_VALIDATION    │
+           │            │           │           │        │
+           │            │           │           │        │
+           │            ↓           ↓           ↓        │
+           │      (plan validé) REFUSED_PLAN PENDING_COMPLEMENTARY_AUDIT
+           │            │        (terminal)              │
+           │            │                                │
+           │            └────────────────────────────────┘
+           │
+           ↓
+        COMPLETED
 ```
+
+### Flux de l'audit complémentaire (Phase 2)
+
+L'audit complémentaire est déclenché lorsqu'un plan d'action correctif nécessite une vérification sur site :
+
+1. **Déclenchement** : Depuis `PENDING_CORRECTIVE_PLAN_VALIDATION`, l'OE/FEEF peut demander un audit complémentaire (une seule fois par audit)
+2. **Phase 2** : L'audit passe en `PENDING_COMPLEMENTARY_AUDIT` où l'auditeur définit les dates et effectue l'audit
+3. **Rapport complémentaire** : Un rapport avec score complémentaire (`complementaryGlobalScore`) est uploadé
+4. **Retour au flux** : L'audit retourne en `PENDING_OE_OPINION` avec le score de la phase 2
+
+**Note** : Si après l'audit complémentaire un plan d'action est encore nécessaire (score < 65 ou notation C/D), le plan est automatiquement refusé (`REFUSED_PLAN`) car un seul audit complémentaire est autorisé.
 
 ## Tests
 

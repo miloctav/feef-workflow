@@ -1,5 +1,6 @@
 import type { AuditNotation } from '~~/server/database/schema'
 import type { AuditScoreKey, AuditScoreLetter, AuditScoreTheme } from '~~/server/config/auditNotation.config'
+import type { AuditPhaseType } from '#shared/types/enums'
 
 // Exporter les labels et helper depuis le config serveur pour utilisation frontend
 export { AuditScoreThemeLabels, getScoresByTheme } from '~~/server/config/auditNotation.config'
@@ -33,4 +34,5 @@ export interface ScoreInput {
  */
 export interface UpdateAuditNotationData {
   scores: ScoreInput[]
+  phase?: AuditPhaseType // 'PHASE_1' (default) ou 'PHASE_2'
 }

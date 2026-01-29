@@ -1,7 +1,7 @@
 import { eq, and, isNotNull } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { audits, auditNotation, documentVersions } from '~~/server/database/schema'
-import { AuditStatus } from '#shared/types/enums'
+import { AuditStatus, AuditPhase } from '#shared/types/enums'
 import { AuditDocumentType } from '~~/app/types/auditDocuments'
 import { getLatestEvent } from '~~/server/services/events'
 
@@ -183,6 +183,129 @@ export async function updateActionPlanType(auditId: number, currentUserId?: numb
     if (planValidated) {
       console.warn(`⚠️ [updateActionPlanType] Attention: audit ${auditId} a un plan d'action déjà validé, mais le type a changé (${audit.actionPlanType} → ${actionPlanType}). Vérifier manuellement.`)
     }
+  }
+
+  await db.update(audits)
+    .set(updateData)
+    .where(eq(audits.id, auditId))
+
+  return actionPlanType
+}
+
+/**
+ * Calcule le type de plan d'action nécessaire pour un audit en phase 2 (audit complémentaire)
+ *
+ * Utilise complementaryGlobalScore et les notations PHASE_2.
+ *
+ * Règles:
+ * - LONG si complementaryGlobalScore < 65 (priorité)
+ * - SHORT si complementaryGlobalScore >= 65 ET au moins une notation phase 2 >= 3 (C ou D)
+ * - NONE sinon
+ *
+ * @param auditId - ID de l'audit
+ * @returns Le type de plan d'action requis ('NONE', 'SHORT', 'LONG')
+ */
+export async function calculateActionPlanTypePhase2(auditId: number): Promise<'NONE' | 'SHORT' | 'LONG'> {
+  // 1. Récupérer l'audit pour obtenir le complementaryGlobalScore
+  const audit = await db.query.audits.findFirst({
+    where: eq(audits.id, auditId),
+    columns: {
+      id: true,
+      complementaryGlobalScore: true,
+    },
+  })
+
+  if (!audit) {
+    throw new Error(`Audit ${auditId} not found`)
+  }
+
+  // 2. Vérifier si complementaryGlobalScore < 65 → LONG PLAN (priorité)
+  if (audit.complementaryGlobalScore !== null && audit.complementaryGlobalScore < 65) {
+    return 'LONG'
+  }
+
+  // 3. Récupérer les notations de la phase 2 pour vérifier les scores C ou D
+  const notations = await db.query.auditNotation.findMany({
+    where: and(
+      eq(auditNotation.auditId, auditId),
+      eq(auditNotation.phase, AuditPhase.PHASE_2)
+    ),
+    columns: {
+      score: true,
+    },
+  })
+
+  // 4. Vérifier s'il y a au moins un score >= 3 (C ou D) → SHORT PLAN
+  const hasBadNotation = notations.some(notation => notation.score >= 3)
+
+  if (audit.complementaryGlobalScore !== null && audit.complementaryGlobalScore >= 65 && hasBadNotation) {
+    return 'SHORT'
+  }
+
+  // 5. Aucun plan nécessaire
+  return 'NONE'
+}
+
+/**
+ * Met à jour les champs actionPlanType et actionPlanDeadline d'un audit
+ * après l'audit complémentaire (phase 2)
+ *
+ * @param auditId - ID de l'audit
+ * @param currentUserId - ID de l'utilisateur effectuant la modification
+ * @returns Le type de plan d'action calculé
+ */
+export async function updateActionPlanTypePhase2(auditId: number, currentUserId?: number): Promise<'NONE' | 'SHORT' | 'LONG'> {
+  const actionPlanType = await calculateActionPlanTypePhase2(auditId)
+
+  // Pour la phase 2, on calcule la deadline depuis l'événement AUDIT_COMPLEMENTARY_REPORT_UPLOADED
+  let actionPlanDeadline: Date | null = null
+
+  if (actionPlanType !== 'NONE') {
+    const reportUploadEvent = await getLatestEvent('AUDIT_COMPLEMENTARY_REPORT_UPLOADED', { auditId })
+
+    if (reportUploadEvent) {
+      const reportUploadDate = new Date(reportUploadEvent.performedAt)
+      actionPlanDeadline = new Date(reportUploadDate)
+
+      // Ajouter le délai selon le type de plan
+      if (actionPlanType === 'SHORT') {
+        actionPlanDeadline.setDate(actionPlanDeadline.getDate() + 15) // 15 jours
+      }
+      else if (actionPlanType === 'LONG') {
+        actionPlanDeadline.setDate(actionPlanDeadline.getDate() + 180) // 6 mois (180 jours)
+      }
+    }
+  }
+
+  // Récupérer l'audit pour obtenir le status actuel
+  const audit = await db.query.audits.findFirst({
+    where: eq(audits.id, auditId),
+    columns: {
+      id: true,
+      status: true,
+      actionPlanType: true,
+    },
+  })
+
+  const updateData: any = {
+    actionPlanType,
+    actionPlanDeadline,
+  }
+
+  // Si le plan n'est plus nécessaire, passer directement à PENDING_OE_OPINION
+  if (actionPlanType === 'NONE' && audit) {
+    updateData.status = AuditStatus.PENDING_OE_OPINION
+    console.log(`✅ [updateActionPlanTypePhase2] Aucun plan nécessaire pour audit ${auditId} → PENDING_OE_OPINION`)
+  }
+  // Si un plan est nécessaire, passer à PENDING_CORRECTIVE_PLAN
+  else if (actionPlanType !== 'NONE' && audit) {
+    updateData.status = AuditStatus.PENDING_CORRECTIVE_PLAN
+    console.log(`✅ [updateActionPlanTypePhase2] Plan ${actionPlanType} nécessaire pour audit ${auditId} → PENDING_CORRECTIVE_PLAN`)
+  }
+
+  if (currentUserId) {
+    updateData.updatedBy = currentUserId
+    updateData.updatedAt = new Date()
   }
 
   await db.update(audits)

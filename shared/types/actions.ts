@@ -35,6 +35,10 @@ export const ActionType = {
   UPLOAD_AUDIT_REPORT: 'UPLOAD_AUDIT_REPORT',
   VALIDATE_CORRECTIVE_PLAN: 'VALIDATE_CORRECTIVE_PLAN',
   UPLOAD_LABELING_OPINION: 'UPLOAD_LABELING_OPINION',
+
+  // Complementary audit actions
+  SET_COMPLEMENTARY_AUDIT_DATES: 'SET_COMPLEMENTARY_AUDIT_DATES',
+  UPLOAD_COMPLEMENTARY_REPORT: 'UPLOAD_COMPLEMENTARY_REPORT',
 } as const
 
 export type ActionTypeType = typeof ActionType[keyof typeof ActionType]
@@ -405,6 +409,42 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     },
     icon: 'i-lucide-shield-check',
     color: 'success',
+  },
+
+  // ============================================
+  // COMPLEMENTARY AUDIT ACTIONS
+  // ============================================
+
+  [ActionType.SET_COMPLEMENTARY_AUDIT_DATES]: {
+    key: ActionType.SET_COMPLEMENTARY_AUDIT_DATES,
+    titleFr: 'Définir les dates de l\'audit complémentaire',
+    descriptionFr: 'Définir les dates de début et de fin de l\'audit complémentaire',
+    assignedRoles: [Role.OE, Role.AUDITOR],
+    defaultDurationDays: 15,
+    completionCriteria: {
+      customCheck: 'checkComplementaryAuditDatesSet',
+    },
+    triggers: {
+      onAuditStatus: [AuditStatus.PENDING_COMPLEMENTARY_AUDIT],
+    },
+    icon: 'i-lucide-calendar-plus',
+    color: 'warning',
+  },
+
+  [ActionType.UPLOAD_COMPLEMENTARY_REPORT]: {
+    key: ActionType.UPLOAD_COMPLEMENTARY_REPORT,
+    titleFr: 'Mettre en ligne le rapport de l\'audit complémentaire',
+    descriptionFr: 'Téléverser le rapport complet de l\'audit complémentaire avec les scores',
+    assignedRoles: [Role.OE, Role.AUDITOR],
+    defaultDurationDays: 20,
+    completionCriteria: {
+      customCheck: 'checkComplementaryReportUploaded',
+    },
+    triggers: {
+      onAuditStatus: [AuditStatus.PENDING_COMPLEMENTARY_AUDIT],
+    },
+    icon: 'i-lucide-file-plus',
+    color: 'warning',
   },
 
 

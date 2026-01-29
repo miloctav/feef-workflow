@@ -71,7 +71,7 @@ interface Props {
   labelError?: string
 
   // Couleurs personnalisées (optionnel)
-  colorScheme?: 'green' | 'blue' | 'orange' | 'yellow' | 'gray'
+  colorScheme?: 'green' | 'blue' | 'orange' | 'yellow' | 'gray' | 'purple'
 
   // Comportement
   clickable?: boolean
@@ -135,6 +135,13 @@ const stateColorMap = {
     disabled: { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-400' },
     pending: { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-600' },
     success: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' },
+    warning: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600' },
+    error: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600' }
+  },
+  purple: {
+    disabled: { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-400' },
+    pending: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-600' },
+    success: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-600' },
     warning: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600' },
     error: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600' }
   }

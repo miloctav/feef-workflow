@@ -8,7 +8,7 @@ import {
   buildCountQuery,
   formatResponse,
 } from '~~/server/utils/pagination'
-import { Role } from '#shared/types/roles'
+import { Role, OERole } from '#shared/types/roles'
 
 /**
  * GET /api/entities

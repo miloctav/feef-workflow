@@ -406,6 +406,10 @@ async function evaluateCustomCheck(checkName: string, action: any): Promise<bool
       return await checkCorrectivePlanValidatedEvent(action)
     case 'checkOeOpinionTransmittedEvent':
       return await checkOeOpinionTransmittedEvent(action)
+    case 'checkComplementaryAuditDatesSet':
+      return await checkComplementaryAuditDatesSet(action)
+    case 'checkComplementaryReportUploaded':
+      return await checkComplementaryReportUploaded(action)
     default:
       console.warn(`[Actions] Unknown custom check: ${checkName}`)
       return false
@@ -873,4 +877,54 @@ export async function cancelActionsForAudit(
     )
 
   console.log(`[Actions] Cancelled all actions for audit ${auditId}`)
+}
+
+/**
+ * Vérifie si les dates de l'audit complémentaire sont définies
+ */
+async function checkComplementaryAuditDatesSet(action: any): Promise<boolean> {
+  if (!action.auditId) {
+    console.warn('[Actions] checkComplementaryAuditDatesSet: Missing auditId')
+    return false
+  }
+
+  const audit = await db.query.audits.findFirst({
+    where: eq(audits.id, action.auditId),
+    columns: {
+      complementaryStartDate: true,
+      complementaryEndDate: true,
+    },
+  })
+
+  // Both dates must be set
+  return !!(audit?.complementaryStartDate && audit?.complementaryEndDate)
+}
+
+/**
+ * Vérifie si le rapport de l'audit complémentaire a été uploadé
+ * (vérifie via l'événement AUDIT_COMPLEMENTARY_REPORT_UPLOADED)
+ */
+async function checkComplementaryReportUploaded(action: any): Promise<boolean> {
+  if (!action.auditId) {
+    console.warn('[Actions] checkComplementaryReportUploaded: Missing auditId')
+    return false
+  }
+
+  // Vérifier via l'événement et le score complémentaire
+  const { hasEventOccurred } = await import('~~/server/services/events')
+  const eventOccurred = await hasEventOccurred('AUDIT_COMPLEMENTARY_REPORT_UPLOADED', {
+    auditId: action.auditId
+  })
+
+  if (eventOccurred) return true
+
+  // Fallback : vérifier si le score complémentaire est défini
+  const audit = await db.query.audits.findFirst({
+    where: eq(audits.id, action.auditId),
+    columns: {
+      complementaryGlobalScore: true,
+    },
+  })
+
+  return audit?.complementaryGlobalScore !== null && audit?.complementaryGlobalScore !== undefined
 }

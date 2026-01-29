@@ -133,6 +133,7 @@ import type { AuditWithRelations } from '~~/app/types/audits'
 import type { AuditDocumentTypeType } from '~~/app/types/auditDocuments'
 import { Role } from '#shared/types/roles'
 import { AuditDocumentTypeLabels, AuditDocumentType } from '~~/app/types/auditDocuments'
+import { AuditPhase, type AuditPhaseType } from '#shared/types/enums'
 import DocumentViewerHeader from './document-viewer/DocumentViewerHeader.vue'
 import DocumentViewerLoading from './document-viewer/DocumentViewerLoading.vue'
 import DocumentViewerPendingRequest from './document-viewer/DocumentViewerPendingRequest.vue'
@@ -153,11 +154,13 @@ interface Props {
   contract?: ContractWithRelations | null
   audit?: AuditWithRelations | null
   auditDocumentType?: AuditDocumentTypeType
+  phase?: AuditPhaseType
   open?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   open: false,
+  phase: AuditPhase.PHASE_1,
 })
 
 // Types de viewers supportés
