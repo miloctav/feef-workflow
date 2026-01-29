@@ -15,6 +15,7 @@ export const ActionType = {
   // FEEF Actions
   FEEF_VALIDATE_CASE_SUBMISSION: 'FEEF_VALIDATE_CASE_SUBMISSION',
   FEEF_VALIDATE_LABELING_DECISION: 'FEEF_VALIDATE_LABELING_DECISION',
+  FEEF_SIGN_CONTRACT: 'FEEF_SIGN_CONTRACT',
 
   // ENTITY Actions
   ENTITY_SUBMIT_CASE: 'ENTITY_SUBMIT_CASE',
@@ -24,7 +25,6 @@ export const ActionType = {
   ENTITY_UPDATE_CASE_INFORMATION: 'ENTITY_UPDATE_CASE_INFORMATION',
   ENTITY_SIGN_FEEF_CONTRACT: 'ENTITY_SIGN_FEEF_CONTRACT',
   ENTITY_UPLOAD_CORRECTIVE_PLAN: 'ENTITY_UPLOAD_CORRECTIVE_PLAN',
-  ENTITY_UPDATE_DOCUMENT: 'ENTITY_UPDATE_DOCUMENT',
 
   // OE Actions
   OE_ACCEPT_OR_REFUSE_AUDIT: 'OE_ACCEPT_OR_REFUSE_AUDIT',
@@ -170,6 +170,22 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     color: 'success',
   },
 
+  [ActionType.FEEF_SIGN_CONTRACT]: {
+    key: ActionType.FEEF_SIGN_CONTRACT,
+    titleFr: 'Signer le contrat',
+    descriptionFr: 'Signer le contrat avec l\'entité',
+    assignedRoles: [Role.FEEF],
+    defaultDurationDays: 15,
+    completionCriteria: {
+      customCheck: 'checkContractFeefSigned',
+    },
+    triggers: {
+      onContractStatus: ['PENDING_FEEF'],
+    },
+    icon: 'i-lucide-pen-tool',
+    color: 'primary',
+  },
+
   // ============================================
   // ENTITY ACTIONS
   // ============================================
@@ -177,9 +193,9 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
   [ActionType.ENTITY_SUBMIT_CASE]: {
     key: ActionType.ENTITY_SUBMIT_CASE,
     titleFr: 'Déposer son dossier',
-    descriptionFr: 'Soumettre votre dossier de candidature à la labellisation',
+    descriptionFr: 'Compléter votre dossier puis soumettez-le pour candidater à la labellisation',
     assignedRoles: [Role.ENTITY],
-    defaultDurationDays: 30,
+    defaultDurationDays: 45,
     completionCriteria: {
       customCheck: 'checkCaseSubmittedEvent',
     },
@@ -193,9 +209,9 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
   [ActionType.ENTITY_MARK_DOCUMENTARY_REVIEW_READY]: {
     key: ActionType.ENTITY_MARK_DOCUMENTARY_REVIEW_READY,
     titleFr: 'Marquer la revue documentaire comme prête',
-    descriptionFr: 'Confirmer que tous vos documents sont à jour et prêts pour la revue',
+    descriptionFr: 'Confirmer que tous vos documents sont à jour et prêts pour la revue (à faire 7 jours avant le début de l\'audit)',
     assignedRoles: [Role.ENTITY],
-    defaultDurationDays: 14,
+    defaultDurationDays: 14, // Fallback si date de début d'audit non disponible
     completionCriteria: {
       customCheck: 'checkDocumentaryReviewReadyEvent',
     },
@@ -260,7 +276,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     titleFr: 'Signer le contrat avec la FEEF',
     descriptionFr: 'Signer le contrat d\'engagement avec la FEEF',
     assignedRoles: [Role.ENTITY],
-    defaultDurationDays: 15,
+    defaultDurationDays: 7,
     completionCriteria: {
       customCheck: 'checkContractEntitySigned',
     },
@@ -276,7 +292,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     titleFr: 'Mettre en ligne votre plan d\'action correctif',
     descriptionFr: 'Téléverser le plan d\'action pour corriger les non-conformités identifiées lors de l\'audit',
     assignedRoles: [Role.ENTITY],
-    defaultDurationDays: 30, // Fallback si actionPlanDeadline non définie
+    defaultDurationDays: 15, // Fallback si actionPlanDeadline non définie
     completionCriteria: {
       auditStatus: AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION,
     },
@@ -284,22 +300,6 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
       onAuditStatus: [AuditStatus.PENDING_CORRECTIVE_PLAN],
     },
     icon: 'i-lucide-list-checks',
-    color: 'warning',
-  },
-
-  [ActionType.ENTITY_UPDATE_DOCUMENT]: {
-    key: ActionType.ENTITY_UPDATE_DOCUMENT,
-    titleFr: 'Mettre à jour les documents demandés',
-    descriptionFr: 'Téléverser les nouvelles versions des documents demandés par l\'OE',
-    assignedRoles: [Role.ENTITY],
-    defaultDurationDays: 10,
-    completionCriteria: {
-      customCheck: 'checkAllDocumentRequestsCompleted',
-    },
-    triggers: {
-      // Pas de trigger automatique - créée manuellement lors de la demande
-    },
-    icon: 'i-lucide-file-edit',
     color: 'warning',
   },
 
@@ -332,7 +332,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     titleFr: 'Définir les dates d\'audit',
     descriptionFr: 'Définir les dates de début et de fin de l\'audit',
     assignedRoles: [Role.OE, Role.AUDITOR],
-    defaultDurationDays: 10,
+    defaultDurationDays: 15,
     completionCriteria: {
       customCheck: 'checkAuditDatesSet',
     },
@@ -348,7 +348,7 @@ export const ACTION_TYPE_REGISTRY: Record<ActionTypeType, ActionTypeDefinition> 
     titleFr: 'Mettre en ligne le plan d\'audit',
     descriptionFr: 'Téléverser le plan d\'audit détaillé',
     assignedRoles: [Role.OE, Role.AUDITOR],
-    defaultDurationDays: 15,
+    defaultDurationDays: 10,
     completionCriteria: {
       documentType: 'PLAN',
     },

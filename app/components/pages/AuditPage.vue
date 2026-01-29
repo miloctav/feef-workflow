@@ -50,7 +50,6 @@ watch(
     if (audit?.entityId) {
       // Ne fetch l'entit� que si l'entityId a chang�
       if (previousEntityId.value !== audit.entityId) {
-        console.log('Fetching entity for audit:', audit)
         await fetchEntity(audit.entityId)
         previousEntityId.value = audit.entityId
       }

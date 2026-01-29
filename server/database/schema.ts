@@ -47,6 +47,7 @@ export const actionTypeEnum = pgEnum('action_type', [
   // FEEF
   'FEEF_VALIDATE_CASE_SUBMISSION',
   'FEEF_VALIDATE_LABELING_DECISION',
+  'FEEF_SIGN_CONTRACT',
   // ENTITY
   'ENTITY_SUBMIT_CASE',
   'ENTITY_MARK_DOCUMENTARY_REVIEW_READY',
@@ -55,7 +56,6 @@ export const actionTypeEnum = pgEnum('action_type', [
   'ENTITY_UPDATE_CASE_INFORMATION',
   'ENTITY_SIGN_FEEF_CONTRACT',
   'ENTITY_UPLOAD_CORRECTIVE_PLAN',
-  'ENTITY_UPDATE_DOCUMENT',
   // OE
   'OE_ACCEPT_OR_REFUSE_AUDIT',
   // Actions partagées OE/AUDITOR (fusionnées)

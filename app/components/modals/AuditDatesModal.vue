@@ -1,9 +1,9 @@
 <template>
-  <UModal 
+  <UModal
     title="Dates d'audit"
-    :ui="{ 
+    :ui="{
       content: 'w-full max-w-lg',
-      footer: 'justify-end' 
+      footer: 'justify-end',
     }"
   >
     <!-- Bouton déclencheur -->
@@ -18,25 +18,36 @@
     <template #body>
       <div class="space-y-6">
         <!-- Date prévisionnelle (lecture seule) -->
-        <div v-if="hasPlannedDate" class="space-y-4">
+        <div
+          v-if="hasPlannedDate"
+          class="space-y-4"
+        >
           <div class="flex items-center gap-2">
             <h4 class="font-medium text-gray-900">Date prévisionnelle</h4>
-            <UBadge size="xs" color="info">Lecture seule</UBadge>
+            <UBadge
+              size="xs"
+              color="info"
+              >Lecture seule</UBadge
+            >
           </div>
 
           <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div>
-              <label class="block text-xs font-medium text-blue-900 mb-1">
-                Date prévue
-              </label>
+              <label class="block text-xs font-medium text-blue-900 mb-1"> Date prévue </label>
               <p class="text-sm text-blue-800 font-semibold">
                 {{ formatDisplayDate(props.initialPlannedDate) }}
               </p>
             </div>
 
-            <div v-if="props.initialPlannedDate" class="mt-3 pt-3 border-t border-blue-200">
+            <div
+              v-if="props.initialPlannedDate"
+              class="mt-3 pt-3 border-t border-blue-200"
+            >
               <div class="flex items-start gap-2">
-                <UIcon name="i-lucide-info" class="w-4 h-4 text-blue-600 mt-0.5" />
+                <UIcon
+                  name="i-lucide-info"
+                  class="w-4 h-4 text-blue-600 mt-0.5"
+                />
                 <div class="text-xs text-blue-800">
                   <p class="font-medium">Date limite de dépôt des documents</p>
                   <p>{{ depositDeadline }}</p>
@@ -46,12 +57,20 @@
           </div>
         </div>
 
-        <div v-else class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+        <div
+          v-else
+          class="p-4 bg-gray-50 border border-gray-200 rounded-lg"
+        >
           <div class="flex items-start gap-2">
-            <UIcon name="i-lucide-alert-circle" class="w-4 h-4 text-gray-600 mt-0.5" />
+            <UIcon
+              name="i-lucide-alert-circle"
+              class="w-4 h-4 text-gray-600 mt-0.5"
+            />
             <div class="text-sm text-gray-700">
               <p class="font-medium">Aucune date prévisionnelle définie</p>
-              <p class="text-xs text-gray-600 mt-1">La date prévisionnelle sera calculée automatiquement lors de la création de l'audit.</p>
+              <p class="text-xs text-gray-600 mt-1">
+                La date prévisionnelle sera calculée automatiquement lors de la création de l'audit.
+              </p>
             </div>
           </div>
         </div>
@@ -60,38 +79,58 @@
         <div class="space-y-4">
           <div class="flex items-center gap-2">
             <h4 class="font-medium text-gray-900">Dates réelles de l'audit</h4>
-            <UBadge size="xs" color="success">Modifiable</UBadge>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Date de début réelle
-              </label>
-              <UInput
-                v-model="form.actualStartDate"
-                type="date"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Date de fin réelle
-              </label>
-              <UInput
-                v-model="form.actualEndDate"
-                type="date"
-                :min="form.actualStartDate"
-              />
-            </div>
+            <UBadge
+              size="xs"
+              color="success"
+              >Modifiable</UBadge
+            >
           </div>
 
-          <div v-if="form.actualStartDate && form.actualEndDate" class="text-xs text-gray-600 mt-2">
-            <p>Durée : {{ auditDuration }} jours</p>
+          <UInputDate
+            ref="inputDate"
+            v-model="dateRange"
+            range
+            locale="fr-FR"
+          >
+            <template #trailing>
+              <UPopover
+                v-if="popoverReference"
+                :reference="popoverReference"
+              >
+                <UButton
+                  color="neutral"
+                  variant="link"
+                  size="sm"
+                  icon="i-lucide-calendar"
+                  aria-label="Sélectionner les dates d'audit"
+                  class="px-0"
+                />
+
+                <template #content>
+                  <UCalendar
+                    v-model="dateRange"
+                    class="p-2"
+                    :number-of-months="2"
+                    range
+                    locale="fr-FR"
+                  />
+                </template>
+              </UPopover>
+            </template>
+          </UInputDate>
+
+          <div
+            v-if="form.actualStartDate && form.actualEndDate"
+            class="text-xs text-gray-600 mt-2"
+          >
+            <p>Durée : {{ auditDuration }} jour{{ auditDuration > 1 ? 's' : '' }}</p>
           </div>
         </div>
 
-        <div v-if="dateError" class="text-sm text-red-600">
+        <div
+          v-if="dateError"
+          class="text-sm text-red-600"
+        >
           {{ dateError }}
         </div>
       </div>
@@ -116,6 +155,8 @@
 </template>
 
 <script setup lang="ts">
+import { CalendarDate, parseDate } from '@internationalized/date'
+
 interface Props {
   auditId: number
   initialPlannedDate?: string | null
@@ -130,7 +171,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  'saved': [dates: any]
+  saved: [dates: any]
 }>()
 
 // Composables
@@ -140,6 +181,12 @@ const toast = useToast()
 
 // État local
 const saving = ref(false)
+const inputDate = useTemplateRef<any>('inputDate')
+
+// Référence sûre pour le popover (évite les erreurs de démontage)
+const popoverReference = computed(() => {
+  return inputDate.value?.inputsRef?.[0]?.$el || null
+})
 
 // Computed pour savoir si une date prévisionnelle existe
 const hasPlannedDate = computed(() => {
@@ -150,6 +197,30 @@ const hasPlannedDate = computed(() => {
 const form = reactive({
   actualStartDate: '',
   actualEndDate: '',
+})
+
+// Computed pour convertir les dates string en objet CalendarDate range
+const dateRange = computed({
+  get() {
+    if (!form.actualStartDate || !form.actualEndDate) {
+      return undefined
+    }
+
+    return {
+      start: parseDate(form.actualStartDate),
+      end: parseDate(form.actualEndDate),
+    }
+  },
+  set(value: { start?: CalendarDate; end?: CalendarDate } | null | undefined) {
+    if (!value || !value.start || !value.end) {
+      form.actualStartDate = value?.start?.toString() || ''
+      form.actualEndDate = value?.end?.toString() || ''
+      return
+    }
+
+    form.actualStartDate = value.start.toString()
+    form.actualEndDate = value.end.toString()
+  },
 })
 
 // Date limite de dépôt (15 jours avant la date prévue)
@@ -164,19 +235,19 @@ const depositDeadline = computed(() => {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   })
 })
 
 // Durée de l'audit réel
 const auditDuration = computed(() => {
   if (!form.actualStartDate || !form.actualEndDate) return 0
-  
+
   const start = new Date(form.actualStartDate)
   const end = new Date(form.actualEndDate)
   const diffTime = Math.abs(end.getTime() - start.getTime())
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
+
   return diffDays + 1 // +1 pour inclure le jour de début
 })
 
@@ -197,10 +268,12 @@ const dateError = computed(() => {
 
 // Initialiser le formulaire avec les valeurs existantes (uniquement dates réelles)
 const initForm = () => {
-  form.actualStartDate = props.initialActualStartDate ?
-    new Date(props.initialActualStartDate).toISOString().split('T')[0] || '' : ''
-  form.actualEndDate = props.initialActualEndDate ?
-    new Date(props.initialActualEndDate).toISOString().split('T')[0] || '' : ''
+  form.actualStartDate = props.initialActualStartDate
+    ? new Date(props.initialActualStartDate).toISOString().split('T')[0] || ''
+    : ''
+  form.actualEndDate = props.initialActualEndDate
+    ? new Date(props.initialActualEndDate).toISOString().split('T')[0] || ''
+    : ''
 }
 
 // Formater une date pour l'affichage en lecture seule
@@ -211,7 +284,7 @@ const formatDisplayDate = (dateString: string | null | undefined): string => {
   return date.toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
   })
 }
 
@@ -258,7 +331,7 @@ const saveDates = async (closeModal?: () => void) => {
     console.error('Erreur sauvegarde dates réelles:', error)
     toast.add({
       title: 'Erreur',
-      description: 'Impossible d\'enregistrer les dates réelles',
+      description: "Impossible d'enregistrer les dates réelles",
       color: 'error',
     })
   } finally {

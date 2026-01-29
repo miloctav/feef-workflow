@@ -308,6 +308,11 @@ export default defineEventHandler(async (event) => {
           updatedAt: new Date()
         })
         .where(eq(contracts.id, contract.id))
+
+      // Créer les actions pour le nouveau statut
+      const { createActionsForContractStatus } = await import('~~/server/services/actions')
+      // Passer l'ID pour que la fonction récupère le contrat mis à jour
+      await createActionsForContractStatus(contract.id, 'PENDING_ENTITY', event)
     }
   } catch (error: any) {
     // Si quelque chose échoue, supprimer le contrat

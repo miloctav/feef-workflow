@@ -37,6 +37,7 @@ definePageMeta({
 
 const { currentEntity, fetchEntity, fetchLoading, fetchError, submitCase, submitCaseLoading } =
   useEntities()
+const { fetchContracts } = useContracts()
 const { user } = useAuth()
 
 const entityId = user.value?.currentEntityId
@@ -45,9 +46,14 @@ onMounted(async () => {
   if (!entityId) {
     throw createError({ statusCode: 404, message: 'Entité non trouvée' })
   }
-  const result = await fetchEntity(entityId)
 
-  if (!result.success) {
+  // Charger l'entité ET les contrats en parallèle
+  const [entityResult] = await Promise.all([
+    fetchEntity(entityId),
+    fetchContracts(entityId)
+  ])
+
+  if (!entityResult.success) {
     throw createError({ statusCode: 404, message: 'Entité non trouvée' })
   }
 })

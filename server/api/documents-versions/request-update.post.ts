@@ -106,11 +106,7 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  // 7. Créer ou mettre à jour l'action ENTITY_UPDATE_DOCUMENT
-  const { createOrUpdateDocumentUpdateAction } = await import('~~/server/services/actions')
-  await createOrUpdateDocumentUpdateAction(entityId, event)
-
-  // 8. Retourner la version créée
+  // 7. Retourner la version créée
   return {
     data: versionWithRelations,
   }

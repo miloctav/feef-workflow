@@ -68,7 +68,10 @@
       >
         <template #actions>
           <!-- Modal pour générer/régénérer l'attestation -->
-          <div v-if="canGenerateOrRegenerateAttestation" @click.stop>
+          <div
+            v-if="canGenerateOrRegenerateAttestation"
+            @click.stop
+          >
             <GenerateAttestationModal
               :audit-id="currentAudit!.id"
               :has-attestation="hasAttestation"
@@ -87,7 +90,10 @@
               >
                 Jusqu'au {{ formatDate(labelExpirationDate) }}
               </p>
-              <p v-if="!hasAttestation" class="text-xs text-orange-600 mt-2 font-medium">
+              <p
+                v-if="!hasAttestation"
+                class="text-xs text-orange-600 mt-2 font-medium"
+              >
                 ⚠️ Attestation non générée - Cliquez sur "Générer l'attestation"
               </p>
             </div>
@@ -128,7 +134,6 @@ const isAuditEditable = inject<Ref<boolean>>('isAuditEditable', ref(true))
 // État pour DocumentViewer
 const showAttestationViewer = ref(false)
 
-
 // Récupérer les événements de l'audit via le composable
 const { feefDecisionAt, feefDecisionByAccount } = useAuditEvents(
   computed(() => currentAudit.value?.id)
@@ -143,12 +148,6 @@ const auditStatus = computed(() => currentAudit.value?.status ?? null)
 
 // Computed: Attestation disponible
 const hasAttestation = computed(() => {
-  console.log('hasAttestation - currentAudit:', currentAudit.value)
-  console.log('hasAttestation - lastDocumentVersions:', currentAudit.value?.lastDocumentVersions)
-  console.log(
-    'hasAttestation - ATTESTATION:',
-    currentAudit.value?.lastDocumentVersions?.ATTESTATION
-  )
   return !!currentAudit.value?.lastDocumentVersions?.ATTESTATION
 })
 
@@ -174,9 +173,7 @@ const canSubmitDecision = computed(() => {
 // Bouton "Générer" ou "Régénérer" selon si attestation existe
 const canGenerateOrRegenerateAttestation = computed(() => {
   return (
-    user.value?.role === Role.FEEF &&
-    hasDecision.value &&
-    feefDecision.value === 'ACCEPTED'
+    user.value?.role === Role.FEEF && hasDecision.value && feefDecision.value === 'ACCEPTED'
     // S'affiche toujours après décision ACCEPTED (attestation existe ou non)
   )
 })

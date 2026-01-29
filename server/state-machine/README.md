@@ -89,11 +89,10 @@ Tous les statuts sont définis dans `config.ts`. Voici la structure :
       // Actions à créer lors de l'entrée dans ce statut
       onEnter: {
         createActions: [
-          ActionType.ENTITY_MARK_DOCUMENTARY_REVIEW_READY,
           ActionType.SET_AUDIT_DATES,
           ActionType.UPLOAD_AUDIT_PLAN
         ],
-        executeActions: ['check_if_corrective_plan_needed']
+        executeActions: ['check_if_action_plan_needed']
       },
 
       // Actions à exécuter lors de la sortie
@@ -107,7 +106,7 @@ Tous les statuts sont définis dans `config.ts`. Voici la structure :
           target: AuditStatus.SCHEDULED,
           guards: ['has_audit_plan', 'has_actual_dates', 'end_date_is_future'],
           trigger: 'AUTO_DOCUMENT',
-          triggerOnActions: [ActionType.UPLOAD_AUDIT_PLAN],
+          triggerOnActions: [ActionType.UPLOAD_AUDIT_PLAN, ActionType.SET_AUDIT_DATES],
           description: 'Plan uploadé + dates définies + date future'
         }
       }
@@ -138,10 +137,16 @@ Les guards sont des fonctions qui vérifient si une transition est autorisée.
 | `actual_end_date_passed` | Vérifie que la date de fin est passée |
 | `has_report_document` | Vérifie qu'un rapport d'audit existe |
 | `has_global_score` | Vérifie que le score global est défini |
-| `needs_corrective_plan` | Vérifie si un plan correctif est nécessaire |
-| `corrective_plan_validated` | Vérifie que le plan correctif est validé |
+| `needs_action_plan` | Vérifie si un plan d'action est nécessaire |
+| `no_action_plan_uploaded` | Vérifie qu'aucun plan d'action n'est uploadé |
+| `has_action_plan_document` | Vérifie qu'un plan d'action est uploadé |
+| `action_plan_validated` | Vérifie que le plan d'action est validé |
 | `has_oe_opinion` | Vérifie que l'avis OE est transmis |
 | `has_feef_decision` | Vérifie que la décision FEEF est prise |
+| `requires_oe_acceptance` | Vérifie si l'OE doit accepter l'audit (INITIAL/RENEWAL) |
+| `is_monitoring_audit` | Vérifie si c'est un audit de surveillance (MONITORING) |
+| `oe_has_accepted` | Vérifie que l'OE a accepté l'audit |
+| `oe_has_refused` | Vérifie que l'OE a refusé l'audit |
 
 ### Ajouter un nouveau guard
 
@@ -183,10 +188,11 @@ Les actions sont des fonctions qui exécutent des effets de bord lors des transi
 
 | Action | Description |
 |--------|-------------|
-| `check_if_corrective_plan_needed` | Recalcule le flag needsCorrectivePlan |
+| `check_if_action_plan_needed` | Recalcule si un plan d'action est nécessaire |
 | `calculate_label_expiration` | Calcule la date d'expiration du label (+1 an) |
 | `reset_entity_workflow` | Réinitialise les champs de workflow de l'entité |
-| `generate_attestation` | Génère l'attestation de labellisation |
+| `generate_attestation` | Génère l'attestation de labellisation (manuel uniquement) |
+| `create_new_audit_after_refusal` | Crée un nouvel audit après le refus de l'OE |
 
 ### Ajouter une nouvelle action
 
@@ -273,28 +279,12 @@ export const AUDIT_STATUS_LABELS = {
 [AuditStatus.PENDING_REPORT]: {
   // ...
   transitions: {
-    to_technical_review: { // 🆕 Nouvelle transition
-      target: AuditStatus.PENDING_TECHNICAL_REVIEW,
-      guards: ['has_report_document'],
+    to_pending_opinion: { // 🆕 Nouvelle transition
+      target: AuditStatus.PENDING_OE_OPINION,
+      guards: ['has_report_document', 'has_global_score'],
       trigger: 'AUTO_DOCUMENT',
       triggerOnActions: [ActionType.UPLOAD_AUDIT_REPORT],
-      description: 'Rapport uploadé → revue technique'
-    }
-  }
-},
-
-// Ajouter le nouvel état
-[AuditStatus.PENDING_TECHNICAL_REVIEW]: { // 🆕 Nouvel état complet
-  status: AuditStatus.PENDING_TECHNICAL_REVIEW,
-  onEnter: {
-    createActions: [ActionType.VALIDATE_TECHNICAL_REVIEW]
-  },
-  transitions: {
-    to_pending_opinion: {
-      target: AuditStatus.PENDING_OE_OPINION,
-      guards: ['has_global_score', 'technical_review_validated'],
-      trigger: 'MANUAL',
-      description: 'Revue technique validée'
+      description: 'Rapport uploadé + score défini'
     }
   }
 },
@@ -302,18 +292,7 @@ export const AUDIT_STATUS_LABELS = {
 
 #### Étape 4 : Ajouter les guards nécessaires (si nouveau)
 
-```typescript
-// server/state-machine/guards.ts
-export async function technicalReviewValidated(audit: Audit): Promise<boolean> {
-  return audit.technicalReviewValidatedAt !== null
-}
-
-// Enregistrer dans config.ts
-guards: {
-  // ...
-  technical_review_validated: guards.technicalReviewValidated,
-}
-```
+Si vous avez besoin de nouveaux guards, ajoutez-les dans `guards.ts` et enregistrez-les dans `config.ts`.
 
 #### Étape 5 : Générer et appliquer la migration
 
@@ -327,35 +306,37 @@ npm run db:migrate   # Applique la migration
 ## Diagramme de flux complet
 
 ```
-PENDING_CASE_APPROVAL
-        │
-  ┌─────┴─────┐
-  │           │
-  ↓           ↓
-PLANNING  PENDING_OE_CHOICE
-  │           │
-  └─────┬─────┘
-        ↓
-    PLANNING
-        │
-   ┌────┴────┐
-   ↓         ↓
-SCHEDULED → PENDING_REPORT
-            │
-            ↓
-    PENDING_OE_OPINION
-            │
-   ┌────────┴────────┐
-   │                 │
-   ↓                 ↓
-PENDING_FEEF_   PENDING_CORRECTIVE_PLAN
-DECISION              │
-   │                  ↓
-   │     PENDING_CORRECTIVE_PLAN_VALIDATION
-   │                  │
-   └────────┬─────────┘
-            ↓
-        COMPLETED
+                    PENDING_CASE_APPROVAL
+                            │
+          ┌─────────────────┼─────────────────┐
+          │                 │                 │
+          ↓                 ↓                 ↓
+   PENDING_OE_CHOICE  PENDING_OE_ACCEPTANCE  PLANNING
+          │                 │              (monitoring)
+          │            ┌────┴────┐
+          │            ↓         ↓
+          │        PLANNING  REFUSED_BY_OE
+          │            │       (terminal)
+          └────────────┘
+                 │
+            ┌────┴────┐
+            ↓         ↓
+        SCHEDULED → PENDING_REPORT
+                    │
+                    ↓
+            PENDING_OE_OPINION
+                    │
+       ┌────────────┼────────────┐
+       │            │            │
+       ↓            ↓            ↓
+PENDING_FEEF_  (plan OK)  PENDING_CORRECTIVE_PLAN
+DECISION                        │
+       │                        ↓
+       │       PENDING_CORRECTIVE_PLAN_VALIDATION
+       │                        │
+       └────────────┬───────────┘
+                    ↓
+                COMPLETED
 ```
 
 ## Tests

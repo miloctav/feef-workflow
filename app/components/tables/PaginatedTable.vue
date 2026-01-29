@@ -306,14 +306,18 @@ const formModalTitle = computed(() => {
 const deleteItemName = computed(() => getItemName(itemToDelete.value))
 
 // Gérer le clic sur une ligne
-const handleRowClick = (row: TableRow<T>, e?: Event) => {
+const handleRowClick = (event: any, row: any) => {
   // Vérifier si le clic provient du bouton d'actions
-  if (e && (e.target as HTMLElement).closest('[data-actions-menu]')) {
+  if (event?.target && (event.target as HTMLElement).closest?.('[data-actions-menu]')) {
     return
   }
 
   if (props.onRowClick) {
-    props.onRowClick(row.original)
+    // row.original contient les données réelles
+    const data = row?.original ?? row
+    if (data) {
+      props.onRowClick(data)
+    }
   }
 }
 

@@ -346,8 +346,8 @@ const hasMasterEntityInfo = computed(() => {
                     latestAudit.type === AuditType.INITIAL
                       ? 'i-lucide-play-circle'
                       : latestAudit.type === AuditType.SURVEILLANCE
-                      ? 'i-lucide-eye'
-                      : 'i-lucide-refresh-cw'
+                        ? 'i-lucide-eye'
+                        : 'i-lucide-refresh-cw'
                   "
                   class="w-3 h-3"
                 />
@@ -355,8 +355,8 @@ const hasMasterEntityInfo = computed(() => {
                   latestAudit.type === AuditType.INITIAL
                     ? 'Initial'
                     : latestAudit.type === AuditType.SURVEILLANCE
-                    ? 'Surveillance'
-                    : 'Renouvellement'
+                      ? 'Surveillance'
+                      : 'Renouvellement'
                 }}</span>
               </div>
             </UBadge>
@@ -552,8 +552,8 @@ const hasMasterEntityInfo = computed(() => {
                   displayEntity.type === EntityType.GROUP
                     ? displayEntity.childEntities?.length || 0
                     : displayEntity.parentGroupId
-                    ? 1
-                    : 0
+                      ? 1
+                      : 0
                 "
                 :on-created="handleRefreshEntity"
               />
@@ -710,7 +710,7 @@ const hasMasterEntityInfo = computed(() => {
                 size="md"
                 icon="i-lucide-upload"
               >
-                Déposer le dossier
+                Mon dossier est complet, je le dépose
               </UButton>
 
               <template #body>
@@ -759,6 +759,18 @@ const hasMasterEntityInfo = computed(() => {
                       </template>
                     </UAlert>
                   </template>
+
+                  <UAlert
+                    color="warning"
+                    icon="i-lucide-alert-circle"
+                  >
+                    <template #description>
+                      Une fois que vous avez déposé votre dossier, vous ne pourrez plus le modifier
+                      avant la fin de l'audit (à part ajouter des documents dans la revue
+                      documentaire). Assurez-vous d'avoir bien rempli votre dossier avec des données
+                      à jour.
+                    </template>
+                  </UAlert>
 
                   <p class="text-sm text-gray-600">Êtes-vous sûr de vouloir déposer le dossier ?</p>
                 </div>

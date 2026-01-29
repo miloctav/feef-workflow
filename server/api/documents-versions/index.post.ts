@@ -286,7 +286,7 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  // Vérifier si cet upload complète l'action ENTITY_UPDATE_DOCUMENT
+  // Vérifier si cet upload complète des actions en attente
   if (documentaryReviewId) {
     const { checkAndCompleteAllPendingActionsForEntity } = await import('~~/server/services/actions')
     const entity = await db.query.entities.findFirst({

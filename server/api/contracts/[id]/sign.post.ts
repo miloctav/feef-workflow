@@ -182,20 +182,32 @@ export default defineEventHandler(async (event) => {
     updatedAt: new Date(),
   }
 
+  let newStatus: string | null = null
+
   if (isEntitySigning) {
     // Changer le statut selon le type de signature requis
     if (contract.signatureType === 'ENTITY_ONLY') {
       updateData.signatureStatus = 'COMPLETED'
+      newStatus = 'COMPLETED'
     } else if (contract.signatureType === 'ENTITY_AND_FEEF') {
       updateData.signatureStatus = 'PENDING_FEEF'
+      newStatus = 'PENDING_FEEF'
     }
   } else if (isFeefSigning) {
     updateData.signatureStatus = 'COMPLETED'
+    newStatus = 'COMPLETED'
   }
 
   await db.update(contracts)
     .set(updateData)
     .where(eq(contracts.id, contractId))
+
+  // Créer les actions pour le nouveau statut (si applicable)
+  if (newStatus && newStatus !== 'COMPLETED') {
+    const { createActionsForContractStatus } = await import('~~/server/services/actions')
+    // Passer l'ID pour que la fonction récupère le contrat mis à jour
+    await createActionsForContractStatus(contractId, newStatus, event)
+  }
 
   // Enregistrer l'événement de signature
   if (isEntitySigning) {

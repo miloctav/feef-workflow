@@ -151,14 +151,36 @@ export async function createActionsForAuditStatus(
  * Create actions when contract status changes
  */
 export async function createActionsForContractStatus(
-  contract: any,
+  contractOrId: any | number,
   newStatus: string,
   event: H3Event,
 ): Promise<void> {
   console.log(`[Actions] Checking for actions to create for contract status: ${newStatus}`)
 
+  // Si on reçoit un ID, récupérer le contrat avec ses relations
+  let contract = contractOrId
+  if (typeof contractOrId === 'number') {
+    contract = await db.query.contracts.findFirst({
+      where: and(
+        eq(contracts.id, contractOrId),
+        isNull(contracts.deletedAt)
+      ),
+      with: {
+        entity: true,
+      },
+    })
+
+    if (!contract) {
+      console.error(`[Actions] Contract ${contractOrId} not found`)
+      return
+    }
+  }
+
+  // Chercher toutes les actions qui doivent être créées pour ce statut
   for (const [actionType, definition] of Object.entries(ACTION_TYPE_REGISTRY)) {
     if (definition.triggers.onContractStatus?.includes(newStatus)) {
+      console.log(`[Actions] Creating action ${actionType} for contract ${contract.id} (status: ${newStatus})`)
+
       await createAction(
         actionType as ActionTypeType,
         contract.entityId,
@@ -170,73 +192,6 @@ export async function createActionsForContractStatus(
     }
   }
 }
-
-/**
- * Create or update ENTITY_UPDATE_DOCUMENT action
- * Une seule action par entité, mise à jour si elle existe déjà
- */
-export async function createOrUpdateDocumentUpdateAction(
-  entityId: number,
-  event: H3Event,
-): Promise<void> {
-  console.log(`[Actions] Creating or updating ENTITY_UPDATE_DOCUMENT action for entity ${entityId}`)
-
-  // Vérifier si l'action existe déjà
-  const existingAction = await db.query.actions.findFirst({
-    where: and(
-      eq(actions.type, ActionType.ENTITY_UPDATE_DOCUMENT),
-      eq(actions.entityId, entityId),
-      isNull(actions.auditId),
-      isNull(actions.deletedAt),
-      eq(actions.status, 'PENDING'),
-    ),
-  })
-
-  if (existingAction) {
-    console.log(`[Actions] ENTITY_UPDATE_DOCUMENT action already exists (ID: ${existingAction.id}), no need to create a new one`)
-    return
-  }
-
-  // Calculer la deadline : 15 jours avant la date de début de l'audit en cours
-  let deadline: Date | null = null
-
-  // Récupérer le dernier audit non complété de l'entité
-  const currentAudit = await db.query.audits.findFirst({
-    where: and(
-      eq(audits.entityId, entityId),
-      isNull(audits.deletedAt),
-    ),
-    orderBy: [desc(audits.createdAt)],
-  })
-
-  if (currentAudit && currentAudit.status !== 'COMPLETED' && currentAudit.actualStartDate) {
-    // Calculer 15 jours avant la date de début
-    const auditStartDate = new Date(currentAudit.actualStartDate)
-    deadline = new Date(auditStartDate)
-    deadline.setDate(deadline.getDate() - 15)
-    deadline.setHours(23, 59, 59, 999)
-  }
-
-  // Créer l'action
-  const definition = ACTION_TYPE_REGISTRY[ActionType.ENTITY_UPDATE_DOCUMENT]
-  const duration = definition.defaultDurationDays
-
-  const [newAction] = await db.insert(actions).values(forInsert(event, {
-    type: ActionType.ENTITY_UPDATE_DOCUMENT,
-    entityId,
-    auditId: null, // Action entity-level
-    assignedRoles: definition.assignedRoles,
-    status: 'PENDING',
-    durationDays: duration,
-    deadline: deadline || calculateDeadline(duration), // Utiliser deadline calculée ou durée par défaut
-    metadata: null,
-  })).returning()
-
-  console.log(`[Actions] Created ENTITY_UPDATE_DOCUMENT action (ID: ${newAction.id}) for entity ${entityId}`)
-}
-
-
-
 
 
 
@@ -431,6 +386,8 @@ async function evaluateCustomCheck(checkName: string, action: any): Promise<bool
       return await checkEntityFieldUpdated(action)
     case 'checkContractEntitySigned':
       return await checkContractEntitySigned(action)
+    case 'checkContractFeefSigned':
+      return await checkContractFeefSigned(action)
     case 'checkAuditDatesSet':
       return await checkAuditDatesSet(action)
     case 'checkAllDocumentRequestsCompleted':
@@ -609,7 +566,7 @@ export async function detectAndCompleteActionsForContractSign(
   completedBy: number,
   event: H3Event,
 ): Promise<void> {
-  console.log(`[Actions] Detecting actions to complete for contract signing`)
+  console.log(`[Actions] Detecting actions to complete for contract signing (status: ${contract.signatureStatus})`)
 
   const pendingActions = await db.query.actions.findMany({
     where: and(
@@ -625,8 +582,11 @@ export async function detectAndCompleteActionsForContractSign(
     if (action.metadata?.contractId === contract.id) {
       const definition = ACTION_TYPE_REGISTRY[action.type as ActionTypeType]
 
-      if (definition?.completionCriteria.customCheck === 'checkContractEntitySigned') {
-        if (contract.entitySignedAt) {
+      // Vérifier les custom checks pour compléter l'action
+      if (definition?.completionCriteria.customCheck) {
+        const shouldComplete = await evaluateCustomCheck(definition.completionCriteria.customCheck, action)
+        if (shouldComplete) {
+          console.log(`[Actions] Completing action ${action.type} (${action.id}) after contract signing`)
           await completeAction(action.id, completedBy, event)
         }
       }
@@ -683,6 +643,7 @@ export async function checkEntityFieldUpdated(
 
 /**
  * Custom completion check: Contract entity signed
+ * Vérifie que le contrat n'est plus en PENDING_ENTITY (soit PENDING_FEEF soit COMPLETED)
  */
 export async function checkContractEntitySigned(
   action: any,
@@ -694,11 +655,34 @@ export async function checkContractEntitySigned(
   const contract = await db.query.contracts.findFirst({
     where: eq(contracts.id, contractId),
     columns: {
-      entitySignedAt: true,
+      signatureStatus: true,
     },
   })
 
-  return !!contract?.entitySignedAt
+  // L'entité a signé si le contrat est passé à PENDING_FEEF ou COMPLETED
+  return !!(contract && contract.signatureStatus !== 'PENDING_ENTITY' && contract.signatureStatus !== 'DRAFT')
+}
+
+/**
+ * Custom completion check: Contract FEEF signed
+ * Vérifie que le contrat est COMPLETED
+ */
+export async function checkContractFeefSigned(
+  action: any,
+): Promise<boolean> {
+  const contractId = action.metadata?.contractId
+
+  if (!contractId) return false
+
+  const contract = await db.query.contracts.findFirst({
+    where: eq(contracts.id, contractId),
+    columns: {
+      signatureStatus: true,
+    },
+  })
+
+  // La FEEF a signé si le contrat est COMPLETED
+  return contract?.signatureStatus === 'COMPLETED'
 }
 
 /**

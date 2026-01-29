@@ -263,18 +263,23 @@ export class AuditStateMachine {
         continue
       }
 
-      // Cas spécial : ENTITY_MARK_DOCUMENTARY_REVIEW_READY doit avoir une deadline 2 semaines avant actualStartDate
+      // Cas spécial : ENTITY_MARK_DOCUMENTARY_REVIEW_READY doit avoir une deadline 7 jours avant actualStartDate
       let customDuration: number | undefined
       let customMetadata: any = {}
 
       if (actionType === 'ENTITY_MARK_DOCUMENTARY_REVIEW_READY' && audit.actualStartDate) {
-        const daysBeforeStart = actionDef.defaultDurationDays
-        const startDate = new Date(audit.actualStartDate)
-        const now = new Date()
-        const diffInDays = Math.floor((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-        customDuration = diffInDays - daysBeforeStart
+        const auditStartDate = new Date(audit.actualStartDate)
+        const deadline = new Date(auditStartDate)
+        deadline.setDate(deadline.getDate() - 7) // 7 jours avant (pas 14)
+        deadline.setHours(23, 59, 59, 999)
 
-        console.log(`[State Machine] 📅 Durée personnalisée pour ${actionType}: ${customDuration} jours (deadline ${daysBeforeStart} jours avant actualStartDate)`)
+        const now = new Date()
+        const diffInDays = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+
+        // Si la deadline est dans le passé, utiliser 1 jour minimum
+        customDuration = diffInDays > 0 ? diffInDays : 1
+
+        console.log(`[State Machine] 📅 Durée personnalisée pour ${actionType}: ${customDuration} jours (deadline: 7 jours avant le ${audit.actualStartDate})`)
       }
 
       // Cas spécial : ENTITY_UPLOAD_CORRECTIVE_PLAN doit utiliser audit.actionPlanDeadline
