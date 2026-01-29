@@ -39,6 +39,9 @@ export const auditStatusEnum = pgEnum('audit_status', ['PENDING_CASE_APPROVAL', 
 // Define audit phase enum (for notation scoring)
 export const auditPhaseEnum = pgEnum('audit_phase', ['PHASE_1', 'PHASE_2'])
 
+// Define monitoring mode enum (for MONITORING audits only)
+export const monitoringModeEnum = pgEnum('monitoring_mode', ['PHYSICAL', 'DOCUMENTARY'])
+
 // Define OE opinion enum
 export const oeOpinionEnum = pgEnum('oe_opinion', ['FAVORABLE', 'UNFAVORABLE', 'RESERVED'])
 
@@ -177,6 +180,7 @@ export const audits = pgTable('audits', {
   auditorId: integer('auditor_id').references(() => accounts.id),
   externalAuditorName: varchar('external_auditor_name', { length: 255 }),
   type: auditTypeEnum('type').notNull(),
+  monitoringMode: monitoringModeEnum('monitoring_mode'),
   plannedDate: date('planned_date'),
   actualStartDate: date('actual_start_date'),
   actualEndDate: date('actual_end_date'),

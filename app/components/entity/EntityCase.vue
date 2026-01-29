@@ -9,8 +9,10 @@ import {
   AuditStatus,
   AuditType,
   type AuditStatusType,
+  getAuditStatusLabel,
+  getAuditStatusColor,
+  getFullAuditTypeLabel,
 } from '~~/shared/types/enums'
-import { getAuditStatusLabel, getAuditStatusColor } from '~~/shared/types/enums'
 import { isAuditStatusActive, getAuditLockReason } from '#shared/utils/audit-status'
 import { Role, OERole } from '#shared/types/roles'
 import ActionsList from '~/components/actions/ActionsList.vue'
@@ -345,19 +347,13 @@ const hasMasterEntityInfo = computed(() => {
                   :name="
                     latestAudit.type === AuditType.INITIAL
                       ? 'i-lucide-play-circle'
-                      : latestAudit.type === AuditType.SURVEILLANCE
+                      : latestAudit.type === AuditType.MONITORING
                         ? 'i-lucide-eye'
                         : 'i-lucide-refresh-cw'
                   "
                   class="w-3 h-3"
                 />
-                <span>{{
-                  latestAudit.type === AuditType.INITIAL
-                    ? 'Initial'
-                    : latestAudit.type === AuditType.SURVEILLANCE
-                      ? 'Surveillance'
-                      : 'Renouvellement'
-                }}</span>
+                <span>{{ getFullAuditTypeLabel(latestAudit.type, latestAudit.monitoringMode) }}</span>
               </div>
             </UBadge>
 

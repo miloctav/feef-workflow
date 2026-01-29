@@ -2,6 +2,8 @@ import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { audits, entities, oes, accounts } from '~~/server/database/schema'
 import { forInsert } from '~~/server/utils/tracking'
+import { getEntityFieldValue } from '~~/server/utils/entity-fields'
+import { MonitoringMode, type MonitoringModeType } from '~~/shared/types/enums'
 
 interface CreateAuditBody {
   entityId: number
@@ -138,10 +140,18 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Déterminer le mode pour les audits MONITORING
+  let monitoringMode: MonitoringModeType | null = null
+  if (type === AuditType.MONITORING) {
+    const sitesCount = await getEntityFieldValue(entityId, 'sitesCount')
+    monitoringMode = (typeof sitesCount === 'number' && sitesCount > 1) ? MonitoringMode.PHYSICAL : MonitoringMode.DOCUMENTARY
+  }
+
   // Construire l'objet de cr�ation en n'incluant que les champs fournis
   const insertData: any = {
     entityId,
     type,
+    monitoringMode,
   }
 
   insertData.oeId = oeId

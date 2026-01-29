@@ -82,6 +82,7 @@ import {
   type AuditTypeType,
   getAuditTypeItems,
   getAuditTypeLabel,
+  getFullAuditTypeLabel,
   AuditStatusLabels,
   type AuditStatusType,
 } from '#shared/types/enums'
@@ -206,7 +207,8 @@ const columns = computed(() => {
       header: "Type d'audit",
       cell: ({ row }) => {
         const type = row.original.type
-        const label = getAuditTypeLabel(type)
+        const monitoringMode = row.original.monitoringMode
+        const label = getFullAuditTypeLabel(type, monitoringMode)
         const colorMap = {
           [AuditType.INITIAL]: 'primary',
           [AuditType.RENEWAL]: 'warning',

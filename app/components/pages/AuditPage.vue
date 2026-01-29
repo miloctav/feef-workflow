@@ -4,6 +4,7 @@ import {
   getAuditTypeColor,
   getAuditStatusLabel,
   getAuditStatusColor,
+  getFullAuditTypeLabel,
 } from '#shared/types/enums'
 
 const { user } = useAuth()
@@ -105,7 +106,7 @@ const tabItems = computed(() => {
 // Helper pour formater le type d'audit
 const auditTypeLabel = computed(() => {
   if (!currentAudit.value) return 'Initial'
-  return getAuditTypeLabel(currentAudit.value.type)
+  return getFullAuditTypeLabel(currentAudit.value.type, currentAudit.value.monitoringMode)
 })
 
 // Helper pour la couleur du badge

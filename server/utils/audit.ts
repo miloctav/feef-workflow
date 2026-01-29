@@ -3,7 +3,8 @@ import type { H3Event } from 'h3'
 import { db } from '../database'
 import { Audit, audits, entities } from '../database/schema'
 import { forInsert } from './tracking'
-import { AuditStatus, AuditStatusType, AuditType, AuditTypeType } from '~~/shared/types/enums'
+import { AuditStatus, AuditStatusType, AuditType, AuditTypeType, MonitoringMode, MonitoringModeType } from '~~/shared/types/enums'
+import { getEntityFieldValue } from './entity-fields'
 
 /**
  * Détermine le type d'audit en cours ou suivant pour une entité
@@ -163,12 +164,20 @@ export async function createAuditForEntity(entityId: number, event: H3Event, pla
     auditStatus = AuditStatus.PENDING_CASE_APPROVAL
     nextPlannedDate = lastAudit.labelExpirationDate ?? null
   } else {
-    throw new Error('Type d’audit précédent inconnu')
+    throw new Error("Type d'audit précédent inconnu")
+  }
+
+  // Déterminer le mode pour les audits MONITORING
+  let monitoringMode: MonitoringModeType | null = null
+  if (auditType === AuditType.MONITORING) {
+    const sitesCount = await getEntityFieldValue(entityId, 'sitesCount')
+    monitoringMode = (typeof sitesCount === 'number' && sitesCount > 1) ? MonitoringMode.PHYSICAL : MonitoringMode.DOCUMENTARY
   }
 
   const auditData = {
     entityId,
     type: auditType,
+    monitoringMode,
     oeId: entity.oeId,
     status: auditStatus,
     plannedDate: nextPlannedDate,

@@ -329,8 +329,9 @@ import {
   AuditStatusLabels,
   type AuditStatusType,
   type AuditTypeType,
+  type MonitoringModeType,
   getAuditStatusColor,
-  getAuditTypeLabel,
+  getFullAuditTypeLabel,
 } from '#shared/types/enums'
 import { z } from 'zod'
 import { getEntityRoleOptions } from '~~/app/utils/roles'
@@ -643,7 +644,7 @@ const columns = computed<TableColumn<EntityWithRelations>[]>(() => [
       }
 
       const statusLabel = AuditStatusLabels[latestAudit.status as AuditStatusType]
-      const typeLabel = getAuditTypeLabel(latestAudit.type as AuditTypeType)
+      const typeLabel = getFullAuditTypeLabel(latestAudit.type as AuditTypeType, latestAudit.monitoringMode as MonitoringModeType | null)
       const statusColor = getAuditStatusColor(latestAudit.status as AuditStatusType)
 
       const displayText = `${statusLabel} - ${typeLabel}`

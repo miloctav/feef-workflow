@@ -104,6 +104,32 @@ export const AuditTypeColors: Record<AuditTypeType, 'primary' | 'warning' | 'inf
 }
 
 /**
+ * Mode de surveillance pour les audits MONITORING
+ */
+export const MonitoringMode = {
+  PHYSICAL: 'PHYSICAL',
+  DOCUMENTARY: 'DOCUMENTARY',
+} as const
+
+export type MonitoringModeType = typeof MonitoringMode[keyof typeof MonitoringMode]
+
+export const MonitoringModeLabels: Record<MonitoringModeType, string> = {
+  [MonitoringMode.PHYSICAL]: 'physique',
+  [MonitoringMode.DOCUMENTARY]: 'documentaire',
+}
+
+/**
+ * Obtenir le label complet pour un audit (avec mode si MONITORING)
+ */
+export function getFullAuditTypeLabel(type: AuditTypeType, monitoringMode?: MonitoringModeType | null): string {
+  const baseLabel = AuditTypeLabels[type]
+  if (type === AuditType.MONITORING && monitoringMode) {
+    return `${baseLabel} (${MonitoringModeLabels[monitoringMode]})`
+  }
+  return baseLabel
+}
+
+/**
  * Obtenir la liste des types d'audit avec labels
  */
 export function getAuditTypeItems(includeAll: true): Array<{ label: string; value: AuditTypeType | null }>
