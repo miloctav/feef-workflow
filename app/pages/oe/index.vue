@@ -12,7 +12,7 @@ definePageMeta({
     </template>
 
     <template #body>
-      <!-- <DashboardPage role="oe" /> -->
+      <DashboardPage role="oe" />
     </template>
   </UDashboardPanel>
 </template>

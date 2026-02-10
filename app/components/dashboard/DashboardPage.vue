@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import type { SelectItem } from '@nuxt/ui'
+import type { DashboardRole } from '~/composables/useDashboardStats'
+
+const props = withDefaults(defineProps<{ role?: DashboardRole }>(), {
+  role: 'feef',
+})
 
 // Use dashboard stats composable
-const { dashboardCategories, categoryTotals, loading, error, fetchStats } = useDashboardStats()
+const { dashboardCategories, categoryTotals, loading, error, fetchStats } = useDashboardStats(props.role)
 
 // Use dashboard trends composable
 const { saveSnapshot } = useDashboardTrends()
@@ -22,9 +27,10 @@ const {
 
 // Fetch stats and actions on mount
 onMounted(async () => {
-  await fetchStats()
-  await fetchActions()
-  await fetchOverview()
+  const oeId = currentOeId.value
+  await fetchStats(oeId)
+  await fetchActions(oeId)
+  await fetchOverview(oeId)
 })
 
 // Sauvegarder le snapshot quand l'utilisateur quitte la page
@@ -104,11 +110,36 @@ const totalEnCours = computed(
 
 const oeOptions = ref<SelectItem[]>([
   { label: 'Tous', value: 'all' },
-  { label: 'SGS', value: 'sgs' },
-  { label: 'Ecocert', value: 'ecocert' },
 ])
-const selectedOE = ref(oeOptions.value[0].value)
-// Note: dashboardCategories and categoryTotals are now provided by useDashboardStats() composable
+const selectedOE = ref('all')
+
+// Fetch OE list dynamically
+onBeforeMount(async () => {
+  try {
+    const response = await $fetch('/api/oes', { query: { limit: -1 } })
+    const oes = response.data || []
+    oeOptions.value = [
+      { label: 'Tous', value: 'all' },
+      ...oes.map((oe: any) => ({ label: oe.name, value: String(oe.id) })),
+    ]
+  }
+  catch (err) {
+    console.error('Error fetching OEs:', err)
+  }
+})
+
+// Computed oeId for API calls
+const currentOeId = computed(() => selectedOE.value === 'all' ? undefined : Number(selectedOE.value))
+
+// Watch OE selection changes and refresh all dashboard data
+watch(selectedOE, async () => {
+  const oeId = currentOeId.value
+  await Promise.all([
+    fetchStats(oeId),
+    fetchActions(oeId),
+    fetchOverview(oeId),
+  ])
+})
 
 // Use dashboard actions composable
 const {

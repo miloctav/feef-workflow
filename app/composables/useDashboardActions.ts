@@ -49,7 +49,7 @@ export function useDashboardActions() {
   /**
    * Fetch the 20 most urgent actions from the API
    */
-  const fetchActions = async () => {
+  const fetchActions = async (oeId?: number) => {
     loading.value = true
     error.value = null
 
@@ -59,6 +59,7 @@ export function useDashboardActions() {
           limit: 20,
           sort: 'deadline:asc',
           status: 'PENDING',
+          ...(oeId ? { oeId } : {}),
         },
       })
 

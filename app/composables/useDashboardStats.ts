@@ -71,8 +71,10 @@ interface DashboardCategory {
   cards: DashboardCard[]
 }
 
-// Card mappings (based on plan)
-const CARD_MAPPINGS: Array<{
+export type DashboardRole = 'feef' | 'oe' | 'auditeur'
+
+// Card mappings as a function of role
+function getCardMappings(role: DashboardRole): Array<{
   category: string
   cards: Array<{
     shortText: string
@@ -81,30 +83,60 @@ const CARD_MAPPINGS: Array<{
     bgColor: string
     to: string
   }>
-}> = [
+}> {
+  const prefix = role === 'oe' ? '/oe' : '/feef'
+
+  const allCategories: Array<{
+    category: string
+    feefOnly?: boolean
+    oeOnly?: boolean
+    cards: Array<{
+      shortText: string
+      auditStatus: string
+      color: string
+      bgColor: string
+      to: string
+      oeOnly?: boolean
+      feefOnly?: boolean
+    }>
+  }> = [
     {
       category: 'Demande de dossiers',
+      feefOnly: true,
       cards: [
         {
           shortText: 'Dépôt en cours',
           auditStatus: 'CASE_SUBMISSION_IN_PROGRESS',
           color: 'border-blue-500',
           bgColor: 'bg-blue-50',
-          to: '/feef/entities?dashboardFilter=CASE_SUBMISSION_IN_PROGRESS',
+          to: `${prefix}/entities?dashboardFilter=CASE_SUBMISSION_IN_PROGRESS`,
         },
         {
           shortText: 'En attente de signature contrat FEEF',
           auditStatus: 'PENDING_FEEF_CONTRACT_SIGNATURE',
           color: 'border-yellow-500',
           bgColor: 'bg-yellow-50',
-          to: '/feef/entities?dashboardFilter=PENDING_FEEF_CONTRACT_SIGNATURE',
+          to: `${prefix}/entities?dashboardFilter=PENDING_FEEF_CONTRACT_SIGNATURE`,
         },
         {
           shortText: 'En attente validation FEEF',
           auditStatus: 'PENDING_CASE_APPROVAL',
           color: 'border-green-500',
           bgColor: 'bg-green-50',
-          to: '/feef/audits?status=PENDING_CASE_APPROVAL',
+          to: `${prefix}/audits?status=PENDING_CASE_APPROVAL`,
+        },
+      ],
+    },
+    {
+      category: 'Appel d\'offre',
+      oeOnly: true,
+      cards: [
+        {
+          shortText: 'Audits en appel d\'offre',
+          auditStatus: 'PENDING_OE_CHOICE',
+          color: 'border-purple-500',
+          bgColor: 'bg-purple-50',
+          to: `${prefix}/audits?status=PENDING_OE_CHOICE`,
         },
       ],
     },
@@ -116,28 +148,28 @@ const CARD_MAPPINGS: Array<{
           auditStatus: 'PENDING_OE_ACCEPTANCE',
           color: 'border-orange-500',
           bgColor: 'bg-orange-50',
-          to: '/feef/audits?status=PENDING_OE_ACCEPTANCE',
+          to: `${prefix}/audits?status=PENDING_OE_ACCEPTANCE`,
         },
         {
           shortText: 'En cours de planification',
           auditStatus: 'PLANNING',
           color: 'border-green-500',
           bgColor: 'bg-green-50',
-          to: '/feef/audits?status=PLANNING',
+          to: `${prefix}/audits?status=PLANNING`,
         },
         {
           shortText: 'Audit planifié',
           auditStatus: 'SCHEDULED',
           color: 'border-indigo-500',
           bgColor: 'bg-indigo-50',
-          to: '/feef/audits?status=SCHEDULED',
+          to: `${prefix}/audits?status=SCHEDULED`,
         },
         {
           shortText: 'Rapport attendu audit',
           auditStatus: 'PENDING_REPORT',
           color: 'border-blue-500',
           bgColor: 'bg-blue-50',
-          to: '/feef/audits?status=PENDING_REPORT',
+          to: `${prefix}/audits?status=PENDING_REPORT`,
         },
       ],
     },
@@ -149,25 +181,34 @@ const CARD_MAPPINGS: Array<{
           auditStatus: 'PENDING_OE_OPINION',
           color: 'border-purple-500',
           bgColor: 'bg-purple-50',
-          to: '/feef/audits?status=PENDING_OE_OPINION',
+          to: `${prefix}/audits?status=PENDING_OE_OPINION`,
         },
         {
           shortText: 'Plan d\'action en attente',
           auditStatus: 'PENDING_CORRECTIVE_PLAN',
           color: 'border-orange-500',
           bgColor: 'bg-orange-50',
-          to: '/feef/audits?status=PENDING_CORRECTIVE_PLAN',
+          to: `${prefix}/audits?status=PENDING_CORRECTIVE_PLAN`,
         },
         {
           shortText: 'En attente attestation',
           auditStatus: 'PENDING_FEEF_DECISION',
           color: 'border-green-500',
           bgColor: 'bg-green-50',
-          to: '/feef/audits?status=PENDING_FEEF_DECISION',
+          to: `${prefix}/audits?status=PENDING_FEEF_DECISION`,
         },
       ],
     },
   ]
+
+  // Filter categories and cards by role
+  return allCategories
+    .filter(cat => (!cat.feefOnly || role === 'feef') && (!cat.oeOnly || role === 'oe'))
+    .map(cat => ({
+      category: cat.category,
+      cards: cat.cards.filter(card => (!card.oeOnly || role === 'oe') && (!card.feefOnly || role === 'feef')),
+    }))
+}
 
 /**
  * Génère une clé unique pour identifier une carte
@@ -179,6 +220,7 @@ function generateCardKey(categoryLabel: string, card: DashboardCard): string {
 function buildDashboardCategories(
   auditStats: AuditStats,
   actionStats: ActionStats,
+  role: DashboardRole = 'feef',
 ): DashboardCategory[] {
   // Create a map of audit status -> count
   const auditCountByStatus = new Map<string, number>()
@@ -219,8 +261,9 @@ function buildDashboardCategories(
 
   // Build categories with cards
   const categories: DashboardCategory[] = []
+  const cardMappings = getCardMappings(role)
 
-  for (const mapping of CARD_MAPPINGS) {
+  for (const mapping of cardMappings) {
     const cards: DashboardCard[] = []
 
     for (const cardMapping of mapping.cards) {
@@ -283,7 +326,7 @@ function buildDashboardCategories(
   return categories
 }
 
-export function useDashboardStats() {
+export function useDashboardStats(role: DashboardRole = 'feef') {
   // Global state
   const auditStats = useState<AuditStats | null>('dashboard:auditStats', () => null)
   const actionStats = useState<ActionStats | null>('dashboard:actionStats', () => null)
@@ -291,13 +334,14 @@ export function useDashboardStats() {
   const error = useState<string | null>('dashboard:error', () => null)
 
   // Fetch statistics
-  const fetchStats = async () => {
+  const fetchStats = async (oeId?: number) => {
     loading.value = true
     error.value = null
     try {
+      const query = oeId ? { oeId } : undefined
       const [auditRes, actionRes] = await Promise.all([
-        $fetch('/api/audits/stats'),
-        $fetch('/api/actions/stats'),
+        $fetch('/api/audits/stats', { query }),
+        $fetch('/api/actions/stats', { query }),
       ])
       auditStats.value = auditRes.data
       actionStats.value = actionRes.data
@@ -316,7 +360,7 @@ export function useDashboardStats() {
     if (!auditStats.value || !actionStats.value)
       return []
 
-    const categories = buildDashboardCategories(auditStats.value, actionStats.value)
+    const categories = buildDashboardCategories(auditStats.value, actionStats.value, role)
 
     // Enrichir avec les tendances
     const { getTrends } = useDashboardTrends()

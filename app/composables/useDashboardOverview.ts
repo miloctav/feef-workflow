@@ -24,11 +24,12 @@ export function useDashboardOverview() {
     const error = useState<string | null>('dashboard:overview:error', () => null)
 
     // Fetch overview statistics
-    const fetchOverview = async () => {
+    const fetchOverview = async (oeId?: number) => {
         loading.value = true
         error.value = null
         try {
-            const response = await $fetch('/api/dashboard/overview')
+            const query = oeId ? { oeId } : undefined
+            const response = await $fetch('/api/dashboard/overview', { query })
             data.value = response.data
         }
         catch (err) {

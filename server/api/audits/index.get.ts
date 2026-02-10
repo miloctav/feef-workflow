@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { audits as auditsTable, entities } from '~~/server/database/schema'
 import {
@@ -70,24 +70,29 @@ export default defineEventHandler(async (event) => {
 
   // Ajouter les filtres spécifiques par rôle
   if (user.role === Role.OE) {
-    // Si un entityId est fourni dans la requête, ne pas filtrer par oeId
-    // Cela permet de voir tous les audits de cette entité, même ceux d'autres OE
-    if (!query.entityId && user.oeId !== null) {
-      whereConditions.push(eq(auditsTable.oeId, user.oeId))
-    }
+    // Cas spécial : audits en appel d'offre (PENDING_OE_CHOICE sans OE assigné)
+    if (query.status === 'PENDING_OE_CHOICE') {
+      whereConditions.push(isNull(auditsTable.oeId))
+    } else {
+      // Si un entityId est fourni dans la requête, ne pas filtrer par oeId
+      // Cela permet de voir tous les audits de cette entité, même ceux d'autres OE
+      if (!query.entityId && user.oeId !== null) {
+        whereConditions.push(eq(auditsTable.oeId, user.oeId))
+      }
 
-    // Si ACCOUNT_MANAGER, filtrer par accountManagerId via les entités
-    if (user.oeRole === OERole.ACCOUNT_MANAGER) {
-      const myEntities = await db.query.entities.findMany({
-        where: eq(entities.accountManagerId, user.id),
-        columns: { id: true }
-      })
-      const entityIds = myEntities.map(e => e.id)
+      // Si ACCOUNT_MANAGER, filtrer par accountManagerId via les entités
+      if (user.oeRole === OERole.ACCOUNT_MANAGER) {
+        const myEntities = await db.query.entities.findMany({
+          where: eq(entities.accountManagerId, user.id),
+          columns: { id: true }
+        })
+        const entityIds = myEntities.map(e => e.id)
 
-      if (entityIds.length > 0) {
-        whereConditions.push(inArray(auditsTable.entityId, entityIds))
-      } else {
-        whereConditions.push(sql`false`)  // Aucune entité, aucun audit
+        if (entityIds.length > 0) {
+          whereConditions.push(inArray(auditsTable.entityId, entityIds))
+        } else {
+          whereConditions.push(sql`false`)  // Aucune entité, aucun audit
+        }
       }
     }
   }

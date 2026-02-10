@@ -12,9 +12,18 @@ export default defineEventHandler(async (event) => {
     // Authentication
     const { user } = await requireUserSession(event)
 
+    // Extract optional oeId filter (FEEF only)
+    const query = getQuery(event)
+    const oeId = query.oeId ? Number(query.oeId) : undefined
+
     // Build WHERE conditions based on user role (same logic as /api/audits/stats)
     const buildAuditWhereConditions = () => {
         const conditions: any[] = []
+
+        // FEEF can filter by OE
+        if (user.role === Role.FEEF && oeId) {
+            conditions.push(eq(auditsTable.oeId, oeId))
+        }
 
         if (user.role === Role.OE) {
             conditions.push(eq(auditsTable.oeId, user.oeId))
@@ -44,6 +53,11 @@ export default defineEventHandler(async (event) => {
 
     const buildEntityWhereConditions = () => {
         const conditions: any[] = []
+
+        // FEEF can filter by OE
+        if (user.role === Role.FEEF && oeId) {
+            conditions.push(eq(entitiesTable.oeId, oeId))
+        }
 
         if (user.role === Role.OE) {
             conditions.push(eq(entitiesTable.oeId, user.oeId))

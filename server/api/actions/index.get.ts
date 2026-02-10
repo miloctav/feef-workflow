@@ -3,9 +3,11 @@
  */
 
 import { db } from '~~/server/database'
-import { and } from 'drizzle-orm'
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { audits as auditsTable, actions as actionsTable } from '~~/server/database/schema'
 import { parsePaginationParams, buildWhereConditions, buildOrderBy, buildCountQuery, formatResponse } from '~~/server/utils/pagination'
 import { buildActionsWhereForUser, actionsPaginationConfig } from '~~/server/utils/actionsQuery'
+import { Role } from '#shared/types/roles'
 
 export default defineEventHandler(async (event) => {
   // Authentication
@@ -18,9 +20,29 @@ export default defineEventHandler(async (event) => {
   // Extract auditId and entityId from query if present
   const auditId = query.auditId ? Number(query.auditId) : undefined
   const entityId = query.entityId ? Number(query.entityId) : undefined
+  const oeId = query.oeId ? Number(query.oeId) : undefined
 
   // Build WHERE conditions based on user context
   const userConditions = await buildActionsWhereForUser(user, [], { auditId, entityId })
+
+  // FEEF can filter actions by OE (via audit.oeId)
+  if (user.role === Role.FEEF && oeId) {
+    const oeAudits = await db.query.audits.findMany({
+      where: and(
+        eq(auditsTable.oeId, oeId),
+        isNull(auditsTable.deletedAt),
+      ),
+      columns: { id: true },
+    })
+    const oeAuditIds = oeAudits.map(a => a.id)
+    if (oeAuditIds.length > 0) {
+      userConditions.push(inArray(actionsTable.auditId, oeAuditIds))
+    }
+    else {
+      userConditions.push(sql`1 = 0`)
+    }
+  }
+
   const whereConditions = await buildWhereConditions(params, actionsPaginationConfig)
 
   const allConditions = [...userConditions, ...whereConditions]

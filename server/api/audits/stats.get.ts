@@ -13,10 +13,19 @@ export default defineEventHandler(async (event) => {
   // Authentication
   const { user } = await requireUserSession(event)
 
+  // Extract optional oeId filter (FEEF only)
+  const query = getQuery(event)
+  const oeId = query.oeId ? Number(query.oeId) : undefined
+
   // Build WHERE conditions based on user role
   const whereConditions: any[] = [
     ne(auditsTable.status, 'COMPLETED'), // Exclude completed audits
   ]
+
+  // FEEF can filter by OE
+  if (user.role === Role.FEEF && oeId) {
+    whereConditions.push(eq(auditsTable.oeId, oeId))
+  }
 
   // Add role-specific filters (same logic as /api/audits endpoint)
   if (user.role === Role.OE) {
@@ -74,6 +83,37 @@ export default defineEventHandler(async (event) => {
     .from(auditsTable)
     .where(whereClause)
     .groupBy(auditsTable.status, auditsTable.type)
+
+  // For OE users: also count audits in PENDING_OE_CHOICE (no OE assigned yet = "appel d'offre")
+  if (user.role === Role.OE) {
+    const pendingOeChoiceStats = await db
+      .select({
+        status: auditsTable.status,
+        count: sql<number>`COUNT(*)::int`,
+      })
+      .from(auditsTable)
+      .where(and(
+        eq(auditsTable.status, 'PENDING_OE_CHOICE'),
+        isNull(auditsTable.oeId),
+      ))
+      .groupBy(auditsTable.status)
+
+    const pendingOeChoiceTypeStats = await db
+      .select({
+        status: auditsTable.status,
+        type: auditsTable.type,
+        count: sql<number>`COUNT(*)::int`,
+      })
+      .from(auditsTable)
+      .where(and(
+        eq(auditsTable.status, 'PENDING_OE_CHOICE'),
+        isNull(auditsTable.oeId),
+      ))
+      .groupBy(auditsTable.status, auditsTable.type)
+
+    stats.push(...pendingOeChoiceStats)
+    typesByStatus.push(...pendingOeChoiceTypeStats)
+  }
 
   // Count total non-completed audits
   const totalCount = stats.reduce((sum, stat) => sum + stat.count, 0)
