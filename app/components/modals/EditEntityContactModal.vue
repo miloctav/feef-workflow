@@ -63,6 +63,7 @@
           <USelectMenu
             v-model="form.region"
             :items="regionItems"
+            value-key="value"
             placeholder="Sélectionner une région"
             :disabled="updateLoading"
             class="w-full"
