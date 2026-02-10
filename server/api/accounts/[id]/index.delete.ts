@@ -1,6 +1,7 @@
 import { eq, and } from "drizzle-orm"
 import { db } from "~~/server/database"
 import { accounts, auditorsToOE } from "~~/server/database/schema"
+import { revokeAllTrustedDevices } from "~~/server/utils/trusted-devices"
 
 export default defineEventHandler(async (event) => {
 
@@ -68,6 +69,9 @@ export default defineEventHandler(async (event) => {
       message: 'Vous n\'êtes pas autorisé à supprimer des comptes',
     })
   }
+
+  // Révoquer tous les devices de confiance avant le soft-delete
+  await revokeAllTrustedDevices(accountIdInt)
 
   await softDelete(event, accounts, eq(accounts.id, accountIdInt))
 

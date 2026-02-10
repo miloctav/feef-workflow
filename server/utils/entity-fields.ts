@@ -203,6 +203,10 @@ export async function setEntityField(
         break
       case 'date':
         if (!(value instanceof Date)) {
+          // Accepter les strings de date (ex: "2025-06-15") depuis l'API JSON
+          if (typeof value === 'string' && !isNaN(Date.parse(value))) {
+            break
+          }
           throw new Error(`Le champ ${fieldKey} attend une valeur de type Date`)
         }
         break

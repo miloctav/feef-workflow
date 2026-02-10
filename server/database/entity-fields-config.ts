@@ -5,6 +5,8 @@
  * dans la table entity_field_versions
  */
 
+import type { RoleType } from '~~/shared/types/roles'
+
 // Types de champs supportés
 export type EntityFieldType = 'string' | 'number' | 'boolean' | 'date' | 'text'
 
@@ -69,6 +71,7 @@ export type EntityFieldKey =
   | 'rseLabelOther'
   | 'fairtradeLabelPresent'
   | 'fairtradeLabelOther'
+  | 'anniversaryDate'
 
 // Clés des groupes de champs
 export type EntityFieldGroupKey =
@@ -102,7 +105,8 @@ export interface EntityFieldDefinition {
   required: boolean
   description?: string
   unit?: string // Ex: "€", "jours", "%"
-  group: EntityFieldGroupKey  // Groupe auquel appartient ce champ
+  group: EntityFieldGroupKey | undefined  // Groupe auquel appartient ce champ (undefined = champ standalone)
+  editableBy?: RoleType[]  // Si défini, seuls ces rôles peuvent modifier ce champ
 }
 
 // Configuration des groupes de champs
@@ -311,6 +315,9 @@ export const entityFieldsConfig: EntityFieldDefinition[] = [
   { key: 'rseLabelOther', label: 'Autre labellisation RSE', type: 'text', required: false, group: 'bio_activities' },
   { key: 'fairtradeLabelPresent', label: 'Labellisation équitable en place', type: 'string', required: false, group: 'bio_activities' },
   { key: 'fairtradeLabelOther', label: 'Autre labellisation équitable', type: 'text', required: false, group: 'bio_activities' },
+
+  // Champ standalone : date anniversaire de labellisation
+  { key: 'anniversaryDate', label: 'Date anniversaire de labellisation', type: 'date', required: false, group: undefined, editableBy: ['FEEF'] },
 ]
 
 // Helper pour récupérer la définition d'un champ

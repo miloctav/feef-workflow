@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt'
 import { accounts } from '~~/server/database/schema'
 import { db } from '~~/server/database'
 import { verifyPasswordResetToken } from '~~/server/utils/jwt'
+import { revokeAllTrustedDevices } from '~~/server/utils/trusted-devices'
 
 interface ResetPasswordBody {
   token: string
@@ -79,6 +80,9 @@ export default defineEventHandler(async (event) => {
       isActive: true
     })
     .where(eq(accounts.id, user.id))
+
+  // Révoquer tous les devices de confiance (changement de mot de passe)
+  await revokeAllTrustedDevices(user.id)
 
   return {
     success: true,

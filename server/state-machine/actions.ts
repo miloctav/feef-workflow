@@ -69,6 +69,21 @@ export async function calculateLabelExpiration(audit: Audit, event: H3Event): Pr
     .where(eq(audits.id, audit.id))
 
   console.log(`[State Machine Action] ✅ Date d'expiration mise à jour pour audit ${audit.id}`)
+
+  // Auto-set anniversaryDate pour les audits INITIAL
+  if (audit.type === 'INITIAL') {
+    try {
+      const { user } = await requireUserSession(event)
+      const { setEntityField } = await import('~~/server/utils/entity-fields')
+
+      await setEntityField(audit.entityId, 'anniversaryDate', new Date(), user.id)
+      console.log(`[State Machine Action] ✅ Date anniversaire de labellisation définie pour l'entité ${audit.entityId}`)
+    } catch (error) {
+      console.error(`[State Machine Action] ❌ Erreur lors de la définition de la date anniversaire pour l'entité ${audit.entityId}`)
+      console.error('[State Machine Action] Stack trace:', error)
+      // Non-bloquant : ne pas empêcher la transition de réussir
+    }
+  }
 }
 
 /**

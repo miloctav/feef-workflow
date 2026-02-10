@@ -84,6 +84,7 @@
         </template>
       </UTabs>
     </div>
+
   </div>
 </template>
 

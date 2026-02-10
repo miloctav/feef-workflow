@@ -9,6 +9,7 @@ interface LoginResponse {
   requiresTwoFactor?: boolean
   accountId?: number
   user?: SessionUser
+  data?: { success: boolean; user?: SessionUser }
 }
 
 interface LoginResult {
@@ -73,7 +74,13 @@ export const useAuth = () => {
         }
       }
 
-      // Rafraîchir la session côté client (cas sans 2FA, ne devrait pas arriver)
+      // Trust token valide : session créée directement par le serveur
+      if (response.data?.success) {
+        await refreshSession()
+        return { success: true }
+      }
+
+      // Rafraîchir la session côté client (cas fallback)
       await refreshSession()
 
       return { success: true }

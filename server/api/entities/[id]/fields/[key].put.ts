@@ -5,7 +5,7 @@
  */
 
 import { setEntityField, type EntityFieldValue } from '~~/server/utils/entity-fields'
-import { isValidFieldKey, type EntityFieldKey } from '~~/server/database/entity-fields-config'
+import { isValidFieldKey, getFieldDefinition, type EntityFieldKey } from '~~/server/database/entity-fields-config'
 import { requireVersionedFieldsEditAccess } from '~~/server/utils/audit-lock'
 
 export default defineEventHandler(async (event) => {
@@ -41,6 +41,15 @@ export default defineEventHandler(async (event) => {
 
   // Vérifier le verrouillage audit pour champs versionnés
   await requireVersionedFieldsEditAccess(user, entityId)
+
+  // Vérifier la restriction editableBy du champ
+  const fieldDef = getFieldDefinition(key as EntityFieldKey)
+  if (fieldDef?.editableBy && !fieldDef.editableBy.includes(user.role)) {
+    throw createError({
+      statusCode: 403,
+      message: 'Vous n\'avez pas les droits pour modifier ce champ',
+    })
+  }
 
   try {
     // Créer une nouvelle version du champ

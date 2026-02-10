@@ -29,9 +29,12 @@ const layout = computed(() => {
 setPageLayout(layout.value)
 
 // Watch pour mettre à jour le layout si le rôle change
-watch(() => user.value?.role, () => {
-  setPageLayout(layout.value)
-})
+watch(
+  () => user.value?.role,
+  () => {
+    setPageLayout(layout.value)
+  }
+)
 
 // États locaux
 const isEditing = ref(false)
@@ -67,7 +70,7 @@ const fetchOeName = async () => {
     const response = await $fetch(`/api/oes/${user.value.oeId}`)
     oeName.value = response.data.name
   } catch (error: any) {
-    console.error('Erreur lors de la récupération de l\'OE:', error)
+    console.error("Erreur lors de la récupération de l'OE:", error)
     oeName.value = null
   } finally {
     isLoadingOe.value = false
@@ -159,7 +162,7 @@ const requestEmailChange = async () => {
   if (!emailRegex.test(newEmailInput.value)) {
     toast.add({
       title: 'Erreur de validation',
-      description: 'Format d\'email invalide',
+      description: "Format d'email invalide",
       color: 'error',
     })
     return
@@ -170,8 +173,8 @@ const requestEmailChange = async () => {
     const response = await $fetch(`/api/accounts/${user.value.id}/request-email-change`, {
       method: 'POST',
       body: {
-        newEmail: newEmailInput.value
-      }
+        newEmail: newEmailInput.value,
+      },
     })
 
     await refreshSession()
@@ -202,14 +205,14 @@ const cancelEmailChange = async () => {
   isCancelingEmailChange.value = true
   try {
     await $fetch(`/api/accounts/${user.value.id}/cancel-email-change`, {
-      method: 'POST'
+      method: 'POST',
     })
 
     await refreshSession()
 
     toast.add({
       title: 'Demande annulée',
-      description: 'La demande de changement d\'email a été annulée',
+      description: "La demande de changement d'email a été annulée",
       color: 'success',
     })
   } catch (error: any) {
@@ -244,7 +247,7 @@ const sendPasswordResetEmail = async () => {
   } catch (error: any) {
     toast.add({
       title: 'Erreur',
-      description: error.data?.message || 'Une erreur est survenue lors de l\'envoi de l\'email',
+      description: error.data?.message || "Une erreur est survenue lors de l'envoi de l'email",
       color: 'error',
     })
   } finally {
@@ -292,216 +295,288 @@ const getRoleLabel = (role: string) => {
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Mon Compte</h1>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-        Gérez vos informations personnelles et vos paramètres de sécurité
-      </p>
-    </div>
+  <UDashboardPanel>
+    <template #body>
+      <div class="p-6">
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Mon Compte</h1>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Gérez vos informations personnelles et vos paramètres de sécurité
+          </p>
+        </div>
 
-    <div class="space-y-6">
-      <!-- Section 1 : Informations personnelles -->
-      <UCard>
-        <template #header>
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-user" class="size-5" />
-              <span class="font-semibold">Informations personnelles</span>
-            </div>
-            <UButton
-              v-if="!isEditing"
-              label="Modifier"
-              icon="i-lucide-pencil"
-              size="sm"
-              variant="outline"
-              @click="startEditing"
-            />
-          </div>
-        </template>
+        <div class="space-y-6">
+          <!-- Section 1 : Informations personnelles -->
+          <UCard>
+            <template #header>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <UIcon
+                    name="i-lucide-user"
+                    class="size-5"
+                  />
+                  <span class="font-semibold">Informations personnelles</span>
+                </div>
+                <UButton
+                  v-if="!isEditing"
+                  label="Modifier"
+                  icon="i-lucide-pencil"
+                  size="sm"
+                  variant="outline"
+                  @click="startEditing"
+                />
+              </div>
+            </template>
 
-        <div class="space-y-4">
-          <!-- Mode lecture -->
-          <div v-if="!isEditing" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Prénom</label>
-              <p class="mt-1 text-gray-900 dark:text-white">{{ user?.firstname }}</p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Nom</label>
-              <p class="mt-1 text-gray-900 dark:text-white">{{ user?.lastname }}</p>
-            </div>
-            <div class="md:col-span-2">
-              <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-              <div class="mt-1 flex items-center gap-2">
-                <UIcon name="i-lucide-mail" class="size-4 text-gray-400" />
-                <p class="text-gray-900 dark:text-white">{{ user?.email }}</p>
+            <div class="space-y-4">
+              <!-- Mode lecture -->
+              <div
+                v-if="!isEditing"
+                class="grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Prénom</label>
+                  <p class="mt-1 text-gray-900 dark:text-white">{{ user?.firstname }}</p>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Nom</label>
+                  <p class="mt-1 text-gray-900 dark:text-white">{{ user?.lastname }}</p>
+                </div>
+                <div class="md:col-span-2">
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                  <div class="mt-1 flex items-center gap-2">
+                    <UIcon
+                      name="i-lucide-mail"
+                      class="size-4 text-gray-400"
+                    />
+                    <p class="text-gray-900 dark:text-white">{{ user?.email }}</p>
+                  </div>
+
+                  <!-- Pending email alert -->
+                  <UAlert
+                    v-if="hasPendingEmailChange"
+                    color="warning"
+                    variant="soft"
+                    class="mt-3"
+                    icon="i-lucide-clock"
+                    title="Changement d'email en attente"
+                    :description="`Un email de vérification a été envoyé à ${pendingEmail}. Votre adresse actuelle restera active jusqu'à la confirmation.`"
+                  >
+                    <template #actions>
+                      <UButton
+                        label="Annuler"
+                        variant="ghost"
+                        size="xs"
+                        :loading="isCancelingEmailChange"
+                        @click="cancelEmailChange"
+                      />
+                    </template>
+                  </UAlert>
+
+                  <!-- Email change form -->
+                  <div
+                    v-if="!isEditing && !hasPendingEmailChange"
+                    class="mt-2"
+                  >
+                    <UButton
+                      v-if="!showEmailChangeForm"
+                      label="Modifier l'adresse email"
+                      icon="i-lucide-edit"
+                      variant="ghost"
+                      size="sm"
+                      @click="showEmailChangeForm = true"
+                    />
+                    <div
+                      v-else
+                      class="space-y-2 mt-2"
+                    >
+                      <UInput
+                        v-model="newEmailInput"
+                        type="email"
+                        placeholder="Nouvelle adresse email"
+                        size="md"
+                      />
+                      <div class="flex gap-2">
+                        <UButton
+                          label="Envoyer le lien de vérification"
+                          size="sm"
+                          :loading="isRequestingEmailChange"
+                          @click="requestEmailChange"
+                        />
+                        <UButton
+                          label="Annuler"
+                          variant="outline"
+                          size="sm"
+                          @click="
+                            () => {
+                              showEmailChangeForm = false
+                              newEmailInput = ''
+                            }
+                          "
+                        />
+                      </div>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">
+                        Un email de vérification sera envoyé à la nouvelle adresse. Votre email
+                        actuel restera actif jusqu'à la confirmation.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <!-- Pending email alert -->
-              <UAlert
-                v-if="hasPendingEmailChange"
-                color="warning"
-                variant="soft"
-                class="mt-3"
-                icon="i-lucide-clock"
-                title="Changement d'email en attente"
-                :description="`Un email de vérification a été envoyé à ${pendingEmail}. Votre adresse actuelle restera active jusqu'à la confirmation.`"
+              <!-- Mode édition -->
+              <div
+                v-else
+                class="space-y-4"
               >
-                <template #actions>
-                  <UButton
-                    label="Annuler"
-                    variant="ghost"
-                    size="xs"
-                    :loading="isCancelingEmailChange"
-                    @click="cancelEmailChange"
-                  />
-                </template>
-              </UAlert>
-
-              <!-- Email change form -->
-              <div v-if="!isEditing && !hasPendingEmailChange" class="mt-2">
-                <UButton
-                  v-if="!showEmailChangeForm"
-                  label="Modifier l'adresse email"
-                  icon="i-lucide-edit"
-                  variant="ghost"
-                  size="sm"
-                  @click="showEmailChangeForm = true"
-                />
-                <div v-else class="space-y-2 mt-2">
-                  <UInput
-                    v-model="newEmailInput"
-                    type="email"
-                    placeholder="Nouvelle adresse email"
-                    size="md"
-                  />
-                  <div class="flex gap-2">
-                    <UButton
-                      label="Envoyer le lien de vérification"
-                      size="sm"
-                      :loading="isRequestingEmailChange"
-                      @click="requestEmailChange"
-                    />
-                    <UButton
-                      label="Annuler"
-                      variant="outline"
-                      size="sm"
-                      @click="() => { showEmailChangeForm = false; newEmailInput = '' }"
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >Prénom *</label
+                    >
+                    <UInput
+                      v-model="editForm.firstname"
+                      size="lg"
+                      class="mt-1"
                     />
                   </div>
-                  <p class="text-xs text-gray-500 dark:text-gray-400">
-                    Un email de vérification sera envoyé à la nouvelle adresse. Votre email actuel restera actif jusqu'à la confirmation.
+                  <div>
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >Nom *</label
+                    >
+                    <UInput
+                      v-model="editForm.lastname"
+                      size="lg"
+                      class="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                  <div class="mt-1 flex items-center gap-2">
+                    <UIcon
+                      name="i-lucide-mail"
+                      class="size-4 text-gray-400"
+                    />
+                    <p class="text-gray-500 dark:text-gray-400">{{ user?.email }}</p>
+                  </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                  <UButton
+                    label="Annuler"
+                    variant="outline"
+                    @click="cancelEditing"
+                  />
+                  <UButton
+                    label="Enregistrer"
+                    icon="i-lucide-save"
+                    :loading="isSaving"
+                    @click="saveChanges"
+                  />
+                </div>
+              </div>
+            </div>
+          </UCard>
+
+          <!-- Section 2 : Informations du compte -->
+          <UCard>
+            <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon
+                  name="i-lucide-shield"
+                  class="size-5"
+                />
+                <span class="font-semibold">Informations du compte</span>
+              </div>
+            </template>
+
+            <div class="space-y-4">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Rôle</label>
+                <div class="mt-1">
+                  <UBadge
+                    :label="getRoleLabel(user?.role || '')"
+                    :color="getRoleBadgeColor(user?.role || '')"
+                    size="lg"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >Membre depuis</label
+                >
+                <div class="mt-1 flex items-center gap-2">
+                  <UIcon
+                    name="i-lucide-calendar"
+                    class="size-4 text-gray-400"
+                  />
+                  <p class="text-gray-900 dark:text-white">{{ formatDate(user?.createdAt) }}</p>
+                </div>
+              </div>
+
+              <div v-if="user?.oeId && (user?.role === 'OE' || user?.role === 'AUDITOR')">
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >Organisme évaluateur</label
+                >
+                <div class="mt-1 flex items-center gap-2">
+                  <UIcon
+                    name="i-lucide-building"
+                    class="size-4 text-gray-400"
+                  />
+                  <p
+                    v-if="isLoadingOe"
+                    class="text-gray-500 dark:text-gray-400"
+                  >
+                    Chargement...
+                  </p>
+                  <p
+                    v-else
+                    class="text-gray-900 dark:text-white"
+                  >
+                    {{ oeName || 'N/A' }}
                   </p>
                 </div>
               </div>
             </div>
-          </div>
+          </UCard>
 
-          <!-- Mode édition -->
-          <div v-else class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Section 3 : Sécurité -->
+          <UCard>
+            <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon
+                  name="i-lucide-lock"
+                  class="size-5"
+                />
+                <span class="font-semibold">Sécurité</span>
+              </div>
+            </template>
+
+            <div class="space-y-4">
               <div>
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Prénom *</label>
-                <UInput v-model="editForm.firstname" size="lg" class="mt-1" />
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >Mot de passe</label
+                >
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Pour modifier votre mot de passe, nous vous enverrons un email avec un lien de
+                  réinitialisation.
+                </p>
+                <UButton
+                  label="Réinitialiser mon mot de passe"
+                  icon="i-lucide-mail"
+                  variant="outline"
+                  class="mt-2"
+                  :loading="isSendingPasswordReset"
+                  @click="sendPasswordResetEmail"
+                />
               </div>
-              <div>
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Nom *</label>
-                <UInput v-model="editForm.lastname" size="lg" class="mt-1" />
-              </div>
             </div>
-
-            <div>
-              <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-              <div class="mt-1 flex items-center gap-2">
-                <UIcon name="i-lucide-mail" class="size-4 text-gray-400" />
-                <p class="text-gray-500 dark:text-gray-400">{{ user?.email }}</p>
-              </div>
-            </div>
-
-            <div class="flex justify-end gap-2 pt-2">
-              <UButton
-                label="Annuler"
-                variant="outline"
-                @click="cancelEditing"
-              />
-              <UButton
-                label="Enregistrer"
-                icon="i-lucide-save"
-                :loading="isSaving"
-                @click="saveChanges"
-              />
-            </div>
-          </div>
+          </UCard>
         </div>
-      </UCard>
-
-      <!-- Section 2 : Informations du compte -->
-      <UCard>
-        <template #header>
-          <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-shield" class="size-5" />
-            <span class="font-semibold">Informations du compte</span>
-          </div>
-        </template>
-
-        <div class="space-y-4">
-          <div>
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Rôle</label>
-            <div class="mt-1">
-              <UBadge
-                :label="getRoleLabel(user?.role || '')"
-                :color="getRoleBadgeColor(user?.role || '')"
-                size="lg"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Membre depuis</label>
-            <div class="mt-1 flex items-center gap-2">
-              <UIcon name="i-lucide-calendar" class="size-4 text-gray-400" />
-              <p class="text-gray-900 dark:text-white">{{ formatDate(user?.createdAt) }}</p>
-            </div>
-          </div>
-
-          <div v-if="user?.oeId && (user?.role === 'OE' || user?.role === 'AUDITOR')">
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Organisme évaluateur</label>
-            <div class="mt-1 flex items-center gap-2">
-              <UIcon name="i-lucide-building" class="size-4 text-gray-400" />
-              <p v-if="isLoadingOe" class="text-gray-500 dark:text-gray-400">Chargement...</p>
-              <p v-else class="text-gray-900 dark:text-white">{{ oeName || 'N/A' }}</p>
-            </div>
-          </div>
-        </div>
-      </UCard>
-
-      <!-- Section 3 : Sécurité -->
-      <UCard>
-        <template #header>
-          <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-lock" class="size-5" />
-            <span class="font-semibold">Sécurité</span>
-          </div>
-        </template>
-
-        <div class="space-y-4">
-          <div>
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Mot de passe</label>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Pour modifier votre mot de passe, nous vous enverrons un email avec un lien de réinitialisation.
-            </p>
-            <UButton
-              label="Réinitialiser mon mot de passe"
-              icon="i-lucide-mail"
-              variant="outline"
-              class="mt-2"
-              :loading="isSendingPasswordReset"
-              @click="sendPasswordResetEmail"
-            />
-          </div>
-        </div>
-      </UCard>
-    </div>
-  </div>
+      </div>
+    </template>
+  </UDashboardPanel>
 </template>

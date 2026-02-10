@@ -23,6 +23,7 @@ onMounted(() => {
 const code = ref('')
 const loading = ref(false)
 const error = ref('')
+const trustDevice = ref(false)
 const attemptsRemaining = ref<number | null>(null)
 const resendLoading = ref(false)
 const resendSuccess = ref(false)
@@ -72,6 +73,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       body: {
         accountId: twoFactorAccountId.value,
         code: event.data.code,
+        trustDevice: trustDevice.value,
       },
     })
 
@@ -212,6 +214,12 @@ async function resendCode() {
                 :ui="{ base: 'text-center text-2xl font-mono tracking-widest' }"
               />
             </UFormField>
+
+            <!-- Option de confiance -->
+            <UCheckbox
+              v-model="trustDevice"
+              label="Faire confiance à ce navigateur pendant 30 jours"
+            />
 
             <!-- Bouton de soumission -->
             <UButton

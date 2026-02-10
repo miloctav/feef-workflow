@@ -2,10 +2,10 @@ import bcrypt from 'bcrypt'
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { accounts } from '~~/server/database/schema'
-import { SessionUser } from '~~/server/types/session'
-import { getEntityContext } from '~~/server/utils/entity-context'
 import { create2FACode } from '~~/server/utils/two-factor'
 import { send2FACodeEmail } from '~~/server/services/mail'
+import { buildSessionData } from '~~/server/utils/session-builder'
+import { validateTrustToken, getTrustCookieName } from '~~/server/utils/trusted-devices'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -64,6 +64,25 @@ export default defineEventHandler(async (event) => {
       statusCode: 401,
       message: 'Email ou mot de passe incorrect',
     })
+  }
+
+  // Vérifier le cookie de confiance (skip 2FA si valide)
+  const trustToken = getCookie(event, getTrustCookieName())
+  console.log('[Trust] Cookie name:', getTrustCookieName(), '| Cookie value:', trustToken ? `${trustToken.substring(0, 8)}...` : 'NOT FOUND')
+  if (trustToken) {
+    try {
+      const trustedAccountId = await validateTrustToken(trustToken)
+      console.log('[Trust] Validated accountId:', trustedAccountId, '| Expected userId:', user.id)
+      if (trustedAccountId === user.id) {
+        // Trust valide pour ce compte → créer session directement
+        const sessionData = await buildSessionData(user)
+        await setUserSession(event, { user: sessionData })
+        return { data: { success: true, user: sessionData } }
+      }
+    } catch (err) {
+      console.error('[Trust] Error validating trust token:', err)
+    }
+    // Token invalide ou pour un autre compte → continuer vers 2FA normalement
   }
 
   // Générer le code 2FA

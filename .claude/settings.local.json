@@ -6,7 +6,8 @@
       "Bash(cat:*)",
       "mcp__distill__smart_file_read",
       "mcp__distill__code_execute",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx nuxi typecheck:*)"
     ],
     "deny": [],
     "ask": []

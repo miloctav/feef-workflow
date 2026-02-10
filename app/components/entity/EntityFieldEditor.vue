@@ -283,7 +283,12 @@ const isReadOnly = computed(() => {
   // Si verrouillé explicitement (audit), toujours read-only
   if (props.locked) return true
 
-  // Sinon, vérifier le rôle (OE/AUDITOR)
+  // Restriction par champ (editableBy)
+  if (currentFieldDefinition.value?.editableBy) {
+    return !currentFieldDefinition.value.editableBy.includes(user.value?.role)
+  }
+
+  // Défaut : OE/AUDITOR en lecture seule
   return user.value?.role === Role.OE || user.value?.role === Role.AUDITOR
 })
 

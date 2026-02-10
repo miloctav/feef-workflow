@@ -258,6 +258,20 @@ export const twoFactorCodes = pgTable('two_factor_codes', {
   index('idx_two_factor_codes_expires_at').on(table.expiresAt),
 ])
 
+export const trustedDevices = pgTable('trusted_devices', {
+  id: serial('id').primaryKey(),
+  accountId: integer('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  tokenHash: varchar('token_hash', { length: 64 }).notNull(),
+  label: varchar('label', { length: 255 }),
+  expiresAt: timestamp('expires_at').notNull(),
+  lastUsedAt: timestamp('last_used_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('idx_trusted_devices_account_id').on(table.accountId),
+  index('idx_trusted_devices_token_hash').on(table.tokenHash),
+  index('idx_trusted_devices_expires_at').on(table.expiresAt),
+])
+
 export const documentsType = pgTable('documents_type', {
   id: serial('id').primaryKey(),
   title: varchar('title', { length: 255 }).notNull(),
@@ -499,6 +513,10 @@ export type NewEvent = typeof events.$inferInsert
 export type TwoFactorCode = typeof twoFactorCodes.$inferSelect
 export type NewTwoFactorCode = typeof twoFactorCodes.$inferInsert
 
+// Type pour TrustedDevice
+export type TrustedDevice = typeof trustedDevices.$inferSelect
+export type NewTrustedDevice = typeof trustedDevices.$inferInsert
+
 // ========================================
 // Relations Drizzle pour les queries relationnelles
 // ========================================
@@ -565,6 +583,7 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
     relationName: 'eventPerformedBy',
   }),
   twoFactorCodes: many(twoFactorCodes),
+  trustedDevices: many(trustedDevices),
 }))
 
 export const oeRelations = relations(oes, ({ many }) => ({
@@ -783,6 +802,13 @@ export const eventsRelations = relations(events, ({ one }) => ({
 export const twoFactorCodesRelations = relations(twoFactorCodes, ({ one }) => ({
   account: one(accounts, {
     fields: [twoFactorCodes.accountId],
+    references: [accounts.id],
+  }),
+}))
+
+export const trustedDevicesRelations = relations(trustedDevices, ({ one }) => ({
+  account: one(accounts, {
+    fields: [trustedDevices.accountId],
     references: [accounts.id],
   }),
 }))

@@ -91,6 +91,42 @@ const openFieldGroupEditor = (groupKey: EntityFieldGroupKey) => {
   isFieldGroupEditorOpen.value = true
 }
 
+// État pour le slideover d'édition de la date anniversaire
+const isAnniversaryEditorOpen = ref(false)
+
+const anniversaryField = computed(() => {
+  return displayEntity.value?.fields?.find(f => f.key === 'anniversaryDate') || null
+})
+
+const anniversaryDateValue = computed(() => {
+  return anniversaryField.value?.value as Date | string | null ?? null
+})
+
+const formattedAnniversaryDate = computed(() => {
+  if (!anniversaryDateValue.value) return ''
+  return new Date(anniversaryDateValue.value).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+})
+
+const anniversaryFieldForEditor = computed(() => {
+  if (anniversaryField.value) {
+    return [anniversaryField.value]
+  }
+  return [{
+    key: 'anniversaryDate',
+    label: 'Date anniversaire de labellisation',
+    type: 'date' as const,
+    value: null,
+  }]
+})
+
+const openAnniversaryEditor = () => {
+  isAnniversaryEditorOpen.value = true
+}
+
 const handleSubmitCaseAndClose = async (close: () => void) => {
   if (!displayEntity.value) return
   const result = await submitCase(displayEntity.value.id, plannedDate.value)
@@ -488,29 +524,67 @@ const hasMasterEntityInfo = computed(() => {
             </div>
           </div>
 
-          <!-- Section Sites (séparée) -->
+          <!-- Section Sites + Anniversaire -->
           <div class="pt-4 border-t border-gray-200">
-            <div
-              class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors"
-              @click="openFieldEditor('sitesCount')"
-            >
-              <div class="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg">
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Nombre de sites -->
+              <div
+                class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-3 rounded-lg transition-colors"
+                @click="openFieldEditor('sitesCount')"
+              >
+                <div class="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg">
+                  <UIcon
+                    name="i-lucide-building"
+                    class="w-5 h-5 text-primary"
+                  />
+                </div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-gray-600">Nombre de sites</div>
+                  <div class="text-lg font-bold text-gray-900">
+                    {{ getFieldValue('sitesCount') ?? 'Non défini' }}
+                  </div>
+                </div>
                 <UIcon
-                  name="i-lucide-building"
-                  class="w-5 h-5 text-primary"
+                  v-if="user?.role === Role.FEEF || user?.role === Role.ENTITY"
+                  name="i-lucide-pencil"
+                  class="w-4 h-4 text-gray-400"
                 />
               </div>
-              <div class="flex-1">
-                <div class="text-sm font-medium text-gray-600">Nombre de sites</div>
-                <div class="text-lg font-bold text-gray-900">
-                  {{ getFieldValue('sitesCount') ?? 'Non défini' }}
+
+              <!-- Date anniversaire de labellisation (MASTER uniquement) -->
+              <div
+                v-if="displayEntity?.mode === EntityMode.MASTER"
+                class="flex items-center gap-3 p-3 rounded-lg transition-colors"
+                :class="{ 'cursor-pointer hover:bg-gray-50': user?.role === Role.FEEF }"
+                @click="user?.role === Role.FEEF ? openAnniversaryEditor() : undefined"
+              >
+                <div class="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg">
+                  <UIcon
+                    name="i-lucide-calendar-heart"
+                    class="w-5 h-5 text-primary"
+                  />
                 </div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-gray-600">Anniversaire de labellisation</div>
+                  <div
+                    v-if="anniversaryDateValue"
+                    class="text-lg font-bold text-gray-900"
+                  >
+                    {{ formattedAnniversaryDate }}
+                  </div>
+                  <div
+                    v-else
+                    class="text-sm text-gray-400 italic"
+                  >
+                    Non défini
+                  </div>
+                </div>
+                <UIcon
+                  v-if="user?.role === Role.FEEF"
+                  name="i-lucide-pencil"
+                  class="w-4 h-4 text-gray-400"
+                />
               </div>
-              <UIcon
-                v-if="user?.role === Role.FEEF || user?.role === Role.ENTITY"
-                name="i-lucide-pencil"
-                class="w-4 h-4 text-gray-400"
-              />
             </div>
           </div>
         </div>
@@ -1659,6 +1733,17 @@ const hasMasterEntityInfo = computed(() => {
     :fields="displayEntity.fields || []"
     :locked="isVersionedFieldsLocked"
     :lock-reason="versionedFieldsLockReason"
+    @updated="handleRefreshEntity"
+  />
+
+  <!-- Slideover d'édition de la date anniversaire -->
+  <EntityFieldEditor
+    v-if="displayEntity"
+    :entity-id="displayEntity.id"
+    :fields="anniversaryFieldForEditor"
+    initial-field-key="anniversaryDate"
+    :open="isAnniversaryEditorOpen"
+    @update:open="isAnniversaryEditorOpen = $event"
     @updated="handleRefreshEntity"
   />
 </template>
