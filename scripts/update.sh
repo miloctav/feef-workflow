@@ -251,6 +251,14 @@ else
     COMPOSE_CHANGED=false
 fi
 
+# Vérifier les changements dans la configuration nginx
+if git diff HEAD@{1} HEAD -- nginx/ | grep -q "^+\|^-"; then
+    echo -e "${YELLOW}⚠ Configuration nginx modifiée${NC}"
+    NGINX_CHANGED=true
+else
+    NGINX_CHANGED=false
+fi
+
 # Étape 7: Build de la nouvelle image
 echo -e "${YELLOW}[8/9] Construction de la nouvelle image Docker...${NC}"
 docker compose build app
@@ -265,6 +273,13 @@ if [ "$COMPOSE_CHANGED" = true ]; then
 else
     echo -e "${YELLOW}Redémarrage de l'application uniquement${NC}"
     docker compose up -d --no-deps app
+fi
+
+# Recharger nginx si sa configuration a changé (fichiers montés en bind mount)
+if [ "$NGINX_CHANGED" = true ] && [ "$COMPOSE_CHANGED" = false ]; then
+    echo -e "${YELLOW}Rechargement de la configuration nginx...${NC}"
+    docker compose exec nginx nginx -t && docker compose exec nginx nginx -s reload
+    echo -e "${GREEN}✓ Configuration nginx rechargée${NC}"
 fi
 
 echo -e "${GREEN}✓ Services redémarrés${NC}"
