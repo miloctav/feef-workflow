@@ -77,6 +77,7 @@ export default defineEventHandler(async (event) => {
         // Trust valide pour ce compte → créer session directement
         const sessionData = await buildSessionData(user)
         await setUserSession(event, { user: sessionData })
+        await db.update(accounts).set({ lastLoginAt: new Date() }).where(eq(accounts.id, user.id))
         return { data: { success: true, user: sessionData } }
       }
     } catch (err) {

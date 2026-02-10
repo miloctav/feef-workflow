@@ -86,7 +86,7 @@ export default defineEventHandler(async (event) => {
       local: ['role', 'oeId', 'oeRole', 'isActive'],
     },
     allowedSorts: {
-      local: ['createdAt', 'firstname', 'lastname', 'email'],
+      local: ['createdAt', 'firstname', 'lastname', 'email', 'lastLoginAt'],
       relations: ['oe.name'],
     },
     junctionFilters: {

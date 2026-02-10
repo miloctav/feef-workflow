@@ -369,6 +369,8 @@ const {
   goToPage,
   setSearch,
   setFilters,
+  setSort,
+  params,
   deleteAccount,
   removeAccountFromEntity,
   createAccount,
@@ -379,6 +381,8 @@ const {
   removeAuditorFromOE,
   fetchAccounts,
 } = useAccounts()
+
+const { createSortableHeader } = useSortableColumn(params.sort, setSort)
 
 // Composables pour charger les listes d'OEs et entités
 const { fetchOesForSelect } = useOes()
@@ -657,9 +661,9 @@ const columns = computed(() => {
       meta: { class: { td: 'text-center', th: 'text-center' } },
     },
     {
-      accessorKey: 'createdAt',
-      header: 'Date de création',
-      cell: ({ row }) => formatDate(row.original.createdAt),
+      accessorKey: 'lastLoginAt',
+      header: createSortableHeader('Dernière connexion', 'lastLoginAt'),
+      cell: ({ row }) => row.original.lastLoginAt ? formatDate(row.original.lastLoginAt) : 'Jamais',
     }
   )
 

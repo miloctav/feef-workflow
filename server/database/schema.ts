@@ -232,6 +232,7 @@ export const accounts = pgTable('accounts', {
   oeRole: oeRoleEnum('oe_role'),
   currentEntityId: integer('current_entity_id').references((): AnyPgColumn => entities.id),
   passwordChangedAt: timestamp('password_changed_at'),
+  lastLoginAt: timestamp('last_login_at'),
 
   // Email change tracking
   pendingEmail: varchar('pending_email', { length: 255 }),

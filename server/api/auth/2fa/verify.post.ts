@@ -59,6 +59,9 @@ export default defineEventHandler(async (event) => {
     user: sessionData,
   })
 
+  // Mettre à jour la date de dernière connexion
+  await db.update(accounts).set({ lastLoginAt: new Date() }).where(eq(accounts.id, accountId))
+
   // Poser le cookie de confiance via setCookie (h3) pour éviter
   // la perte silencieuse lors de la déduplication des Set-Cookie headers
   if (trustDevice === true) {
