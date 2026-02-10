@@ -103,6 +103,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  if (region !== undefined && region !== null && !Object.values(FrenchRegion).includes(region as any)) {
+    throw createError({
+      statusCode: 400,
+      message: 'Région invalide.',
+    })
+  }
 
   // Si le SIRET est modifié, vérifier qu'il n'est pas déjà utilisé par une autre entité
   if (siret && siret !== existingEntity.siret) {

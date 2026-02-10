@@ -5,6 +5,7 @@ import {
   getAuditStatusLabel,
   getAuditStatusColor,
   getFullAuditTypeLabel,
+  getRegionLabel,
 } from '#shared/types/enums'
 
 const { user } = useAuth()
@@ -237,7 +238,7 @@ const getFieldValue = (key: string) => {
                     class="text-gray-900"
                   >
                     {{ currentEntity.city }}
-                    <span v-if="currentEntity.region">({{ currentEntity.region }})</span>
+                    <span v-if="currentEntity.region">({{ getRegionLabel(currentEntity.region) }})</span>
                   </span>
                   <span
                     v-else

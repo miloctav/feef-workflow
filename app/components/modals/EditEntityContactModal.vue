@@ -3,7 +3,7 @@
     title="Modifier les coordonnées"
     :ui="{
       width: 'sm:max-w-2xl',
-      footer: 'justify-end'
+      footer: 'justify-end',
     }"
   >
     <UButton
@@ -18,9 +18,11 @@
 
     <template #body>
       <form class="space-y-4">
-
         <div class="grid grid-cols-2 gap-4">
-          <UFormField label="Adresse" class="col-span-2">
+          <UFormField
+            label="Adresse"
+            class="col-span-2"
+          >
             <UInput
               v-model="form.address"
               placeholder="Ex: 123 rue de la République"
@@ -29,7 +31,10 @@
             />
           </UFormField>
 
-          <UFormField label="Complément d'adresse" class="col-span-2">
+          <UFormField
+            label="Complément d'adresse"
+            class="col-span-2"
+          >
             <UInput
               v-model="form.addressComplement"
               placeholder="Ex: Bâtiment A, 2ème étage"
@@ -55,10 +60,12 @@
         </div>
 
         <UFormField label="Région">
-          <UInput
+          <USelectMenu
             v-model="form.region"
-            placeholder="Ex: Île-de-France"
+            :items="regionItems"
+            placeholder="Sélectionner une région"
             :disabled="updateLoading"
+            class="w-full"
           />
         </UFormField>
 
@@ -92,6 +99,10 @@
 </template>
 
 <script setup lang="ts">
+import { getRegionItems } from '#shared/types/enums'
+
+const regionItems = getRegionItems()
+
 interface Props {
   entityId: number
   address?: string | null

@@ -393,3 +393,70 @@ export const AuditPhaseLabels: Record<AuditPhaseType, string> = {
 export function getAuditPhaseLabel(phase: AuditPhaseType): string {
   return AuditPhaseLabels[phase] || phase
 }
+
+/**
+ * Régions françaises (13 métropolitaines + 5 outre-mer)
+ */
+export const FrenchRegion = {
+  AUVERGNE_RHONE_ALPES: 'AUVERGNE_RHONE_ALPES',
+  BOURGOGNE_FRANCHE_COMTE: 'BOURGOGNE_FRANCHE_COMTE',
+  BRETAGNE: 'BRETAGNE',
+  CENTRE_VAL_DE_LOIRE: 'CENTRE_VAL_DE_LOIRE',
+  CORSE: 'CORSE',
+  GRAND_EST: 'GRAND_EST',
+  HAUTS_DE_FRANCE: 'HAUTS_DE_FRANCE',
+  ILE_DE_FRANCE: 'ILE_DE_FRANCE',
+  NORMANDIE: 'NORMANDIE',
+  NOUVELLE_AQUITAINE: 'NOUVELLE_AQUITAINE',
+  OCCITANIE: 'OCCITANIE',
+  PAYS_DE_LA_LOIRE: 'PAYS_DE_LA_LOIRE',
+  PROVENCE_ALPES_COTE_D_AZUR: 'PROVENCE_ALPES_COTE_D_AZUR',
+  GUADELOUPE: 'GUADELOUPE',
+  GUYANE: 'GUYANE',
+  LA_REUNION: 'LA_REUNION',
+  MARTINIQUE: 'MARTINIQUE',
+  MAYOTTE: 'MAYOTTE',
+} as const
+
+export type FrenchRegionType = typeof FrenchRegion[keyof typeof FrenchRegion]
+
+/**
+ * Labels français pour les régions
+ */
+export const FrenchRegionLabels: Record<FrenchRegionType, string> = {
+  [FrenchRegion.AUVERGNE_RHONE_ALPES]: 'Auvergne-Rhône-Alpes',
+  [FrenchRegion.BOURGOGNE_FRANCHE_COMTE]: 'Bourgogne-Franche-Comté',
+  [FrenchRegion.BRETAGNE]: 'Bretagne',
+  [FrenchRegion.CENTRE_VAL_DE_LOIRE]: 'Centre-Val de Loire',
+  [FrenchRegion.CORSE]: 'Corse',
+  [FrenchRegion.GRAND_EST]: 'Grand Est',
+  [FrenchRegion.HAUTS_DE_FRANCE]: 'Hauts-de-France',
+  [FrenchRegion.ILE_DE_FRANCE]: 'Île-de-France',
+  [FrenchRegion.NORMANDIE]: 'Normandie',
+  [FrenchRegion.NOUVELLE_AQUITAINE]: 'Nouvelle-Aquitaine',
+  [FrenchRegion.OCCITANIE]: 'Occitanie',
+  [FrenchRegion.PAYS_DE_LA_LOIRE]: 'Pays de la Loire',
+  [FrenchRegion.PROVENCE_ALPES_COTE_D_AZUR]: 'Provence-Alpes-Côte d\'Azur',
+  [FrenchRegion.GUADELOUPE]: 'Guadeloupe',
+  [FrenchRegion.GUYANE]: 'Guyane',
+  [FrenchRegion.LA_REUNION]: 'La Réunion',
+  [FrenchRegion.MARTINIQUE]: 'Martinique',
+  [FrenchRegion.MAYOTTE]: 'Mayotte',
+}
+
+/**
+ * Obtenir le label d'une région française
+ */
+export function getRegionLabel(region: string): string {
+  return FrenchRegionLabels[region as FrenchRegionType] || region
+}
+
+/**
+ * Obtenir la liste des régions avec labels pour USelect
+ */
+export function getRegionItems(): Array<{ label: string; value: FrenchRegionType }> {
+  return Object.entries(FrenchRegion).map(([_, value]) => ({
+    label: FrenchRegionLabels[value as FrenchRegionType],
+    value: value as FrenchRegionType,
+  }))
+}

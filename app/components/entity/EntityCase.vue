@@ -12,6 +12,7 @@ import {
   getAuditStatusLabel,
   getAuditStatusColor,
   getFullAuditTypeLabel,
+  getRegionLabel,
 } from '~~/shared/types/enums'
 import { isAuditStatusActive, getAuditLockReason } from '#shared/utils/audit-status'
 import { Role, OERole } from '#shared/types/roles'
@@ -507,7 +508,7 @@ const hasMasterEntityInfo = computed(() => {
                       {{ displayEntity.postalCode }} {{ displayEntity.city || 'Ville non définie' }}
                     </div>
                     <div class="text-gray-600">
-                      {{ displayEntity.region || 'Région non définie' }}
+                      {{ displayEntity.region ? getRegionLabel(displayEntity.region) : 'Région non définie' }}
                     </div>
                   </div>
                 </div>
