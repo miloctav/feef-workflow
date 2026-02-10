@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
   const config = {
     table: auditsTable,
     allowedFilters: {
-      local: ['type', 'entityId', 'oeId', 'auditorId'],
+      local: ['type', 'entityId', 'oeId', 'auditorId', 'status'],
     },
     allowedSorts: {
       local: ['createdAt', 'updatedAt','plannedDate', 'actualStartDate', 'actualEndDate', 'globalScore', 'type'],

@@ -154,6 +154,7 @@ const props = withDefaults(defineProps<{
   addButtonIcon?: string
   searchPlaceholder?: string
   hasFilters?: boolean
+  initialFilters?: Record<string, any>
   filtersTitle?: string
   canEdit?: boolean
   onRowClick?: (row: T) => void
@@ -187,7 +188,7 @@ const setSearch = props.onSearch
 const searchQuery = ref('')
 
 // État des filtres
-const filters = ref<Record<string, any>>({})
+const filters = ref<Record<string, any>>(props.initialFilters ? { ...props.initialFilters } : {})
 
 // Computed pour vérifier s'il y a des filtres actifs
 const hasActiveFilters = computed(() => {

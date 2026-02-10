@@ -3,6 +3,7 @@
     <!-- Table paginée -->
     <PaginatedTable
       has-filters
+      :initial-filters="initialFilters"
       filters-title="Filtres entités"
       :on-filters-change="handleFiltersChange"
       :data="entities"
@@ -62,6 +63,20 @@
       </template>
 
       <template #filter-badges="{ filters }">
+        <UBadge
+          v-if="filters.dashboardFilter"
+          variant="subtle"
+          color="warning"
+          size="sm"
+          class="gap-1"
+        >
+          {{ dashboardFilterLabels[filters.dashboardFilter] || filters.dashboardFilter }}
+          <UIcon
+            name="i-heroicons-x-mark"
+            class="w-3.5 h-3.5 cursor-pointer"
+            @click="handleFiltersChange({ ...filters, dashboardFilter: undefined })"
+          />
+        </UBadge>
         <UBadge
           v-if="filters.type !== null"
           variant="subtle"
@@ -337,10 +352,20 @@ import { z } from 'zod'
 import { getEntityRoleOptions } from '~~/app/utils/roles'
 
 const { user } = useAuth()
+const route = useRoute()
+
+// Lire le dashboardFilter depuis l'URL
+const dashboardFilterLabels: Record<string, string> = {
+  CASE_SUBMISSION_IN_PROGRESS: 'Dépôt en cours',
+  PENDING_FEEF_CONTRACT_SIGNATURE: 'En attente de signature contrat FEEF',
+}
+
+const urlDashboardFilter = route.query.dashboardFilter as string | undefined
+const initialFilters = urlDashboardFilter ? { dashboardFilter: urlDashboardFilter } : undefined
 
 const entityRoleOptions = getEntityRoleOptions()
 
-// Composable pour gérer les entités
+// Composable pour gérer les entités (avec filtres URL si fournis)
 const {
   entities,
   pagination,
@@ -354,7 +379,7 @@ const {
   fetchEntities,
   setSort,
   params,
-} = useEntities()
+} = useEntities(initialFilters)
 
 const { createSortableHeader } = useSortableColumn(params.sort, setSort)
 
@@ -404,7 +429,7 @@ const loadAccountManagers = async () => {
 
 // Charger les données au montage du composant
 onMounted(() => {
-  // Charger la liste des entités
+  // Les filtres URL sont déjà dans initialParams de useEntities
   fetchEntities()
 
   if (user.value?.role === Role.FEEF) {

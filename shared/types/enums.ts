@@ -238,6 +238,24 @@ export const AuditStatusColors: Record<AuditStatusType, 'primary' | 'warning' | 
 }
 
 /**
+ * Obtenir la liste des statuts d'audit avec labels
+ */
+export function getAuditStatusItems(includeAll: true): Array<{ label: string; value: AuditStatusType | null }>
+export function getAuditStatusItems(includeAll: false): Array<{ label: string; value: AuditStatusType }>
+export function getAuditStatusItems(includeAll = false): Array<{ label: string; value: AuditStatusType | null }> {
+  const items = Object.entries(AuditStatus).map(([_, value]) => ({
+    label: AuditStatusLabels[value as AuditStatusType],
+    value: value as AuditStatusType,
+  }))
+
+  if (includeAll) {
+    return [{ label: 'Tous les statuts', value: null }, ...items]
+  }
+
+  return items
+}
+
+/**
  * Obtenir le label d'un statut d'audit
  */
 export function getAuditStatusLabel(status: AuditStatusType): string {

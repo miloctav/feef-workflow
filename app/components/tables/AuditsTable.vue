@@ -3,6 +3,7 @@
     <!-- Table paginée -->
     <PaginatedTable
       :has-filters="hasFilters"
+      :initial-filters="initialFilters"
       filters-title="Filtres audits"
       :on-filters-change="handleFiltersChange"
       :data="audits"
@@ -18,13 +19,20 @@
       :get-item-name="(audit) => `l'audit de ${audit.entity.name}`"
     >
       <template #filters="{ filters, updateFilter }">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <FilterSelect
             label="Type d'audit"
             :model-value="filters.type"
             @update:model-value="updateFilter('type', $event)"
             :items="auditTypeItems"
             placeholder="Type d'audit"
+          />
+          <FilterSelect
+            label="Statut"
+            :model-value="filters.status"
+            @update:model-value="updateFilter('status', $event)"
+            :items="auditStatusItems"
+            placeholder="Statut"
           />
           <FilterSelect
             label="Organisme Évaluateur"
@@ -52,6 +60,14 @@
           size="sm"
         >
           Type: {{ getFilterLabel('type', filters.type) }}
+        </UBadge>
+        <UBadge
+          v-if="filters.status !== null && filters.status !== undefined"
+          variant="subtle"
+          color="warning"
+          size="sm"
+        >
+          Statut: {{ getFilterLabel('status', filters.status) }}
         </UBadge>
         <UBadge
           v-if="filters.oeId !== null"
@@ -85,6 +101,8 @@ import {
   getFullAuditTypeLabel,
   AuditStatusLabels,
   type AuditStatusType,
+  getAuditStatusItems,
+  getAuditStatusLabel,
 } from '#shared/types/enums'
 
 const props = withDefaults(
@@ -98,8 +116,16 @@ const props = withDefaults(
 )
 
 const { user } = useAuth()
+const route = useRoute()
 
-// Composable pour gérer les audits (avec entityId si fourni)
+// Lire le filtre status depuis l'URL
+const urlStatus = route.query.status as string | undefined
+const initialFilters = urlStatus ? { status: urlStatus } : undefined
+
+// Items pour le filtre statut
+const auditStatusItems = getAuditStatusItems(true)
+
+// Composable pour gérer les audits (avec entityId et filtres URL si fournis)
 const {
   audits,
   pagination,
@@ -111,7 +137,7 @@ const {
   fetchAudits,
   setSort,
   params,
-} = useAudits({ entityId: props.entityId })
+} = useAudits({ entityId: props.entityId, ...initialFilters })
 
 const { createSortableHeader } = useSortableColumn(params.sort, setSort)
 
@@ -143,9 +169,9 @@ const loadAuditors = async () => {
 
 // Charger les données au montage du composant
 onMounted(() => {
-  // Charger la liste des audits seulement si elle n'est pas déjà chargée (par EntityPage par exemple)
-  // Note: Si entityId est fourni en props, il est déjà dans initialParams et sera utilisé automatiquement
-  if (audits.value.length === 0) {
+  // Toujours forcer le fetch si des filtres URL sont présents (le cache peut contenir des données d'un autre filtre)
+  // Sinon ne charger que si pas déjà chargé (ex: EntityPage a déjà chargé les audits)
+  if (initialFilters || audits.value.length === 0) {
     fetchAudits()
   }
 
@@ -153,7 +179,6 @@ onMounted(() => {
     loadOEs()
     // Ne charger les auditeurs que si l'utilisateur n'est pas un AUDITOR
     if (user.value?.role !== Role.AUDITOR) {
-      console.log('Loading auditors for filter')
       loadAuditors()
     }
   }
@@ -172,11 +197,14 @@ const handleFiltersChange = (newFilters: Record<string, any>) => {
 }
 
 // Obtenir le label d'un filtre pour l'affichage
-const getFilterLabel = (filterName: string, filterValue: AuditTypeType | number | null): string => {
+const getFilterLabel = (filterName: string, filterValue: AuditTypeType | AuditStatusType | number | null): string => {
   if (filterValue === null) return ''
 
   if (filterName === 'type') {
     return getAuditTypeLabel(filterValue as AuditTypeType)
+  }
+  if (filterName === 'status') {
+    return getAuditStatusLabel(filterValue as AuditStatusType)
   }
   if (filterName === 'oeId') {
     const oe = oeItems.value.find((item) => item.value === filterValue)

@@ -55,6 +55,7 @@ interface DashboardCard {
   alertesOranges: number
   color: string
   bgColor: string
+  to?: string
   auditTypes?: {
     initial: number
     renewal: number
@@ -78,6 +79,7 @@ const CARD_MAPPINGS: Array<{
     auditStatus: string
     color: string
     bgColor: string
+    to: string
   }>
 }> = [
     {
@@ -88,18 +90,21 @@ const CARD_MAPPINGS: Array<{
           auditStatus: 'CASE_SUBMISSION_IN_PROGRESS',
           color: 'border-blue-500',
           bgColor: 'bg-blue-50',
+          to: '/feef/entities?dashboardFilter=CASE_SUBMISSION_IN_PROGRESS',
         },
         {
           shortText: 'En attente de signature contrat FEEF',
           auditStatus: 'PENDING_FEEF_CONTRACT_SIGNATURE',
           color: 'border-yellow-500',
           bgColor: 'bg-yellow-50',
+          to: '/feef/entities?dashboardFilter=PENDING_FEEF_CONTRACT_SIGNATURE',
         },
         {
           shortText: 'En attente validation FEEF',
           auditStatus: 'PENDING_CASE_APPROVAL',
           color: 'border-green-500',
           bgColor: 'bg-green-50',
+          to: '/feef/audits?status=PENDING_CASE_APPROVAL',
         },
       ],
     },
@@ -111,24 +116,28 @@ const CARD_MAPPINGS: Array<{
           auditStatus: 'PENDING_OE_ACCEPTANCE',
           color: 'border-orange-500',
           bgColor: 'bg-orange-50',
+          to: '/feef/audits?status=PENDING_OE_ACCEPTANCE',
         },
         {
           shortText: 'En cours de planification',
           auditStatus: 'PLANNING',
           color: 'border-green-500',
           bgColor: 'bg-green-50',
+          to: '/feef/audits?status=PLANNING',
         },
         {
           shortText: 'Audit planifié',
           auditStatus: 'SCHEDULED',
           color: 'border-indigo-500',
           bgColor: 'bg-indigo-50',
+          to: '/feef/audits?status=SCHEDULED',
         },
         {
           shortText: 'Rapport attendu audit',
           auditStatus: 'PENDING_REPORT',
           color: 'border-blue-500',
           bgColor: 'bg-blue-50',
+          to: '/feef/audits?status=PENDING_REPORT',
         },
       ],
     },
@@ -140,18 +149,21 @@ const CARD_MAPPINGS: Array<{
           auditStatus: 'PENDING_OE_OPINION',
           color: 'border-purple-500',
           bgColor: 'bg-purple-50',
+          to: '/feef/audits?status=PENDING_OE_OPINION',
         },
         {
           shortText: 'Plan d\'action en attente',
           auditStatus: 'PENDING_CORRECTIVE_PLAN',
           color: 'border-orange-500',
           bgColor: 'bg-orange-50',
+          to: '/feef/audits?status=PENDING_CORRECTIVE_PLAN',
         },
         {
           shortText: 'En attente attestation',
           auditStatus: 'PENDING_FEEF_DECISION',
           color: 'border-green-500',
           bgColor: 'bg-green-50',
+          to: '/feef/audits?status=PENDING_FEEF_DECISION',
         },
       ],
     },
@@ -221,6 +233,7 @@ function buildDashboardCategories(
           alertesOranges: 0,
           color: cardMapping.color,
           bgColor: cardMapping.bgColor,
+          to: cardMapping.to,
           auditTypes: contractTypes,
         })
       }
@@ -240,6 +253,7 @@ function buildDashboardCategories(
           alertesOranges: auditStats.entitiesCaseSubmission.upcomingCount,
           color: cardMapping.color,
           bgColor: cardMapping.bgColor,
+          to: cardMapping.to,
           auditTypes: caseSubmissionTypes,
         })
       } else {
@@ -254,6 +268,7 @@ function buildDashboardCategories(
           alertesOranges: alerts.upcoming,
           color: cardMapping.color,
           bgColor: cardMapping.bgColor,
+          to: cardMapping.to,
           auditTypes: types,
         })
       }

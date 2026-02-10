@@ -5,11 +5,20 @@ import type {
 } from '~~/app/types/audits'
 import type { PaginationParams } from '~~/app/types/pagination'
 
-export const useAudits = (options?: { entityId?: number }) => {
+export const useAudits = (options?: { entityId?: number; [key: string]: any }) => {
   const toast = useToast()
 
-  // Construire une clé unique si un entityId est fourni pour éviter les conflits de cache
-  const cacheKey = options?.entityId ? `audits-entity-${options.entityId}` : 'audits'
+  // Construire les paramètres initiaux à partir des options
+  const { entityId, ...extraFilters } = options || {}
+  const initialParams: Record<string, any> = {}
+  if (entityId) initialParams.entityId = entityId
+  Object.assign(initialParams, extraFilters)
+
+  // Construire une clé unique pour éviter les conflits de cache entre différents filtres
+  const filterPart = Object.keys(extraFilters).length > 0
+    ? `-${Object.entries(extraFilters).map(([k, v]) => `${k}_${v}`).join('-')}`
+    : ''
+  const cacheKey = entityId ? `audits-entity-${entityId}` : `audits${filterPart}`
 
   // Utiliser le composable de pagination pour la liste des audits
   const {
@@ -31,7 +40,7 @@ export const useAudits = (options?: { entityId?: number }) => {
     key: cacheKey,
     defaultLimit: 25,
     immediate: false,
-    initialParams: options?.entityId ? { entityId: options.entityId } : {},
+    initialParams,
   })
 
   // State pour un audit individuel

@@ -7,8 +7,14 @@ import type { AuditPublic } from '~~/app/types/audits'
 import type { PaginationParams } from '~~/app/types/pagination'
 import type { EntityModeType } from '#shared/types/enums'
 
-export const useEntities = () => {
+export const useEntities = (options?: Record<string, any>) => {
   const toast = useToast()
+
+  // Construire une clé unique pour éviter les conflits de cache entre différents filtres
+  const filterPart = options && Object.keys(options).length > 0
+    ? `-${Object.entries(options).map(([k, v]) => `${k}_${v}`).join('-')}`
+    : ''
+  const cacheKey = `entities${filterPart}`
 
   // Utiliser le composable de pagination pour la liste des entités
   const {
@@ -27,8 +33,9 @@ export const useEntities = () => {
     setLimit,
     reset: resetPagination,
   } = usePaginatedFetch<EntityWithRelations>('/api/entities', {
-    key: 'entities',
+    key: cacheKey,
     defaultLimit: 25,
+    initialParams: options || {},
   })
 
   // State pour une entité individuelle

@@ -1,6 +1,6 @@
-import { and, or, eq, isNull, isNotNull } from 'drizzle-orm'
+import { and, or, eq, isNull, isNotNull, inArray, sql } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { entities as entitiesTable, accountsToEntities, audits } from '~~/server/database/schema'
+import { entities as entitiesTable, accountsToEntities, audits, actions, contracts } from '~~/server/database/schema'
 import {
   parsePaginationParams,
   buildWhereConditions,
@@ -55,6 +55,10 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
 
+  // Extraire le dashboardFilter avant le parsing de pagination
+  const dashboardFilter = query.dashboardFilter as string | undefined
+  delete query.dashboardFilter
+
   // Si compte ENTITY, filtrer uniquement les entités auxquelles il a accès
   if (user.role === Role.ENTITY) {
     query.accountId = String(user.id)
@@ -89,6 +93,37 @@ export default defineEventHandler(async (event) => {
 
   // 2. Construire les conditions WHERE
   const whereConditions = await buildWhereConditions(params, config)
+
+  // Ajouter les filtres dashboardFilter (sous-requêtes)
+  if (dashboardFilter === 'CASE_SUBMISSION_IN_PROGRESS') {
+    // Entités qui ont une action ENTITY_SUBMIT_CASE en statut PENDING
+    whereConditions.push(
+      inArray(
+        entitiesTable.id,
+        db.select({ entityId: actions.entityId }).from(actions).where(
+          and(
+            eq(actions.type, 'ENTITY_SUBMIT_CASE'),
+            eq(actions.status, 'PENDING'),
+            isNull(actions.deletedAt),
+          )
+        )
+      )
+    )
+  } else if (dashboardFilter === 'PENDING_FEEF_CONTRACT_SIGNATURE') {
+    // Entités qui ont un contrat en attente de signature entité (sans OE = contrat FEEF)
+    whereConditions.push(
+      inArray(
+        entitiesTable.id,
+        db.select({ entityId: contracts.entityId }).from(contracts).where(
+          and(
+            eq(contracts.signatureStatus, 'PENDING_ENTITY'),
+            isNull(contracts.oeId),
+            isNull(contracts.deletedAt),
+          )
+        )
+      )
+    )
+  }
 
   // Ajouter les filtres spécifiques par rôle
   if (user.role === Role.OE) {
