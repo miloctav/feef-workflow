@@ -19,6 +19,8 @@ export interface SessionUser extends Omit<BaseSessionUser, 'oeId' | 'oeRole' | '
   currentEntityRole?: EntityRoleType
   entityRoles?: EntityRoleData[]
   emailNotificationsEnabled?: boolean
+  lastRefresh?: number
+  sessionCreatedAt?: number
 }
 
 // Extension des types nuxt-auth-utils

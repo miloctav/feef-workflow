@@ -2,6 +2,7 @@ import { eq, and, isNull, desc } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { accountsToEntities, audits, entities } from '~~/server/database/schema'
 import { Role, OERole } from '#shared/types/roles'
+import { AuditStatus } from '#shared/types/enums'
 import type { SessionUser } from '~~/server/types/session'
 
 /**
@@ -91,6 +92,13 @@ export async function verifyEntityAccessForUser(
 
   // OE : accès complet si entité assignée
   if (user.role === Role.OE) {
+    // Cas spécial : entités avec un audit en appel d'offre (PENDING_OE_CHOICE)
+    // Tous les OE peuvent voir ces entités en lecture seule
+    const latestAudit = entity.audits[0]
+    if (latestAudit?.status === AuditStatus.PENDING_OE_CHOICE && accessType === AccessType.READ) {
+      return true
+    }
+
     // 1. Accès direct : l'entité est assignée à l'OE
     if (entity.oeId === user.oeId) {
       if (user.oeRole === OERole.ACCOUNT_MANAGER && entity.accountManagerId !== user.id) {
@@ -238,6 +246,12 @@ export async function verifyAuditAccessForUser(
 
   // OE : vérifier l'appartenance à l'OE + restriction ACCOUNT_MANAGER
   if (user.role === Role.OE) {
+    // Cas spécial : audits en appel d'offre (PENDING_OE_CHOICE)
+    // Tous les OE peuvent voir ces audits en lecture seule
+    if (audit.status === AuditStatus.PENDING_OE_CHOICE && accessType === AccessType.READ) {
+      return true
+    }
+
     // 1. L'audit doit appartenir à mon OE
     if (audit.oeId !== user.oeId) {
       return false

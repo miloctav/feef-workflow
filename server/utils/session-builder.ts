@@ -28,6 +28,8 @@ export async function buildSessionData(user: UserWithEntities): Promise<SessionU
       passwordChangedAt: user.passwordChangedAt,
       isActive: user.isActive,
       emailNotificationsEnabled: user.emailNotificationsEnabled,
+      lastRefresh: Date.now(),
+      sessionCreatedAt: Date.now(),
     }
   }
 
@@ -70,6 +72,8 @@ export async function buildSessionData(user: UserWithEntities): Promise<SessionU
       passwordChangedAt: user.passwordChangedAt,
       isActive: user.isActive,
       emailNotificationsEnabled: user.emailNotificationsEnabled,
+      lastRefresh: Date.now(),
+      sessionCreatedAt: Date.now(),
     }
   }
 
@@ -85,5 +89,7 @@ export async function buildSessionData(user: UserWithEntities): Promise<SessionU
     passwordChangedAt: user.passwordChangedAt,
     isActive: user.isActive,
     emailNotificationsEnabled: user.emailNotificationsEnabled,
+    lastRefresh: Date.now(),
+    sessionCreatedAt: Date.now(),
   }
 }

@@ -8,7 +8,9 @@ export default defineNuxtConfig({
   // Charger Google Fonts via le head HTML pour éviter @nuxt/fonts
   app: {
     head: {
+      title: 'PME+',
       link: [
+        { rel: 'icon', type: 'image/png', href: '/Logo-PMEplus.png' },
         {
           rel: 'preconnect',
           href: 'https://fonts.googleapis.com'
@@ -92,8 +94,12 @@ export default defineNuxtConfig({
 
     // Session configuration
     session: {
-      maxAge: 60 * 60 * 24, // 1 day
+      maxAge: 60 * 30, // 30 min (sliding session)
     },
+
+    // Sliding session configuration
+    sessionRefreshThreshold: 60 * 15,   // 15 min — seuil de renouvellement
+    sessionAbsoluteMaxAge: 60 * 60 * 8, // 8h — durée de vie absolue
 
     // Email (Resend)
     resend: {

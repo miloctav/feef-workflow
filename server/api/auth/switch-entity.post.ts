@@ -55,6 +55,8 @@ export default defineEventHandler(async (event) => {
       ...session.user,
       currentEntityId: entityId,
       currentEntityRole: entityContext.role,
+      lastRefresh: Date.now(),
+      sessionCreatedAt: session.user.sessionCreatedAt,
     },
   })
 
