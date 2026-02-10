@@ -104,6 +104,9 @@ export default defineNuxtConfig({
     // Development mode
     devMode: false,
 
+    // Dev mail override (redirect all emails to this address in dev)
+    devMailOverride: 'maxime@miloctav.fr',
+
     // Variables publiques (accessibles côté client)
     public: {
       // Aucune variable publique pour le moment

@@ -1,111 +1,73 @@
 <script setup lang="ts">
-function getNotificationIcon(type: Notification['type']) {
-  switch (type) {
-    case 'candidature':
-      return 'i-lucide-user-plus'
-    case 'validation':
-      return 'i-lucide-check-circle'
-    case 'document':
-      return 'i-lucide-file-text'
-    case 'decision':
-      return 'i-lucide-gavel'
-    default:
-      return 'i-lucide-bell'
-  }
-}
-import { formatTimeAgo } from '@vueuse/core'
-
 const { isNotificationsSlideoverOpen } = useDashboard()
+const { notifications, isLoading, fetchNotifications, markAsRead, markAllAsRead, unreadCount } = useNotifications()
 const route = useRoute()
+const router = useRouter()
 
 // Détecter le rôle en fonction de la route
 const notificationsPagePath = computed(() => {
   const path = route.path
-  if (path.startsWith('/feef')) {
-    return '/feef/notifications'
-  } else if (path.startsWith('/oe')) {
-    return '/oe/notifications'
-  } else if (path.startsWith('/company')) {
-    return '/company/notifications'
-  }
-  return '/feef/notifications' // fallback
+  if (path.startsWith('/feef')) return '/feef/notifications'
+  if (path.startsWith('/oe')) return '/oe/notifications'
+  if (path.startsWith('/entity')) return '/entity/notifications'
+  return '/feef/notifications'
 })
 
-interface Notification {
-  id: string
-  title: string
-  description: string
-  date: string
-  dossier: string
-  type: 'candidature' | 'validation' | 'document' | 'decision'
+// Fetch on open
+watch(isNotificationsSlideoverOpen, (open) => {
+  if (open) {
+    fetchNotifications(1, { limit: 10 })
+  }
+})
+
+function getNotificationIcon(type: string) {
+  switch (type) {
+    case 'action_created':
+      return 'i-lucide-clipboard-list'
+    case 'action_reminder':
+      return 'i-lucide-alarm-clock'
+    default:
+      return 'i-lucide-bell'
+  }
 }
 
-const notifications = [
-  {
-    id: '1',
-    title: 'Nouvelle candidature reçue',
-    description: 'Une nouvelle entreprise a soumis sa candidature pour la labellisation FEEF.',
-    date: '11/09/2025 14:30',
-    dossier: 'DOSSIER-2025-089',
-    type: 'candidature'
-  },
-  {
-    id: '2',
-    title: 'Documents manquants',
-    description: 'Des documents obligatoires sont manquants dans le dossier. Intervention nécessaire.',
-    date: '11/09/2025 09:15',
-    dossier: 'DOSSIER-2025-087',
-    type: 'document'
-  },
-  {
-    id: '3',
-    title: "Rapport d'audit transmis",
-    description: "L'organisme évaluateur a transmis le rapport d'audit final.",
-    date: '10/09/2025 16:45',
-    dossier: 'DOSSIER-2025-085',
-    type: 'document'
-  },
-  {
-    id: '4',
-    title: "Validation du plan d'action",
-    description: "Le plan d'action corrective a été validé par l'OE et est prêt pour décision.",
-    date: '10/09/2025 11:20',
-    dossier: 'DOSSIER-2025-084',
-    type: 'validation'
-  },
-  {
-    id: '5',
-    title: 'Décision FEEF en attente',
-    description: "Un avis de labellisation est en attente de validation par la direction FEEF.",
-    date: '09/09/2025 15:30',
-    dossier: 'DOSSIER-2025-083',
-    type: 'decision'
-  },
-  {
-    id: '6',
-    title: "Signature d'attestation requise",
-    description: "Une attestation de labellisation est prête et nécessite une signature.",
-    date: '09/09/2025 10:00',
-    dossier: 'DOSSIER-2025-082',
-    type: 'decision'
-  },
-  {
-    id: '7',
-    title: 'Nouvelle version de document',
-    description: "L'entreprise a mis à jour ses statuts. Version 2 disponible.",
-    date: '08/09/2025 14:15',
-    dossier: 'DOSSIER-2025-081',
-    type: 'document'
-  },
-  {
-    id: '8',
-    title: 'Audit programmé',
-    description: "L'audit sur site a été programmé et confirmé par l'organisme évaluateur.",
-    date: '07/09/2025 09:30',
-    dossier: 'DOSSIER-2025-080',
-    type: 'validation'
+function formatTimeAgo(dateStr: string) {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return "À l'instant"
+  if (diffMins < 60) return `Il y a ${diffMins} min`
+  if (diffHours < 24) return `Il y a ${diffHours}h`
+  if (diffDays < 7) return `Il y a ${diffDays}j`
+  return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
+}
+
+function handleNotificationClick(notification: any) {
+  markAsRead(notification.id)
+
+  // Navigate based on context
+  const path = route.path
+  let prefix = '/feef'
+  if (path.startsWith('/oe')) prefix = '/oe'
+  else if (path.startsWith('/entity')) prefix = '/entity'
+  else if (path.startsWith('/auditor')) prefix = '/auditor'
+
+  if (notification.auditId) {
+    router.push(`${prefix}/audits/${notification.auditId}`)
+  } else if (notification.entityId) {
+    router.push(`${prefix}/entities/${notification.entityId}`)
   }
-]
+
+  isNotificationsSlideoverOpen.value = false
+}
+
+function handleMarkAllAsRead() {
+  markAllAsRead()
+}
 </script>
 
 <template>
@@ -117,70 +79,81 @@ const notifications = [
       <div class="flex items-center justify-between w-full">
         <h2 class="text-lg font-semibold text-gray-900">
           Notifications
+          <span v-if="unreadCount > 0" class="text-sm font-normal text-gray-500">({{ unreadCount }} non lue{{ unreadCount > 1 ? 's' : '' }})</span>
         </h2>
-        <UButton
-          :to="notificationsPagePath"
-          color="primary"
-          variant="ghost"
-          size="sm"
-          icon="i-lucide-list"
-          @click="isNotificationsSlideoverOpen = false"
-        >
-          Voir toutes
-        </UButton>
+        <div class="flex items-center gap-2">
+          <UButton
+            v-if="unreadCount > 0"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            icon="i-lucide-check-check"
+            @click="handleMarkAllAsRead"
+          >
+            Tout marquer lu
+          </UButton>
+          <UButton
+            :to="notificationsPagePath"
+            color="primary"
+            variant="ghost"
+            size="sm"
+            icon="i-lucide-list"
+            @click="isNotificationsSlideoverOpen = false"
+          >
+            Voir toutes
+          </UButton>
+        </div>
       </div>
     </template>
     <template #body>
-      <div class="space-y-3 px-2 py-2">
+      <!-- Loading -->
+      <div v-if="isLoading" class="flex justify-center py-8">
+        <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-gray-400" />
+      </div>
+
+      <!-- Empty state -->
+      <div v-else-if="notifications.length === 0" class="text-center py-12 px-4">
+        <UIcon name="i-lucide-bell-off" class="size-12 text-gray-300 mx-auto mb-3" />
+        <p class="text-sm text-gray-500">Aucune notification</p>
+      </div>
+
+      <!-- List -->
+      <div v-else class="space-y-2 px-2 py-2">
         <div
           v-for="notification in notifications"
           :key="notification.id"
-          class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all duration-200"
+          class="rounded-lg border p-3 cursor-pointer transition-all duration-200 hover:shadow-md"
+          :class="notification.readAt ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'"
+          @click="handleNotificationClick(notification)"
         >
-          <div class="flex items-start gap-4">
-            <!-- Icône de notification -->
-            <div class="flex-shrink-0 mt-1">
+          <div class="flex items-start gap-3">
+            <!-- Unread indicator -->
+            <div class="flex-shrink-0 mt-1.5">
               <div
-                class="w-8 h-8 rounded-full flex items-center justify-center"
-                :class="{
-                  'bg-blue-100 text-blue-600': notification.type === 'candidature',
-                  'bg-green-100 text-green-600': notification.type === 'validation',
-                  'bg-orange-100 text-orange-600': notification.type === 'document',
-                  'bg-purple-100 text-purple-600': notification.type === 'decision'
-                }"
-              >
+                v-if="!notification.readAt"
+                class="w-2 h-2 rounded-full bg-blue-500"
+              />
+              <div v-else class="w-2 h-2" />
+            </div>
+
+            <!-- Icon -->
+            <div class="flex-shrink-0 mt-0.5">
+              <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
                 <UIcon :name="getNotificationIcon(notification.type)" class="w-4 h-4" />
               </div>
             </div>
-            <!-- Contenu de la notification -->
+
+            <!-- Content -->
             <div class="flex-1 min-w-0">
-              <div class="flex items-start justify-between gap-4">
-                <div class="flex-1">
-                  <h3 class="text-sm font-semibold text-gray-900 mb-1">
-                    {{ notification.title }}
-                  </h3>
-                  <p class="text-sm text-gray-600 mb-2">
-                    {{ notification.description }}
-                  </p>
-                  <div class="flex items-center gap-4 text-xs text-gray-500">
-                    <span class="flex items-center gap-1">
-                      <UIcon name="i-lucide-calendar" class="w-3 h-3" />
-                      {{ notification.date }}
-                    </span>
-                  </div>
-                </div>
-                <!-- Actions -->
-                <div class="flex items-center gap-2 flex-shrink-0">
-                  <UButton
-                    color="primary"
-                    variant="outline"
-                    size="xs"
-                    icon="i-lucide-external-link"
-                  >
-                    Voir le dossier
-                  </UButton>
-                </div>
-              </div>
+              <h3 class="text-sm font-semibold text-gray-900 mb-0.5 truncate">
+                {{ notification.title }}
+              </h3>
+              <p v-if="notification.entity" class="text-xs text-gray-500 mb-1">
+                {{ notification.entity.name }}
+              </p>
+              <p class="text-xs text-gray-400">
+                {{ formatTimeAgo(notification.createdAt) }}
+              </p>
             </div>
           </div>
         </div>

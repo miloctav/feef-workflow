@@ -14,6 +14,8 @@ export type EmailType =
   | 'decision-notification'
   | 'oe-assignment'
   | 'attestation-issued'
+  | 'action-created'
+  | 'action-reminder'
 
 /**
  * Configuration de base pour l'envoi d'un email
@@ -81,6 +83,35 @@ export interface TwoFactorCodeData {
   lastName: string
   code: string
   expiresInMinutes: number
+}
+
+/**
+ * Données pour l'email de notification d'action créée
+ */
+export interface ActionCreatedEmailData {
+  email: string
+  firstName: string
+  lastName: string
+  actionTitle: string
+  actionDescription: string
+  entityName: string
+  deadline: string
+  actionUrl: string
+}
+
+/**
+ * Données pour l'email de rappel de deadline d'action
+ */
+export interface ActionReminderEmailData {
+  email: string
+  firstName: string
+  lastName: string
+  actionTitle: string
+  actionDescription: string
+  entityName: string
+  deadline: string
+  daysRemaining: number
+  actionUrl: string
 }
 
 /**

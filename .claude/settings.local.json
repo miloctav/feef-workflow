@@ -7,7 +7,9 @@
       "mcp__distill__smart_file_read",
       "mcp__distill__code_execute",
       "Bash(grep:*)",
-      "Bash(npx nuxi typecheck:*)"
+      "Bash(npx nuxi typecheck:*)",
+      "Bash(findstr:*)",
+      "Bash(Select-String \"notification\")"
     ],
     "deny": [],
     "ask": []

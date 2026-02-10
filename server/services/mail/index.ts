@@ -1,8 +1,10 @@
-import type { EmailConfig, EmailResult, AccountCreationEmailData, ForgotPasswordEmailData, EmailChangeVerificationData, TwoFactorCodeData } from '~~/server/types/mail'
+import type { EmailConfig, EmailResult, AccountCreationEmailData, ForgotPasswordEmailData, EmailChangeVerificationData, TwoFactorCodeData, ActionCreatedEmailData, ActionReminderEmailData } from '~~/server/types/mail'
 import { accountCreationTemplate } from './templates/account-creation'
 import { forgotPasswordTemplate } from './templates/forgot-password'
 import { emailChangeVerificationTemplate } from './templates/email-verification'
 import { twoFactorCodeTemplate } from './templates/two-factor-code'
+import { actionCreatedTemplate } from './templates/action-created'
+import { actionReminderTemplate } from './templates/action-reminder'
 import { Resend } from 'resend'
 
 /**
@@ -55,10 +57,18 @@ async function sendEmail(config: EmailConfig): Promise<EmailResult> {
     const resendClient = getResendClient()
     const defaultFrom = getDefaultFrom()
 
+    // Dev mail override
+    const devMailOverride = runtimeConfig.devMailOverride
+    let finalRecipient = config.to
+    if (devMailOverride) {
+      console.log(`[Mail Service] Dev override: ${config.to} -> ${devMailOverride}`)
+      finalRecipient = devMailOverride
+    }
+
     // Envoyer l'email via Resend
     const { data, error } = await resendClient.emails.send({
       from: config.from || defaultFrom,
-      to: config.to,
+      to: finalRecipient,
       subject: config.subject,
       html: config.html,
       replyTo: config.replyTo,
@@ -199,6 +209,38 @@ export async function send2FACodeEmail(
 }
 
 /**
+ * Envoie un email de notification d'action créée
+ */
+export async function sendActionCreatedEmail(
+  data: ActionCreatedEmailData
+): Promise<EmailResult> {
+  const subject = actionCreatedTemplate.getSubject(data)
+  const html = actionCreatedTemplate.getHtml(data)
+
+  return sendEmail({
+    to: data.email,
+    subject,
+    html
+  })
+}
+
+/**
+ * Envoie un email de rappel de deadline d'action
+ */
+export async function sendActionReminderEmail(
+  data: ActionReminderEmailData
+): Promise<EmailResult> {
+  const subject = actionReminderTemplate.getSubject(data)
+  const html = actionReminderTemplate.getHtml(data)
+
+  return sendEmail({
+    to: data.email,
+    subject,
+    html
+  })
+}
+
+/**
  * Fonction générique pour envoyer n'importe quel template d'email
  * Utile pour étendre le système avec de nouveaux types d'emails
  *
@@ -235,6 +277,8 @@ export const mailService = {
   sendForgotPasswordEmail,
   sendEmailChangeVerificationEmail,
   send2FACodeEmail,
+  sendActionCreatedEmail,
+  sendActionReminderEmail,
   sendTemplatedEmail,
   sendEmail // Pour des cas d'usage avancés
 }

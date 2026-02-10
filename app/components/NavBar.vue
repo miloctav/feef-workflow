@@ -18,6 +18,14 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { isNotificationsSlideoverOpen, isActionsSlideoverOpen } = useDashboard()
 
+// Notifications
+const { unreadCount, fetchUnreadCount } = useNotifications()
+
+// Fetch unread count on mount
+onMounted(() => {
+  fetchUnreadCount()
+})
+
 // Récupérer la session pour vérifier le rôle
 const { data: session } = await useFetch('/api/auth/session')
 
@@ -62,7 +70,7 @@ const displayedBreadcrumbs = computed(() => {
               square
               @click="isNotificationsSlideoverOpen = true"
             >
-              <UChip color="error" inset>
+              <UChip :show="unreadCount > 0" :text="unreadCount > 99 ? '99+' : String(unreadCount)" color="error" inset>
                 <UIcon name="i-lucide-bell" class="size-5 shrink-0" />
               </UChip>
             </UButton>

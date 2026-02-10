@@ -6,6 +6,7 @@ import { forUpdate } from '~~/server/utils/tracking'
 interface UpdateAccountBody {
   firstname?: string
   lastname?: string
+  emailNotificationsEnabled?: boolean
 }
 
 export default defineEventHandler(async (event) => {
@@ -84,10 +85,10 @@ export default defineEventHandler(async (event) => {
   // Récupérer les données du corps de la requête
   const body = await readBody<UpdateAccountBody>(event)
 
-  const { firstname, lastname } = body
+  const { firstname, lastname, emailNotificationsEnabled } = body
 
   // Vérifier qu'au moins un champ est fourni
-  if (!firstname && !lastname) {
+  if (firstname === undefined && lastname === undefined && emailNotificationsEnabled === undefined) {
     throw createError({
       statusCode: 400,
       message: 'Au moins un champ doit être fourni pour la modification',
@@ -101,6 +102,7 @@ export default defineEventHandler(async (event) => {
 
   if (firstname !== undefined) updateData.firstname = firstname
   if (lastname !== undefined) updateData.lastname = lastname
+  if (emailNotificationsEnabled !== undefined) updateData.emailNotificationsEnabled = emailNotificationsEnabled
 
   // Mettre à jour le compte
   const [updatedAccount] = await db
@@ -116,6 +118,7 @@ export default defineEventHandler(async (event) => {
       oeId: accounts.oeId,
       oeRole: accounts.oeRole,
       isActive: accounts.isActive,
+      emailNotificationsEnabled: accounts.emailNotificationsEnabled,
       createdAt: accounts.createdAt,
     })
 

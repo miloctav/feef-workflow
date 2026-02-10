@@ -37,6 +37,7 @@ watch(
 )
 
 // États locaux
+const isTogglingNotifications = ref(false)
 const isEditing = ref(false)
 const isSaving = ref(false)
 const isSendingPasswordReset = ref(false)
@@ -252,6 +253,37 @@ const sendPasswordResetEmail = async () => {
     })
   } finally {
     isSendingPasswordReset.value = false
+  }
+}
+
+// Toggle email notifications
+const toggleEmailNotifications = async (enabled: boolean) => {
+  if (!user.value) return
+
+  isTogglingNotifications.value = true
+  try {
+    await $fetch(`/api/accounts/${user.value.id}`, {
+      method: 'PUT',
+      body: { emailNotificationsEnabled: enabled },
+    })
+
+    await refreshSession()
+
+    toast.add({
+      title: 'Succès',
+      description: enabled
+        ? 'Les notifications email ont été activées'
+        : 'Les notifications email ont été désactivées',
+      color: 'success',
+    })
+  } catch (error: any) {
+    toast.add({
+      title: 'Erreur',
+      description: error.data?.message || 'Une erreur est survenue',
+      color: 'error',
+    })
+  } finally {
+    isTogglingNotifications.value = false
   }
 }
 
@@ -571,6 +603,37 @@ const getRoleLabel = (role: string) => {
                   class="mt-2"
                   :loading="isSendingPasswordReset"
                   @click="sendPasswordResetEmail"
+                />
+              </div>
+            </div>
+          </UCard>
+
+          <!-- Section 4 : Préférences de notification -->
+          <UCard>
+            <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon
+                  name="i-lucide-bell"
+                  class="size-5"
+                />
+                <span class="font-semibold">Préférences de notification</span>
+              </div>
+            </template>
+
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Notifications par email
+                  </label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Recevoir un email lorsqu'une nouvelle action vous est assignée
+                  </p>
+                </div>
+                <USwitch
+                  :model-value="user?.emailNotificationsEnabled ?? true"
+                  :loading="isTogglingNotifications"
+                  @update:model-value="toggleEmailNotifications"
                 />
               </div>
             </div>

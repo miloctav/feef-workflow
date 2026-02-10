@@ -10,6 +10,7 @@ import { actions, audits, entities, documentVersions, entityFieldVersions, contr
 import { eq, and, isNull, inArray, isNotNull, desc } from 'drizzle-orm'
 import { ACTION_TYPE_REGISTRY, ActionType, type ActionTypeType } from '#shared/types/actions'
 import { forInsert, forUpdate } from '~~/server/utils/tracking'
+import { notifyActionCreated } from '~~/server/services/notifications'
 import type { H3Event } from 'h3'
 
 /**
@@ -98,6 +99,16 @@ export async function createAction(
   })).returning()
 
   console.log(`[Actions] Created action ${type} (ID: ${newAction.id}) for entity ${entityId}`)
+
+  // Non-bloquant : envoyer les notifications
+  notifyActionCreated({
+    actionType: type,
+    entityId,
+    auditId: options.auditId || null,
+    actionId: newAction.id,
+    deadline,
+    origin: getRequestURL(event).origin,
+  }).catch(err => console.error('[Actions] Notification error:', err))
 
   return newAction
 }

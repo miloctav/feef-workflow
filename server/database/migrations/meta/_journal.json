@@ -337,6 +337,13 @@
       "when": 1770651572569,
       "tag": "0047_glorious_ultragirl",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1770714201247,
+      "tag": "0048_salty_zaran",
+      "breakpoints": true
     }
   ]
 }

@@ -238,6 +238,7 @@ export const accounts = pgTable('accounts', {
   emailChangeRequestedAt: timestamp('email_change_requested_at'),
 
   isActive: boolean('is_active').notNull().default(false),
+  emailNotificationsEnabled: boolean('email_notifications_enabled').notNull().default(true),
   createdBy: integer('created_by').references(() => accounts.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedBy: integer('updated_by').references(() => accounts.id),
@@ -447,6 +448,39 @@ export const events = pgTable('events', {
   index('idx_events_performed_by').on(table.performedBy),
 ])
 
+// Notifications table
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  accountId: integer('account_id').notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+
+  // Type de notification (extensible pour le futur)
+  type: varchar('type', { length: 50 }).notNull(), // 'action_created', 'action_reminder', 'alert', etc.
+
+  // Contenu
+  title: varchar('title', { length: 500 }).notNull(),
+  description: text('description'),
+
+  // Liens contextuels (optionnels)
+  entityId: integer('entity_id').references(() => entities.id),
+  auditId: integer('audit_id').references(() => audits.id),
+  actionId: integer('action_id').references(() => actions.id),
+
+  // Statut lu/non-lu
+  readAt: timestamp('read_at'),
+
+  // Email envoyé ?
+  emailSent: boolean('email_sent').notNull().default(false),
+
+  // Metadata extensible
+  metadata: json('metadata'),
+
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('idx_notifications_account_id').on(table.accountId),
+  index('idx_notifications_account_read').on(table.accountId, table.readAt),
+  index('idx_notifications_created_at').on(table.createdAt),
+])
+
 // ========================================
 // Types inférés depuis le schéma Drizzle
 // ========================================
@@ -508,6 +542,10 @@ export type NewAction = typeof actions.$inferInsert
 // Type pour Event
 export type Event = typeof events.$inferSelect
 export type NewEvent = typeof events.$inferInsert
+
+// Type pour Notification
+export type Notification = typeof notifications.$inferSelect
+export type NewNotification = typeof notifications.$inferInsert
 
 // Type pour TwoFactorCode
 export type TwoFactorCode = typeof twoFactorCodes.$inferSelect
@@ -584,6 +622,7 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
   }),
   twoFactorCodes: many(twoFactorCodes),
   trustedDevices: many(trustedDevices),
+  notifications: many(notifications),
 }))
 
 export const oeRelations = relations(oes, ({ many }) => ({
@@ -797,6 +836,13 @@ export const eventsRelations = relations(events, ({ one }) => ({
     references: [accounts.id],
     relationName: 'eventPerformedBy',
   }),
+}))
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  account: one(accounts, { fields: [notifications.accountId], references: [accounts.id] }),
+  entity: one(entities, { fields: [notifications.entityId], references: [entities.id] }),
+  audit: one(audits, { fields: [notifications.auditId], references: [audits.id] }),
+  action: one(actions, { fields: [notifications.actionId], references: [actions.id] }),
 }))
 
 export const twoFactorCodesRelations = relations(twoFactorCodes, ({ one }) => ({
