@@ -25,6 +25,17 @@ const {
   labeledEntitiesChartData,
 } = useDashboardOverview()
 
+// Use dashboard compare composable
+const {
+  isCompareMode,
+  loading: compareLoading,
+  compareCategories,
+  compareCategoryTotals,
+  compareProgressBars,
+  compareOverviewStats,
+  fetchCompare,
+} = useDashboardCompare()
+
 // Fetch stats and actions on mount
 onMounted(async () => {
   const oeId = currentOeId.value
@@ -150,14 +161,30 @@ onBeforeMount(async () => {
 // Computed oeId for API calls
 const currentOeId = computed(() => selectedOE.value === 'all' ? undefined : Number(selectedOE.value))
 
-// Watch OE selection changes and refresh all dashboard data
+// Watch OE selection changes and refresh all dashboard data (only in normal mode)
 watch(selectedOE, async () => {
+  if (isCompareMode.value) return
   const oeId = currentOeId.value
   await Promise.all([
     fetchStats(oeId),
     fetchActions(oeId),
     fetchOverview(oeId),
   ])
+})
+
+// Watch compare mode toggle
+watch(isCompareMode, async (active) => {
+  if (active) {
+    await fetchCompare()
+  }
+  else {
+    const oeId = currentOeId.value
+    await Promise.all([
+      fetchStats(oeId),
+      fetchActions(oeId),
+      fetchOverview(oeId),
+    ])
+  }
 })
 
 // Use dashboard actions composable
@@ -173,6 +200,18 @@ const tabs = [
   { value: 'etapes', label: 'Étapes des dossiers', slot: 'etapes' },
   { value: 'actions', label: 'Actions', slot: 'actions' },
 ]
+
+// Helper to format months/duration for compare table
+function formatMonths(val: number | null): string {
+  if (val === null || val === undefined) return 'N/A'
+  const sign = val >= 0 ? '+' : ''
+  return `${sign}${val.toFixed(1)} mois`
+}
+
+// Only show OEs with at least one entity in the compare overview table
+const visibleCompareOverviewStats = computed(() =>
+  compareOverviewStats.value.filter(oe => oe.entityCount > 0),
+)
 </script>
 
 <template>
@@ -193,7 +232,7 @@ const tabs = [
     </div>
     <div
       v-if="role === 'feef'"
-      class="flex flex-row items-center gap-2 min-w-[220px] mb-1"
+      class="flex flex-row items-center gap-4 mb-1 flex-wrap"
     >
       <label class="font-semibold text-gray-700 whitespace-nowrap">Organisme évaluateur</label>
       <USelect
@@ -201,11 +240,21 @@ const tabs = [
         :items="oeOptions"
         value-key="value"
         class="w-32"
+        :disabled="isCompareMode"
       />
+      <div class="flex items-center gap-2 ml-4">
+        <USwitch v-model="isCompareMode" />
+        <span class="text-sm font-medium text-gray-700 whitespace-nowrap">Comparer les OE</span>
+      </div>
     </div>
     <USeparator class="mb-3" />
-    <!-- Bloc infos entreprises, import et export -->
-    <div class="flex flex-row gap-4 px-4 mb-4">
+
+    <!-- Bloc top stats -->
+    <!-- Normal mode: 3 stat cards -->
+    <div
+      v-if="!isCompareMode"
+      class="flex flex-row gap-4 px-4 mb-4"
+    >
       <div class="bg-white rounded-xl shadow p-4 flex-1 flex flex-col items-center justify-center">
         <span class="text-gray-500 text-sm mb-1">Nombre d'entités</span>
         <USkeleton
@@ -243,6 +292,67 @@ const tabs = [
         >
       </div>
     </div>
+
+    <!-- Compare mode: stats table per OE -->
+    <div
+      v-else
+      class="px-4 mb-4"
+    >
+      <USkeleton
+        v-if="compareLoading"
+        class="h-32 w-full rounded-xl"
+      />
+      <div
+        v-else
+        class="bg-white rounded-xl shadow overflow-hidden"
+      >
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="text-left px-4 py-2 font-semibold text-gray-600">OE</th>
+              <th class="text-right px-4 py-2 font-semibold text-gray-600">Entités</th>
+              <th class="text-right px-4 py-2 font-semibold text-gray-600">Écart audit</th>
+              <th class="text-right px-4 py-2 font-semibold text-gray-600">Durée processus</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="oe in visibleCompareOverviewStats"
+              :key="String(oe.oeId)"
+              class="border-b border-gray-100 last:border-0 hover:bg-gray-50"
+            >
+              <td class="px-4 py-2">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                    :style="`background: ${oe.dot}`"
+                  />
+                  <span class="font-medium text-gray-800">{{ oe.oeName }}</span>
+                </div>
+              </td>
+              <td class="px-4 py-2 text-right font-bold text-primary-600">
+                {{ oe.entityCount }}
+              </td>
+              <td class="px-4 py-2 text-right text-gray-700">
+                {{ formatMonths(oe.avgAuditGapMonths) }}
+              </td>
+              <td class="px-4 py-2 text-right text-gray-700">
+                {{ oe.avgProcessDurationMonths !== null ? `${oe.avgProcessDurationMonths.toFixed(1)} mois` : 'N/A' }}
+              </td>
+            </tr>
+            <tr v-if="visibleCompareOverviewStats.length === 0">
+              <td
+                colspan="4"
+                class="px-4 py-4 text-center text-gray-400 italic"
+              >
+                Aucune donnée
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Système d'onglets pour Étapes des dossiers et Actions -->
     <div class="px-4">
       <UTabs
@@ -254,7 +364,7 @@ const tabs = [
           <div class="pt-4">
             <!-- Loading state -->
             <div
-              v-if="loading"
+              v-if="isCompareMode ? compareLoading : loading"
               class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
             >
               <div
@@ -279,9 +389,9 @@ const tabs = [
               />
             </div>
 
-            <!-- Data state -->
+            <!-- Normal mode: existing DashboardCard grid -->
             <div
-              v-else
+              v-else-if="!isCompareMode"
               class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 justify-start"
             >
               <div
@@ -302,10 +412,36 @@ const tabs = [
                 </div>
               </div>
             </div>
+
+            <!-- Compare mode: DashboardCardCompare grid -->
+            <div
+              v-else
+              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 justify-start"
+            >
+              <div
+                v-for="(cat, i) in compareCategories"
+                :key="cat.label"
+                class="flex flex-col"
+              >
+                <h2 class="text-lg font-bold text-gray-800 mb-2 text-center">
+                  <span class="text-primary-600">{{ compareCategoryTotals[i] }}</span>
+                  &nbsp;{{ cat.label }}
+                </h2>
+                <div class="flex flex-col gap-3">
+                  <DashboardCardCompare
+                    v-for="card in cat.cards"
+                    :key="card.auditStatus"
+                    :short-text="card.shortText"
+                    :total="card.total"
+                    :per-oe="card.perOe"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </template>
 
-        <!-- Onglet Actions -->
+        <!-- Onglet Actions (unchanged) -->
         <template #actions>
           <div class="pt-4">
             <!-- Loading state -->
@@ -420,79 +556,103 @@ const tabs = [
         </template>
       </UTabs>
     </div>
+
     <!-- Barre de progression détaillée des dossiers -->
     <div class="w-full px-4 mt-6">
-      <h2 class="text-lg font-bold mb-4 text-center">
-        État des dossiers ({{ totalDossiers }} dossiers)
-      </h2>
+      <!-- Normal mode progress bar -->
+      <template v-if="!isCompareMode">
+        <h2 class="text-lg font-bold mb-4 text-center">
+          État des dossiers ({{ totalDossiers }} dossiers)
+        </h2>
 
-      <!-- Légende des 5 phases -->
-      <div class="flex justify-center gap-6 mb-4 flex-wrap">
-        <UTooltip
-          v-for="phase in phases"
-          :key="phase.key"
-          :text="phase.description"
-        >
-          <div class="flex items-center gap-1.5 cursor-help">
-            <span
-              class="inline-block w-3 h-3 rounded-full shrink-0"
-              :style="`background: ${phase.bgColor}`"
-            />
-            <span class="text-sm text-gray-600">{{ phase.label }}</span>
-            <span class="text-sm font-bold text-gray-900">{{ phase.count }}</span>
-          </div>
-        </UTooltip>
-      </div>
-
-      <!-- Barre de progression détaillée -->
-      <div
-        class="relative w-full h-8 bg-gray-100 rounded-full shadow-lg overflow-hidden flex text-xs font-medium"
-      >
-        <UTooltip
-          v-for="(phase, i) in phases"
-          :key="phase.key"
-          class="h-full transition-all duration-500"
-          :style="`width: ${phase.pct}%`"
-        >
-          <div
-            class="h-full w-full flex items-center justify-center"
-            :class="[phase.textColor, i < phases.length - 1 ? 'border-r border-white' : '']"
-            :style="`background: ${phase.bgColor}`"
+        <!-- Légende des 5 phases -->
+        <div class="flex justify-center gap-6 mb-4 flex-wrap">
+          <UTooltip
+            v-for="phase in phases"
+            :key="phase.key"
+            :text="phase.description"
           >
-            <span
-              v-if="phase.pct > 8"
-              class="w-full text-center px-1 truncate"
-            >
-              {{ phase.label }} {{ phase.count }}
-            </span>
-          </div>
-          <template #content>
-            <div class="text-xs p-1 min-w-32">
-              <div class="font-semibold mb-1">{{ phase.label }}</div>
-              <div
-                v-for="(count, key) in phase.detail"
-                :key="key"
-                class="flex justify-between gap-4"
-              >
-                <span>{{ phase.detailLabels[String(key)] || key }}</span>
-                <span class="font-bold">{{ count }}</span>
-              </div>
+            <div class="flex items-center gap-1.5 cursor-help">
+              <span
+                class="inline-block w-3 h-3 rounded-full shrink-0"
+                :style="`background: ${phase.bgColor}`"
+              />
+              <span class="text-sm text-gray-600">{{ phase.label }}</span>
+              <span class="text-sm font-bold text-gray-900">{{ phase.count }}</span>
             </div>
-          </template>
-        </UTooltip>
-      </div>
+          </UTooltip>
+        </div>
+
+        <!-- Barre de progression détaillée -->
+        <div
+          class="relative w-full h-8 bg-gray-100 rounded-full shadow-lg overflow-hidden flex text-xs font-medium"
+        >
+          <UTooltip
+            v-for="(phase, i) in phases"
+            :key="phase.key"
+            class="h-full transition-all duration-500"
+            :style="`width: ${phase.pct}%`"
+          >
+            <div
+              class="h-full w-full flex items-center justify-center"
+              :class="[phase.textColor, i < phases.length - 1 ? 'border-r border-white' : '']"
+              :style="`background: ${phase.bgColor}`"
+            >
+              <span
+                v-if="phase.pct > 8"
+                class="w-full text-center px-1 truncate"
+              >
+                {{ phase.label }} {{ phase.count }}
+              </span>
+            </div>
+            <template #content>
+              <div class="text-xs p-1 min-w-32">
+                <div class="font-semibold mb-1">{{ phase.label }}</div>
+                <div
+                  v-for="(count, key) in phase.detail"
+                  :key="key"
+                  class="flex justify-between gap-4"
+                >
+                  <span>{{ phase.detailLabels[String(key)] || key }}</span>
+                  <span class="font-bold">{{ count }}</span>
+                </div>
+              </div>
+            </template>
+          </UTooltip>
+        </div>
+      </template>
+
+      <!-- Compare mode progress bars (one per OE) -->
+      <template v-else>
+        <h2 class="text-lg font-bold mb-4 text-center">
+          État des dossiers par OE
+        </h2>
+        <USkeleton
+          v-if="compareLoading"
+          class="h-40 w-full rounded-xl"
+        />
+        <DashboardProgressBarCompare
+          v-else
+          :progress-bars="compareProgressBars"
+          :phase-config="PHASE_CONFIG"
+        />
+      </template>
     </div>
+
     <USeparator class="my-4" />
+
     <!-- Bloc Statistiques -->
     <div>
       <div class="flex flex-row items-center gap-4 w-full">
         <div class="flex flex-col items-center w-1/2">
           <h2 class="text-lg font-bold mb-1 text-center">Audits prévus par mois</h2>
-          <LineChartAudits />
+          <LineChartAudits v-if="!isCompareMode" />
+          <LineChartAuditsCompare v-else />
         </div>
         <div class="flex flex-col items-center w-1/2">
           <h2 class="text-lg font-bold mb-1 text-center">Labellisés par année</h2>
-          <BarChartLabellises />
+          <BarChartLabellises v-if="!isCompareMode" />
+          <BarChartLabellisesCompare v-else />
         </div>
       </div>
     </div>

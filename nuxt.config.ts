@@ -68,7 +68,9 @@ export default defineNuxtConfig({
       // S'exécute à 0h UTC = 1h Paris (hiver) / 2h Paris (été)
       '0 0 * * *': ['audits:update-status'],
       // S'exécute à 2h40 UTC = 3h40 Paris (hiver) / 4h40 Paris (été)
-      '40 2 * * *': ['actions:check-label-expiration'],
+      // Désactivé au profit de check-anniversary (basé sur anniversaryDate)
+      // '40 2 * * *': ['actions:check-label-expiration'],
+      '40 2 * * *': ['actions:check-anniversary'],
     }
   },
   runtimeConfig: {

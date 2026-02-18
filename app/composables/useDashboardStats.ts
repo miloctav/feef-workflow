@@ -74,7 +74,7 @@ interface DashboardCategory {
 export type DashboardRole = 'feef' | 'oe' | 'auditeur'
 
 // Card mappings as a function of role
-function getCardMappings(role: DashboardRole): Array<{
+export function getCardMappings(role: DashboardRole): Array<{
   category: string
   cards: Array<{
     shortText: string
