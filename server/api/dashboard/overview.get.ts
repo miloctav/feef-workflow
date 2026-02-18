@@ -4,9 +4,10 @@
  */
 
 import { db } from '~~/server/database'
-import { audits as auditsTable, entities as entitiesTable, events as eventsTable } from '~~/server/database/schema'
-import { and, eq, inArray, isNotNull, ne, sql } from 'drizzle-orm'
+import { audits as auditsTable, entities as entitiesTable, events as eventsTable, contracts as contractsTable, actions as actionsTable } from '~~/server/database/schema'
+import { and, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm'
 import { Role, OERole } from '#shared/types/roles'
+import { ActionType } from '~~/shared/types/actions'
 
 export default defineEventHandler(async (event) => {
     // Authentication
@@ -84,17 +85,66 @@ export default defineEventHandler(async (event) => {
         return conditions
     }
 
+    const buildCaseSubmissionWhereConditions = () => {
+        const conditions: any[] = [
+            eq(actionsTable.type, ActionType.ENTITY_SUBMIT_CASE),
+            eq(actionsTable.status, 'PENDING'),
+        ]
+        if (user.role === Role.OE) {
+            conditions.push(sql`false`)
+        }
+        if (user.role === Role.ENTITY) {
+            if (user.currentEntityId) {
+                conditions.push(eq(actionsTable.entityId, user.currentEntityId))
+            }
+            else {
+                conditions.push(sql`false`)
+            }
+        }
+        if (user.role === Role.AUDITOR) {
+            conditions.push(sql`false`)
+        }
+        return conditions
+    }
+
+    const buildContractWhereConditions = () => {
+        const conditions: any[] = [
+            eq(contractsTable.signatureStatus, 'PENDING_ENTITY'),
+            isNull(contractsTable.oeId),
+        ]
+        if (user.role === Role.OE) {
+            conditions.push(sql`false`)
+        }
+        if (user.role === Role.ENTITY) {
+            if (user.currentEntityId) {
+                conditions.push(eq(contractsTable.entityId, user.currentEntityId))
+            }
+            else {
+                conditions.push(sql`false`)
+            }
+        }
+        if (user.role === Role.AUDITOR) {
+            conditions.push(sql`false`)
+        }
+        return conditions
+    }
+
     const auditWhereConditions = buildAuditWhereConditions()
     const entityWhereConditions = buildEntityWhereConditions()
 
     // Execute all queries in parallel for performance
+    const caseSubmissionWhereConditions = buildCaseSubmissionWhereConditions()
+    const contractProgressWhereConditions = buildContractWhereConditions()
+
     const [
         entityCountResult,
         auditGapResult,
         processDurationResult,
         scheduledAuditsResult,
         labeledEntitiesResult,
-        progressBarResult,
+        progressBarAuditResult,
+        caseSubmissionResult,
+        contractProgressResult,
     ] = await Promise.all([
         // 1. Entity Count - Total count of all entities
         db
@@ -233,7 +283,7 @@ export default defineEventHandler(async (event) => {
                 `
             ),
 
-        // 6. Progress Bar Stats - Count audits by workflow stage (excluding COMPLETED)
+        // 6a. Progress Bar Stats - Count audits by status (excluding error terminals)
         db
             .select({
                 status: auditsTable.status,
@@ -243,10 +293,31 @@ export default defineEventHandler(async (event) => {
             .where(
                 and(
                     ...(auditWhereConditions.length > 0 ? auditWhereConditions : []),
-                    ne(auditsTable.status, 'COMPLETED'),
+                    ne(auditsTable.status, 'REFUSED_BY_OE'),
+                    ne(auditsTable.status, 'REFUSED_PLAN'),
                 ),
             )
             .groupBy(auditsTable.status),
+
+        // 6b. Candidature - Count distinct entities with ENTITY_SUBMIT_CASE action pending
+        db
+            .select({
+                count: sql<number>`COUNT(DISTINCT ${actionsTable.entityId})::int`,
+            })
+            .from(actionsTable)
+            .where(
+                caseSubmissionWhereConditions.length > 0 ? and(...caseSubmissionWhereConditions) : undefined,
+            ),
+
+        // 6c. Candidature - Count FEEF contracts pending entity signature
+        db
+            .select({
+                count: sql<number>`COUNT(*)::int`,
+            })
+            .from(contractsTable)
+            .where(
+                contractProgressWhereConditions.length > 0 ? and(...contractProgressWhereConditions) : undefined,
+            ),
     ])
 
     // Process results
@@ -303,39 +374,56 @@ export default defineEventHandler(async (event) => {
         }
     })
 
-    // Process progress bar data
-    // Map statuses to workflow stages
-    const progressBarStats = {
-        depotDossier: 0, // PENDING_CASE_APPROVAL
-        validationFeef: 0, // PENDING_OE_CHOICE
-        planification: 0, // PLANNING + SCHEDULED
-        audit: 0, // PENDING_REPORT
-        finalisation: 0, // PENDING_CORRECTIVE_PLAN + PENDING_CORRECTIVE_PLAN_VALIDATION + PENDING_OE_OPINION + PENDING_FEEF_DECISION
-    }
-
-    progressBarResult.forEach((row) => {
-        switch (row.status) {
-            case 'PENDING_CASE_APPROVAL':
-                progressBarStats.depotDossier = row.count
-                break
-            case 'PENDING_OE_CHOICE':
-                progressBarStats.validationFeef = row.count
-                break
-            case 'PLANNING':
-            case 'SCHEDULED':
-                progressBarStats.planification += row.count
-                break
-            case 'PENDING_REPORT':
-                progressBarStats.audit = row.count
-                break
-            case 'PENDING_CORRECTIVE_PLAN':
-            case 'PENDING_CORRECTIVE_PLAN_VALIDATION':
-            case 'PENDING_OE_OPINION':
-            case 'PENDING_FEEF_DECISION':
-                progressBarStats.finalisation += row.count
-                break
-        }
+    // Process progress bar data - 5 business phases
+    const auditsByStatus: Record<string, number> = {}
+    progressBarAuditResult.forEach((row) => {
+        auditsByStatus[row.status] = row.count
     })
+
+    const caseSubmissionCount = caseSubmissionResult[0]?.count || 0
+    const contractProgressCount = contractProgressResult[0]?.count || 0
+
+    const progressBarStats = {
+        candidature: {
+            total: (auditsByStatus['PENDING_CASE_APPROVAL'] || 0) + contractProgressCount + caseSubmissionCount,
+            detail: {
+                CASE_SUBMISSION_IN_PROGRESS: caseSubmissionCount,
+                PENDING_FEEF_CONTRACT_SIGNATURE: contractProgressCount,
+                PENDING_CASE_APPROVAL: auditsByStatus['PENDING_CASE_APPROVAL'] || 0,
+            },
+        },
+        engagement: {
+            total: (auditsByStatus['PENDING_OE_CHOICE'] || 0) + (auditsByStatus['PENDING_OE_ACCEPTANCE'] || 0),
+            detail: {
+                PENDING_OE_CHOICE: auditsByStatus['PENDING_OE_CHOICE'] || 0,
+                PENDING_OE_ACCEPTANCE: auditsByStatus['PENDING_OE_ACCEPTANCE'] || 0,
+            },
+        },
+        audit: {
+            total: (auditsByStatus['PLANNING'] || 0) + (auditsByStatus['SCHEDULED'] || 0) + (auditsByStatus['PENDING_REPORT'] || 0) + (auditsByStatus['PENDING_COMPLEMENTARY_AUDIT'] || 0),
+            detail: {
+                PLANNING: auditsByStatus['PLANNING'] || 0,
+                SCHEDULED: auditsByStatus['SCHEDULED'] || 0,
+                PENDING_REPORT: auditsByStatus['PENDING_REPORT'] || 0,
+                PENDING_COMPLEMENTARY_AUDIT: auditsByStatus['PENDING_COMPLEMENTARY_AUDIT'] || 0,
+            },
+        },
+        decision: {
+            total: (auditsByStatus['PENDING_OE_OPINION'] || 0) + (auditsByStatus['PENDING_CORRECTIVE_PLAN'] || 0) + (auditsByStatus['PENDING_CORRECTIVE_PLAN_VALIDATION'] || 0) + (auditsByStatus['PENDING_FEEF_DECISION'] || 0),
+            detail: {
+                PENDING_OE_OPINION: auditsByStatus['PENDING_OE_OPINION'] || 0,
+                PENDING_CORRECTIVE_PLAN: auditsByStatus['PENDING_CORRECTIVE_PLAN'] || 0,
+                PENDING_CORRECTIVE_PLAN_VALIDATION: auditsByStatus['PENDING_CORRECTIVE_PLAN_VALIDATION'] || 0,
+                PENDING_FEEF_DECISION: auditsByStatus['PENDING_FEEF_DECISION'] || 0,
+            },
+        },
+        labellise: {
+            total: auditsByStatus['COMPLETED'] || 0,
+            detail: {
+                COMPLETED: auditsByStatus['COMPLETED'] || 0,
+            },
+        },
+    }
 
     return {
         data: {

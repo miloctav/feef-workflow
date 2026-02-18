@@ -9,11 +9,11 @@ export interface DashboardOverviewData {
     scheduledAuditsByMonth: Record<string, { initial: number, renewal: number, monitoring: number }>
     labeledEntitiesByYear: Record<number, { initial: number, renewal: number, monitoring: number }>
     progressBarStats: {
-        depotDossier: number
-        validationFeef: number
-        planification: number
-        audit: number
-        finalisation: number
+        candidature: { total: number, detail: Record<string, number> }
+        engagement: { total: number, detail: Record<string, number> }
+        audit: { total: number, detail: Record<string, number> }
+        decision: { total: number, detail: Record<string, number> }
+        labellise: { total: number, detail: Record<string, number> }
     }
 }
 

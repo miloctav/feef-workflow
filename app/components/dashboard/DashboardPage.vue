@@ -40,73 +40,92 @@ onBeforeUnmount(() => {
   }
 })
 
-const dossiersFinalisesParAn = [
-  { annee: 2022, nombre: 18 },
-  { annee: 2023, nombre: 27 },
-  { annee: 2024, nombre: 31 },
-  { annee: 2025, nombre: 8 },
+// Configuration des 5 phases métier
+const PHASE_CONFIG = [
+  {
+    key: 'candidature' as const,
+    label: 'Candidature',
+    description: 'Dépôt du dossier, signature du contrat FEEF, approbation par FEEF',
+    bgColor: '#fde68a',
+    textColor: 'text-yellow-900',
+    detailLabels: {
+      CASE_SUBMISSION_IN_PROGRESS: 'Dépôt en cours',
+      PENDING_FEEF_CONTRACT_SIGNATURE: 'Signature contrat FEEF',
+      PENDING_CASE_APPROVAL: 'Approbation dossier',
+    } as Record<string, string>,
+  },
+  {
+    key: 'engagement' as const,
+    label: 'Engagement',
+    description: "Sélection et acceptation de l'OE (Organisme Évaluateur) par l'entité",
+    bgColor: '#fdba74',
+    textColor: 'text-orange-900',
+    detailLabels: {
+      PENDING_OE_CHOICE: "Choix de l'OE",
+      PENDING_OE_ACCEPTANCE: 'Acceptation OE',
+    } as Record<string, string>,
+  },
+  {
+    key: 'audit' as const,
+    label: 'Audit',
+    description: 'Planification, réalisation de l\'audit sur site et remise du rapport',
+    bgColor: '#7dd3fc',
+    textColor: 'text-sky-900',
+    detailLabels: {
+      PLANNING: 'Planification',
+      SCHEDULED: 'Planifié',
+      PENDING_REPORT: 'Rapport attendu',
+      PENDING_COMPLEMENTARY_AUDIT: 'Audit complémentaire',
+    } as Record<string, string>,
+  },
+  {
+    key: 'decision' as const,
+    label: 'Décision',
+    description: 'Avis de l\'OE, plan correctif éventuel, décision finale FEEF',
+    bgColor: '#a5b4fc',
+    textColor: 'text-indigo-900',
+    detailLabels: {
+      PENDING_OE_OPINION: 'Avis OE',
+      PENDING_CORRECTIVE_PLAN: 'Plan correctif',
+      PENDING_CORRECTIVE_PLAN_VALIDATION: 'Validation plan',
+      PENDING_FEEF_DECISION: 'Décision FEEF',
+    } as Record<string, string>,
+  },
+  {
+    key: 'labellise' as const,
+    label: 'Labellisé',
+    description: 'Dossiers ayant obtenu le label FEEF',
+    bgColor: '#34d399',
+    textColor: 'text-emerald-900',
+    detailLabels: {
+      COMPLETED: 'Terminés',
+    } as Record<string, string>,
+  },
 ]
 
-const selectedAnnee = ref(
-  dossiersFinalisesParAn.length > 0
-    ? dossiersFinalisesParAn[dossiersFinalisesParAn.length - 1].annee
-    : 0
-)
-
-// Progress bar data from composable
-const dossierStats = computed(
-  () =>
-    data.value?.progressBarStats || {
-      depotDossier: 0,
-      validationFeef: 0,
-      planification: 0,
-      audit: 0,
-      finalisation: 0,
-    }
-)
+const progressBarStats = computed(() => data.value?.progressBarStats)
 
 const totalDossiers = computed(() => {
-  const stats = dossierStats.value
-  return (
-    stats.depotDossier +
-    stats.validationFeef +
-    stats.planification +
-    stats.audit +
-    stats.finalisation
-  )
+  if (!progressBarStats.value) return 0
+  return PHASE_CONFIG.reduce((sum, phase) => sum + (progressBarStats.value![phase.key]?.total || 0), 0)
 })
 
-// Calcul des pourcentages pour chaque étape
-const depotPct = computed(() =>
-  totalDossiers.value > 0
-    ? Math.round((dossierStats.value.depotDossier / totalDossiers.value) * 100)
-    : 0
-)
-const validationPct = computed(() =>
-  totalDossiers.value > 0
-    ? Math.round((dossierStats.value.validationFeef / totalDossiers.value) * 100)
-    : 0
-)
-const planificationPct = computed(() =>
-  totalDossiers.value > 0
-    ? Math.round((dossierStats.value.planification / totalDossiers.value) * 100)
-    : 0
-)
-const auditPct = computed(() =>
-  totalDossiers.value > 0 ? Math.round((dossierStats.value.audit / totalDossiers.value) * 100) : 0
-)
-const finalisationPct = computed(
-  () => 100 - depotPct.value - validationPct.value - planificationPct.value - auditPct.value
-)
-
-// Totaux par catégorie principale
-const totalAttente = computed(
-  () => dossierStats.value.depotDossier + dossierStats.value.validationFeef
-)
-const totalEnCours = computed(
-  () =>
-    dossierStats.value.planification + dossierStats.value.audit + dossierStats.value.finalisation
-)
+const phases = computed(() => {
+  let runningPct = 0
+  return PHASE_CONFIG.map((p, i) => {
+    const count = progressBarStats.value?.[p.key]?.total || 0
+    const detail = progressBarStats.value?.[p.key]?.detail || {}
+    let pct: number
+    if (i === PHASE_CONFIG.length - 1) {
+      pct = totalDossiers.value > 0 ? 100 - runningPct : 0
+    }
+    else {
+      pct = totalDossiers.value > 0 ? Math.round((count / totalDossiers.value) * 100) : 0
+      runningPct += pct
+    }
+    return { ...p, count, pct, detail }
+  })
+})
 
 const oeOptions = ref<SelectItem[]>([
   { label: 'Tous', value: 'all' },
@@ -407,86 +426,60 @@ const tabs = [
         État des dossiers ({{ totalDossiers }} dossiers)
       </h2>
 
-      <!-- Totaux par catégorie -->
-      <div class="flex justify-center gap-8 mb-4">
-        <div class="text-center">
-          <div class="text-2xl font-bold text-orange-600">{{ totalAttente }}</div>
-          <div class="text-sm text-gray-600">En attente</div>
-        </div>
-        <div class="text-center">
-          <div class="text-2xl font-bold text-blue-600">{{ totalEnCours }}</div>
-          <div class="text-sm text-gray-600">En cours</div>
-        </div>
+      <!-- Légende des 5 phases -->
+      <div class="flex justify-center gap-6 mb-4 flex-wrap">
+        <UTooltip
+          v-for="phase in phases"
+          :key="phase.key"
+          :text="phase.description"
+        >
+          <div class="flex items-center gap-1.5 cursor-help">
+            <span
+              class="inline-block w-3 h-3 rounded-full shrink-0"
+              :style="`background: ${phase.bgColor}`"
+            />
+            <span class="text-sm text-gray-600">{{ phase.label }}</span>
+            <span class="text-sm font-bold text-gray-900">{{ phase.count }}</span>
+          </div>
+        </UTooltip>
       </div>
 
       <!-- Barre de progression détaillée -->
       <div
         class="relative w-full h-8 bg-gray-100 rounded-full shadow-lg overflow-hidden flex text-xs font-medium"
       >
-        <!-- En attente - Dépôt dossier -->
-        <div
-          class="h-full flex items-center justify-center text-orange-900 transition-all duration-500 border-r border-white"
-          :style="`width: ${depotPct}%; background: #fed7aa`"
+        <UTooltip
+          v-for="(phase, i) in phases"
+          :key="phase.key"
+          class="h-full transition-all duration-500"
+          :style="`width: ${phase.pct}%`"
         >
-          <span
-            v-if="depotPct > 8"
-            class="w-full text-center px-1"
+          <div
+            class="h-full w-full flex items-center justify-center"
+            :class="[phase.textColor, i < phases.length - 1 ? 'border-r border-white' : '']"
+            :style="`background: ${phase.bgColor}`"
           >
-            Dépôt {{ dossierStats.depotDossier }}
-          </span>
-        </div>
-
-        <!-- En attente - Validation FEEF -->
-        <div
-          class="h-full flex items-center justify-center text-orange-900 transition-all duration-500 border-r-2 border-gray-300"
-          :style="`width: ${validationPct}%; background: #fdba74`"
-        >
-          <span
-            v-if="validationPct > 8"
-            class="w-full text-center px-1"
-          >
-            Validation {{ dossierStats.validationFeef }}
-          </span>
-        </div>
-
-        <!-- En cours - Planification -->
-        <div
-          class="h-full flex items-center justify-center text-blue-900 transition-all duration-500 border-r border-white"
-          :style="`width: ${planificationPct}%; background: #bfdbfe`"
-        >
-          <span
-            v-if="planificationPct > 8"
-            class="w-full text-center px-1"
-          >
-            Planif. {{ dossierStats.planification }}
-          </span>
-        </div>
-
-        <!-- En cours - Audit -->
-        <div
-          class="h-full flex items-center justify-center text-blue-900 transition-all duration-500 border-r border-white"
-          :style="`width: ${auditPct}%; background: #93c5fd`"
-        >
-          <span
-            v-if="auditPct > 8"
-            class="w-full text-center px-1"
-          >
-            Audit {{ dossierStats.audit }}
-          </span>
-        </div>
-
-        <!-- En cours - Finalisation -->
-        <div
-          class="h-full flex items-center justify-center text-blue-900 transition-all duration-500"
-          :style="`width: ${finalisationPct}%; background: #60a5fa`"
-        >
-          <span
-            v-if="finalisationPct > 8"
-            class="w-full text-center px-1"
-          >
-            Final. {{ dossierStats.finalisation }}
-          </span>
-        </div>
+            <span
+              v-if="phase.pct > 8"
+              class="w-full text-center px-1 truncate"
+            >
+              {{ phase.label }} {{ phase.count }}
+            </span>
+          </div>
+          <template #content>
+            <div class="text-xs p-1 min-w-32">
+              <div class="font-semibold mb-1">{{ phase.label }}</div>
+              <div
+                v-for="(count, key) in phase.detail"
+                :key="key"
+                class="flex justify-between gap-4"
+              >
+                <span>{{ phase.detailLabels[String(key)] || key }}</span>
+                <span class="font-bold">{{ count }}</span>
+              </div>
+            </div>
+          </template>
+        </UTooltip>
       </div>
     </div>
     <USeparator class="my-4" />

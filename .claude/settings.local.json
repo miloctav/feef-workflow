@@ -9,7 +9,9 @@
       "Bash(grep:*)",
       "Bash(npx nuxi typecheck:*)",
       "Bash(findstr:*)",
-      "Bash(Select-String \"notification\")"
+      "Bash(Select-String \"notification\")",
+      "Bash(powershell:*)",
+      "Bash(npm run db:generate:*)"
     ],
     "deny": [],
     "ask": []

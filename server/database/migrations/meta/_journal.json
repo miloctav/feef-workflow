@@ -351,6 +351,13 @@
       "when": 1770716037119,
       "tag": "0049_awesome_scream",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1771426199741,
+      "tag": "0050_magenta_vulcan",
+      "breakpoints": true
     }
   ]
 }

@@ -146,6 +146,8 @@ export const entities = pgTable('entities', {
   oeId: integer('oe_id').references(() => oes.id),
   accountManagerId: integer('account_manager_id').references(() => accounts.id),
   allowOeDocumentsAccess: boolean('allow_oe_documents_access').notNull().default(false),
+  // External CRM reference (internal use only, not displayed in UI)
+  crmId: varchar('crm_id', { length: 36 }).unique(),
   // Address and contact fields
   address: varchar('address', { length: 255 }),
   addressComplement: varchar('address_complement', { length: 255 }),
