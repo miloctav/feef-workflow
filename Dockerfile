@@ -77,6 +77,10 @@ COPY --from=build /app/server/database/schema.ts ./server/database/schema.ts
 COPY --from=build /app/server/database/index.ts ./server/database/index.ts
 COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
 
+# Copy seed scripts and data files
+COPY --from=build /app/server/database/seed.ts ./server/database/seed.ts
+COPY --from=build /app/server/database/seeds ./server/database/seeds
+
 # Note: Garage storage initialization is handled by the garage-init service in docker-compose.yml
 
 # Copy entrypoint script
