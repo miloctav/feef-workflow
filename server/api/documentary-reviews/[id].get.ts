@@ -2,6 +2,7 @@ import { db } from '~~/server/database'
 import { documentaryReviews } from '~~/server/database/schema'
 import { eq, and, isNull, desc } from 'drizzle-orm'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
+import { canAccessDocumentaryReviewCategory } from '#shared/types/enums'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -65,6 +66,14 @@ export default defineEventHandler(async (event) => {
     accessType: AccessType.READ,
     errorMessage: 'Vous n\'avez pas accès à ce document'
   })
+
+  // Vérifier l'accès à la catégorie du document
+  if (!canAccessDocumentaryReviewCategory(user.role, documentaryReview.category)) {
+    throw createError({
+      statusCode: 403,
+      message: 'Vous n\'avez pas accès à cette catégorie de document',
+    })
+  }
 
   return {
     data: documentaryReview,

@@ -4,6 +4,7 @@ import { accounts } from '~~/server/database/schema'
 import { db } from '~~/server/database'
 import { verifyPasswordResetToken } from '~~/server/utils/jwt'
 import { revokeAllTrustedDevices } from '~~/server/utils/trusted-devices'
+import { validatePassword } from '~~/server/utils/password-validation'
 
 interface ResetPasswordBody {
   token: string
@@ -22,10 +23,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (password.length < 8) {
+  const { valid, errors } = validatePassword(password)
+  if (!valid) {
     throw createError({
       statusCode: 400,
-      message: 'Le mot de passe doit contenir au moins 8 caractères'
+      message: errors.join(' | ')
     })
   }
 

@@ -149,6 +149,18 @@
                 <p class="text-sm text-gray-600 mt-0.5">
                   {{ item.documents.length }} document{{ item.documents.length > 1 ? 's' : '' }}
                 </p>
+                <div class="flex items-center gap-1 mt-1">
+                  <span class="text-xs text-gray-400">Accès :</span>
+                  <UBadge
+                    v-for="role in item.accessRoles"
+                    :key="role"
+                    size="xs"
+                    variant="soft"
+                    color="neutral"
+                  >
+                    {{ RoleLabels[role] }}
+                  </UBadge>
+                </div>
               </div>
             </div>
           </template>
@@ -311,6 +323,9 @@ import {
   DocumentaryReviewCategoryLabels,
   DocumentaryReviewCategoryIcons,
   DocumentaryReviewCategoryColors,
+  DocumentaryReviewCategoryAccess,
+  RoleLabels,
+  canAccessDocumentaryReviewCategory,
 } from '#shared/types/enums'
 import AddDocumentaryReviewModal from '~/components/modals/AddDocumentaryReviewModal.vue'
 
@@ -405,20 +420,25 @@ const documentsByCategory = computed(() => {
   return categories
 })
 
-// Préparer les items pour l'accordion
+// Préparer les items pour l'accordion (filtré par catégories accessibles au rôle)
 const accordionItems = computed(() => {
-  return Object.entries(documentsByCategory.value).map(([categoryKey, documents]) => ({
-    title:
-      DocumentaryReviewCategoryLabels[categoryKey as keyof typeof DocumentaryReviewCategoryLabels],
-    icon: DocumentaryReviewCategoryIcons[
-      categoryKey as keyof typeof DocumentaryReviewCategoryIcons
-    ],
-    iconColor: getCategoryIconColor(categoryKey),
-    badgeColor:
-      DocumentaryReviewCategoryColors[categoryKey as keyof typeof DocumentaryReviewCategoryColors],
-    value: categoryKey,
-    documents: documents,
-  }))
+  return Object.entries(documentsByCategory.value)
+    .filter(([categoryKey]) =>
+      !user.value?.role || canAccessDocumentaryReviewCategory(user.value.role, categoryKey as any)
+    )
+    .map(([categoryKey, documents]) => ({
+      title:
+        DocumentaryReviewCategoryLabels[categoryKey as keyof typeof DocumentaryReviewCategoryLabels],
+      icon: DocumentaryReviewCategoryIcons[
+        categoryKey as keyof typeof DocumentaryReviewCategoryIcons
+      ],
+      iconColor: getCategoryIconColor(categoryKey),
+      badgeColor:
+        DocumentaryReviewCategoryColors[categoryKey as keyof typeof DocumentaryReviewCategoryColors],
+      value: categoryKey,
+      documents: documents,
+      accessRoles: DocumentaryReviewCategoryAccess[categoryKey as keyof typeof DocumentaryReviewCategoryAccess],
+    }))
 })
 
 // Fonctions utilitaires

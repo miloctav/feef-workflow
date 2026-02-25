@@ -4,7 +4,7 @@ import { eq, and, isNull } from 'drizzle-orm'
 import { forUpdate } from '~~/server/utils/tracking'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
-import { DocumentaryReviewCategory } from '#shared/types/enums'
+import { DocumentaryReviewCategory, canAccessDocumentaryReviewCategory } from '#shared/types/enums'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -43,6 +43,14 @@ export default defineEventHandler(async (event) => {
     accessType: AccessType.WRITE,
     errorMessage: 'Vous n\'avez pas accès à ce document'
   })
+
+  // Vérifier l'accès à la catégorie actuelle du document
+  if (!canAccessDocumentaryReviewCategory(user.role, documentaryReview.category)) {
+    throw createError({
+      statusCode: 403,
+      message: 'Vous n\'avez pas accès à cette catégorie de document',
+    })
+  }
 
   // Récupérer le body
   const body = await readBody(event)
@@ -86,6 +94,13 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 400,
         message: `category doit être l'une des valeurs suivantes: ${validCategories.join(', ')}`,
+      })
+    }
+    // Vérifier l'accès à la nouvelle catégorie
+    if (!canAccessDocumentaryReviewCategory(user.role, body.category)) {
+      throw createError({
+        statusCode: 403,
+        message: 'Vous n\'avez pas accès à cette catégorie de document',
       })
     }
     updateData.category = body.category

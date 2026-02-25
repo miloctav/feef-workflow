@@ -173,6 +173,7 @@ import {
   DocumentaryReviewCategoryIcons,
   DocumentaryReviewCategoryColors,
   getDocumentaryReviewCategoryItems,
+  canAccessDocumentaryReviewCategory,
 } from '#shared/types/enums'
 
 interface Props {
@@ -193,6 +194,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { createDocumentaryReview, createLoading, fetchDocumentaryReviews } = useDocumentaryReviews()
 const { fetchAllDocumentsType } = useDocumentsType()
+const { user } = useAuth()
 
 // Mode de création : 'manual' ou 'template'
 const creationMode = ref<'manual' | 'template'>('manual')
@@ -210,8 +212,12 @@ const form = reactive<{
   documentTypeId: null,
 })
 
-// Options pour les catégories (utiliser la fonction centralisée)
-const categoryOptions = getDocumentaryReviewCategoryItems()
+// Options pour les catégories (filtrées selon le rôle de l'utilisateur)
+const categoryOptions = computed(() => {
+  const allItems = getDocumentaryReviewCategoryItems()
+  if (!user.value?.role) return allItems
+  return allItems.filter(item => canAccessDocumentaryReviewCategory(user.value!.role, item.value))
+})
 
 // Charger les types de documents disponibles
 const documentTypesLoading = ref(false)
@@ -238,7 +244,12 @@ onMounted(async () => {
   const filters = props.category ? { category: props.category } : undefined
   const result = await fetchAllDocumentsType(filters)
   if (result.success) {
-    documentTypes.value = result.data
+    // Filtrer les templates selon les catégories accessibles au rôle de l'utilisateur
+    documentTypes.value = user.value?.role
+      ? result.data.filter((dt: { category: string }) =>
+          canAccessDocumentaryReviewCategory(user.value!.role, dt.category as any)
+        )
+      : result.data
   }
   documentTypesLoading.value = false
 })

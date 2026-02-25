@@ -4,7 +4,7 @@ import { eq, and, isNull, isNotNull, desc } from 'drizzle-orm'
 import { getSignedUrl } from '~~/server/services/garage'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 import { Role } from '#shared/types/roles'
-import { DocumentaryReviewCategoryLabels } from '#shared/types/enums'
+import { DocumentaryReviewCategoryLabels, canAccessDocumentaryReviewCategory } from '#shared/types/enums'
 import archiver from 'archiver'
 
 export default defineEventHandler(async (event) => {
@@ -69,9 +69,10 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  // Filtrer pour garder uniquement les documents qui ont au moins une version
+  // Filtrer pour garder uniquement les documents de catégories accessibles et avec au moins une version
   const documentsWithVersions = documentaryReviewsList.filter(
-    doc => doc.documentVersions && doc.documentVersions.length > 0
+    doc => canAccessDocumentaryReviewCategory(user.role, doc.category) &&
+           doc.documentVersions && doc.documentVersions.length > 0
   )
 
   if (documentsWithVersions.length === 0) {

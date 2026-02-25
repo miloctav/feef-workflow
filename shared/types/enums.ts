@@ -1,6 +1,8 @@
 /**
  * Constantes d'enums partagées entre le front et le back
  */
+import { Role } from './roles'
+import type { RoleType } from './roles'
 
 /**
  * Types d'entités
@@ -385,6 +387,42 @@ export function getDocumentaryReviewCategoryItems(): Array<{ label: string; valu
     label: DocumentaryReviewCategoryLabels[value as DocumentaryReviewCategoryType],
     value: value as DocumentaryReviewCategoryType,
   }))
+}
+
+/**
+ * Matrice d'accès : catégorie de revue documentaire → rôles autorisés
+ */
+export const DocumentaryReviewCategoryAccess: Record<DocumentaryReviewCategoryType, RoleType[]> = {
+  [DocumentaryReviewCategory.CANDIDACY]: [Role.FEEF, Role.OE, Role.AUDITOR, Role.ENTITY],
+  [DocumentaryReviewCategory.AUDIT]: [Role.OE, Role.AUDITOR, Role.ENTITY],
+  [DocumentaryReviewCategory.OTHER]: [Role.OE, Role.AUDITOR, Role.ENTITY],
+  [DocumentaryReviewCategory.CORRECTIVE_ACTION_PROOF]: [Role.OE, Role.AUDITOR, Role.ENTITY],
+}
+
+/**
+ * Labels français pour les rôles (pour affichage frontend)
+ */
+export const RoleLabels: Record<RoleType, string> = {
+  [Role.FEEF]: 'FEEF',
+  [Role.OE]: 'OE',
+  [Role.AUDITOR]: 'Auditeur',
+  [Role.ENTITY]: 'Entité',
+}
+
+/**
+ * Vérifier si un rôle a accès à une catégorie de revue documentaire
+ */
+export function canAccessDocumentaryReviewCategory(role: RoleType, category: DocumentaryReviewCategoryType): boolean {
+  return DocumentaryReviewCategoryAccess[category]?.includes(role) ?? false
+}
+
+/**
+ * Obtenir les catégories accessibles pour un rôle donné
+ */
+export function getAccessibleDocumentaryReviewCategories(role: RoleType): DocumentaryReviewCategoryType[] {
+  return Object.entries(DocumentaryReviewCategoryAccess)
+    .filter(([_, roles]) => (roles as RoleType[]).includes(role))
+    .map(([category]) => category as DocumentaryReviewCategoryType)
 }
 
 /**

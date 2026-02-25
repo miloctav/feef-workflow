@@ -3,7 +3,7 @@ import { documentaryReviews, documentsType, entities } from '~~/server/database/
 import { eq, and, isNull } from 'drizzle-orm'
 import { forInsert } from '~~/server/utils/tracking'
 import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
-import { DocumentaryReviewCategory } from '#shared/types/enums'
+import { DocumentaryReviewCategory, canAccessDocumentaryReviewCategory } from '#shared/types/enums'
 
 export default defineEventHandler(async (event) => {
   // Authentification et vérification du rôle FEEF
@@ -96,6 +96,14 @@ export default defineEventHandler(async (event) => {
       description: body.description,
       category: body.category,
     }
+  }
+
+  // Vérifier l'accès à la catégorie selon le rôle
+  if (!canAccessDocumentaryReviewCategory(user.role, documentData.category)) {
+    throw createError({
+      statusCode: 403,
+      message: 'Vous n\'avez pas accès à cette catégorie de document',
+    })
   }
 
   // Créer le documentary review

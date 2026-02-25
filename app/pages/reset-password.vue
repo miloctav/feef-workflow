@@ -14,6 +14,25 @@ const loading = ref(false)
 const error = ref('')
 const success = ref(false)
 
+const PASSWORD_MIN_LENGTH = 12
+
+const passwordRules = [
+  { id: 'length', label: `Au moins ${PASSWORD_MIN_LENGTH} caractères`, test: (p: string) => p.length >= PASSWORD_MIN_LENGTH },
+  { id: 'uppercase', label: 'Au moins 1 lettre majuscule', test: (p: string) => /[A-Z]/.test(p) },
+  { id: 'lowercase', label: 'Au moins 1 lettre minuscule', test: (p: string) => /[a-z]/.test(p) },
+  { id: 'digit', label: 'Au moins 1 chiffre', test: (p: string) => /[0-9]/.test(p) },
+  { id: 'special', label: 'Au moins 1 caractère spécial (ex: !@#$%)', test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+]
+
+const ruleResults = computed(() =>
+  passwordRules.map(rule => ({ ...rule, passed: rule.test(password.value) }))
+)
+
+const isPasswordValid = computed(() => ruleResults.value.every(r => r.passed))
+
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+
 // Vérifier qu'un token est présent dans l'URL
 onMounted(() => {
   if (!token.value) {
@@ -30,8 +49,8 @@ async function handleSubmit() {
     return
   }
 
-  if (password.value.length < 8) {
-    error.value = 'Le mot de passe doit contenir au moins 8 caractères'
+  if (!isPasswordValid.value) {
+    error.value = 'Le mot de passe ne respecte pas les critères de sécurité'
     return
   }
 
@@ -109,12 +128,23 @@ async function handleSubmit() {
             >
               <UInput
                 v-model="password"
-                type="password"
+                :type="showPassword ? 'text' : 'password'"
                 placeholder="Entrez votre nouveau mot de passe"
                 :disabled="loading || !token"
                 size="xl"
                 class="w-full"
-              />
+              >
+                <template #trailing>
+                  <UButton
+                    color="neutral"
+                    variant="link"
+                    :icon="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                    :aria-label="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+                    :padded="false"
+                    @click="showPassword = !showPassword"
+                  />
+                </template>
+              </UInput>
             </UFormField>
 
             <UFormField
@@ -124,21 +154,43 @@ async function handleSubmit() {
             >
               <UInput
                 v-model="confirmPassword"
-                type="password"
+                :type="showConfirmPassword ? 'text' : 'password'"
                 placeholder="Confirmez votre nouveau mot de passe"
                 :disabled="loading || !token"
                 size="xl"
                 class="w-full"
-              />
+              >
+                <template #trailing>
+                  <UButton
+                    color="neutral"
+                    variant="link"
+                    :icon="showConfirmPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                    :aria-label="showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+                    :padded="false"
+                    @click="showConfirmPassword = !showConfirmPassword"
+                  />
+                </template>
+              </UInput>
             </UFormField>
           </div>
 
-          <div class="text-xs text-gray-500 space-y-1 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+          <div class="text-xs bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-2">
             <p class="font-medium text-gray-700 dark:text-gray-300">
               Le mot de passe doit contenir :
             </p>
-            <ul class="list-disc list-inside pl-2">
-              <li>Au moins 8 caractères</li>
+            <ul class="space-y-1">
+              <li
+                v-for="rule in ruleResults"
+                :key="rule.id"
+                class="flex items-center gap-2"
+                :class="rule.passed ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'"
+              >
+                <UIcon
+                  :name="rule.passed ? 'i-lucide-check-circle' : 'i-lucide-circle'"
+                  class="w-3.5 h-3.5 shrink-0"
+                />
+                {{ rule.label }}
+              </li>
             </ul>
           </div>
 
@@ -157,7 +209,7 @@ async function handleSubmit() {
             block
             size="lg"
             :loading="loading"
-            :disabled="!password || !confirmPassword || !token"
+            :disabled="!password || !confirmPassword || !token || !isPasswordValid"
           >
             Créer mon mot de passe
           </UButton>
