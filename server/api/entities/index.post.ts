@@ -351,8 +351,8 @@ export default defineEventHandler(async (event) => {
           role: accountEntityRole as any
         });
 
-        // 4. Envoyer email d'invitation (sauf en DEV)
-        if (!isDevMode) {
+        // 4. Envoyer email d'invitation (sauf en DEV sans override)
+        if (!isDevMode || config.devMailOverride) {
           const { resetUrl } = await generatePasswordResetUrlAndToken(createdAccount.id, event)
 
           await sendAccountCreationEmail({
@@ -365,7 +365,7 @@ export default defineEventHandler(async (event) => {
           })
           console.log('[Entities API] Email d\'invitation envoyé');
         } else {
-          console.log('[Entities API] Mode DEV: pas d\'email envoyé. MDP: password');
+          console.log('[Entities API] Mode DEV sans override: pas d\'email envoyé. MDP: password');
         }
       }
 

@@ -339,9 +339,9 @@ export default defineEventHandler(async (event) => {
 
   console.log('[Accounts API] Nouveau compte créé avec ID', newAccount.id)
 
-  // En mode DEV, on ne génère pas de token et on n'envoie pas d'email
+  // En mode DEV sans override, on ne génère pas de token et on n'envoie pas d'email
   let emailResult = { success: false }
-  if (!isDevMode) {
+  if (!isDevMode || config.devMailOverride) {
     // Générer le token et l'URL de réinitialisation via la fonction utilitaire partagée
     const { resetUrl } = await generatePasswordResetUrlAndToken(newAccount.id, event)
 
@@ -362,7 +362,7 @@ export default defineEventHandler(async (event) => {
       // L'admin pourra renvoyer l'email manuellement via l'endpoint resend-email
     }
   } else {
-    console.log('[Accounts API] Mode DEV activé - Pas d\'envoi d\'email. Mot de passe par défaut: "password"')
+    console.log('[Accounts API] Mode DEV sans override - Pas d\'envoi d\'email. Mot de passe par défaut: "password"')
   }
 
   // Retourner le compte créé (sans le mot de passe)

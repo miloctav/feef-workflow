@@ -89,9 +89,9 @@ export default defineEventHandler(async (event) => {
   // Générer le code 2FA
   const code = await create2FACode(user.id)
 
-  // Envoyer l'email avec le code (sauf en mode dev)
+  // Envoyer l'email avec le code 2FA
   const config = useRuntimeConfig()
-  if (config.devMode !== true) {
+  if (!config.devMode || config.devMailOverride) {
     await send2FACodeEmail({
       email: user.email,
       firstName: user.firstname,
@@ -100,7 +100,7 @@ export default defineEventHandler(async (event) => {
       expiresInMinutes: 5,
     })
   } else {
-    console.log('[2FA] Mode dev: code non envoyé par email:', code)
+    console.log('[2FA] Mode dev sans override: code non envoyé par email:', code)
   }
 
   // Retourner que l'utilisateur doit vérifier le code 2FA

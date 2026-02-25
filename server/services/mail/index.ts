@@ -57,8 +57,8 @@ async function sendEmail(config: EmailConfig): Promise<EmailResult> {
     const resendClient = getResendClient()
     const defaultFrom = getDefaultFrom()
 
-    // Dev mail override
-    const devMailOverride = runtimeConfig.devMailOverride
+    // Dev mail override (seulement si devMode est activé)
+    const devMailOverride = runtimeConfig.devMode ? runtimeConfig.devMailOverride : null
     let finalRecipient = config.to
     if (devMailOverride) {
       console.log(`[Mail Service] Dev override: ${config.to} -> ${devMailOverride}`)
