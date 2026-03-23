@@ -71,7 +71,8 @@ export type EntityFieldKey =
   | 'rseLabelOther'
   | 'fairtradeLabelPresent'
   | 'fairtradeLabelOther'
-  | 'anniversaryDate'
+  | 'referenceDate'
+  | 'firstLabelingDate'
 
 // Clés des groupes de champs
 export type EntityFieldGroupKey =
@@ -316,8 +317,9 @@ export const entityFieldsConfig: EntityFieldDefinition[] = [
   { key: 'fairtradeLabelPresent', label: 'Labellisation équitable en place', type: 'string', required: false, group: 'bio_activities' },
   { key: 'fairtradeLabelOther', label: 'Autre labellisation équitable', type: 'text', required: false, group: 'bio_activities' },
 
-  // Champ standalone : date anniversaire de labellisation
-  { key: 'anniversaryDate', label: 'Date anniversaire de labellisation', type: 'date', required: false, group: undefined, editableBy: ['FEEF'] },
+  // Champs standalone : dates de labellisation
+  { key: 'referenceDate', label: 'Date de référence', type: 'date', required: false, group: undefined, editableBy: ['FEEF'] },
+  { key: 'firstLabelingDate', label: 'Date de première labellisation', type: 'date', required: false, group: undefined, editableBy: ['FEEF'] },
 ]
 
 // Helper pour récupérer la définition d'un champ

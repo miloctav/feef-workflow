@@ -92,41 +92,63 @@ const openFieldGroupEditor = (groupKey: EntityFieldGroupKey) => {
   isFieldGroupEditorOpen.value = true
 }
 
-// État pour le slideover d'édition de la date anniversaire
-const isAnniversaryEditorOpen = ref(false)
+// État pour les slidesovers d'édition des dates de labellisation
+const isReferenceDateEditorOpen = ref(false)
+const isFirstLabelingDateEditorOpen = ref(false)
 
-const anniversaryField = computed(() => {
-  return displayEntity.value?.fields?.find(f => f.key === 'anniversaryDate') || null
+const referenceDateField = computed(() => {
+  return displayEntity.value?.fields?.find(f => f.key === 'referenceDate') || null
 })
 
-const anniversaryDateValue = computed(() => {
-  return anniversaryField.value?.value as Date | string | null ?? null
+const referenceDateValue = computed(() => {
+  return referenceDateField.value?.value as Date | string | null ?? null
 })
 
-const formattedAnniversaryDate = computed(() => {
-  if (!anniversaryDateValue.value) return ''
-  return new Date(anniversaryDateValue.value).toLocaleDateString('fr-FR', {
+const formattedReferenceDate = computed(() => {
+  if (!referenceDateValue.value) return ''
+  return new Date(referenceDateValue.value).toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   })
 })
 
-const anniversaryFieldForEditor = computed(() => {
-  if (anniversaryField.value) {
-    return [anniversaryField.value]
+const firstLabelingDateField = computed(() => {
+  return displayEntity.value?.fields?.find(f => f.key === 'firstLabelingDate') || null
+})
+
+const formattedFirstLabelingDate = computed(() => {
+  if (!firstLabelingDateField.value?.value) return ''
+  return new Date(firstLabelingDateField.value.value as string).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+})
+
+const referenceDateFieldForEditor = computed(() => {
+  if (referenceDateField.value) {
+    return [referenceDateField.value]
   }
   return [{
-    key: 'anniversaryDate',
-    label: 'Date anniversaire de labellisation',
+    key: 'referenceDate',
+    label: 'Date de référence',
     type: 'date' as const,
     value: null,
   }]
 })
 
-const openAnniversaryEditor = () => {
-  isAnniversaryEditorOpen.value = true
-}
+const firstLabelingDateFieldForEditor = computed(() => {
+  if (firstLabelingDateField.value) {
+    return [firstLabelingDateField.value]
+  }
+  return [{
+    key: 'firstLabelingDate',
+    label: 'Date de première labellisation',
+    type: 'date' as const,
+    value: null,
+  }]
+})
 
 const handleSubmitCaseAndClose = async (close: () => void) => {
   if (!displayEntity.value) return
@@ -525,7 +547,7 @@ const hasMasterEntityInfo = computed(() => {
             </div>
           </div>
 
-          <!-- Section Sites + Anniversaire -->
+          <!-- Section Sites + Dates de labellisation -->
           <div class="pt-4 border-t border-gray-200">
             <div class="grid grid-cols-2 gap-4">
               <!-- Nombre de sites -->
@@ -552,12 +574,12 @@ const hasMasterEntityInfo = computed(() => {
                 />
               </div>
 
-              <!-- Date anniversaire de labellisation (MASTER uniquement) -->
+              <!-- Date de référence (MASTER uniquement) -->
               <div
                 v-if="displayEntity?.mode === EntityMode.MASTER"
                 class="flex items-center gap-3 p-3 rounded-lg transition-colors"
                 :class="{ 'cursor-pointer hover:bg-gray-50': user?.role === Role.FEEF }"
-                @click="user?.role === Role.FEEF ? openAnniversaryEditor() : undefined"
+                @click="user?.role === Role.FEEF ? isReferenceDateEditorOpen = true : undefined"
               >
                 <div class="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg">
                   <UIcon
@@ -566,12 +588,47 @@ const hasMasterEntityInfo = computed(() => {
                   />
                 </div>
                 <div class="flex-1">
-                  <div class="text-sm font-medium text-gray-600">Anniversaire de labellisation</div>
+                  <div class="text-sm font-medium text-gray-600">Date de référence</div>
                   <div
-                    v-if="anniversaryDateValue"
+                    v-if="referenceDateValue"
                     class="text-lg font-bold text-gray-900"
                   >
-                    {{ formattedAnniversaryDate }}
+                    {{ formattedReferenceDate }}
+                  </div>
+                  <div
+                    v-else
+                    class="text-sm text-gray-400 italic"
+                  >
+                    Non défini
+                  </div>
+                </div>
+                <UIcon
+                  v-if="user?.role === Role.FEEF"
+                  name="i-lucide-pencil"
+                  class="w-4 h-4 text-gray-400"
+                />
+              </div>
+
+              <!-- Date de première labellisation (MASTER uniquement) -->
+              <div
+                v-if="displayEntity?.mode === EntityMode.MASTER"
+                class="flex items-center gap-3 p-3 rounded-lg transition-colors"
+                :class="{ 'cursor-pointer hover:bg-gray-50': user?.role === Role.FEEF }"
+                @click="user?.role === Role.FEEF ? isFirstLabelingDateEditorOpen = true : undefined"
+              >
+                <div class="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg">
+                  <UIcon
+                    name="i-lucide-award"
+                    class="w-5 h-5 text-primary"
+                  />
+                </div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-gray-600">Date de première labellisation</div>
+                  <div
+                    v-if="firstLabelingDateField?.value"
+                    class="text-lg font-bold text-gray-900"
+                  >
+                    {{ formattedFirstLabelingDate }}
                   </div>
                   <div
                     v-else
@@ -1737,14 +1794,25 @@ const hasMasterEntityInfo = computed(() => {
     @updated="handleRefreshEntity"
   />
 
-  <!-- Slideover d'édition de la date anniversaire -->
+  <!-- Slideover d'édition de la date de référence -->
   <EntityFieldEditor
     v-if="displayEntity"
     :entity-id="displayEntity.id"
-    :fields="anniversaryFieldForEditor"
-    initial-field-key="anniversaryDate"
-    :open="isAnniversaryEditorOpen"
-    @update:open="isAnniversaryEditorOpen = $event"
+    :fields="referenceDateFieldForEditor"
+    initial-field-key="referenceDate"
+    :open="isReferenceDateEditorOpen"
+    @update:open="isReferenceDateEditorOpen = $event"
+    @updated="handleRefreshEntity"
+  />
+
+  <!-- Slideover d'édition de la date de première labellisation -->
+  <EntityFieldEditor
+    v-if="displayEntity && user?.role === Role.FEEF"
+    :entity-id="displayEntity.id"
+    :fields="firstLabelingDateFieldForEditor"
+    initial-field-key="firstLabelingDate"
+    :open="isFirstLabelingDateEditorOpen"
+    @update:open="isFirstLabelingDateEditorOpen = $event"
     @updated="handleRefreshEntity"
   />
 </template>

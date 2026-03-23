@@ -1,11 +1,11 @@
 <script setup lang="ts">
 interface Props {
-  anniversaryDate?: Date | string | null
+  referenceDate?: Date | string | null
   editable?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  anniversaryDate: null,
+  referenceDate: null,
   editable: false,
 })
 
@@ -13,11 +13,11 @@ const emit = defineEmits<{
   edit: []
 }>()
 
-const hasDate = computed(() => props.anniversaryDate !== null && props.anniversaryDate !== undefined)
+const hasDate = computed(() => props.referenceDate !== null && props.referenceDate !== undefined)
 
 const parsedDate = computed(() => {
   if (!hasDate.value) return null
-  return new Date(props.anniversaryDate!)
+  return new Date(props.referenceDate!)
 })
 
 const formattedDate = computed(() => {
@@ -36,7 +36,7 @@ const daysUntil = computed(() => {
   const nextAnniversary = new Date(parsedDate.value)
   nextAnniversary.setFullYear(today.getFullYear())
 
-  // Si l'anniversaire est déjà passé cette année, prendre l'année prochaine
+  // Si la date de cette année est déjà passée, prendre l'année prochaine
   if (nextAnniversary < today) {
     nextAnniversary.setFullYear(today.getFullYear() + 1)
   }
@@ -54,7 +54,7 @@ const daysUntil = computed(() => {
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <UIcon name="i-lucide-calendar-heart" class="w-5 h-5 text-primary" />
-          <h3 class="font-semibold text-gray-900">Anniversaire de labellisation</h3>
+          <h3 class="font-semibold text-gray-900">Date de référence</h3>
         </div>
         <UButton
           v-if="editable"
@@ -80,7 +80,7 @@ const daysUntil = computed(() => {
     <!-- Pas de date -->
     <div v-else class="text-center py-4">
       <UIcon name="i-lucide-calendar-x" class="w-8 h-8 mx-auto mb-2 text-gray-400" />
-      <p class="text-sm text-gray-500">Date d'anniversaire non définie</p>
+      <p class="text-sm text-gray-500">Date de référence non définie</p>
     </div>
   </UCard>
 </template>

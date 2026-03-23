@@ -15,8 +15,8 @@ const DAYS_BEFORE_SUBMIT_CASE = 120 // Chemin A: INITIAL or RENEWAL
 const DAYS_BEFORE_MONITORING = 45 // Chemin B: MONITORING
 
 /**
- * Calcule la prochaine occurrence de la date anniversaire
- * Si la date anniversaire de cette année est déjà passée, on prend l'année suivante
+ * Calcule la prochaine occurrence de la date de référence
+ * Si la date de référence de cette année est déjà passée, on prend l'année suivante
  */
 function getNextAnniversaryDate(anniversaryDate: Date, today: Date): Date {
   const next = new Date(anniversaryDate)
@@ -94,11 +94,11 @@ export default defineTask({
       // Step 2: Process each entity
       logger.step('Process entities for anniversary')
       for (const entity of masterEntities) {
-        // 2a. Fetch anniversaryDate
-        const rawAnniversaryDate = await getEntityFieldValue(entity.id, 'anniversaryDate')
+        // 2a. Fetch referenceDate
+        const rawAnniversaryDate = await getEntityFieldValue(entity.id, 'referenceDate')
 
         if (!rawAnniversaryDate) {
-          entitiesSkipped.push({ entityId: entity.id, reason: 'No anniversaryDate' })
+          entitiesSkipped.push({ entityId: entity.id, reason: 'No referenceDate' })
           continue
         }
 
