@@ -136,6 +136,22 @@ export default defineEventHandler(async (event) => {
     const caseSubmissionWhereConditions = buildCaseSubmissionWhereConditions()
     const contractProgressWhereConditions = buildContractWhereConditions()
 
+    // Subquery: latest audit per entity (by createdAt DESC), excluding terminal refusals
+    const latestAuditPerEntity = db
+        .select({
+            status: auditsTable.status,
+            rn: sql<number>`ROW_NUMBER() OVER (PARTITION BY ${auditsTable.entityId} ORDER BY ${auditsTable.createdAt} DESC)`.as('rn'),
+        })
+        .from(auditsTable)
+        .where(
+            and(
+                ...(auditWhereConditions.length > 0 ? auditWhereConditions : []),
+                ne(auditsTable.status, 'REFUSED_BY_OE'),
+                ne(auditsTable.status, 'REFUSED_PLAN'),
+            ),
+        )
+        .as('latest_audit_per_entity')
+
     const [
         entityCountResult,
         auditGapResult,
@@ -220,84 +236,43 @@ export default defineEventHandler(async (event) => {
             .orderBy(sql`TO_CHAR(${auditsTable.plannedDate}, 'YYYY-MM')`),
 
         // 5. Labeled Entities by Year - Last 5 years
-        // Using events table instead of feefDecisionAt field
         db
             .select({
-                year: sql<number>`
-                    EXTRACT(YEAR FROM (
-                        SELECT e.performed_at FROM ${eventsTable} e
-                        WHERE e.audit_id = ${auditsTable.id}
-                          AND e.type = 'AUDIT_FEEF_DECISION_ACCEPTED'
-                        ORDER BY e.performed_at DESC
-                        LIMIT 1
-                    ))::int
-                `,
+                year: sql<number>`EXTRACT(YEAR FROM ${eventsTable.performedAt})::int`,
                 type: auditsTable.type,
                 count: sql<number>`COUNT(*)::int`,
             })
             .from(auditsTable)
+            .innerJoin(
+                eventsTable,
+                and(
+                    eq(eventsTable.auditId, auditsTable.id),
+                    eq(eventsTable.type, 'AUDIT_FEEF_DECISION_ACCEPTED'),
+                ),
+            )
             .where(
                 and(
                     ...(auditWhereConditions.length > 0 ? auditWhereConditions : []),
                     eq(auditsTable.status, 'COMPLETED'),
                     eq(auditsTable.feefDecision, 'ACCEPTED'),
-                    // Check that an ACCEPTED decision event exists
-                    sql`EXISTS (
-                        SELECT 1 FROM ${eventsTable} e
-                        WHERE e.audit_id = ${auditsTable.id}
-                          AND e.type = 'AUDIT_FEEF_DECISION_ACCEPTED'
-                    )`,
-                    // Last 5 years
-                    sql`
-                        EXTRACT(YEAR FROM (
-                            SELECT e.performed_at FROM ${eventsTable} e
-                            WHERE e.audit_id = ${auditsTable.id}
-                              AND e.type = 'AUDIT_FEEF_DECISION_ACCEPTED'
-                            ORDER BY e.performed_at DESC
-                            LIMIT 1
-                        )) >= EXTRACT(YEAR FROM CURRENT_DATE) - 4
-                    `,
+                    sql`EXTRACT(YEAR FROM ${eventsTable.performedAt}) >= EXTRACT(YEAR FROM CURRENT_DATE) - 4`,
                 ),
             )
             .groupBy(
-                sql`
-                    EXTRACT(YEAR FROM (
-                        SELECT e.performed_at FROM ${eventsTable} e
-                        WHERE e.audit_id = ${auditsTable.id}
-                          AND e.type = 'AUDIT_FEEF_DECISION_ACCEPTED'
-                        ORDER BY e.performed_at DESC
-                        LIMIT 1
-                    ))
-                `,
-                auditsTable.type
+                sql`EXTRACT(YEAR FROM ${eventsTable.performedAt})`,
+                auditsTable.type,
             )
-            .orderBy(
-                sql`
-                    EXTRACT(YEAR FROM (
-                        SELECT e.performed_at FROM ${eventsTable} e
-                        WHERE e.audit_id = ${auditsTable.id}
-                          AND e.type = 'AUDIT_FEEF_DECISION_ACCEPTED'
-                        ORDER BY e.performed_at DESC
-                        LIMIT 1
-                    ))
-                `
-            ),
+            .orderBy(sql`EXTRACT(YEAR FROM ${eventsTable.performedAt})`),
 
-        // 6a. Progress Bar Stats - Count audits by status (excluding error terminals)
+        // 6a. Progress Bar Stats - Latest audit per entity, count by status
         db
             .select({
-                status: auditsTable.status,
+                status: latestAuditPerEntity.status,
                 count: sql<number>`COUNT(*)::int`,
             })
-            .from(auditsTable)
-            .where(
-                and(
-                    ...(auditWhereConditions.length > 0 ? auditWhereConditions : []),
-                    ne(auditsTable.status, 'REFUSED_BY_OE'),
-                    ne(auditsTable.status, 'REFUSED_PLAN'),
-                ),
-            )
-            .groupBy(auditsTable.status),
+            .from(latestAuditPerEntity)
+            .where(eq(latestAuditPerEntity.rn, 1))
+            .groupBy(latestAuditPerEntity.status),
 
         // 6b. Candidature - Count distinct entities with ENTITY_SUBMIT_CASE action pending
         db
