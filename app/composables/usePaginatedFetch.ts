@@ -1,7 +1,6 @@
 import type {
   PaginatedResponse,
   PaginationState,
-  PaginationParams,
   PaginatedFetchOptions,
 } from '~~/app/types/pagination'
 
@@ -34,10 +33,9 @@ export function usePaginatedFetch<T>(
   options: PaginatedFetchOptions = {}
 ) {
   const {
-    key = url,
     defaultLimit = 25,
     initialParams = {},
-    immediate = false, // Désactivé par défaut pour éviter les fetch inutiles et race conditions
+    immediate = false,
     watch: enableWatch = true,
   } = options
 
@@ -52,7 +50,12 @@ export function usePaginatedFetch<T>(
   const { page: _p, limit: _l, search: _s, sort: _so, ...initialFilters } = initialParams
   filters.value = initialFilters
 
-  // Construire les query params pour useFetch
+  // État de la requête
+  const response = ref<PaginatedResponse<T> | null>(null)
+  const status = ref<'idle' | 'pending' | 'success' | 'error'>('idle')
+  const error = ref<any>(null)
+
+  // Construire les query params
   const queryParams = computed(() => {
     const params: Record<string, any> = {
       page: page.value,
@@ -76,28 +79,36 @@ export function usePaginatedFetch<T>(
     return params
   })
 
-  // Utiliser useLazyFetch avec l'option query
-  const {
-    data: response,
-    status,
-    error,
-    refresh,
-    execute,
-  } = useLazyFetch<PaginatedResponse<T>>(url, {
-    key: () => unref(key), // Clé dynamique pour gérer les refs/computed
-    query: queryParams,
-    immediate,
-    server: true,
-    lazy: true,
-    watch: false, // On gère le watch manuellement ci-dessous si enableWatch est true
-  })
+  // Fonction de fetch directe
+  const execute = async () => {
+    status.value = 'pending'
+    error.value = null
+
+    try {
+      const result = await $fetch<PaginatedResponse<T>>(url, {
+        query: queryParams.value,
+      })
+      response.value = result
+      status.value = 'success'
+    } catch (e: any) {
+      error.value = e
+      status.value = 'error'
+    }
+  }
+
+  // Alias pour compatibilité
+  const refresh = execute
 
   // Watch manuel sur les paramètres pour déclencher le refetch
   if (enableWatch) {
     watch([page, limit, search, sort, filters], () => {
-      console.log('[usePaginatedFetch] Watcher triggered. Refreshing...', { query: queryParams.value })
       execute()
     })
+  }
+
+  // Fetch immédiat si demandé
+  if (immediate) {
+    execute()
   }
 
   // Extraire les données de la réponse
@@ -142,23 +153,22 @@ export function usePaginatedFetch<T>(
 
   const setSearch = (searchTerm: string) => {
     search.value = searchTerm
-    page.value = 1 // Réinitialiser à la première page lors d'une recherche
+    page.value = 1
   }
 
   const setSort = (sortValue: string) => {
-    console.log('[usePaginatedFetch] Setting sort to:', sortValue)
     sort.value = sortValue
-    page.value = 1 // Réinitialiser à la première page lors d'un tri
+    page.value = 1
   }
 
   const setFilters = (newFilters: Record<string, any>) => {
     filters.value = { ...newFilters }
-    page.value = 1 // Réinitialiser à la première page lors d'un filtrage
+    page.value = 1
   }
 
   const setLimit = (newLimit: number) => {
     limit.value = newLimit
-    page.value = 1 // Réinitialiser à la première page lors d'un changement de limite
+    page.value = 1
   }
 
   const reset = () => {

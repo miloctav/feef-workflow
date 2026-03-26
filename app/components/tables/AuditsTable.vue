@@ -171,9 +171,7 @@ const loadAuditors = async () => {
 onMounted(() => {
   // Toujours forcer le fetch si des filtres URL sont présents (le cache peut contenir des données d'un autre filtre)
   // Sinon ne charger que si pas déjà chargé (ex: EntityPage a déjà chargé les audits)
-  if (initialFilters || audits.value.length === 0) {
-    fetchAudits()
-  }
+  fetchAudits()
 
   if (props.hasFilters) {
     loadOEs()
