@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full space-y-4">
+  <div class="w-full flex flex-col flex-1 min-h-0">
     <!-- Table paginée -->
     <PaginatedTable
       :has-filters="hasFilters && showFiltersCard"

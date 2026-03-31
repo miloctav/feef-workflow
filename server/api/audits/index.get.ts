@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { audits as auditsTable, entities } from '~~/server/database/schema'
 import {
@@ -71,9 +71,19 @@ export default defineEventHandler(async (event) => {
   // Ajouter les filtres spécifiques par rôle
   if (user.role === Role.OE) {
     // Cas spécial : audits en appel d'offre (PENDING_OE_CHOICE sans OE assigné)
-    if (query.status === 'PENDING_OE_CHOICE') {
+    const statusRaw = typeof query.status === 'string' ? query.status : ''
+    const includesPendingOeChoice = statusRaw.split(',').includes('PENDING_OE_CHOICE')
+
+    if (includesPendingOeChoice && statusRaw !== 'PENDING_OE_CHOICE') {
+      // Mix PENDING_OE_CHOICE + autres statuts → montrer les non assignés OU assignés à cet OE
+      if (user.oeId !== null) {
+        whereConditions.push(or(isNull(auditsTable.oeId), eq(auditsTable.oeId, user.oeId)))
+      }
+    } else if (statusRaw === 'PENDING_OE_CHOICE') {
+      // Seulement PENDING_OE_CHOICE → uniquement les audits non assignés
       whereConditions.push(isNull(auditsTable.oeId))
     } else {
+      // Pas de PENDING_OE_CHOICE → filtrer par OE de l'utilisateur
       // Si un entityId est fourni dans la requête, ne pas filtrer par oeId
       // Cela permet de voir tous les audits de cette entité, même ceux d'autres OE
       if (!query.entityId && user.oeId !== null) {

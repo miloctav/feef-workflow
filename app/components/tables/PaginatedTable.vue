@@ -1,34 +1,24 @@
 <template>
-  <div>
+  <div class="flex flex-col flex-1 min-h-0">
     <!-- Carte de filtres -->
-    <UCard v-if="hasFilters" class="mb-4 shadow-md rounded-xl p-6 bg-white dark:bg-gray-900">
-      <div class="flex items-center gap-2 mb-6">
-        <UIcon name="i-heroicons-funnel" class="w-6 h-6 text-primary" />
-        <h3 class="text-xl font-bold text-primary">{{ filtersTitle }}</h3>
-      </div>
-      <div class="space-y-4">
-        <!-- Slot pour les filtres personnalisés -->
-        <slot name="filters" :filters="filters" :update-filter="updateFilter" :has-active-filters="hasActiveFilters" />
+    <div v-if="hasFilters" class="mb-4 shrink-0 space-y-3">
+      <!-- Slot pour les filtres personnalisés -->
+      <slot name="filters" :filters="filters" :update-filter="updateFilter" :has-active-filters="hasActiveFilters" />
 
-        <!-- Footer avec bouton réinitialiser et compteur -->
-        <div class="flex items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <UButton @click="resetFilters" color="neutral" variant="outline" size="sm" icon="i-heroicons-x-mark">
-            Réinitialiser
-          </UButton>
-          <div class="ml-auto text-sm text-gray-600 dark:text-gray-400">
-            <span class="font-bold">{{ pagination.total }}</span> résultat{{ pagination.total > 1 ? 's' : '' }} trouvé{{ pagination.total > 1 ? 's' : '' }}
-          </div>
-        </div>
-
-        <!-- Slot pour les badges de filtres actifs -->
-        <div v-if="hasActiveFilters" class="flex flex-wrap gap-2 mt-2">
-          <slot name="filter-badges" :filters="filters" />
+      <!-- Bouton réinitialiser + badges + compteur sur la même ligne -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <UButton @click="resetFilters" color="neutral" variant="outline" size="sm" icon="i-heroicons-x-mark">
+          Réinitialiser
+        </UButton>
+        <slot name="filter-badges" :filters="filters" />
+        <div class="ml-auto text-sm text-gray-600 dark:text-gray-400">
+          <span class="font-bold">{{ pagination.total }}</span> résultat{{ pagination.total > 1 ? 's' : '' }} trouvé{{ pagination.total > 1 ? 's' : '' }}
         </div>
       </div>
-    </UCard>
+    </div>
 
     <!-- Barre de recherche et bouton d'ajout -->
-    <div class="mb-4 flex flex-col gap-4">
+    <div class="mb-4 flex flex-col gap-4 shrink-0">
       <div class="flex justify-between gap-4">
         <div class="flex gap-4 items-center">
           <UInput v-if="hasSearch" v-model="searchQuery" :placeholder="searchPlaceholder" icon="i-lucide-search" class="w-80"
@@ -63,7 +53,7 @@
 
     <!-- Table -->
     <template v-else>
-      <div class="overflow-y-auto max-h-[calc(100vh-13rem)]">
+      <div class="flex-1 min-h-0 overflow-y-auto">
         <UTable :data="data" :columns="columnsWithActions" :ui="{
           base: 'table-fixed border-separate border-spacing-0',
           thead: '[&>tr]:bg-(--ui-bg-elevated)/50 [&>tr]:after:content-none',
@@ -74,7 +64,7 @@
       </div>
 
       <!-- Pagination -->
-      <div class="flex justify-between items-center mt-4">
+      <div class="flex justify-between items-center mt-4 shrink-0">
         <div class="text-sm text-gray-600">
           Affichage de {{ ((pagination.page - 1) * pagination.limit) + 1 }}
           à {{ Math.min(pagination.page * pagination.limit, pagination.total) }}

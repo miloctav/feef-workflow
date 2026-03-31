@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full space-y-4">
+  <div class="w-full flex flex-col flex-1 min-h-0">
     <!-- Table paginée -->
     <PaginatedTable
       :has-filters="hasFilters"
@@ -33,6 +33,7 @@
             @update:model-value="updateFilter('status', $event)"
             :items="auditStatusItems"
             placeholder="Statut"
+            multiple
           />
           <FilterSelect
             label="Organisme Évaluateur"
@@ -54,7 +55,7 @@
 
       <template #filter-badges="{ filters }">
         <UBadge
-          v-if="filters.type !== null"
+          v-if="filters.type != null"
           variant="subtle"
           color="primary"
           size="sm"
@@ -62,15 +63,15 @@
           Type: {{ getFilterLabel('type', filters.type) }}
         </UBadge>
         <UBadge
-          v-if="filters.status !== null && filters.status !== undefined"
+          v-if="Array.isArray(filters.status) && filters.status.length > 0"
           variant="subtle"
           color="warning"
           size="sm"
         >
-          Statut: {{ getFilterLabel('status', filters.status) }}
+          Statut: {{ filters.status.map((s: AuditStatusType) => getAuditStatusLabel(s)).join(', ') }}
         </UBadge>
         <UBadge
-          v-if="filters.oeId !== null"
+          v-if="filters.oeId != null"
           variant="subtle"
           color="info"
           size="sm"
@@ -78,7 +79,7 @@
           OE: {{ getFilterLabel('oeId', filters.oeId) }}
         </UBadge>
         <UBadge
-          v-if="filters.auditorId !== null && user?.role !== Role.AUDITOR"
+          v-if="filters.auditorId != null && user?.role !== Role.AUDITOR"
           variant="subtle"
           color="success"
           size="sm"
@@ -120,10 +121,12 @@ const route = useRoute()
 
 // Lire le filtre status depuis l'URL
 const urlStatus = route.query.status as string | undefined
-const initialFilters = urlStatus ? { status: urlStatus } : undefined
+const initialFilters = urlStatus
+  ? { status: urlStatus.includes(',') ? urlStatus.split(',') : [urlStatus] }
+  : undefined
 
-// Items pour le filtre statut
-const auditStatusItems = getAuditStatusItems(true)
+// Items pour le filtre statut (pas d'option "Tous" — un array vide = pas de filtre)
+const auditStatusItems = getAuditStatusItems(false)
 
 // Composable pour gérer les audits (avec entityId et filtres URL si fournis)
 const {

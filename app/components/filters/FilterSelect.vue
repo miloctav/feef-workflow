@@ -1,7 +1,7 @@
 <template>
   <UFormField :label="label">
     <USelect :model-value="modelValue" :items="items" :placeholder="placeholder" :class="class" :disabled="disabled"
-      :loading="loading" @update:model-value="handleChange" />
+      :loading="loading" :multiple="multiple" @update:model-value="handleChange" />
   </UFormField>
 
 </template>
@@ -15,6 +15,7 @@ interface Props {
   class?: string
   disabled?: boolean
   loading?: boolean
+  multiple?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -22,6 +23,7 @@ const props = withDefaults(defineProps<Props>(), {
   class: 'w-full',
   disabled: false,
   loading: false,
+  multiple: false,
 })
 
 const emit = defineEmits<{
