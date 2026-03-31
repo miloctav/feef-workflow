@@ -32,13 +32,15 @@ function mapAuditType(raw: string): { type: AuditTypeEnum; monitoringMode: Monit
   }
 }
 
-function mapAuditStatus(csvStatus: string, actualEndDate: Date | null): AuditStatusEnum {
+function mapAuditStatus(csvStatus: string, actualEndDate: Date | null, plannedDate: Date | null): AuditStatusEnum {
+  let status: AuditStatusEnum
   switch (csvStatus.trim().toLowerCase()) {
     case '4-certification finished':
       return 'COMPLETED'
     case '1-inspection order created':
     case '2-inspector\'s infoportal':
-      return 'PLANNING'
+      status = 'PLANNING'
+      break
     case '2-inspection order accepted':
       return 'SCHEDULED'
     case '2-inspection in progress': {
@@ -51,8 +53,11 @@ function mapAuditStatus(csvStatus: string, actualEndDate: Date | null): AuditSta
     case '3-certification order accepted':
       return 'PENDING_FEEF_DECISION'
     default:
-      return 'PLANNING'
+      status = 'PLANNING'
   }
+
+  if (status === 'PLANNING' && plannedDate) return 'SCHEDULED'
+  return status
 }
 
 // ============================================================
@@ -249,7 +254,7 @@ async function seedAudits() {
     const auditorName = (row['AUDITOR_NAME'] ?? '').trim()
     const season = parseInt(row['SEASON'] ?? '0')
 
-    const status = mapAuditStatus(row['AUDIT_STATUT'] ?? '', actualEndDate)
+    const status = mapAuditStatus(row['AUDIT_STATUT'] ?? '', actualEndDate, plannedDate)
     const feefDecision = status === 'COMPLETED' ? 'ACCEPTED' : null
 
     const now = new Date()
