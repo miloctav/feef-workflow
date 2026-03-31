@@ -370,7 +370,7 @@ const getFieldValue = (key: string) => {
                 </div>
 
                 <AssignAuditorModal
-                  v-if="user?.role === Role.OE && currentAudit?.oeId"
+                  v-if="(user?.role === Role.OE || user?.role === Role.FEEF) && currentAudit?.oeId"
                   :audit-id="currentAudit?.id"
                   :current-auditor-id="currentAudit?.auditorId"
                   :current-auditor-name="

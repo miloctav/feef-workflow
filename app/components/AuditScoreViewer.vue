@@ -197,7 +197,7 @@ const updateLoading = computed(() => notationUpdateLoading.value || auditUpdateL
 
 // Permissions
 const canEdit = computed(() => {
-  return user.value?.role === Role.OE && isAuditEditable.value
+  return (user.value?.role === Role.OE || user.value?.role === Role.FEEF) && isAuditEditable.value
 })
 
 // Grouper les critères par thème

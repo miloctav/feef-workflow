@@ -32,11 +32,11 @@ export default defineEventHandler(async (event) => {
 
   const { accepted, refusalReason } = validation.data
 
-  // Vérifier que l'utilisateur est bien un OE
-  if (user.role !== Role.OE) {
+  // Vérifier que l'utilisateur est bien un OE ou FEEF
+  if (user.role !== Role.OE && user.role !== Role.FEEF) {
     throw createError({
       statusCode: 403,
-      message: 'Seuls les OE peuvent accepter ou refuser un audit',
+      message: 'Seuls les OE et les administrateurs FEEF peuvent accepter ou refuser un audit',
     })
   }
 
@@ -82,8 +82,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Vérifier que l'OE connecté est bien celui assigné à cet audit
-  if (audit.oeId !== user.oeId) {
+  // Vérifier que l'OE connecté est bien celui assigné à cet audit (non applicable pour FEEF)
+  if (user.role === Role.OE && audit.oeId !== user.oeId) {
     throw createError({
       statusCode: 403,
       message: 'Vous n\'êtes pas l\'OE assigné à cet audit',

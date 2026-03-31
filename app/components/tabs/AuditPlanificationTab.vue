@@ -28,8 +28,8 @@
       </template>
 
       <div class="space-y-4">
-        <!-- Message pour l'OE -->
-        <template v-if="user?.role === Role.OE">
+        <!-- Message pour l'OE ou FEEF -->
+        <template v-if="user?.role === Role.OE || user?.role === Role.FEEF">
           <UAlert
             color="orange"
             variant="soft"
@@ -251,9 +251,9 @@ const hasPlan = computed(() => {
   )
 })
 
-// Computed: OE peut uploader le plan
+// Computed: OE ou FEEF peut uploader le plan
 const canUploadPlan = computed(() => {
-  return user.value?.role === Role.OE && isEditable.value
+  return (user.value?.role === Role.OE || user.value?.role === Role.FEEF) && isEditable.value
 })
 
 // Computed: Documents transmis

@@ -151,9 +151,9 @@ const hasReport = computed(() => {
 })
 
 const canUploadReport = computed(() => {
-  // OE peut uploader si PENDING_REPORT et pas de rapport et audit modifiable
+  // OE ou FEEF peut uploader si PENDING_REPORT et pas de rapport et audit modifiable
   return (
-    user.value?.role === Role.OE &&
+    (user.value?.role === Role.OE || user.value?.role === Role.FEEF) &&
     auditStatus.value === AuditStatus.PENDING_REPORT &&
     !hasReport.value &&
     isAuditEditable.value
@@ -161,8 +161,8 @@ const canUploadReport = computed(() => {
 })
 
 const canModifyReport = computed(() => {
-  // OE peut modifier le rapport tant que l'audit n'est pas terminé
-  return user.value?.role === Role.OE && hasReport.value && isAuditEditable.value
+  // OE ou FEEF peut modifier le rapport tant que l'audit n'est pas terminé
+  return (user.value?.role === Role.OE || user.value?.role === Role.FEEF) && hasReport.value && isAuditEditable.value
 })
 
 // Computed pour déterminer si l'étape rapport est complète

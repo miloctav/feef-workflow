@@ -428,9 +428,9 @@ const canUploadPlan = computed(() => {
 })
 
 const canValidatePlan = computed(() => {
-  // L'OE peut valider si PENDING_CORRECTIVE_PLAN_VALIDATION et audit modifiable
+  // L'OE ou FEEF peut valider si PENDING_CORRECTIVE_PLAN_VALIDATION et audit modifiable
   return (
-    user.value?.role === Role.OE &&
+    (user.value?.role === Role.OE || user.value?.role === Role.FEEF) &&
     auditStatus.value === AuditStatus.PENDING_CORRECTIVE_PLAN_VALIDATION &&
     isAuditEditable.value
   )

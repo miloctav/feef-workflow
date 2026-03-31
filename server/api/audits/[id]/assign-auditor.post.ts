@@ -23,11 +23,11 @@ export default defineEventHandler(async (event) => {
   // Authentification requise
   const { user: currentUser } = await requireUserSession(event)
 
-  // Vérifier que l'utilisateur a le rôle OE
-  if (currentUser.role !== Role.OE) {
+  // Vérifier que l'utilisateur a le rôle OE ou FEEF
+  if (currentUser.role !== Role.OE && currentUser.role !== Role.FEEF) {
     throw createError({
       statusCode: 403,
-      message: 'Accès refusé. Seuls les utilisateurs OE peuvent affecter un auditeur.',
+      message: 'Accès refusé. Seuls les utilisateurs OE et les administrateurs FEEF peuvent affecter un auditeur.',
     })
   }
 
@@ -80,8 +80,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Vérifier que l'OE de l'utilisateur correspond à l'OE de l'audit
-  if (existingAudit.oeId !== currentUser.oeId) {
+  // Vérifier que l'OE de l'utilisateur correspond à l'OE de l'audit (non applicable pour FEEF)
+  if (currentUser.role === Role.OE && existingAudit.oeId !== currentUser.oeId) {
     throw createError({
       statusCode: 403,
       message: 'Vous ne pouvez affecter un auditeur que pour les audits de votre organisation',
@@ -113,11 +113,12 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Vérifier que l'auditeur est lié à l'OE de l'utilisateur
+    // Vérifier que l'auditeur est lié à l'OE de l'audit (FEEF utilise l'OE de l'audit)
+    const effectiveOeId = currentUser.role === Role.FEEF ? existingAudit.oeId : currentUser.oeId!
     const auditorOeLink = await db.query.auditorsToOE.findFirst({
       where: and(
         eq(auditorsToOE.auditorId, auditorId),
-        eq(auditorsToOE.oeId, currentUser.oeId!)
+        eq(auditorsToOE.oeId, effectiveOeId!)
       ),
     })
 
