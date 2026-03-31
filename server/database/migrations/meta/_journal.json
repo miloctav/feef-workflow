@@ -358,6 +358,20 @@
       "when": 1771426199741,
       "tag": "0050_magenta_vulcan",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1774529637363,
+      "tag": "0051_optimal_gunslinger",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1774530185848,
+      "tag": "0052_needy_genesis",
+      "breakpoints": true
     }
   ]
 }
