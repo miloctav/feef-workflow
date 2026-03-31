@@ -37,26 +37,21 @@ function mapAuditStatus(csvStatus: string, actualEndDate: Date | null, plannedDa
   switch (csvStatus.trim().toLowerCase()) {
     case '4-certification finished':
       return 'COMPLETED'
-    case '1-inspection order created':
-    case '2-inspector\'s infoportal':
-      status = 'PLANNING'
-      break
-    case '2-inspection order accepted':
-      return 'SCHEDULED'
-    case '2-inspection in progress': {
-      if (actualEndDate && actualEndDate < new Date()) return 'PENDING_REPORT'
-      return 'SCHEDULED'
-    }
     case '3-inspection finished - pool':
       return 'PENDING_OE_OPINION'
     case '3-certification in progress':
     case '3-certification order accepted':
       return 'PENDING_FEEF_DECISION'
+    case '2-inspection in progress':
+      if (actualEndDate && actualEndDate < new Date()) return 'PENDING_REPORT'
+      status = 'SCHEDULED'
+      break
     default:
       status = 'PLANNING'
   }
 
   if (status === 'PLANNING' && plannedDate) return 'SCHEDULED'
+  if (status === 'SCHEDULED' && !plannedDate) return 'PLANNING'
   return status
 }
 
