@@ -4,8 +4,9 @@ import { Pool } from 'pg'
 import Papa from 'papaparse'
 import { readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
-import { eq, isNotNull } from 'drizzle-orm'
-import { audits, entities, accounts, notifications, events, actions, auditNotation, documentVersions } from '../schema'
+import { eq, isNull, isNotNull } from 'drizzle-orm'
+import { audits, entities, accounts, oes, notifications, events, actions, auditNotation, documentVersions } from '../schema'
+import { normalizeSiret, isUsableSiret } from './read-completed-xlsx'
 
 // ============================================================
 // Mapping AUDIT_TYPE CSV → enums DB
@@ -59,10 +60,6 @@ function mapAuditStatus(csvStatus: string, actualEndDate: Date | null, plannedDa
 // Fonctions utilitaires
 // ============================================================
 
-function cleanSiret(raw: string): string {
-  return raw.replace(/\s/g, '').trim()
-}
-
 function parseDatetime(raw: string): Date | null {
   if (!raw || raw.trim() === '') return null
 
@@ -87,6 +84,16 @@ function parseDatetime(raw: string): Date | null {
 
 function toDateString(date: Date): string {
   return date.toISOString().slice(0, 10)
+}
+
+/** Normalise un nom d'entreprise pour le rapprochement (majuscules, sans accent). */
+function normalizeName(raw: string): string {
+  return (raw ?? '')
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 // ============================================================
@@ -143,8 +150,6 @@ type AuditRow = {
 // Script principal
 // ============================================================
 
-const ECOCERT_OE_ID = 1
-
 async function seedAudits() {
   const pool = new Pool({
     connectionString: process.env.NUXT_DATABASE_URL,
@@ -167,6 +172,25 @@ async function seedAudits() {
 
   const createdBy = feefAdmin.id
   console.log(`👤 Compte FEEF : ${feefAdmin.email}`)
+
+  // OE Ecocert : on récupère son id en base, ou on le crée s'il manque.
+  const [existingOe] = await db
+    .select({ id: oes.id })
+    .from(oes)
+    .where(eq(oes.name, 'Ecocert'))
+    .limit(1)
+  let ECOCERT_OE_ID: number
+  if (existingOe) {
+    ECOCERT_OE_ID = existingOe.id
+  }
+  else {
+    const [createdOe] = await db
+      .insert(oes)
+      .values({ name: 'Ecocert', createdBy })
+      .returning({ id: oes.id })
+    ECOCERT_OE_ID = createdOe.id
+    console.log('🏢 OE Ecocert créé en base')
+  }
   console.log(`🏢 OE Ecocert ID : ${ECOCERT_OE_ID}\n`)
 
   // ──────────────────────────────────────────────────────────
@@ -201,10 +225,155 @@ async function seedAudits() {
 
   console.log(`📋 ${rows.length} lignes lues\n`)
 
+  // ──────────────────────────────────────────────────────────
+  // Table ECOCERT_ID → SIRET, par auto-jointure de audits-ecocert.csv.
+  //
+  // L'ECOCERT_ID est le numéro de dossier Ecocert d'une entreprise : il
+  // est stable d'une saison à l'autre et identifie l'entité. Certains
+  // audits n'ont pas de SIRET renseigné, mais un autre audit partageant
+  // le même ECOCERT_ID en a un : on récupère ainsi le SIRET réel.
+  // Un ECOCERT_ID lié à plusieurs SIRET distincts est écarté (ambigu).
+  // ──────────────────────────────────────────────────────────
+  const siretsByEcocert = new Map<string, Set<string>>()
+  for (const row of rows) {
+    const eco = (row['ECOCERT_ID'] ?? '').trim()
+    const s = normalizeSiret(row['SIRET'] ?? '')
+    if (!eco || !isUsableSiret(s)) continue
+    if (!siretsByEcocert.has(eco)) siretsByEcocert.set(eco, new Set())
+    siretsByEcocert.get(eco)!.add(s)
+  }
+  const ecocertToSiret = new Map<string, string>()
+  for (const [eco, set] of siretsByEcocert) {
+    if (set.size === 1) ecocertToSiret.set(eco, [...set][0])
+  }
+  console.log(`🔖 ${ecocertToSiret.size} correspondances ECOCERT_ID → SIRET\n`)
+
+  // ──────────────────────────────────────────────────────────
+  // Overrides de rattachement validés par la FEEF.
+  //
+  // Certains audits Ecocert ne sont rattachables ni par SIRET, ni par
+  // SIREN, ni par nom : SIRET radié, tronqué, ou labellisation portée
+  // par une autre personne morale. La FEEF a tranché ces cas un par un
+  // (voir audits-rattachement-overrides.csv) : l'ECOCERT_ID y est
+  // associé au SIRET de l'entité cible, qui prime sur la cascade.
+  // ──────────────────────────────────────────────────────────
+  const ecocertOverrides = new Map<string, string>()
+  try {
+    const overridePath = resolve(import.meta.dirname, 'audits-rattachement-overrides.csv')
+    const overrideRows = Papa.parse<{ ecocertId: string; siretCible: string }>(
+      readFileSync(overridePath, 'utf-8'),
+      { header: true, skipEmptyLines: true, transformHeader: (h) => h.trim() },
+    ).data
+    for (const o of overrideRows) {
+      const eco = (o.ecocertId ?? '').trim()
+      const cible = normalizeSiret(o.siretCible ?? '')
+      if (eco && isUsableSiret(cible)) ecocertOverrides.set(eco, cible)
+    }
+  }
+  catch {
+    // Fichier d'overrides absent : on continue sur la cascade seule.
+  }
+  console.log(`🎯 ${ecocertOverrides.size} override(s) de rattachement FEEF\n`)
+
+  // ──────────────────────────────────────────────────────────
+  // Index des entités en base pour le rapprochement des audits.
+  // On indexe les entités non supprimées par SIRET exact, par SIREN
+  // (9 premiers chiffres) et par nom normalisé. Les audits sont
+  // rattachés en cascade : SIRET exact → SIREN → nom.
+  // ──────────────────────────────────────────────────────────
+  type EntityRef = { id: number; name: string; siret: string }
+  const liveEntities = await db
+    .select({ id: entities.id, name: entities.name, siret: entities.siret })
+    .from(entities)
+    .where(isNull(entities.deletedAt))
+
+  const entityBySiret = new Map<string, EntityRef>()
+  const entitiesBySiren = new Map<string, EntityRef[]>()
+  const entitiesByName = new Map<string, EntityRef[]>()
+  for (const e of liveEntities) {
+    entityBySiret.set(e.siret, e)
+    const siren = e.siret.replace(/\D/g, '').slice(0, 9)
+    if (siren.length === 9) {
+      if (!entitiesBySiren.has(siren)) entitiesBySiren.set(siren, [])
+      entitiesBySiren.get(siren)!.push(e)
+    }
+    const nn = normalizeName(e.name)
+    if (nn) {
+      if (!entitiesByName.has(nn)) entitiesByName.set(nn, [])
+      entitiesByName.get(nn)!.push(e)
+    }
+  }
+  console.log(`🏢 ${liveEntities.length} entités actives indexées (SIRET / SIREN / nom)\n`)
+
+  type MatchVia = 'override' | 'siret' | 'siren' | 'ecocert' | 'nom'
+
+  /** Cherche une entité par SIRET exact, puis par SIREN. */
+  function findBySiret(siret: string): { entity: EntityRef; via: MatchVia } | null {
+    if (!isUsableSiret(siret)) return null
+    const exact = entityBySiret.get(siret)
+    if (exact) return { entity: exact, via: 'siret' }
+    const sirenCandidates = entitiesBySiren.get(siret.slice(0, 9)) ?? []
+    if (sirenCandidates.length === 1) return { entity: sirenCandidates[0], via: 'siren' }
+    return null
+  }
+
+  /**
+   * Rattache une ligne d'audit à une entité, en cascade :
+   *   1. SIRET exact
+   *   2. SIREN (autre établissement de la même personne morale)
+   *   3. ECOCERT_ID (SIRET réel déduit de l'auto-jointure du CSV)
+   *   4. nom d'entreprise normalisé
+   * Renvoie l'entité trouvée et le critère utilisé, ou null.
+   */
+  function matchEntity(siret: string, ecocertId: string, clientName: string): { entity: EntityRef; via: MatchVia } | null {
+    // 0. Override FEEF : l'ECOCERT_ID impose le SIRET de l'entité cible.
+    if (ecocertId) {
+      const forced = ecocertOverrides.get(ecocertId)
+      if (forced) {
+        const byForced = findBySiret(forced)
+        if (byForced) return { entity: byForced.entity, via: 'override' }
+      }
+    }
+
+    // 1-2. SIRET exact puis SIREN.
+    const bySiret = findBySiret(siret)
+    if (bySiret) return bySiret
+
+    // En cas de plusieurs établissements pour ce SIREN, on départage
+    // par le nom avant de passer aux autres critères.
+    if (isUsableSiret(siret)) {
+      const sirenCandidates = entitiesBySiren.get(siret.slice(0, 9)) ?? []
+      if (sirenCandidates.length > 1) {
+        const nn = normalizeName(clientName)
+        const byName = sirenCandidates.filter((e) => normalizeName(e.name) === nn)
+        if (byName.length === 1) return { entity: byName[0], via: 'siren' }
+      }
+    }
+
+    // 3. ECOCERT_ID : on déduit le SIRET réel de l'entreprise.
+    if (ecocertId) {
+      const resolved = ecocertToSiret.get(ecocertId)
+      if (resolved && resolved !== siret) {
+        const byEco = findBySiret(resolved)
+        if (byEco) return { entity: byEco.entity, via: 'ecocert' }
+      }
+    }
+
+    // 4. Rapprochement par nom (dernier recours).
+    const nameCandidates = entitiesByName.get(normalizeName(clientName)) ?? []
+    if (nameCandidates.length === 1) return { entity: nameCandidates[0], via: 'nom' }
+
+    return null
+  }
+
   const report: ReportLine[] = []
   let created = 0
   let skippedNoSiret = 0
   let skippedNotFound = 0
+  let matchedByOverride = 0
+  let matchedBySiren = 0
+  let matchedByEcocert = 0
+  let matchedByName = 0
   let errorCount = 0
 
   for (let i = 0; i < rows.length; i++) {
@@ -220,25 +389,48 @@ async function seedAudits() {
       statut_ecocert: row['AUDIT_STATUT'] ?? '',
     }
 
-    const siret = cleanSiret(row['SIRET'] ?? '')
-    if (!siret || siret.length < 9) {
-      console.warn(`  [L${rowNum}] ⏭️  Pas de SIRET : "${row['CLIENT_NAME']}" → ignoré`)
-      report.push({ ...baseReport, probleme: 'SIRET manquant', details: `SIRET brut : "${row['SIRET'] ?? ''}"` })
-      skippedNoSiret++
+    const siret = normalizeSiret(row['SIRET'] ?? '')
+    const clientName = (row['CLIENT_NAME'] ?? '').trim()
+    const ecocertId = (row['ECOCERT_ID'] ?? '').trim()
+
+    // Rattachement en cascade : SIRET exact → SIREN → ECOCERT_ID → nom.
+    // On ne rattache jamais vers une entité supprimée (sortante).
+    const match = matchEntity(siret, ecocertId, clientName)
+
+    if (!match) {
+      if (!isUsableSiret(siret)) {
+        console.warn(`  [L${rowNum}] ⏭️  SIRET manquant, nom non rapproché : "${clientName}"`)
+        report.push({ ...baseReport, probleme: 'SIRET manquant', details: `SIRET brut : "${row['SIRET'] ?? ''}" — nom non rapproché à une entité de la base` })
+        skippedNoSiret++
+      }
+      else {
+        console.warn(`  [L${rowNum}] ⚠️  Entité introuvable : SIRET=${siret} (${clientName})`)
+        report.push({ ...baseReport, probleme: 'SIRET inconnu dans la base FEEF', details: `SIRET Ecocert : ${siret} — SIREN ${siret.slice(0, 9)} absent de la base, nom non rapproché` })
+        skippedNotFound++
+      }
       continue
     }
 
-    const [entity] = await db
-      .select()
-      .from(entities)
-      .where(eq(entities.siret, siret))
-      .limit(1)
+    const entity = match.entity
 
-    if (!entity) {
-      console.warn(`  [L${rowNum}] ⚠️  Entité introuvable : SIRET=${siret} (${row['CLIENT_NAME']})`)
-      report.push({ ...baseReport, probleme: 'SIRET inconnu dans la base FEEF', details: `SIRET Ecocert : ${siret} — ID Ecocert : ${row['ECOCERT_ID'] ?? ''}` })
-      skippedNotFound++
-      continue
+    // Les rattachements non exacts (SIREN, ECOCERT_ID ou nom) sont
+    // tracés dans le rapport pour vérification par la FEEF. Les
+    // overrides sont déjà validés par la FEEF : on les compte sans
+    // les reporter comme anomalie.
+    if (match.via === 'override') {
+      matchedByOverride++
+    }
+    else if (match.via === 'siren') {
+      matchedBySiren++
+      report.push({ ...baseReport, probleme: 'Audit rattaché par SIREN', details: `SIRET audit ${siret} → entité « ${entity.name} » (SIRET base ${entity.siret})` })
+    }
+    else if (match.via === 'ecocert') {
+      matchedByEcocert++
+      report.push({ ...baseReport, probleme: 'Audit rattaché par ECOCERT_ID', details: `ECOCERT_ID ${ecocertId} → entité « ${entity.name} » (SIRET base ${entity.siret})` })
+    }
+    else if (match.via === 'nom') {
+      matchedByName++
+      report.push({ ...baseReport, probleme: 'Audit rattaché par nom', details: `SIRET audit "${row['SIRET'] ?? ''}" → entité « ${entity.name} » (SIRET base ${entity.siret})` })
     }
 
     const { type, monitoringMode } = mapAuditType(row['AUDIT_TYPE'] ?? '')
@@ -296,10 +488,14 @@ async function seedAudits() {
   }
 
   console.log('\n─── Résumé ────────────────────────────')
-  console.log(`✅ Créés           : ${created}`)
-  console.log(`⏭️  Sans SIRET      : ${skippedNoSiret}`)
-  console.log(`⚠️  Entité inconnue : ${skippedNotFound}`)
-  console.log(`❌ Erreurs         : ${errorCount}`)
+  console.log(`✅ Créés                     : ${created}`)
+  console.log(`   ↪ rattachés par override FEEF : ${matchedByOverride}`)
+  console.log(`   ↪ rattachés par SIREN     : ${matchedBySiren}`)
+  console.log(`   ↪ rattachés par ECOCERT_ID : ${matchedByEcocert}`)
+  console.log(`   ↪ rattachés par nom       : ${matchedByName}`)
+  console.log(`⏭️  SIRET manquant non résolu : ${skippedNoSiret}`)
+  console.log(`⚠️  Entité introuvable        : ${skippedNotFound}`)
+  console.log(`❌ Erreurs                   : ${errorCount}`)
   console.log('────────────────────────────────────────')
 
   writeReport(report, import.meta.dirname)

@@ -148,6 +148,8 @@ export const entities = pgTable('entities', {
   allowOeDocumentsAccess: boolean('allow_oe_documents_access').notNull().default(false),
   // External CRM reference (internal use only, not displayed in UI)
   crmId: varchar('crm_id', { length: 36 }).unique(),
+  // External Ecocert ID (internal use only, not displayed in UI)
+  ecocertId: varchar('ecocert_id', { length: 50 }),
   // Address and contact fields
   address: varchar('address', { length: 255 }),
   addressComplement: varchar('address_complement', { length: 255 }),
