@@ -14,7 +14,8 @@
       "Bash(npm run db:generate:*)",
       "Bash(npx tsc:*)",
       "Bash(curl:*)",
-      "WebFetch(domain:nuxt.com)"
+      "WebFetch(domain:nuxt.com)",
+      "WebFetch(domain:ui.nuxt.com)"
     ],
     "deny": [],
     "ask": []
