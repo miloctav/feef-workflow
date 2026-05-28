@@ -1,73 +1,85 @@
 <script setup lang="ts">
-import { EntityType, EntityMode } from '#shared/types/enums'
-import type { EntityTypeType } from '#shared/types/enums'
 import type { AdminPreviewResult } from '~~/app/composables/useEntityAdmin'
 
 /**
- * Modale combinée : sélection d'un parent MASTER + récap des impacts + confirmation.
- * Utilisée pour les actions « Lier » et « Transférer » d'une entité FOLLOWER.
+ * Modale FEEF de modification de l'OE rattaché à une entité.
+ *
+ * Permet de basculer entre un OE actif et un autre, ou de repasser en mode
+ * appel d'offre (oeId = null). Reproduit les garde-fous de assign-oe.post.ts :
+ * pas de changement possible si un audit est en cours, sauf si le dernier audit
+ * est en PENDING_OE_CHOICE / PENDING_CASE_APPROVAL ou s'il s'agit d'un suivi
+ * terminé.
  */
 
 const props = defineProps<{
   entity: {
     id: number
     name: string
-    type: EntityTypeType
-    parentGroupId?: number | null
+    oeId?: number | null
+    oe?: { id: number; name: string } | null
+    allowOeDocumentsAccess?: boolean
   }
-  // Type des parents proposés (l'inverse du type de l'entité courante)
-  parentType: EntityTypeType
-  title: string
   onApplied?: () => void | Promise<void>
 }>()
 
 const isOpen = defineModel<boolean>('open', { default: false })
 
+const { fetchOesForSelect } = useOes()
 const { previewChange, applyChange, loading } = useEntityAdmin()
 
-const availableParents = ref<Array<{ id: number; name: string }>>([])
-const loadingParents = ref(false)
-const selectedParentId = ref<number | undefined>(undefined)
+// État local
+const availableOes = ref<Array<{ id: number; name: string }>>([])
+const loadingOes = ref(false)
+// undefined = rien sélectionné, null = appel d'offre, number = OE choisi
+const selectedOeId = ref<number | null | undefined>(undefined)
+const allowOeAccess = ref(true)
 
 const preview = ref<AdminPreviewResult | null>(null)
 const previewLoading = ref(false)
 const previewError = ref<string | null>(null)
 
-const loadAvailableParents = async () => {
-  loadingParents.value = true
+const loadOes = async () => {
+  loadingOes.value = true
   try {
-    const params = new URLSearchParams({
-      mode: EntityMode.MASTER,
-      type: props.parentType,
-      limit: '100',
-    })
-    const response = await $fetch<{ data: Array<{ id: number; name: string }> }>(
-      `/api/entities?${params.toString()}`,
-    )
-    // Exclure l'entité courante elle-même (cas peu probable mais sécurité)
-    availableParents.value = response.data.filter((e) => e.id !== props.entity.id)
+    const list = await fetchOesForSelect({ includeAll: false })
+    availableOes.value = list
+      .filter((oe) => oe.value !== null)
+      .map((oe) => ({ id: oe.value as number, name: oe.label }))
   } catch {
-    availableParents.value = []
+    availableOes.value = []
   } finally {
-    loadingParents.value = false
+    loadingOes.value = false
   }
 }
 
-const parentItems = computed(() =>
-  availableParents.value.map((e) => ({ label: e.name, value: e.id })),
-)
+const oeItems = computed(() => {
+  return [
+    { label: 'Appel d\'offre (aucun OE)', value: null as number | null },
+    ...availableOes.value.map((oe) => ({ label: oe.name, value: oe.id as number | null })),
+  ]
+})
 
-const loadPreview = async () => {
-  if (!selectedParentId.value) {
+const isSelectionChanged = computed(() => {
+  if (selectedOeId.value === undefined) return false
+  return selectedOeId.value !== (props.entity.oeId ?? null)
+})
+
+const runPreview = async () => {
+  if (!isSelectionChanged.value) {
     preview.value = null
+    previewError.value = null
     return
   }
   previewLoading.value = true
   previewError.value = null
   preview.value = null
-  const result = await previewChange(props.entity.id, {
-    parentGroupId: selectedParentId.value,
-  })
+  const body: { oeId: number | null; allowOeDocumentsAccess?: boolean } = {
+    oeId: selectedOeId.value === undefined ? null : selectedOeId.value,
+  }
+  if (body.oeId !== null) {
+    body.allowOeDocumentsAccess = allowOeAccess.value
+  }
+  const result = await previewChange(props.entity.id, body)
   if (result.success && result.data) {
     preview.value = result.data
   } else {
@@ -78,22 +90,29 @@ const loadPreview = async () => {
 
 watch(isOpen, (open) => {
   if (open) {
-    selectedParentId.value = undefined
+    selectedOeId.value = props.entity.oeId ?? null
+    allowOeAccess.value = props.entity.allowOeDocumentsAccess ?? true
     preview.value = null
     previewError.value = null
-    loadAvailableParents()
+    loadOes()
   }
 })
 
-watch(selectedParentId, () => {
-  if (isOpen.value) loadPreview()
+watch([selectedOeId, allowOeAccess], () => {
+  if (!isOpen.value) return
+  runPreview()
 })
 
 const handleConfirm = async () => {
-  if (!selectedParentId.value || !preview.value || preview.value.blocked) return
-  const result = await applyChange(props.entity.id, {
-    parentGroupId: selectedParentId.value,
-  })
+  if (!isSelectionChanged.value) return
+  if (!preview.value || preview.value.blocked) return
+  const body: { oeId: number | null; allowOeDocumentsAccess?: boolean } = {
+    oeId: selectedOeId.value === undefined ? null : selectedOeId.value,
+  }
+  if (body.oeId !== null) {
+    body.allowOeDocumentsAccess = allowOeAccess.value
+  }
+  const result = await applyChange(props.entity.id, body)
   if (result.success) {
     isOpen.value = false
     if (props.onApplied) {
@@ -106,10 +125,6 @@ const handleCancel = () => {
   isOpen.value = false
 }
 
-const selectLabel = computed(() =>
-  props.parentType === EntityType.GROUP ? 'Groupe maître' : 'Entreprise maître',
-)
-
 const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId') => {
   if (field === 'mode') return 'Mode'
   if (field === 'type') return 'Type'
@@ -117,6 +132,16 @@ const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId')
   if (field === 'oeId') return 'OE rattaché'
   return 'Lien parent'
 }
+
+const canConfirm = computed(() => {
+  if (!isSelectionChanged.value) return false
+  if (previewLoading.value) return false
+  if (!preview.value) return false
+  if (preview.value.blocked) return false
+  return preview.value.changes.length > 0
+})
+
+const showAccessCheckbox = computed(() => selectedOeId.value !== null && selectedOeId.value !== undefined)
 </script>
 
 <template>
@@ -124,25 +149,39 @@ const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId')
     <template #content>
       <UCard>
         <template #header>
-          <h3 class="text-lg font-semibold">{{ title }}</h3>
+          <h3 class="text-lg font-semibold">Modifier l'OE rattaché à « {{ entity.name }} »</h3>
         </template>
 
         <div class="space-y-4">
-          <UFormField :label="selectLabel">
+          <UAlert
+            color="info"
+            variant="soft"
+            icon="i-lucide-info"
+            title="Garde-fous"
+            description="Le changement d'OE n'est possible que si aucun audit n'est en cours, ou si le dernier audit est en attente de choix d'OE / d'approbation du dossier, ou s'il s'agit d'un audit de suivi terminé."
+          />
+
+          <UFormField label="Organisme évaluateur" required>
             <USelectMenu
-              v-model="selectedParentId"
-              :items="parentItems"
-              :loading="loadingParents"
+              v-model="selectedOeId"
+              :items="oeItems"
+              :loading="loadingOes"
               value-key="value"
-              placeholder="Sélectionner un maître..."
+              placeholder="Sélectionner un OE..."
               searchable
               class="w-full"
             />
           </UFormField>
 
-          <p v-if="parentItems.length === 0 && !loadingParents" class="text-sm text-gray-500">
-            Aucun maître compatible disponible.
-          </p>
+          <UFormField
+            v-if="showAccessCheckbox"
+            label="Accès aux documents"
+          >
+            <UCheckbox
+              v-model="allowOeAccess"
+              label="Autoriser le nouvel OE à consulter les documents de l'entité"
+            />
+          </UFormField>
 
           <div v-if="previewLoading" class="py-6 text-center text-gray-500">
             <UIcon name="i-lucide-loader" class="w-5 h-5 animate-spin mx-auto mb-2" />
@@ -167,7 +206,7 @@ const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId')
               :description="preview.blocked.reason"
             />
 
-            <div v-else-if="preview.changes.length > 0">
+            <div v-if="preview.changes.length > 0">
               <h4 class="text-sm font-semibold text-gray-700 mb-2">Modifications</h4>
               <ul class="space-y-2">
                 <li
@@ -204,10 +243,10 @@ const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId')
           <div class="flex justify-end gap-2">
             <UButton label="Annuler" color="neutral" variant="outline" @click="handleCancel" />
             <UButton
-              label="Confirmer"
+              label="Modifier l'OE"
               color="primary"
               :loading="loading"
-              :disabled="!selectedParentId || !preview || !!preview?.blocked || previewLoading"
+              :disabled="!canConfirm"
               @click="handleConfirm"
             />
           </div>

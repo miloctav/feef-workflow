@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { entities } from '~~/server/database/schema'
+import { entities, audits } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
 import { loadEntityForAdmin } from '~~/server/utils/entity-admin-validation'
 import { planAdminChange, type AdminChangeBody } from '~~/server/utils/entity-admin-plan'
@@ -36,6 +36,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: plan.blocked.reason })
   }
 
+  // Liste des audits dont le statut a changé : on déclenche la création d'actions après le commit
+  const auditsWithStatusChange: number[] = []
+
   await db.transaction(async (tx) => {
     for (const op of plan.operations) {
       await tx
@@ -43,7 +46,32 @@ export default defineEventHandler(async (event) => {
         .set(forUpdate(event, op.set))
         .where(eq(entities.id, op.entityId))
     }
+    for (const op of plan.auditOperations) {
+      await tx
+        .update(audits)
+        .set(forUpdate(event, op.set))
+        .where(eq(audits.id, op.auditId))
+      if (op.statusChanged) {
+        auditsWithStatusChange.push(op.auditId)
+      }
+    }
   })
+
+  // Hors transaction : création/complétion d'actions selon les nouveaux statuts.
+  // Cette logique reproduit le comportement de assign-oe.post.ts.
+  if (plan.triggerActionsRefresh && plan.auditOperations.length > 0) {
+    const { createActionsForAuditStatus, checkAndCompleteAllPendingActions } = await import('~~/server/services/actions')
+    for (const op of plan.auditOperations) {
+      const updatedAudit = await db.query.audits.findFirst({
+        where: eq(audits.id, op.auditId),
+      })
+      if (!updatedAudit) continue
+      if (auditsWithStatusChange.includes(op.auditId)) {
+        await createActionsForAuditStatus(updatedAudit, updatedAudit.status, event)
+      }
+      await checkAndCompleteAllPendingActions(updatedAudit, currentUser.id, event)
+    }
+  }
 
   return {
     data: {

@@ -24,6 +24,10 @@ const props = defineProps<{
       type: EntityTypeType
       mode?: EntityModeType
     } | null
+    siret: string
+    oeId?: number | null
+    oe?: { id: number; name: string } | null
+    allowOeDocumentsAccess?: boolean
   }
   onRefresh?: () => void | Promise<void>
 }>()
@@ -36,6 +40,8 @@ const isFEEF = computed(() => user.value?.role === Role.FEEF)
 const isModeConvertModalOpen = ref(false)
 const isConfirmModalOpen = ref(false)
 const isSelectParentModalOpen = ref(false)
+const isSiretModalOpen = ref(false)
+const isOeModalOpen = ref(false)
 
 const confirmBody = ref<AdminChangeBody | null>(null)
 const confirmTitle = ref('')
@@ -101,6 +107,15 @@ const openSelectParent = (action: 'link' | 'transfer') => {
   isSelectParentModalOpen.value = true
 }
 
+// --- Modification SIRET / OE ---
+const openSiretModal = () => {
+  isSiretModalOpen.value = true
+}
+
+const openOeModal = () => {
+  isOeModalOpen.value = true
+}
+
 // --- Items du menu déroulant (Nuxt UI v4) ---
 const items = computed(() => {
   const groups: Array<Array<{ label: string; icon: string; onSelect: () => void }>> = []
@@ -149,6 +164,20 @@ const items = computed(() => {
     groups.push(linkActions)
   }
 
+  // Groupe 3 : informations administratives sensibles (SIRET, OE rattaché)
+  groups.push([
+    {
+      label: 'Modifier le SIRET',
+      icon: 'i-lucide-hash',
+      onSelect: openSiretModal,
+    },
+    {
+      label: props.entity.oeId ? 'Modifier l\'OE rattaché' : 'Assigner un OE',
+      icon: 'i-lucide-shield-check',
+      onSelect: openOeModal,
+    },
+  ])
+
   return groups
 })
 </script>
@@ -188,6 +217,26 @@ const items = computed(() => {
       :entity="entity"
       :parent-type="parentTypeForLink"
       :title="selectParentTitle"
+      :on-applied="handleRefresh"
+    />
+
+    <!-- Modale : modification du SIRET -->
+    <EntityAdminSiretModal
+      v-model:open="isSiretModalOpen"
+      :entity="{ id: entity.id, name: entity.name, siret: entity.siret }"
+      :on-applied="handleRefresh"
+    />
+
+    <!-- Modale : modification de l'OE rattaché -->
+    <EntityAdminOeModal
+      v-model:open="isOeModalOpen"
+      :entity="{
+        id: entity.id,
+        name: entity.name,
+        oeId: entity.oeId,
+        oe: entity.oe,
+        allowOeDocumentsAccess: entity.allowOeDocumentsAccess,
+      }"
       :on-applied="handleRefresh"
     />
   </div>

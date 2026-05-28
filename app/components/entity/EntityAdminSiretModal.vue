@@ -1,23 +1,20 @@
 <script setup lang="ts">
-import { EntityType, EntityMode } from '#shared/types/enums'
-import type { EntityTypeType } from '#shared/types/enums'
 import type { AdminPreviewResult } from '~~/app/composables/useEntityAdmin'
 
 /**
- * Modale combinée : sélection d'un parent MASTER + récap des impacts + confirmation.
- * Utilisée pour les actions « Lier » et « Transférer » d'une entité FOLLOWER.
+ * Modale FEEF de modification du SIRET d'une entité.
+ *
+ * Affiche un input pour le nouveau SIRET (14 chiffres), interroge en debounce
+ * l'endpoint preview pour valider unicité + garde-fous (audit en cours), puis
+ * applique le changement après confirmation.
  */
 
 const props = defineProps<{
   entity: {
     id: number
     name: string
-    type: EntityTypeType
-    parentGroupId?: number | null
+    siret: string
   }
-  // Type des parents proposés (l'inverse du type de l'entité courante)
-  parentType: EntityTypeType
-  title: string
   onApplied?: () => void | Promise<void>
 }>()
 
@@ -25,49 +22,27 @@ const isOpen = defineModel<boolean>('open', { default: false })
 
 const { previewChange, applyChange, loading } = useEntityAdmin()
 
-const availableParents = ref<Array<{ id: number; name: string }>>([])
-const loadingParents = ref(false)
-const selectedParentId = ref<number | undefined>(undefined)
-
+const inputValue = ref('')
 const preview = ref<AdminPreviewResult | null>(null)
 const previewLoading = ref(false)
 const previewError = ref<string | null>(null)
 
-const loadAvailableParents = async () => {
-  loadingParents.value = true
-  try {
-    const params = new URLSearchParams({
-      mode: EntityMode.MASTER,
-      type: props.parentType,
-      limit: '100',
-    })
-    const response = await $fetch<{ data: Array<{ id: number; name: string }> }>(
-      `/api/entities?${params.toString()}`,
-    )
-    // Exclure l'entité courante elle-même (cas peu probable mais sécurité)
-    availableParents.value = response.data.filter((e) => e.id !== props.entity.id)
-  } catch {
-    availableParents.value = []
-  } finally {
-    loadingParents.value = false
-  }
-}
+// SIRET normalisé pour comparaison (chiffres uniquement)
+const normalizedInput = computed(() => inputValue.value.replace(/\s+/g, ''))
 
-const parentItems = computed(() =>
-  availableParents.value.map((e) => ({ label: e.name, value: e.id })),
-)
+const isValidFormat = computed(() => /^\d{14}$/.test(normalizedInput.value))
+const isUnchanged = computed(() => normalizedInput.value === props.entity.siret)
 
-const loadPreview = async () => {
-  if (!selectedParentId.value) {
+const runPreview = async () => {
+  if (!isValidFormat.value || isUnchanged.value) {
     preview.value = null
+    previewError.value = null
     return
   }
   previewLoading.value = true
   previewError.value = null
   preview.value = null
-  const result = await previewChange(props.entity.id, {
-    parentGroupId: selectedParentId.value,
-  })
+  const result = await previewChange(props.entity.id, { siret: normalizedInput.value })
   if (result.success && result.data) {
     preview.value = result.data
   } else {
@@ -76,24 +51,35 @@ const loadPreview = async () => {
   previewLoading.value = false
 }
 
+let debounceHandle: ReturnType<typeof setTimeout> | null = null
+const debouncedPreview = () => {
+  if (debounceHandle) clearTimeout(debounceHandle)
+  debounceHandle = setTimeout(() => {
+    debounceHandle = null
+    runPreview()
+  }, 350)
+}
+
 watch(isOpen, (open) => {
   if (open) {
-    selectedParentId.value = undefined
+    inputValue.value = props.entity.siret
     preview.value = null
     previewError.value = null
-    loadAvailableParents()
+  } else if (debounceHandle) {
+    clearTimeout(debounceHandle)
+    debounceHandle = null
   }
 })
 
-watch(selectedParentId, () => {
-  if (isOpen.value) loadPreview()
+watch(normalizedInput, () => {
+  if (!isOpen.value) return
+  debouncedPreview()
 })
 
 const handleConfirm = async () => {
-  if (!selectedParentId.value || !preview.value || preview.value.blocked) return
-  const result = await applyChange(props.entity.id, {
-    parentGroupId: selectedParentId.value,
-  })
+  if (!isValidFormat.value || isUnchanged.value) return
+  if (!preview.value || preview.value.blocked) return
+  const result = await applyChange(props.entity.id, { siret: normalizedInput.value })
   if (result.success) {
     isOpen.value = false
     if (props.onApplied) {
@@ -106,9 +92,10 @@ const handleCancel = () => {
   isOpen.value = false
 }
 
-const selectLabel = computed(() =>
-  props.parentType === EntityType.GROUP ? 'Groupe maître' : 'Entreprise maître',
-)
+const formatSiretDisplay = (siret: string) => {
+  if (siret.length !== 14) return siret
+  return `${siret.slice(0, 3)} ${siret.slice(3, 6)} ${siret.slice(6, 9)} ${siret.slice(9)}`
+}
 
 const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId') => {
   if (field === 'mode') return 'Mode'
@@ -117,6 +104,14 @@ const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId')
   if (field === 'oeId') return 'OE rattaché'
   return 'Lien parent'
 }
+
+const canConfirm = computed(() => {
+  if (!isValidFormat.value || isUnchanged.value) return false
+  if (previewLoading.value) return false
+  if (!preview.value) return false
+  if (preview.value.blocked) return false
+  return preview.value.changes.length > 0
+})
 </script>
 
 <template>
@@ -124,24 +119,43 @@ const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId')
     <template #content>
       <UCard>
         <template #header>
-          <h3 class="text-lg font-semibold">{{ title }}</h3>
+          <h3 class="text-lg font-semibold">Modifier le SIRET de « {{ entity.name }} »</h3>
         </template>
 
         <div class="space-y-4">
-          <UFormField :label="selectLabel">
-            <USelectMenu
-              v-model="selectedParentId"
-              :items="parentItems"
-              :loading="loadingParents"
-              value-key="value"
-              placeholder="Sélectionner un maître..."
-              searchable
-              class="w-full"
+          <UAlert
+            color="info"
+            variant="soft"
+            icon="i-lucide-info"
+            title="Garde-fous"
+            description="Le SIRET ne peut être modifié que si aucun audit n'est en cours. Les audits déjà terminés conserveront l'ancien SIRET sur leurs attestations et rapports."
+          />
+
+          <UFormField
+            label="Nouveau SIRET"
+            help="14 chiffres exactement, sans espaces."
+            required
+          >
+            <UInput
+              v-model="inputValue"
+              placeholder="12345678901234"
+              icon="i-lucide-hash"
+              :ui="{ base: 'font-mono' }"
             />
           </UFormField>
 
-          <p v-if="parentItems.length === 0 && !loadingParents" class="text-sm text-gray-500">
-            Aucun maître compatible disponible.
+          <p
+            v-if="!isValidFormat && inputValue.length > 0"
+            class="text-xs text-red-600"
+          >
+            Le SIRET doit contenir exactement 14 chiffres.
+          </p>
+
+          <p
+            v-else-if="isUnchanged"
+            class="text-xs text-gray-500"
+          >
+            Saisissez un SIRET différent du SIRET actuel.
           </p>
 
           <div v-if="previewLoading" class="py-6 text-center text-gray-500">
@@ -167,7 +181,7 @@ const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId')
               :description="preview.blocked.reason"
             />
 
-            <div v-else-if="preview.changes.length > 0">
+            <div v-if="preview.changes.length > 0">
               <h4 class="text-sm font-semibold text-gray-700 mb-2">Modifications</h4>
               <ul class="space-y-2">
                 <li
@@ -180,9 +194,9 @@ const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId')
                     <div class="text-sm font-medium text-gray-900">{{ change.entityName }}</div>
                     <div class="text-xs text-gray-600 mt-0.5">
                       {{ fieldLabel(change.field) }} :
-                      <span class="line-through text-gray-400">{{ change.fromLabel }}</span>
+                      <span class="line-through text-gray-400 font-mono">{{ formatSiretDisplay(String(change.from ?? '')) }}</span>
                       <UIcon name="i-lucide-arrow-right" class="w-3 h-3 inline mx-1 text-gray-400" />
-                      <span class="font-semibold text-primary">{{ change.toLabel }}</span>
+                      <span class="font-semibold text-primary font-mono">{{ formatSiretDisplay(String(change.to ?? '')) }}</span>
                     </div>
                   </div>
                 </li>
@@ -204,10 +218,10 @@ const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId')
           <div class="flex justify-end gap-2">
             <UButton label="Annuler" color="neutral" variant="outline" @click="handleCancel" />
             <UButton
-              label="Confirmer"
+              label="Modifier le SIRET"
               color="primary"
               :loading="loading"
-              :disabled="!selectedParentId || !preview || !!preview?.blocked || previewLoading"
+              :disabled="!canConfirm"
               @click="handleConfirm"
             />
           </div>

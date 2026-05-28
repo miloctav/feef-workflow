@@ -58,9 +58,11 @@ const handleCancel = () => {
 const isBlocked = computed(() => !!preview.value?.blocked)
 const hasChanges = computed(() => (preview.value?.changes.length ?? 0) > 0)
 
-const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId') => {
+const fieldLabel = (field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId') => {
   if (field === 'mode') return 'Mode'
   if (field === 'type') return 'Type'
+  if (field === 'siret') return 'SIRET'
+  if (field === 'oeId') return 'OE rattaché'
   return 'Lien parent'
 }
 </script>

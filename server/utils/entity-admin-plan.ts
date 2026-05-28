@@ -1,5 +1,5 @@
-import { EntityMode, EntityType, EntityModeLabels, EntityTypeLabels } from '~~/shared/types/enums'
-import type { EntityTypeType, EntityModeType } from '~~/shared/types/enums'
+import { EntityMode, EntityType, EntityModeLabels, EntityTypeLabels, AuditStatus, AuditType } from '~~/shared/types/enums'
+import type { EntityTypeType, EntityModeType, AuditStatusType } from '~~/shared/types/enums'
 import {
   loadEntityForAdmin,
   canChangeType,
@@ -8,8 +8,14 @@ import {
   canSwapWithParent,
   validateLinkCompatibility,
   canAcceptNewChild,
+  canChangeSiret,
+  canChangeOe,
+  isValidSiretFormat,
+  isSiretAvailable,
+  normalizeSiret,
+  loadOeForAdmin,
+  loadOngoingAudit,
   type EntityForValidation,
-  type ValidationResult,
 } from './entity-admin-validation'
 
 export interface AdminChangeBody {
@@ -19,10 +25,16 @@ export interface AdminChangeBody {
   parentGroupId?: number | null
   // si true, inverser les rôles avec le parent actuel (entity FOLLOWER → MASTER, parent MASTER → FOLLOWER)
   swapWithParent?: boolean
+  // Nouveau SIRET (14 chiffres) ; undefined = ne pas toucher
+  siret?: string
+  // OE rattaché : number = nouvel OE, null = passage en appel d'offre, undefined = ne pas toucher
+  oeId?: number | null
+  // Lors d'un changement d'OE, autoriser ou non l'accès documentaire au nouvel OE
+  allowOeDocumentsAccess?: boolean
 }
 
 export interface AdminChangeItem {
-  field: 'mode' | 'type' | 'parentGroupId'
+  field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId'
   entityId: number
   entityName: string
   from: string | number | null
@@ -37,6 +49,10 @@ export interface AdminChangePlan {
   blocked: { reason: string } | null
   // Mutations à appliquer si non bloqué
   operations: AdminOperation[]
+  // Opérations sur les audits (changement d'OE en cours d'audit)
+  auditOperations: AdminAuditOperation[]
+  // Si true, déclencher la création/complétion d'actions après l'apply
+  triggerActionsRefresh: boolean
 }
 
 export interface AdminOperation {
@@ -45,15 +61,38 @@ export interface AdminOperation {
     mode?: EntityModeType
     type?: EntityTypeType
     parentGroupId?: number | null
+    siret?: string
+    oeId?: number | null
+    allowOeDocumentsAccess?: boolean
   }
 }
 
-function entityLabel(value: number | string | null, kind: 'mode' | 'type' | 'parent', parentName?: string): string {
+export interface AdminAuditOperation {
+  auditId: number
+  set: {
+    oeId?: number | null
+    status?: AuditStatusType
+  }
+  // Indique si le statut a changé : permet à l'apply de créer les actions correspondantes
+  statusChanged: boolean
+}
+
+function entityLabel(value: number | string | null, kind: 'mode' | 'type' | 'parent' | 'siret' | 'oe', extraName?: string): string {
   if (value === null) return 'aucun'
   if (kind === 'mode') return EntityModeLabels[value as EntityModeType] ?? String(value)
   if (kind === 'type') return EntityTypeLabels[value as EntityTypeType] ?? String(value)
+  if (kind === 'siret') {
+    const s = String(value)
+    if (s.length === 14) {
+      return `${s.slice(0, 3)} ${s.slice(3, 6)} ${s.slice(6, 9)} ${s.slice(9)}`
+    }
+    return s
+  }
+  if (kind === 'oe') {
+    return extraName ? `${extraName} (#${value})` : `OE #${value}`
+  }
   // parent
-  return parentName ? `${parentName} (#${value})` : `#${value}`
+  return extraName ? `${extraName} (#${value})` : `#${value}`
 }
 
 /**
@@ -70,12 +109,16 @@ export async function planAdminChange(
   const changes: AdminChangeItem[] = []
   const warnings: string[] = []
   const operations: AdminOperation[] = []
+  const auditOperations: AdminAuditOperation[] = []
+  let triggerActionsRefresh = false
 
   const blocked = (reason: string): AdminChangePlan => ({
     changes,
     warnings,
     blocked: { reason },
     operations: [],
+    auditOperations: [],
+    triggerActionsRefresh: false,
   })
 
   // --- Cas 1 : swap avec parent ---
@@ -143,7 +186,7 @@ export async function planAdminChange(
       `L'inversion va déplacer le rôle Maître de "${parent.name}" vers "${entity.name}". L'ancien parent devient Suiveuse.`,
     )
 
-    return { changes, warnings, blocked: null, operations }
+    return { changes, warnings, blocked: null, operations, auditOperations, triggerActionsRefresh }
   }
 
   // --- Cas 2 : changement de type ---
@@ -268,9 +311,115 @@ export async function planAdminChange(
     }
   }
 
+  // --- Cas 5 : changement de SIRET ---
+  if (body.siret !== undefined) {
+    const newSiret = normalizeSiret(body.siret)
+    if (!isValidSiretFormat(newSiret)) {
+      return blocked('SIRET invalide : 14 chiffres exactement, sans espaces.')
+    }
+    if (newSiret !== entity.siret) {
+      const guard = await canChangeSiret(entity.id)
+      if (!guard.ok) {
+        return blocked(guard.reason ?? 'Modification du SIRET impossible.')
+      }
+      const available = await isSiretAvailable(newSiret, entity.id)
+      if (!available) {
+        return blocked('Une autre entité utilise déjà ce SIRET.')
+      }
+      if (guard.completedAudits > 0) {
+        warnings.push(
+          `${guard.completedAudits} audit(s) terminé(s) existent déjà pour cette entité : leurs attestations et rapports conserveront l'ancien SIRET. Le nouveau SIRET ne s'appliquera qu'aux audits à venir.`,
+        )
+      }
+      changes.push({
+        field: 'siret',
+        entityId: entity.id,
+        entityName: entity.name,
+        from: entity.siret,
+        to: newSiret,
+        fromLabel: entityLabel(entity.siret, 'siret'),
+        toLabel: entityLabel(newSiret, 'siret'),
+      })
+      operations.push({ entityId: entity.id, set: { siret: newSiret } })
+    }
+  }
+
+  // --- Cas 6 : changement d'OE rattaché ---
+  if (body.oeId !== undefined && body.oeId !== entity.oeId) {
+    const guard = await canChangeOe(entity)
+    if (!guard.ok) {
+      return blocked(guard.reason ?? 'Changement d\'OE impossible.')
+    }
+
+    let toLabel: string
+    let newOeName: string | undefined
+    if (body.oeId === null) {
+      toLabel = 'aucun (appel d\'offre)'
+    } else {
+      const newOe = await loadOeForAdmin(body.oeId)
+      if (!newOe) {
+        return blocked('Organisme évaluateur cible introuvable ou inactif.')
+      }
+      newOeName = newOe.name
+      toLabel = entityLabel(body.oeId, 'oe', newOe.name)
+    }
+
+    // Libellé du précédent OE
+    let oldOeName: string | undefined
+    if (entity.oeId) {
+      const oldOe = await loadOeForAdmin(entity.oeId)
+      oldOeName = oldOe?.name
+    }
+    const fromLabel = entity.oeId
+      ? entityLabel(entity.oeId, 'oe', oldOeName)
+      : 'aucun'
+
+    changes.push({
+      field: 'oeId',
+      entityId: entity.id,
+      entityName: entity.name,
+      from: entity.oeId,
+      to: body.oeId,
+      fromLabel,
+      toLabel,
+    })
+
+    // Mise à jour entité : oeId + (si retour en appel d'offre) couper l'accès documentaire
+    const entitySet: AdminOperation['set'] = { oeId: body.oeId }
+    if (body.oeId === null) {
+      entitySet.allowOeDocumentsAccess = false
+    } else if (body.allowOeDocumentsAccess !== undefined) {
+      entitySet.allowOeDocumentsAccess = body.allowOeDocumentsAccess
+    }
+    operations.push({ entityId: entity.id, set: entitySet })
+
+    // Répercussion sur l'audit en cours (s'il existe)
+    const ongoing = await loadOngoingAudit(entity.id)
+    if (ongoing) {
+      const auditSet: AdminAuditOperation['set'] = { oeId: body.oeId }
+      let statusChanged = false
+      if (body.oeId !== null && ongoing.status === AuditStatus.PENDING_OE_CHOICE) {
+        auditSet.status = ongoing.type === AuditType.MONITORING
+          ? AuditStatus.PLANNING
+          : AuditStatus.PENDING_OE_ACCEPTANCE
+        statusChanged = true
+      }
+      auditOperations.push({ auditId: ongoing.id, set: auditSet, statusChanged })
+      triggerActionsRefresh = true
+
+      if (body.oeId === null) {
+        warnings.push('L\'audit en cours est également repassé en mode appel d\'offre (OE désassigné).')
+      } else {
+        warnings.push(
+          `L'audit en cours sera mis à jour avec ${newOeName ?? 'le nouvel OE'}${statusChanged ? ` et son statut passera à ${auditSet.status}` : ''}.`,
+        )
+      }
+    }
+  }
+
   if (changes.length === 0) {
     return blocked('Aucun changement à appliquer.')
   }
 
-  return { changes, warnings, blocked: null, operations }
+  return { changes, warnings, blocked: null, operations, auditOperations, triggerActionsRefresh }
 }

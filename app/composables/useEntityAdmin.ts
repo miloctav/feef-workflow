@@ -5,10 +5,13 @@ export interface AdminChangeBody {
   type?: EntityTypeType
   parentGroupId?: number | null
   swapWithParent?: boolean
+  siret?: string
+  oeId?: number | null
+  allowOeDocumentsAccess?: boolean
 }
 
 export interface AdminChangeItem {
-  field: 'mode' | 'type' | 'parentGroupId'
+  field: 'mode' | 'type' | 'parentGroupId' | 'siret' | 'oeId'
   entityId: number
   entityName: string
   from: string | number | null

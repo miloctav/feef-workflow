@@ -1,8 +1,8 @@
-import { and, eq, isNull, ne } from 'drizzle-orm'
+import { and, eq, isNull, ne, desc } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { entities, audits } from '~~/server/database/schema'
-import { EntityType, EntityMode, AuditStatus } from '~~/shared/types/enums'
-import type { EntityTypeType, EntityModeType } from '~~/shared/types/enums'
+import { entities, audits, oes } from '~~/server/database/schema'
+import { EntityType, EntityMode, AuditStatus, AuditType } from '~~/shared/types/enums'
+import type { EntityTypeType, EntityModeType, AuditStatusType, AuditTypeType } from '~~/shared/types/enums'
 
 export interface ValidationResult {
   ok: boolean
@@ -19,6 +19,8 @@ export interface EntityForValidation {
   type: EntityTypeType
   mode: EntityModeType
   parentGroupId: number | null
+  siret: string
+  oeId: number | null
 }
 
 /**
@@ -33,6 +35,8 @@ export async function loadEntityForAdmin(entityId: number): Promise<EntityForVal
       type: true,
       mode: true,
       parentGroupId: true,
+      siret: true,
+      oeId: true,
     },
   })
   return entity ?? null
@@ -217,6 +221,134 @@ export function validateLinkCompatibility(
     return { ok: false, reason: 'Une entreprise ne peut être liée qu\'à un groupe suiveur.' }
   }
   return { ok: true }
+}
+
+/**
+ * Le SIRET d'une entité ne peut être modifié que si aucun audit non terminé n'est en
+ * cours. Une fois un audit clôturé (COMPLETED), la correction reste autorisée pour
+ * permettre la rectification d'une erreur de saisie initiale, mais les audits déjà
+ * passés conserveront le SIRET sur leurs pièces (attestations, rapports).
+ *
+ * Renvoie aussi le nombre d'audits terminés rattachés, à utiliser comme warning.
+ */
+export async function canChangeSiret(entityId: number): Promise<ValidationResult & { completedAudits: number }> {
+  const activeAudits = await countActiveAudits(entityId)
+  if (activeAudits > 0) {
+    return {
+      ok: false,
+      reason: `Impossible de modifier le SIRET : ${activeAudits} audit(s) non terminé(s). Le SIRET ne peut être corrigé qu'entre deux cycles d'audit.`,
+      completedAudits: 0,
+    }
+  }
+
+  const allAudits = await countAllAudits(entityId)
+  return { ok: true, completedAudits: allAudits }
+}
+
+/**
+ * Format normalisé du SIRET : 14 chiffres exactement, sans espaces.
+ */
+export function normalizeSiret(siret: string): string {
+  return siret.replace(/\s+/g, '')
+}
+
+export function isValidSiretFormat(siret: string): boolean {
+  return /^\d{14}$/.test(siret)
+}
+
+/**
+ * Vérifie qu'un SIRET n'est pas déjà utilisé par une autre entité non supprimée.
+ */
+export async function isSiretAvailable(siret: string, excludeEntityId: number): Promise<boolean> {
+  const existing = await db.query.entities.findFirst({
+    where: and(eq(entities.siret, siret), isNull(entities.deletedAt)),
+    columns: { id: true },
+  })
+  if (!existing) return true
+  return existing.id === excludeEntityId
+}
+
+/**
+ * Information sur le dernier audit, utilisée pour décider si l'OE peut être changé.
+ */
+export interface LastAuditSnapshot {
+  id: number
+  status: AuditStatusType
+  type: AuditTypeType
+}
+
+export async function loadLastAudit(entityId: number): Promise<LastAuditSnapshot | null> {
+  const lastAudit = await db.query.audits.findFirst({
+    where: and(eq(audits.entityId, entityId), isNull(audits.deletedAt)),
+    orderBy: desc(audits.createdAt),
+    columns: { id: true, status: true, type: true },
+  })
+  return lastAudit ?? null
+}
+
+/**
+ * Charge l'audit en cours (non COMPLETED) le plus récent, pour mise à jour
+ * simultanée lors d'un changement d'OE.
+ */
+export interface OngoingAuditSnapshot {
+  id: number
+  status: AuditStatusType
+  type: AuditTypeType
+  oeId: number | null
+}
+
+export async function loadOngoingAudit(entityId: number): Promise<OngoingAuditSnapshot | null> {
+  const ongoing = await db.query.audits.findFirst({
+    where: and(
+      eq(audits.entityId, entityId),
+      ne(audits.status, AuditStatus.COMPLETED),
+      isNull(audits.deletedAt),
+    ),
+    orderBy: desc(audits.createdAt),
+    columns: { id: true, status: true, type: true, oeId: true },
+  })
+  return ongoing ?? null
+}
+
+/**
+ * L'OE rattaché à une entité peut être changé selon les mêmes règles que pour
+ * l'auto-changement par l'entité elle-même :
+ * - aucun OE encore assigné → libre
+ * - aucun audit → libre
+ * - dernier audit MONITORING : doit être COMPLETED
+ * - dernier audit INITIAL/RENEWAL : statut doit être PENDING_OE_CHOICE ou
+ *   PENDING_CASE_APPROVAL
+ */
+export async function canChangeOe(entity: EntityForValidation): Promise<ValidationResult> {
+  if (!entity.oeId) {
+    return { ok: true }
+  }
+  const lastAudit = await loadLastAudit(entity.id)
+  if (!lastAudit) {
+    return { ok: true }
+  }
+  const allowed = lastAudit.type === AuditType.MONITORING
+    ? lastAudit.status === AuditStatus.COMPLETED
+    : lastAudit.status === AuditStatus.PENDING_OE_CHOICE
+      || lastAudit.status === AuditStatus.PENDING_CASE_APPROVAL
+  if (!allowed) {
+    return {
+      ok: false,
+      reason: 'Impossible de changer d\'OE : un audit est en cours ou le dernier audit n\'est pas un suivi terminé.',
+    }
+  }
+  return { ok: true }
+}
+
+/**
+ * Vérifie qu'un OE cible existe et n'est pas supprimé.
+ */
+export async function loadOeForAdmin(oeId: number): Promise<{ id: number; name: string } | null> {
+  const oe = await db.query.oes.findFirst({
+    where: and(eq(oes.id, oeId), isNull(oes.deletedAt)),
+    columns: { id: true, name: true },
+  })
+  return oe ?? null
 }
 
 /**
