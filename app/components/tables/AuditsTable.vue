@@ -330,7 +330,7 @@ const columns = computed(() => {
     },
     {
       accessorKey: 'plannedDate',
-      header: 'Date planifiée',
+      header: createSortableHeader('Date planifiée', 'plannedDate'),
       cell: ({ row }) => (row.original.plannedDate ? formatDate(row.original.plannedDate) : '-'),
     },
     {
