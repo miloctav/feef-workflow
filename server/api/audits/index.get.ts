@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, notInArray, or, sql } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { audits as auditsTable, entities } from '~~/server/database/schema'
 import {
@@ -9,6 +9,7 @@ import {
   formatPaginatedResponse,
 } from '~~/server/utils/pagination'
 import { Role, OERole } from '#shared/types/roles'
+import { AuditStatus } from '#shared/types/enums'
 import { getActionCountsForUser } from '~~/server/utils/getActionCountsForUser'
 
 /**
@@ -26,6 +27,9 @@ import { getActionCountsForUser } from '~~/server/utils/getActionCountsForUser'
  * - entityId: filtre par entité
  * - oeId: filtre par OE
  * - auditorId: filtre par auditeur
+ * - status: filtre par statut d'audit (support multiple via virgule)
+ * - year: filtre sur l'année de plannedDate (ex: 2026)
+ * - inProgress: si 'true', exclut les statuts COMPLETED, REFUSED_BY_OE, REFUSED_PLAN
  *
  * Note: La recherche globale n'est pas supportée car Drizzle ne permet pas de rechercher
  * sur les champs relationnels avec db.query.*. Utilisez les filtres à la place.
@@ -35,6 +39,7 @@ import { getActionCountsForUser } from '~~/server/utils/getActionCountsForUser'
  * - GET /api/audits?type=INITIAL&oeId=1
  * - GET /api/audits?sort=plannedDate:asc&type=INITIAL
  * - GET /api/audits?type=INITIAL,RENEWAL&auditorId=5
+ * - GET /api/audits?year=2026&inProgress=true
  */
 export default defineEventHandler(async (event) => {
   // Authentification requise
@@ -42,6 +47,13 @@ export default defineEventHandler(async (event) => {
 
 
   const query = getQuery(event)
+
+  // Extraire les filtres spéciaux qui ne sont pas gérés par le système de pagination standard
+  const yearFilter = query.year ? Number(query.year) : null
+  const inProgressOnly = query.inProgress === 'true' || query.inProgress === true
+  // Ne pas les passer au parseur de filtres standard
+  delete query.year
+  delete query.inProgress
 
 
   // Configuration de la pagination
@@ -67,6 +79,22 @@ export default defineEventHandler(async (event) => {
 
   // 2. Construire les conditions WHERE
   const whereConditions = await buildWhereConditions(params, config)
+
+  // Filtre par année sur la date planifiée
+  if (yearFilter && !Number.isNaN(yearFilter)) {
+    whereConditions.push(sql`EXTRACT(YEAR FROM ${auditsTable.plannedDate}) = ${yearFilter}`)
+  }
+
+  // Filtre "en cours uniquement" : exclut les statuts terminés et refusés
+  if (inProgressOnly) {
+    whereConditions.push(
+      notInArray(auditsTable.status, [
+        AuditStatus.COMPLETED,
+        AuditStatus.REFUSED_BY_OE,
+        AuditStatus.REFUSED_PLAN,
+      ])
+    )
+  }
 
   // Ajouter les filtres spécifiques par rôle
   if (user.role === Role.OE) {

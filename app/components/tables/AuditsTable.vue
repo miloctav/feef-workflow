@@ -19,41 +19,68 @@
       :get-item-name="(audit) => `l'audit de ${audit.entity.name}`"
     >
       <template #filters="{ filters, updateFilter }">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <FilterSelect
-            label="Type d'audit"
-            :model-value="filters.type"
-            @update:model-value="updateFilter('type', $event)"
-            :items="auditTypeItems"
-            placeholder="Type d'audit"
-          />
-          <FilterSelect
-            label="Statut"
-            :model-value="filters.status"
-            @update:model-value="updateFilter('status', $event)"
-            :items="auditStatusItems"
-            placeholder="Statut"
-            multiple
-          />
-          <FilterSelect
-            label="Organisme Évaluateur"
-            :model-value="filters.oeId"
-            @update:model-value="updateFilter('oeId', $event)"
-            :items="oeItems"
-            placeholder="OE"
-          />
-          <FilterSelect
-            v-if="user?.role !== Role.AUDITOR"
-            label="Auditeur"
-            :model-value="filters.auditorId"
-            @update:model-value="updateFilter('auditorId', $event)"
-            :items="auditorItems"
-            placeholder="Auditeur"
-          />
+        <div class="space-y-3">
+          <!-- Switch sur sa propre ligne -->
+          <div class="flex items-center gap-2">
+            <USwitch
+              :model-value="filters.inProgress === true"
+              @update:model-value="updateFilter('inProgress', $event ? true : undefined)"
+              label="Afficher uniquement les audits en cours"
+            />
+          </div>
+
+          <!-- Selects : 1 col mobile, 2 sm, 3 md, 4 lg, 5 xl -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <FilterSelect
+              label="Type d'audit"
+              :model-value="filters.type"
+              @update:model-value="updateFilter('type', $event)"
+              :items="auditTypeItems"
+              placeholder="Type d'audit"
+            />
+            <FilterSelect
+              label="Statut"
+              :model-value="filters.status"
+              @update:model-value="updateFilter('status', $event)"
+              :items="auditStatusItems"
+              placeholder="Statut"
+              multiple
+            />
+            <FilterSelect
+              label="Année (date planifiée)"
+              :model-value="filters.year"
+              @update:model-value="updateFilter('year', $event)"
+              :items="yearItems"
+              placeholder="Toutes les années"
+            />
+            <FilterSelect
+              label="Organisme Évaluateur"
+              :model-value="filters.oeId"
+              @update:model-value="updateFilter('oeId', $event)"
+              :items="oeItems"
+              placeholder="OE"
+            />
+            <FilterSelect
+              v-if="user?.role !== Role.AUDITOR"
+              label="Auditeur"
+              :model-value="filters.auditorId"
+              @update:model-value="updateFilter('auditorId', $event)"
+              :items="auditorItems"
+              placeholder="Auditeur"
+            />
+          </div>
         </div>
       </template>
 
       <template #filter-badges="{ filters }">
+        <UBadge
+          v-if="filters.inProgress === true"
+          variant="subtle"
+          color="primary"
+          size="sm"
+        >
+          En cours uniquement
+        </UBadge>
         <UBadge
           v-if="filters.type != null"
           variant="subtle"
@@ -69,6 +96,14 @@
           size="sm"
         >
           Statut: {{ filters.status.map((s: AuditStatusType) => getAuditStatusLabel(s)).join(', ') }}
+        </UBadge>
+        <UBadge
+          v-if="filters.year != null"
+          variant="subtle"
+          color="info"
+          size="sm"
+        >
+          Année: {{ filters.year }}
         </UBadge>
         <UBadge
           v-if="filters.oeId != null"
@@ -121,12 +156,23 @@ const route = useRoute()
 
 // Lire le filtre status depuis l'URL
 const urlStatus = route.query.status as string | undefined
-const initialFilters = urlStatus
+// Par défaut : afficher uniquement les audits en cours, sauf si un filtre statut est passé via l'URL
+const initialFilters: Record<string, any> = urlStatus
   ? { status: urlStatus.includes(',') ? urlStatus.split(',') : [urlStatus] }
-  : undefined
+  : { inProgress: true }
 
-// Items pour le filtre statut (pas d'option "Tous" — un array vide = pas de filtre)
+// Items pour le filtre statut (pas d'option "Tous", un array vide = pas de filtre)
 const auditStatusItems = getAuditStatusItems(false)
+
+// Items pour le filtre année (année courante, 3 ans, 2 ans à venir)
+const currentYear = new Date().getFullYear()
+const yearItems: Array<{ label: string; value: number | null }> = [
+  { label: 'Toutes les années', value: null },
+  ...Array.from({ length: 6 }, (_, i) => {
+    const y = currentYear + 2 - i
+    return { label: String(y), value: y }
+  }),
+]
 
 // Composable pour gérer les audits (avec entityId et filtres URL si fournis)
 const {
