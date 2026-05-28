@@ -7,7 +7,16 @@ definePageMeta({
 })
 
 const router = useRouter()
+const route = useRoute()
 const { login, loginLoading, loginError, clearLoginError, set2FAAccountId } = useAuth()
+
+// Sanitise la valeur de ?redirect= pour empêcher les open redirects (chemins externes ou protocole-relative).
+const safeRedirect = computed(() => {
+  const raw = route.query.redirect
+  if (typeof raw !== 'string') return null
+  if (!raw.startsWith('/') || raw.startsWith('//')) return null
+  return raw
+})
 
 const fields: AuthFormField[] = [
   {
@@ -44,11 +53,14 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     if (result.requiresTwoFactor && result.accountId) {
       // Stocker l'accountId
       set2FAAccountId(result.accountId)
-      // Rediriger vers la page de vérification 2FA
-      await router.push('/verify-2fa')
+      // Conserver le redirect pour le passer à la page 2FA
+      const target = safeRedirect.value
+        ? `/verify-2fa?redirect=${encodeURIComponent(safeRedirect.value)}`
+        : '/verify-2fa'
+      await router.push(target)
     } else {
-      // Rediriger vers la page d'accueil
-      await router.push('/')
+      // Rediriger vers la destination demandée, sinon page d'accueil
+      await router.push(safeRedirect.value || '/')
     }
   }
 }

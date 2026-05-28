@@ -7,7 +7,16 @@ definePageMeta({
 })
 
 const router = useRouter()
+const route = useRoute()
 const { twoFactorAccountId, clear2FA, is2FAExpired, refreshSession } = useAuth()
+
+// Sanitise la valeur de ?redirect= pour empêcher les open redirects.
+const safeRedirect = computed(() => {
+  const raw = route.query.redirect
+  if (typeof raw !== 'string') return null
+  if (!raw.startsWith('/') || raw.startsWith('//')) return null
+  return raw
+})
 
 // Vérifier que l'utilisateur a un accountId valide au montage
 onMounted(() => {
@@ -84,8 +93,8 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       // Nettoyer les données 2FA
       clear2FA()
 
-      // Rediriger vers la page d'accueil
-      await router.push('/')
+      // Rediriger vers la destination demandée, sinon page d'accueil
+      await router.push(safeRedirect.value || '/')
     }
   } catch (err: any) {
     if (err.data?.data?.attemptsRemaining !== undefined) {
