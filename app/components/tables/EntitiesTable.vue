@@ -91,7 +91,7 @@
           />
         </UBadge>
         <UBadge
-          v-if="filters.type !== null"
+          v-if="filters.type != null"
           variant="subtle"
           color="primary"
           size="sm"
@@ -99,7 +99,7 @@
           Type: {{ getFilterLabel('type', filters.type) }}
         </UBadge>
         <UBadge
-          v-if="filters.mode !== null"
+          v-if="filters.mode != null"
           variant="subtle"
           color="secondary"
           size="sm"
@@ -107,7 +107,7 @@
           Mode: {{ getFilterLabel('mode', filters.mode) }}
         </UBadge>
         <UBadge
-          v-if="filters.oeId !== null"
+          v-if="filters.oeId != null"
           variant="subtle"
           color="info"
           size="sm"
@@ -115,7 +115,7 @@
           OE: {{ getFilterLabel('oeId', filters.oeId) }}
         </UBadge>
         <UBadge
-          v-if="filters.accountManagerId !== null"
+          v-if="filters.accountManagerId != null"
           variant="subtle"
           color="success"
           size="sm"

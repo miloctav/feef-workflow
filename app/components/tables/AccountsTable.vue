@@ -55,7 +55,7 @@
 
       <template #filter-badges="{ filters }">
         <UBadge
-          v-if="filters.entityRole !== null"
+          v-if="filters.entityRole != null"
           variant="subtle"
           color="primary"
           size="sm"
@@ -63,7 +63,7 @@
           Rôle entité: {{ getFilterLabel('entityRole', filters.entityRole) }}
         </UBadge>
         <UBadge
-          v-if="filters.oeRole !== null"
+          v-if="filters.oeRole != null"
           variant="subtle"
           color="primary"
           size="sm"
@@ -71,7 +71,7 @@
           Rôle OE: {{ getFilterLabel('oeRole', filters.oeRole) }}
         </UBadge>
         <UBadge
-          v-if="filters.role !== null"
+          v-if="filters.role != null"
           variant="subtle"
           color="primary"
           size="sm"
