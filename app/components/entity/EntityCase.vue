@@ -467,6 +467,13 @@ const hasMasterEntityInfo = computed(() => {
               </div>
             </UBadge>
           </div>
+
+          <!-- Menu d'administration FEEF (compact, dans le header) -->
+          <EntityAdminMenu
+            v-if="displayEntity"
+            :entity="displayEntity"
+            :on-refresh="handleRefreshEntity"
+          />
         </div>
       </template>
 

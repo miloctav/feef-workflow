@@ -77,6 +77,7 @@ const loadAvailableEntities = async () => {
 
 const entityItems = computed(() =>
   availableEntities.value.map(e => ({
+    label: e.name,
     value: e.id
   }))
 )
@@ -196,13 +197,22 @@ watch(mode, (newMode) => {
 
         <!-- Mode liaison -->
         <div v-if="mode === 'link'" class="space-y-4">
-          <UFormField :label="entityType === 'GROUP' ? 'Entreprise suiveuse' : 'Groupe suiveur'">
-            <USelectMenu v-model="selectedEntityId" :items="entityItems" :loading="loadingEntities" value-key="value"
-              placeholder="Sélectionner une entité..." searchable class="w-full" />
-          </UFormField>
-          <p v-if="entityItems.length === 0 && !loadingEntities" class="text-sm text-gray-500">
-            Aucune entité suiveuse disponible
-          </p>
+          <template v-if="loadingEntities || entityItems.length > 0">
+            <UFormField :label="entityType === 'GROUP' ? 'Entreprise suiveuse' : 'Groupe suiveur'">
+              <USelectMenu v-model="selectedEntityId" :items="entityItems" :loading="loadingEntities" value-key="value"
+                placeholder="Sélectionner une entité..." searchable class="w-full" />
+            </UFormField>
+          </template>
+          <UAlert
+            v-else
+            color="warning"
+            variant="soft"
+            icon="i-lucide-triangle-alert"
+            :title="entityType === 'GROUP' ? 'Aucune entreprise suiveuse orpheline' : 'Aucun groupe suiveur orphelin'"
+            :description="entityType === 'GROUP'
+              ? 'Il n\'existe aucune entreprise en mode Suiveur sans groupe parent à rattacher. Utilisez « Créer » pour en ajouter une nouvelle.'
+              : 'Il n\'existe aucun groupe en mode Suiveur disponible à rattacher. Utilisez « Créer » pour en ajouter un nouveau.'"
+          />
         </div>
 
         <!-- Mode création -->

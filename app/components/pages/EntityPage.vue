@@ -3,23 +3,8 @@
     v-if="currentEntity"
     class="space-y-6"
   >
-    <!-- En-tête avec le nom de l'entreprise -->
-    <div class="bg-white">
-      <div class="px-6 py-4">
-        <div class="flex items-center gap-4">
-          <UIcon
-            name="i-lucide-building-2"
-            class="w-10 h-10 text-primary"
-          />
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">{{ currentEntity.name }}</h1>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Contenu principal -->
-    <div class="px-6">
+    <div class="px-6 pt-6">
       <!-- Cas Entité Suiveuse : Pas d'onglets, direct le dossier -->
       <div
         v-if="currentEntity.mode === EntityMode.FOLLOWER"
