@@ -95,13 +95,17 @@ export default defineNuxtConfig({
     seedToken: '',
 
     // Session configuration
+    // session.maxAge pilote le TTL du seal iron (limite de vie absolue de la session)
+    // cookie.maxAge pilote l'attribut Max-Age du cookie (fenêtre sliding réémise à chaque update)
     session: {
-      maxAge: 60 * 30, // 30 min (sliding session)
+      maxAge: 60 * 60 * 8, // 8h, limite absolue (TTL du seal)
+      cookie: {
+        maxAge: 60 * 30, // 30 min, fenêtre sliding du cookie
+      },
     },
 
-    // Sliding session configuration
-    sessionRefreshThreshold: 60 * 15,   // 15 min — seuil de renouvellement
-    sessionAbsoluteMaxAge: 60 * 60 * 8, // 8h — durée de vie absolue
+    // Seuil de renouvellement du cookie (réémission via replaceUserSession dans le middleware)
+    sessionRefreshThreshold: 60 * 15, // 15 min
 
     // Email (Resend)
     resend: {
