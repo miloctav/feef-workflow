@@ -62,6 +62,19 @@
         </div>
       </template>
 
+      <template #actions>
+        <UButton
+          color="neutral"
+          variant="outline"
+          size="sm"
+          icon="i-lucide-download"
+          :loading="exportLoading"
+          @click="handleExportCsv"
+        >
+          Exporter CSV
+        </UButton>
+      </template>
+
       <template #filter-badges="{ filters }">
         <UBadge
           v-if="filters.dashboardFilter"
@@ -550,7 +563,48 @@ const state = reactive({
 })
 
 const createLoading = ref(false)
+const exportLoading = ref(false)
 const form = ref()
+
+const toast = useToast()
+
+const handleExportCsv = async () => {
+  exportLoading.value = true
+
+  try {
+    const query: Record<string, any> = {}
+
+    if (params.search.value) query.search = params.search.value
+    if (params.sort.value) query.sort = params.sort.value
+
+    for (const [key, value] of Object.entries(params.filters.value)) {
+      if (value === null || value === undefined || value === '') continue
+      query[key] = Array.isArray(value) ? value.join(',') : value
+    }
+
+    const blob = await $fetch<Blob>('/api/entities/export', {
+      query,
+      responseType: 'blob',
+    })
+
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `entites-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } catch (e: any) {
+    toast.add({
+      title: 'Erreur',
+      description: e.data?.message || e.message || "Erreur lors de l'export CSV",
+      color: 'error',
+    })
+  } finally {
+    exportLoading.value = false
+  }
+}
 
 // Réinitialiser le formulaire (fonction appelée par PaginatedTable pour la création)
 const handleFormReset = () => {

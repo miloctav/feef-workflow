@@ -30,10 +30,15 @@
           </UInput>
         </div>
 
-        <!-- Bouton d'ajout -->
-        <UButton v-if="hasAddButton" color="primary" :icon="addButtonIcon" size="sm" @click="openCreateModal">
-          {{ addButtonText }}
-        </UButton>
+        <div class="flex items-center gap-2">
+          <!-- Slot pour des actions personnalisées (ex: export CSV) -->
+          <slot name="actions" />
+
+          <!-- Bouton d'ajout -->
+          <UButton v-if="hasAddButton" color="primary" :icon="addButtonIcon" size="sm" @click="openCreateModal">
+            {{ addButtonText }}
+          </UButton>
+        </div>
       </div>
     </div>
 
