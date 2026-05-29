@@ -4,7 +4,6 @@ import { Pool } from 'pg'
 import Papa from 'papaparse'
 import { readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
-import * as XLSX from 'xlsx'
 import { eq, isNull, isNotNull } from 'drizzle-orm'
 import { audits, entities, accounts, oes, notifications, events, actions, auditNotation, documentVersions } from '../schema'
 import { normalizeSiret, isUsableSiret } from './read-completed-xlsx'
@@ -707,18 +706,30 @@ async function seedAudits() {
       aoa.push(headers.map(h => r[h.key]))
     }
 
-    const ws = XLSX.utils.aoa_to_sheet(aoa)
-    ws['!cols'] = headers.map(h => ({ wch: h.width }))
-    ws['!autofilter'] = { ref: `A1:${XLSX.utils.encode_col(headers.length - 1)}${aoa.length}` }
-    ws['!views'] = [{ state: 'frozen', ySplit: 1 }]
+    // Le package « xlsx » n'est qu'une devDependency : il est absent de
+    // l'image de production (deps élaguées). On l'importe donc dynamiquement
+    // et on dégrade proprement vers le seul CSV si l'export xlsx échoue.
+    try {
+      const xlsxModule = await import('xlsx')
+      // Interop CJS/ESM : selon le loader, le module est sous .default ou à plat.
+      const XLSX = ((xlsxModule as { default?: unknown }).default ?? xlsxModule) as typeof import('xlsx')
 
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Doublons ECOCERT_ID')
+      const ws = XLSX.utils.aoa_to_sheet(aoa)
+      ws['!cols'] = headers.map(h => ({ wch: h.width }))
+      ws['!autofilter'] = { ref: `A1:${XLSX.utils.encode_col(headers.length - 1)}${aoa.length}` }
+      ws['!views'] = [{ state: 'frozen', ySplit: 1 }]
 
-    const duplicatesXlsxPath = resolve(import.meta.dirname, `rapport-ecocert-duplicates-${date}.xlsx`)
-    XLSX.writeFile(wb, duplicatesXlsxPath)
-    console.log(`📄 Rapport doublons ECOCERT_ID (XLSX) : ${duplicatesXlsxPath}`)
-    console.log(`   ${duplicates.length} entité(s), ${lines.length} ligne(s CSV) / ${entityRows.length} ligne(s XLSX)`)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Doublons ECOCERT_ID')
+
+      const duplicatesXlsxPath = resolve(import.meta.dirname, `rapport-ecocert-duplicates-${date}.xlsx`)
+      XLSX.writeFile(wb, duplicatesXlsxPath)
+      console.log(`📄 Rapport doublons ECOCERT_ID (XLSX) : ${duplicatesXlsxPath}`)
+      console.log(`   ${duplicates.length} entité(s), ${lines.length} ligne(s CSV) / ${entityRows.length} ligne(s XLSX)`)
+    }
+    catch {
+      console.warn('⚠️  Rapport XLSX ignoré (package « xlsx » indisponible), le CSV équivalent a été produit.')
+    }
   }
 
   await pool.end()
