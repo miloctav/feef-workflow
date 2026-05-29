@@ -2,11 +2,11 @@ import 'dotenv/config'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import Papa from 'papaparse'
-import { writeFileSync } from 'fs'
+import { readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
 import { eq, sql } from 'drizzle-orm'
 import { entities, accounts, oes, entityFieldVersions } from '../schema'
-import { readCompletedXlsx, isUsableSiret, type CompletedXlsxRow } from './read-completed-xlsx'
+import { readCompletedXlsx, isUsableSiret, normalizeSiret, type CompletedXlsxRow } from './read-completed-xlsx'
 
 // ============================================================
 // Source unique : le fichier Excel « entités complétées » renvoyé par
@@ -491,19 +491,87 @@ async function seedEntities() {
   // ──────────────────────────────────────────────────────────
   console.log('📋 Passe 2 : création des entités mères (GROUP)...\n')
 
-  /** Clé unique d'un parent : par SIRET si exploitable, sinon par nom. */
-  function parentKey(siret: string, name: string): string | null {
-    if (isUsableSiret(siret)) return 'S:' + siret
-    if (name) return 'N:' + name.toUpperCase().replace(/\s+/g, ' ').trim()
+  // ──────────────────────────────────────────────────────────
+  // Overrides de parent validés par la FEEF (voir parent-name-overrides.csv).
+  //
+  // Le fichier source référence certains parents par NOM uniquement, sans
+  // SIRET. Le seed fabriquait alors un faux SIRET (« FAKExxxxxxxxxx ») et
+  // créait un groupe en doublon du vrai compte déjà présent en base. La
+  // FEEF a tranché ces cas un par un :
+  //   - targetSiret renseigné → on rattache au compte réel correspondant
+  //     (et on le marque GROUP si makeGroup = Oui), au lieu du faux groupe.
+  //   - targetSiret vide → suppression : pas de groupe créé, les filles
+  //     restent autonomes (MASTER sans parent).
+  // ──────────────────────────────────────────────────────────
+  function normalizeParentName(raw: string): string {
+    return (raw ?? '')
+      .toUpperCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '') // supprime les accents
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
+  type ParentOverride = { targetSiret: string | null; makeGroup: boolean }
+  const parentOverrides = new Map<string, ParentOverride>()
+  try {
+    const overridePath = resolve(import.meta.dirname, 'parent-name-overrides.csv')
+    const overrideRows = Papa.parse<{ parentName: string; targetSiret: string; makeGroup: string }>(
+      readFileSync(overridePath, 'utf-8'),
+      { header: true, skipEmptyLines: true, transformHeader: (h) => h.trim() },
+    ).data
+    for (const o of overrideRows) {
+      const key = normalizeParentName(o.parentName ?? '')
+      if (!key) continue
+      const target = normalizeSiret(o.targetSiret ?? '')
+      parentOverrides.set(key, {
+        targetSiret: isUsableSiret(target) ? target : null,
+        makeGroup: (o.makeGroup ?? '').trim().toLowerCase() === 'oui',
+      })
+    }
+  }
+  catch {
+    // Fichier d'overrides absent : comportement historique (faux SIRET).
+  }
+  console.log(`🎯 ${parentOverrides.size} override(s) de parent FEEF\n`)
+
+  /**
+   * Résout le parent effectif d'une ligne, overrides FEEF appliqués :
+   *   - SIRET parent réel présent dans le fichier → prioritaire.
+   *   - sinon parent par nom : on applique l'override (remap ou suppression).
+   *   - sinon (pas d'override) : ancien comportement (faux SIRET déterministe).
+   * Renvoie null quand la ligne n'a pas de parent (ou override « suppression »).
+   */
+  type EffectiveParent = { key: string; siret: string; name: string; makeGroup: boolean }
+  function effectiveParent(row: CompletedXlsxRow): EffectiveParent | null {
+    if (isUsableSiret(row.parentSiret)) {
+      return { key: 'S:' + row.parentSiret, siret: row.parentSiret, name: row.parentName, makeGroup: false }
+    }
+    if (row.parentName) {
+      const override = parentOverrides.get(normalizeParentName(row.parentName))
+      if (override) {
+        if (!override.targetSiret) return null // suppression : fille autonome
+        return { key: 'S:' + override.targetSiret, siret: override.targetSiret, name: row.parentName, makeGroup: override.makeGroup }
+      }
+      return { key: 'N:' + normalizeParentName(row.parentName), siret: '', name: row.parentName, makeGroup: false }
+    }
     return null
   }
 
   // Parents distincts référencés par les lignes importables.
-  const parentsByKey = new Map<string, { siret: string; name: string }>()
+  // makeGroup est fusionné en OU : si une seule occurrence du parent demande
+  // le passage en GROUP (override), il s'applique même si une autre ligne
+  // référence le même compte via son SIRET réel.
+  const parentsByKey = new Map<string, { siret: string; name: string; makeGroup: boolean }>()
   for (const row of importableRows) {
-    const key = parentKey(row.parentSiret, row.parentName)
-    if (key && !parentsByKey.has(key)) {
-      parentsByKey.set(key, { siret: row.parentSiret, name: row.parentName })
+    const p = effectiveParent(row)
+    if (!p) continue
+    const existing = parentsByKey.get(p.key)
+    if (!existing) {
+      parentsByKey.set(p.key, { siret: p.siret, name: p.name, makeGroup: p.makeGroup })
+    }
+    else if (p.makeGroup) {
+      existing.makeGroup = true
     }
   }
 
@@ -532,6 +600,20 @@ async function seedEntities() {
         ? parent.siret
         : fakeSiretFromName(parent.name)
 
+      // Faux SIRET = parent référencé par nom seul SANS override FEEF.
+      // On le signale pour qu'un nouvel import non couvert soit corrigé
+      // dans parent-name-overrides.csv plutôt que de recréer un doublon.
+      if (!isUsableSiret(parent.siret)) {
+        report.push({
+          passe: 'Passe 2 - Entités mères',
+          ligne: '',
+          siret: siretToUse,
+          nom: parent.name,
+          probleme: 'Parent sans SIRET et sans override (faux SIRET généré)',
+          details: `Ajouter une ligne dans parent-name-overrides.csv pour « ${parent.name} »`,
+        })
+      }
+
       // Existence : on vérifie toujours par le SIRET qui sera utilisé
       // (vrai ou factice), pour que la passe reste idempotente.
       const [existing] = await db
@@ -541,6 +623,15 @@ async function seedEntities() {
         .limit(1)
 
       if (existing) {
+        // Override « famille B » : le compte réel cible devient tête de
+        // groupe (passe en GROUP) au lieu du faux groupe historique.
+        if (parent.makeGroup && existing.type !== 'GROUP') {
+          await db
+            .update(entities)
+            .set({ type: 'GROUP', updatedBy: createdBy, updatedAt: new Date() })
+            .where(eq(entities.id, existing.id))
+          console.log(`  🔁 Compte « ${existing.name} » passé en GROUP (SIRET ${existing.siret})`)
+        }
         parentIdByKey.set(key, existing.id)
         meresExisting++
         continue
@@ -575,7 +666,7 @@ async function seedEntities() {
 
       parentIdByKey.set(key, inserted.id)
       meresCreated++
-      console.log(`  ✅ Mère créée (GROUP) : ${parent.name} — SIRET: ${siretToUse}`)
+      console.log(`  ✅ Mère créée (GROUP) : ${parent.name} | SIRET: ${siretToUse}`)
     }
     catch (error) {
       console.error(`  ❌ Erreur mère "${parent.name}" : ${error}`)
@@ -627,8 +718,8 @@ async function seedEntities() {
   let linkErrors = 0
 
   for (const row of importableRows) {
-    const key = parentKey(row.parentSiret, row.parentName)
-    if (!key) continue
+    const p = effectiveParent(row)
+    if (!p) continue // pas de parent, ou override « suppression » → fille autonome
 
     const filleId = resolveEntityId(row)
     if (!filleId) {
@@ -644,7 +735,7 @@ async function seedEntities() {
       continue
     }
 
-    const mereId = parentIdByKey.get(key)
+    const mereId = parentIdByKey.get(p.key)
     if (!mereId) {
       report.push({
         passe: 'Passe 3 - Liens mère-fille',
@@ -703,6 +794,70 @@ async function seedEntities() {
   console.log('─── Passe 3 ───────────────────────────')
   console.log(`🔗 Liens créés : ${linked}`)
   console.log(`❌ Erreurs     : ${linkErrors}`)
+  console.log('────────────────────────────────────────\n')
+
+  // ──────────────────────────────────────────────────────────
+  // PASSE 3bis — Rattachements forcés validés par la FEEF
+  //
+  // Certaines filles doivent être rattachées à un compte mère que le
+  // fichier source ne référence pas (ex. SALAISONS BERNARD et LE BATISTOU
+  // → holding SAVEURS ET TRADITIONS CONSEIL). Voir forced-parent-links.csv.
+  // Le compte mère est marqué GROUP et la fille passe en FOLLOWER si le
+  // « parent administratif » vaut Oui, sinon elle reste MASTER.
+  // ──────────────────────────────────────────────────────────
+  console.log('📋 Passe 3bis : rattachements forcés (FEEF)...\n')
+
+  let forcedLinked = 0
+  try {
+    const forcedPath = resolve(import.meta.dirname, 'forced-parent-links.csv')
+    const forcedRows = Papa.parse<{ childSiret: string; parentSiret: string; parentAdmin: string }>(
+      readFileSync(forcedPath, 'utf-8'),
+      { header: true, skipEmptyLines: true, transformHeader: (h) => h.trim() },
+    ).data
+    for (const f of forcedRows) {
+      const childSiret = normalizeSiret(f.childSiret ?? '')
+      const parentSiret = normalizeSiret(f.parentSiret ?? '')
+      if (!isUsableSiret(childSiret) || !isUsableSiret(parentSiret)) continue
+
+      const childId = entityIdBySiret.get(childSiret)
+      const mereId = entityIdBySiret.get(parentSiret)
+      if (!childId || !mereId || childId === mereId) {
+        report.push({
+          passe: 'Passe 3bis - Rattachements forcés',
+          ligne: '',
+          siret: childSiret,
+          nom: '',
+          probleme: 'Rattachement forcé impossible',
+          details: `fille=${childSiret} (${childId ?? 'absente'}) | mère=${parentSiret} (${mereId ?? 'absente'})`,
+        })
+        continue
+      }
+
+      const isFollower = (f.parentAdmin ?? '').trim().toLowerCase() === 'oui'
+      // Le compte mère devient tête de groupe.
+      await db
+        .update(entities)
+        .set({ type: 'GROUP', updatedBy: createdBy, updatedAt: new Date() })
+        .where(eq(entities.id, mereId))
+      await db
+        .update(entities)
+        .set({
+          parentGroupId: mereId,
+          mode: isFollower ? 'FOLLOWER' : 'MASTER',
+          updatedBy: createdBy,
+          updatedAt: new Date(),
+        })
+        .where(eq(entities.id, childId))
+      forcedLinked++
+      console.log(`  🔗 Forcé : ${childSiret} → mère ${parentSiret}`)
+    }
+  }
+  catch {
+    // Fichier absent : aucun rattachement forcé.
+  }
+
+  console.log('─── Passe 3bis ────────────────────────')
+  console.log(`🔗 Rattachements forcés : ${forcedLinked}`)
   console.log('────────────────────────────────────────\n')
 
   // ──────────────────────────────────────────────────────────
