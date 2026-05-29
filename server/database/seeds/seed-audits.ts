@@ -4,6 +4,7 @@ import { Pool } from 'pg'
 import Papa from 'papaparse'
 import { readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
+import * as XLSX from 'xlsx'
 import { eq, isNull, isNotNull } from 'drizzle-orm'
 import { audits, entities, accounts, oes, notifications, events, actions, auditNotation, documentVersions } from '../schema'
 import { normalizeSiret, isUsableSiret } from './read-completed-xlsx'
@@ -281,9 +282,14 @@ async function seedAudits() {
   // (9 premiers chiffres) et par nom normalisé. Les audits sont
   // rattachés en cascade : SIRET exact → SIREN → nom.
   // ──────────────────────────────────────────────────────────
-  type EntityRef = { id: number; name: string; siret: string }
+  type EntityRef = { id: number; name: string; siret: string; ecocertIdDb: string | null }
   const liveEntities = await db
-    .select({ id: entities.id, name: entities.name, siret: entities.siret })
+    .select({
+      id: entities.id,
+      name: entities.name,
+      siret: entities.siret,
+      ecocertIdDb: entities.ecocertId,
+    })
     .from(entities)
     .where(isNull(entities.deletedAt))
 
@@ -367,6 +373,21 @@ async function seedAudits() {
   }
 
   const report: ReportLine[] = []
+
+  // Suivi des ECOCERT_ID distincts par entité, pour produire en fin
+  // d'import un rapport des entités rattachées à plusieurs dossiers
+  // Ecocert. C'est ici qu'on dispose à la fois de l'entité résolue et
+  // de l'ECOCERT_ID brut de la ligne ; après l'insertion, l'info ne
+  // serait plus reconstituable depuis la base (audits ne stocke pas
+  // d'ECOCERT_ID).
+  type EcocertStats = {
+    count: number
+    clientNames: Set<string>
+    seasons: Set<string>
+    matchVias: Set<MatchVia>
+  }
+  const ecocertIdsByEntity = new Map<number, { entity: EntityRef; byEcocert: Map<string, EcocertStats> }>()
+
   let created = 0
   let skippedNoSiret = 0
   let skippedNotFound = 0
@@ -412,6 +433,28 @@ async function seedAudits() {
     }
 
     const entity = match.entity
+
+    // Accumulation pour le rapport des entités multi-ECOCERT_ID.
+    if (ecocertId) {
+      if (!ecocertIdsByEntity.has(entity.id)) {
+        ecocertIdsByEntity.set(entity.id, { entity, byEcocert: new Map() })
+      }
+      const bucket = ecocertIdsByEntity.get(entity.id)!
+      if (!bucket.byEcocert.has(ecocertId)) {
+        bucket.byEcocert.set(ecocertId, {
+          count: 0,
+          clientNames: new Set(),
+          seasons: new Set(),
+          matchVias: new Set(),
+        })
+      }
+      const stats = bucket.byEcocert.get(ecocertId)!
+      stats.count++
+      if (clientName) stats.clientNames.add(clientName)
+      const season = (row['SEASON'] ?? '').trim()
+      if (season) stats.seasons.add(season)
+      stats.matchVias.add(match.via)
+    }
 
     // Les rattachements non exacts (SIREN, ECOCERT_ID ou nom) sont
     // tracés dans le rapport pour vérification par la FEEF. Les
@@ -499,6 +542,184 @@ async function seedAudits() {
   console.log('────────────────────────────────────────')
 
   writeReport(report, import.meta.dirname)
+
+  // ──────────────────────────────────────────────────────────
+  // Rapport des entités rattachées à plusieurs ECOCERT_ID.
+  //
+  // Permet de visualiser les écarts avec Ecocert : entités FEEF dont
+  // plusieurs « dossiers » Ecocert (ECOCERT_ID) pointent vers elles.
+  // Une ligne par couple (entité, ECOCERT_ID), pour faciliter le tri
+  // et le filtrage côté Excel.
+  // ──────────────────────────────────────────────────────────
+  const duplicates = [...ecocertIdsByEntity.values()].filter(b => b.byEcocert.size > 1)
+  console.log(`\n🚨 ${duplicates.length} entité(s) avec plusieurs ECOCERT_ID distincts`)
+
+  if (duplicates.length > 0) {
+    duplicates.sort((a, b) => a.entity.name.localeCompare(b.entity.name, 'fr'))
+
+    /**
+     * Catégorisation heuristique d'une entité ayant plusieurs ECOCERT_ID.
+     * Priorité décroissante : un même cas peut cocher plusieurs cases,
+     * on retient la plus actionnable.
+     *
+     *  1. « Doublon interne Ecocert » : deux ECOCERT_ID couvrent la même
+     *     saison, donc deux dossiers ouverts simultanément côté Ecocert.
+     *     C'est anormal et à remonter en priorité à Ecocert.
+     *  2. « Multi-sites probables » : au moins un nom client mentionne
+     *     « site ». Plusieurs établissements de la même personne morale
+     *     audités séparément. Décision interne FEEF.
+     *  3. « À investiguer » : tout le reste (bascule d'ID, rattachements
+     *     fragiles par nom...). Revue manuelle au cas par cas.
+     */
+    function categorize(byEcocert: Map<string, EcocertStats>): string {
+      const seasonCounts = new Map<string, number>()
+      for (const stats of byEcocert.values()) {
+        for (const season of stats.seasons) {
+          seasonCounts.set(season, (seasonCounts.get(season) ?? 0) + 1)
+        }
+      }
+      if ([...seasonCounts.values()].some(c => c > 1)) {
+        return 'Doublon interne Ecocert'
+      }
+      for (const stats of byEcocert.values()) {
+        for (const name of stats.clientNames) {
+          if (/\bsite\b/i.test(name)) return 'Multi-sites probables'
+        }
+      }
+      return 'À investiguer'
+    }
+
+    type DuplicateLine = {
+      categorie: string
+      nom_feef: string
+      siret_feef: string
+      ecocert_id_feef_db: string
+      nb_ecocert_ids_distincts: number
+      ecocert_id_ecocert: string
+      nb_audits: number
+      noms_client_ecocert: string
+      saisons: string
+      rattachement_via: string
+      match_ecocert_id_feef: string
+    }
+    const lines: DuplicateLine[] = []
+
+    for (const bucket of duplicates) {
+      const { entity } = bucket
+      const category = categorize(bucket.byEcocert)
+      const ecocertIds = [...bucket.byEcocert.keys()].sort()
+      for (const ecocertId of ecocertIds) {
+        const stats = bucket.byEcocert.get(ecocertId)!
+        lines.push({
+          categorie: category,
+          nom_feef: entity.name,
+          siret_feef: entity.siret,
+          ecocert_id_feef_db: entity.ecocertIdDb ?? '',
+          nb_ecocert_ids_distincts: bucket.byEcocert.size,
+          ecocert_id_ecocert: ecocertId,
+          nb_audits: stats.count,
+          noms_client_ecocert: [...stats.clientNames].join(' | '),
+          saisons: [...stats.seasons].sort().join(', '),
+          rattachement_via: [...stats.matchVias].join(', '),
+          match_ecocert_id_feef: entity.ecocertIdDb === ecocertId ? 'Oui' : 'Non',
+        })
+      }
+    }
+
+    const date = new Date().toISOString().slice(0, 10)
+
+    // CSV (machine-readable, à conserver dans le repo)
+    const duplicatesCsvPath = resolve(import.meta.dirname, `rapport-ecocert-duplicates-${date}.csv`)
+    const csv = Papa.unparse(lines, { delimiter: ';' })
+    writeFileSync(duplicatesCsvPath, '﻿' + csv, 'utf-8') // BOM pour Excel
+    console.log(`📄 Rapport doublons ECOCERT_ID (CSV)  : ${duplicatesCsvPath}`)
+
+    // XLSX (format à transmettre à la FEEF, plus présentable)
+    //
+    // Contrairement au CSV, le xlsx pivote sur une ligne par entité FEEF :
+    // les ECOCERT_IDs sont concaténés dans une seule cellule, et les
+    // colonnes connexes (nom client, rattachement) sont alignées dans le
+    // même ordre. Une colonne « Saisons en doublon » met en évidence les
+    // années où plusieurs ECOCERT_IDs sont actifs simultanément, ce qui
+    // signale les vrais cas problématiques côté Ecocert.
+    type EntityRow = {
+      categorie: string
+      nom_feef: string
+      siret_feef: string
+      nb_ecocert_ids_distincts: number
+      ecocert_ids: string
+      noms_client_ecocert: string
+      rattachement_via: string
+      saisons_en_doublon: string
+    }
+
+    const entityRows: EntityRow[] = duplicates.map((bucket) => {
+      const sortedIds = [...bucket.byEcocert.keys()].sort()
+      const statsList = sortedIds.map(id => bucket.byEcocert.get(id)!)
+
+      // Saisons couvertes par plusieurs ECOCERT_IDs au sein de la même
+      // entité : c'est le marqueur d'un vrai doublon (deux dossiers
+      // Ecocert ouverts en même temps), par opposition à une simple
+      // bascule d'ID dans le temps.
+      const seasonCounts = new Map<string, number>()
+      for (const stats of statsList) {
+        for (const s of stats.seasons) {
+          seasonCounts.set(s, (seasonCounts.get(s) ?? 0) + 1)
+        }
+      }
+      const overlappingSeasons = [...seasonCounts.entries()]
+        .filter(([, c]) => c > 1)
+        .map(([s]) => s)
+        .sort()
+
+      return {
+        categorie: categorize(bucket.byEcocert),
+        nom_feef: bucket.entity.name,
+        siret_feef: bucket.entity.siret,
+        nb_ecocert_ids_distincts: bucket.byEcocert.size,
+        ecocert_ids: sortedIds.join(', '),
+        // Noms client : un par ECOCERT_ID, dans le même ordre. Si un même
+        // ECOCERT_ID a plusieurs variantes de nom, on les sépare par ' / '.
+        noms_client_ecocert: statsList
+          .map(s => [...s.clientNames].join(' / ') || '(sans nom)')
+          .join(', '),
+        // Rattachement via : aussi un par ECOCERT_ID, ordre identique.
+        rattachement_via: statsList
+          .map(s => [...s.matchVias].join('+'))
+          .join(', '),
+        saisons_en_doublon: overlappingSeasons.join(', '),
+      }
+    })
+
+    const headers: { key: keyof EntityRow; label: string; width: number }[] = [
+      { key: 'categorie', label: 'Catégorie', width: 26 },
+      { key: 'nom_feef', label: 'Entité FEEF', width: 50 },
+      { key: 'siret_feef', label: 'SIRET FEEF', width: 16 },
+      { key: 'nb_ecocert_ids_distincts', label: 'Nb ECOCERT_ID distincts', width: 20 },
+      { key: 'ecocert_ids', label: 'ECOCERT_IDs (Ecocert)', width: 32 },
+      { key: 'noms_client_ecocert', label: 'Nom(s) client Ecocert', width: 70 },
+      { key: 'rattachement_via', label: 'Rattaché via', width: 28 },
+      { key: 'saisons_en_doublon', label: 'Saisons en doublon', width: 30 },
+    ]
+
+    const aoa: (string | number)[][] = [headers.map(h => h.label)]
+    for (const r of entityRows) {
+      aoa.push(headers.map(h => r[h.key]))
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa)
+    ws['!cols'] = headers.map(h => ({ wch: h.width }))
+    ws['!autofilter'] = { ref: `A1:${XLSX.utils.encode_col(headers.length - 1)}${aoa.length}` }
+    ws['!views'] = [{ state: 'frozen', ySplit: 1 }]
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Doublons ECOCERT_ID')
+
+    const duplicatesXlsxPath = resolve(import.meta.dirname, `rapport-ecocert-duplicates-${date}.xlsx`)
+    XLSX.writeFile(wb, duplicatesXlsxPath)
+    console.log(`📄 Rapport doublons ECOCERT_ID (XLSX) : ${duplicatesXlsxPath}`)
+    console.log(`   ${duplicates.length} entité(s), ${lines.length} ligne(s CSV) / ${entityRows.length} ligne(s XLSX)`)
+  }
 
   await pool.end()
   console.log('🏁 Import terminé')
