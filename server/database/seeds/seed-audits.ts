@@ -4,7 +4,7 @@ import { Pool } from 'pg'
 import Papa from 'papaparse'
 import { readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
-import { eq, isNull, isNotNull } from 'drizzle-orm'
+import { eq, isNull, isNotNull, and } from 'drizzle-orm'
 import { audits, entities, accounts, oes, notifications, events, actions, auditNotation, documentVersions, entityFieldVersions } from '../schema'
 import { normalizeSiret, isUsableSiret } from './read-completed-xlsx'
 
@@ -606,12 +606,14 @@ async function seedAudits() {
   let firstLabelingAlreadySet = 0
 
   for (const [entityId, labelDate] of firstLabelingDateByEntity.entries()) {
-    const existing = await db.query.entityFieldVersions.findFirst({
-      where: (fv, { and, eq: eqFn }) => and(
-        eqFn(fv.entityId, entityId),
-        eqFn(fv.fieldKey, 'firstLabelingDate'),
-      ),
-    })
+    const [existing] = await db
+      .select({ id: entityFieldVersions.id })
+      .from(entityFieldVersions)
+      .where(and(
+        eq(entityFieldVersions.entityId, entityId),
+        eq(entityFieldVersions.fieldKey, 'firstLabelingDate'),
+      ))
+      .limit(1)
 
     if (existing) {
       firstLabelingAlreadySet++
