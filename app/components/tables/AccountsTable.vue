@@ -241,14 +241,16 @@
                       :name="`entityRoles.${index}.entityId`"
                       required
                     >
-                      <USelect
+                      <USelectMenu
                         v-model="entityRole.entityId"
                         :items="entitiesList"
                         value-key="value"
-                        placeholder="Sélectionner une entité"
+                        placeholder="Rechercher une entité..."
                         :disabled="!!entityId"
                         size="lg"
                         class="w-full"
+                        searchable
+                        search-placeholder="Tapez pour filtrer..."
                       />
                     </UFormField>
 
