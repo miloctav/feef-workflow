@@ -135,6 +135,7 @@ export default defineEventHandler(async (event) => {
     with: {
       oe: { columns: { id: true, name: true } },
       accountManager: { columns: { id: true, firstname: true, lastname: true } },
+      parentGroup: { columns: { id: true, name: true } },
       audits: {
         orderBy: (audits, { desc }) => [desc(audits.createdAt)],
         where: isNull(auditsTable.deletedAt),
@@ -153,11 +154,21 @@ export default defineEventHandler(async (event) => {
   const headers = [
     'Nom',
     'SIRET',
+    'ID Ecocert',
+    'ID CRM',
     "Type d'entité",
     'Mode labellisation',
+    'Groupe parent',
     'Organisme Évaluateur',
     'Chargé de compte',
+    'Adresse',
+    "Complément d'adresse",
+    'Code postal',
+    'Ville',
+    'Région',
+    'Téléphone',
     'Dernier audit',
+    'Date de création',
     'Dernière mise à jour',
   ]
 
@@ -176,11 +187,21 @@ export default defineEventHandler(async (event) => {
     const row = [
       entity.name ?? '',
       entity.siret ?? '',
+      entity.ecocertId ?? '',
+      entity.crmId ?? '',
       getEntityTypeLabel(entity.type as EntityTypeType),
       getEntityModeLabel(entity.mode as EntityModeType),
+      entity.parentGroup?.name ?? '',
       entity.oe?.name ?? '',
       manager,
+      entity.address ?? '',
+      entity.addressComplement ?? '',
+      entity.postalCode ?? '',
+      entity.city ?? '',
+      entity.region ?? '',
+      entity.phoneNumber ?? '',
       auditLabel,
+      formatDateFr(entity.createdAt),
       formatDateFr(entity.updatedAt ?? entity.createdAt),
     ]
 
