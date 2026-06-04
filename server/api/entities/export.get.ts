@@ -139,7 +139,7 @@ export default defineEventHandler(async (event) => {
       parentGroup: { columns: { id: true, name: true } },
       fieldVersions: {
         where: (fv, { eq }) => eq(fv.fieldKey, 'firstLabelingDate'),
-        columns: { fieldKey: true, valueDate: true, createdAt: true },
+        columns: { fieldKey: true, valueString: true, valueNumber: true, valueBoolean: true, valueDate: true, createdAt: true },
         orderBy: (fv, { desc }) => [desc(fv.createdAt)],
       },
       audits: {
