@@ -18,6 +18,7 @@ import {
   type EntityTypeType,
   type EntityModeType,
 } from '#shared/types/enums'
+import { getLatestFieldValueFromVersions } from '~~/server/utils/entity-fields'
 
 /**
  * GET /api/entities/export
@@ -136,6 +137,11 @@ export default defineEventHandler(async (event) => {
       oe: { columns: { id: true, name: true } },
       accountManager: { columns: { id: true, firstname: true, lastname: true } },
       parentGroup: { columns: { id: true, name: true } },
+      fieldVersions: {
+        where: (fv, { eq }) => eq(fv.fieldKey, 'firstLabelingDate'),
+        columns: { fieldKey: true, valueDate: true, createdAt: true },
+        orderBy: (fv, { desc }) => [desc(fv.createdAt)],
+      },
       audits: {
         orderBy: (audits, { desc }) => [desc(audits.createdAt)],
         where: isNull(auditsTable.deletedAt),
@@ -167,6 +173,7 @@ export default defineEventHandler(async (event) => {
     'Ville',
     'Région',
     'Téléphone',
+    'Date de première labellisation',
     'Dernier audit',
     'Date de création',
     'Dernière mise à jour',
@@ -184,6 +191,11 @@ export default defineEventHandler(async (event) => {
       ? `${entity.accountManager.firstname} ${entity.accountManager.lastname}`
       : ''
 
+    const firstLabelingDate = getLatestFieldValueFromVersions(
+      entity.fieldVersions as any,
+      'firstLabelingDate'
+    )
+
     const row = [
       entity.name ?? '',
       entity.siret ?? '',
@@ -200,6 +212,7 @@ export default defineEventHandler(async (event) => {
       entity.city ?? '',
       entity.region ?? '',
       entity.phoneNumber ?? '',
+      formatDateFr(firstLabelingDate as Date | string | null),
       auditLabel,
       formatDateFr(entity.createdAt),
       formatDateFr(entity.updatedAt ?? entity.createdAt),
