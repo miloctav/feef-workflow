@@ -5,7 +5,7 @@ import Papa from 'papaparse'
 import { readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
 import { eq, isNull, isNotNull } from 'drizzle-orm'
-import { audits, entities, accounts, oes, notifications, events, actions, auditNotation, documentVersions } from '../schema'
+import { audits, entities, accounts, oes, notifications, events, actions, auditNotation, documentVersions, entityFieldVersions } from '../schema'
 import { normalizeSiret, isUsableSiret } from './read-completed-xlsx'
 
 // ============================================================
@@ -387,6 +387,10 @@ async function seedAudits() {
   }
   const ecocertIdsByEntity = new Map<number, { entity: EntityRef; byEcocert: Map<string, EcocertStats> }>()
 
+  // Suivi de la date de première labellisation par entité :
+  // on conserve la date la plus ancienne parmi les audits INITIAL+COMPLETED.
+  const firstLabelingDateByEntity = new Map<number, Date>()
+
   let created = 0
   let skippedNoSiret = 0
   let skippedNotFound = 0
@@ -517,6 +521,17 @@ async function seedAudits() {
           performedBy: createdBy,
           performedAt: decisionDate ?? actualEndDate ?? new Date(),
         })
+
+        // Tracker la date de première labellisation pour les audits INITIAL
+        if (type === 'INITIAL') {
+          const labelDate = decisionDate ?? actualEndDate
+          if (labelDate) {
+            const existing = firstLabelingDateByEntity.get(entity.id)
+            if (!existing || labelDate < existing) {
+              firstLabelingDateByEntity.set(entity.id, labelDate)
+            }
+          }
+        }
       }
 
       console.log(`  [L${rowNum}] ✅ Créé : ${entity.name} — ${type}${monitoringMode ? ` (${monitoringMode})` : ''} ${season} → ${status}`)
@@ -577,6 +592,47 @@ async function seedAudits() {
 
   console.log(`✅ ecocertId mis à jour (non ambigu) : ${ecocertUpdated}`)
   console.log(`✅ ecocertIds mis à jour             : ${ecocertIdsUpdated}`)
+
+  // ──────────────────────────────────────────────────────────
+  // Backfill de firstLabelingDate sur les entités
+  //
+  // Pour chaque entité ayant un audit INITIAL+COMPLETED dans le CSV,
+  // on écrit firstLabelingDate dans entity_field_versions si le champ
+  // n'a pas déjà été défini (par seed-entities Passe 5 par exemple).
+  // ──────────────────────────────────────────────────────────
+  console.log('\n📋 Backfill des dates de première labellisation...')
+
+  let firstLabelingSet = 0
+  let firstLabelingAlreadySet = 0
+
+  for (const [entityId, labelDate] of firstLabelingDateByEntity.entries()) {
+    const existing = await db.query.entityFieldVersions.findFirst({
+      where: (fv, { and, eq: eqFn }) => and(
+        eqFn(fv.entityId, entityId),
+        eqFn(fv.fieldKey, 'firstLabelingDate'),
+      ),
+    })
+
+    if (existing) {
+      firstLabelingAlreadySet++
+      continue
+    }
+
+    await db.insert(entityFieldVersions).values({
+      entityId,
+      fieldKey: 'firstLabelingDate',
+      valueDate: labelDate,
+      valueString: null,
+      valueNumber: null,
+      valueBoolean: null,
+      createdBy,
+      createdAt: new Date(),
+    })
+    firstLabelingSet++
+  }
+
+  console.log(`✅ firstLabelingDate insérée  : ${firstLabelingSet}`)
+  console.log(`✓  Déjà définie (inchangée)  : ${firstLabelingAlreadySet}`)
 
   // ──────────────────────────────────────────────────────────
   // Rapport des entités rattachées à plusieurs ECOCERT_ID.
