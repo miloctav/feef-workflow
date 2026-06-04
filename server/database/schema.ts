@@ -150,6 +150,8 @@ export const entities = pgTable('entities', {
   crmId: varchar('crm_id', { length: 36 }).unique(),
   // External Ecocert ID (internal use only, not displayed in UI)
   ecocertId: varchar('ecocert_id', { length: 50 }),
+  // All Ecocert IDs found across audits (comma-separated), populated by seed-audits
+  ecocertIds: text('ecocert_ids'),
   // Address and contact fields
   address: varchar('address', { length: 255 }),
   addressComplement: varchar('address_complement', { length: 255 }),

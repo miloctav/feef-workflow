@@ -1,0 +1,1 @@
+ALTER TABLE "entities" ADD COLUMN "ecocert_ids" text;

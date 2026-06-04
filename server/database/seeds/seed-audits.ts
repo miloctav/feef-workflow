@@ -543,40 +543,40 @@ async function seedAudits() {
   writeReport(report, import.meta.dirname)
 
   // ──────────────────────────────────────────────────────────
-  // Mise à jour de ecocertId sur les entités
+  // Mise à jour de ecocertId et ecocertIds sur les entités
   //
-  // Pour chaque entité ayant un seul ECOCERT_ID distinct dans le CSV
-  // (cas non ambigu), on écrit cet ID dans entities.ecocert_id si le
-  // champ n'est pas déjà renseigné. Les entités avec plusieurs
-  // ECOCERT_ID distincts sont ignorées ici (cas traités manuellement
-  // via audits-rattachement-overrides.csv).
+  // Pour chaque entité rencontrée dans le CSV :
+  //   - ecocertId : renseigné uniquement si un seul ID distinct (non ambigu)
+  //   - ecocertIds : tous les IDs distincts, séparés par ", " (toujours écrit)
   // ──────────────────────────────────────────────────────────
-  console.log('\n📋 Mise à jour des ecocertId sur les entités...')
+  console.log('\n📋 Mise à jour des ecocertId(s) sur les entités...')
 
   let ecocertUpdated = 0
-  let ecocertSkippedAmbiguous = 0
-  let ecocertAlreadySet = 0
+  let ecocertIdsUpdated = 0
 
   for (const { entity, byEcocert } of ecocertIdsByEntity.values()) {
+    const allIds = [...byEcocert.keys()].sort().join(', ')
+    const updateData: Record<string, unknown> = {
+      ecocertIds: allIds,
+      updatedBy: createdBy,
+      updatedAt: new Date(),
+    }
+
     if (byEcocert.size === 1) {
       const [ecocertId] = [...byEcocert.keys()]
-      if (entity.ecocertIdDb && entity.ecocertIdDb === ecocertId) {
-        ecocertAlreadySet++
-        continue
-      }
-      await db
-        .update(entities)
-        .set({ ecocertId, updatedBy: createdBy, updatedAt: new Date() })
-        .where(eq(entities.id, entity.id))
+      updateData.ecocertId = ecocertId
       ecocertUpdated++
-    } else {
-      ecocertSkippedAmbiguous++
     }
+
+    await db
+      .update(entities)
+      .set(updateData as any)
+      .where(eq(entities.id, entity.id))
+    ecocertIdsUpdated++
   }
 
-  console.log(`✅ ecocertId mis à jour      : ${ecocertUpdated}`)
-  console.log(`✓  Déjà renseigné (inchangé) : ${ecocertAlreadySet}`)
-  console.log(`⚠️  Ignorés (ambigu, N > 1)  : ${ecocertSkippedAmbiguous}`)
+  console.log(`✅ ecocertId mis à jour (non ambigu) : ${ecocertUpdated}`)
+  console.log(`✅ ecocertIds mis à jour             : ${ecocertIdsUpdated}`)
 
   // ──────────────────────────────────────────────────────────
   // Rapport des entités rattachées à plusieurs ECOCERT_ID.

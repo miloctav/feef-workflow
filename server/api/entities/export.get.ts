@@ -160,7 +160,8 @@ export default defineEventHandler(async (event) => {
   const headers = [
     'Nom',
     'SIRET',
-    'ID Ecocert',
+    'ID Ecocert (principal)',
+    'Tous les ID Ecocert',
     'ID CRM',
     "Type d'entité",
     'Mode labellisation',
@@ -200,6 +201,7 @@ export default defineEventHandler(async (event) => {
       entity.name ?? '',
       entity.siret ?? '',
       entity.ecocertId ?? '',
+      entity.ecocertIds ?? '',
       entity.crmId ?? '',
       getEntityTypeLabel(entity.type as EntityTypeType),
       getEntityModeLabel(entity.mode as EntityModeType),
