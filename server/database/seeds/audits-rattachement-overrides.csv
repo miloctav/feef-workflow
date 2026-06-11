@@ -8,3 +8,6 @@ ecocertId,siretCible,entreprise,commentaire
 168876,53078000600017,MAISON MARLERE,SIRET Ecocert erroné, corrigé par FEEF (entité MARLERE GASTRONOMIE)
 168015,52812654800010,GALILEO,doublon Ecocert (police orange dans le fichier FEEF), entité officielle GALILEO SAS
 129497,80858813100082,APIHA,doublon Ecocert (police orange dans le fichier FEEF), entité officielle FESTIFRUITS / APIHA
+298993,30491543200021,CONSERVERIE DU SUD (SA BRUNET),SIRET absent du CSV Ecocert, rattaché au SIRET FEEF connu via ecocertId
+270071,35333323000012,SA VINS JEAN LOUIS PARSAT,SIRET absent du CSV Ecocert, rattaché au SIRET FEEF connu via ecocertId
+300662,38020082400072,ZAPHIR / AMALRIC,SIRET CSV Ecocert inconnu en base, rattaché au SIRET FEEF connu via ecocertId

@@ -1001,6 +1001,11 @@ async function seedEntities() {
 
   // ──────────────────────────────────────────────────────────
   // PASSE 6 — Importer l'ID Ecocert des entités
+  //
+  // On pose l'ecocertId du fichier source tel quel. Le nettoyage des
+  // ecocertId orphelins (dossier dont les audits sont en réalité portés par
+  // une autre entité) est fait en aval par seed-audits, sur la base des
+  // audits réellement importés.
   // ──────────────────────────────────────────────────────────
   console.log('📋 Passe 6 : ID Ecocert des entités...\n')
 
