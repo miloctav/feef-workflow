@@ -1,0 +1,124 @@
+﻿ligne;siret;nom;saison;type_audit;statut_ecocert;probleme;details
+12;50185556300018;AMERICAN DESSERTS;2023;Annual inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 50185556300018, SIREN 501855563 absent de la base, nom non rapproché
+30;;EXTRUPLAST;2022;Annual inspection;4-Certification finished;Audit rattaché par nom;"SIRET audit """" → entité « EXTRUPLAST » (SIRET base 41513341200015)"
+35;34795652600037;LES QUATRE SAISONS;2025;Documentary review;4-Certification finished;Audit rattaché par nom;"SIRET audit ""34795652600037"" → entité « LES QUATRE SAISONS » (SIRET base 32304875100024)"
+63;;ST HUBERT;2024;Additional inspection;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+71;08608029800036;SOCIETE FRANCAISE DE DIFFUSION DES VINAIGRES D'ORLEANS SAS;2026;Documentary review;4-Certification finished;Audit rattaché par SIREN;SIRET audit 08608029800036 → entité « MARTIN POURET » (SIRET base 08608029800010)
+73;38219585700026;ALPES BISCUITS;2024;Documentary review;4-Certification finished;Audit rattaché par SIREN;SIRET audit 38219585700026 → entité « ALPES BISCUITS » (SIRET base 38219585700018)
+85;34768107400063;CHARLES & ALICE;2025;Renewal audit;4-Certification finished;Audit rattaché par SIREN;SIRET audit 34768107400063 → entité « CHARLES ET ALICE » (SIRET base 34768107400048)
+89;84954105700022;Natur'opéra;2023;Renewal audit;4-Certification finished;Audit rattaché par SIREN;SIRET audit 84954105700022 → entité « Natur'Opéra » (SIRET base 84954105700014)
+93;32135524000037;JC DAVID;2024;Documentary review;4-Certification finished;Audit rattaché par nom;"SIRET audit ""32135524000037"" → entité « JC DAVID » (SIRET base 43910041300020)"
+96;90003265700026;ATELIER CORSE FRUITS ET LEGUMES SAS;2026;Documentary review;2-Inspection order accepted;Audit rattaché par SIREN;SIRET audit 90003265700026 → entité « ATELIER CORSE FRUITS ET LEGUMES » (SIRET base 90003265700018)
+99;34768107400063;CHARLES & ALICE;2024;Annual inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 34768107400063 → entité « CHARLES ET ALICE » (SIRET base 34768107400048)
+110;38238136600048;BISCUITERIE DE PROVENCE SA;2024;Annual inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 38238136600048, SIREN 382381366 absent de la base, nom non rapproché
+127;;OVALIS;2023;Documentary review;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+128;;EXTRUPLAST;2024;Annual inspection;4-Certification finished;Audit rattaché par nom;"SIRET audit """" → entité « EXTRUPLAST » (SIRET base 41513341200015)"
+143;84954105700022;Natur'opéra;2025;Renewal audit;4-Certification finished;Audit rattaché par SIREN;SIRET audit 84954105700022 → entité « Natur'Opéra » (SIRET base 84954105700014)
+147;01575153000013;MULOT ET PETITJEAN SA;2024;Annual inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 01575153000013, SIREN 015751530 absent de la base, nom non rapproché
+154;34465626900083;LOBODIS SAS;2024;Documentary review;4-Certification finished;Audit rattaché par SIREN;SIRET audit 34465626900083 → entité « LOBODIS » (SIRET base 34465626900075)
+159;;ST HUBERT;2022;Renewal audit;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+169;520082405;COMPAGNIE DU BICARBONATE;2024;Initial inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 520082405 → entité « COMPAGNIE DU BICARBONATE » (SIRET base 52008240500025)
+175;34329151400036;"CULTURE MIEL ";2023;Documentary review;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 34329151400036, SIREN 343291514 absent de la base, nom non rapproché
+180;;FIMCO;2022;Documentary review;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+185;84954105700022;Natur'opéra;2026;Annual inspection;2-Inspection order accepted;Audit rattaché par SIREN;SIRET audit 84954105700022 → entité « Natur'Opéra » (SIRET base 84954105700014)
+191;38791777600107;FRESH FOOD VILLAGE;2026;Renewal audit;2-Inspector's Infoportal;Audit rattaché par SIREN;SIRET audit 38791777600107 → entité « FRESH FOOD VILLAGE » (SIRET base 38791777600073)
+200;38233895200015;SPH GERARD BERTRAND  - SITE PRINCIPAL;2025;Renewal audit;4-Certification finished;Audit rattaché par SIREN;SIRET audit 38233895200015 → entité « SPH GERARD BERTRAND » (SIRET base 38233895200023)
+224;38219585700026;ALPES BISCUITS;2026;Documentary review;2-Inspection order accepted;Audit rattaché par SIREN;SIRET audit 38219585700026 → entité « ALPES BISCUITS » (SIRET base 38219585700018)
+226;82106484700030;CHICHE   SAS;2026;Documentary review;2-Inspection order accepted;Audit rattaché par SIREN;SIRET audit 82106484700030 → entité « CHICHE » (SIRET base 82106484700022)
+235;;ICI&LA;2023;Documentary review;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+249;34768107400063;CHARLES & ALICE;2026;Annual inspection;2-Inspector's Infoportal;Audit rattaché par SIREN;SIRET audit 34768107400063 → entité « CHARLES ET ALICE » (SIRET base 34768107400048)
+254;34465626900083;LOBODIS SAS;2025;Renewal audit;4-Certification finished;Audit rattaché par SIREN;SIRET audit 34465626900083 → entité « LOBODIS » (SIRET base 34465626900075)
+277;80378260600021;OCCITANE PLATS CUISINES SAS;2026;Documentary review;2-Inspection order accepted;Audit rattaché par SIREN;SIRET audit 80378260600021 → entité « OCCITANE PLATS CUISINES » (SIRET base 80378260600013)
+278;;GROUPE ROUTHIAU;2022;Annual inspection;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+280;34465626900083;LOBODIS SAS;2026;Documentary review;2-Inspection order accepted;Audit rattaché par SIREN;SIRET audit 34465626900083 → entité « LOBODIS » (SIRET base 34465626900075)
+292;50185556300018;AMERICAN DESSERTS;2022;Documentary review;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 50185556300018, SIREN 501855563 absent de la base, nom non rapproché
+294;;ST HUBERT;2023;Documentary review;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+311;38233895200015;SPH GERARD BERTRAND  - SITE PRINCIPAL;2026;Annual inspection;2-Inspection order accepted;Audit rattaché par SIREN;SIRET audit 38233895200015 → entité « SPH GERARD BERTRAND » (SIRET base 38233895200023)
+324;;ESPROMER;2022;Documentary review;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+336;;RICA LEWIS;2024;Documentary review;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+354;33425815900014;BOYAUDERIE SISTERONNAISE;2023;Documentary review;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 33425815900014, SIREN 334258159 absent de la base, nom non rapproché
+364;90003265700026;ATELIER CORSE FRUITS ET LEGUMES SAS;2025;Initial inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 90003265700026 → entité « ATELIER CORSE FRUITS ET LEGUMES » (SIRET base 90003265700018)
+367;;NUTRIANNE;2022;Renewal audit;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+371;66020113800030;HUILERIE EMILE NOEL SAS;2023;Documentary review;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 66020113800030, SIREN 660201138 absent de la base, nom non rapproché
+374;35382104400131;PAGES VEDRENNE;2026;Annual inspection;2-Inspector's Infoportal;Audit rattaché par SIREN;SIRET audit 35382104400131 → entité « PAGES VEDRENNE » (SIRET base 35382104400065)
+390;54202583800401;ARDEA;2026;Initial inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 54202583800401 → entité « ARDEA » (SIRET base 54202583800377)
+394;35382104400131;PAGES VEDRENNE;2023;Annual inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 35382104400131 → entité « PAGES VEDRENNE » (SIRET base 35382104400065)
+396;51910501900037;BIO PROVENCE;2024;Initial inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 51910501900037, SIREN 519105019 absent de la base, nom non rapproché
+408;38219585700026;ALPES BISCUITS;2025;Renewal audit;4-Certification finished;Audit rattaché par SIREN;SIRET audit 38219585700026 → entité « ALPES BISCUITS » (SIRET base 38219585700018)
+410;71850193500024;PAUL HEUMANN SA;2023;Annual inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 71850193500024, SIREN 718501935 absent de la base, nom non rapproché
+414;50185556300018;AMERICAN DESSERTS;2024;Documentary review;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 50185556300018, SIREN 501855563 absent de la base, nom non rapproché
+415;;ST HUBERT;2024;Renewal audit;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+422;520082405;COMPAGNIE DU BICARBONATE;2025;Documentary review;4-Certification finished;Audit rattaché par SIREN;SIRET audit 520082405 → entité « COMPAGNIE DU BICARBONATE » (SIRET base 52008240500025)
+427;81499482800022;LES GLACIERS PARISIENS (ALPEREL)   SAS;2022;Documentary review;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 81499482800022, SIREN 814994828 absent de la base, nom non rapproché
+428;33425815900014;BOYAUDERIE SISTERONNAISE;2022;Annual inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 33425815900014, SIREN 334258159 absent de la base, nom non rapproché
+432;;RICA LEWIS;2022;Documentary review;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+440;;GROUPE ROUTHIAU;2022;Annual inspection;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+449;;JLF;2022;Documentary review;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+454;01575153000013;MULOT ET PETITJEAN SA;2025;Documentary review;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 01575153000013, SIREN 015751530 absent de la base, nom non rapproché
+459;34329151400036;"CULTURE MIEL ";2022;Renewal audit;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 34329151400036, SIREN 343291514 absent de la base, nom non rapproché
+474;32135524000037;JC DAVID;2022;Annual inspection;4-Certification finished;Audit rattaché par nom;"SIRET audit ""32135524000037"" → entité « JC DAVID » (SIRET base 43910041300020)"
+476;;CIDRES LEBRUN;2024;Annual inspection;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+478;57213300700177;LA BROSSE ET DUPONT;2024;Renewal audit;4-Certification finished;Audit rattaché par SIREN;SIRET audit 57213300700177 → entité « LA BROSSE ET DUPONT » (SIRET base 57213300700144)
+484;71850193500024;PAUL HEUMANN SA;2022;Documentary review;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 71850193500024, SIREN 718501935 absent de la base, nom non rapproché
+494;34465626900083;LOBODIS SAS;2023;Annual inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 34465626900083 → entité « LOBODIS » (SIRET base 34465626900075)
+507;34465626900083;LOBODIS SAS;2022;Documentary review;4-Certification finished;Audit rattaché par SIREN;SIRET audit 34465626900083 → entité « LOBODIS » (SIRET base 34465626900075)
+508;35382104400131;PAGES VEDRENNE;2022;Initial inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 35382104400131 → entité « PAGES VEDRENNE » (SIRET base 35382104400065)
+516;71850193500024;PAUL HEUMANN SA;2024;Documentary review;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 71850193500024, SIREN 718501935 absent de la base, nom non rapproché
+518;;EXTRUPLAST;2023;Documentary review;4-Certification finished;Audit rattaché par nom;"SIRET audit """" → entité « EXTRUPLAST » (SIRET base 41513341200015)"
+530;32135524000037;JC DAVID;2025;Renewal audit;4-Certification finished;Audit rattaché par nom;"SIRET audit ""32135524000037"" → entité « JC DAVID » (SIRET base 43910041300020)"
+531;55850337100178;GROUPE FRANCAISE DE  GASTRONOMIE;2022;Documentary review;4-Certification finished;Audit rattaché par SIREN;SIRET audit 55850337100178 → entité « GROUPE FRANCAISE DE GASTRONOMIE » (SIRET base 55850337100160)
+533;;ICI&LA;2022;Renewal audit;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+568;;ESPROMER;2023;Annual inspection;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+583;57213300700177;LA BROSSE ET DUPONT;2026;Annual inspection;2-Inspector's Infoportal;Audit rattaché par SIREN;SIRET audit 57213300700177 → entité « LA BROSSE ET DUPONT » (SIRET base 57213300700144)
+611;75366031500056;MEDITERRANEAN FOOD SOLUTIONS SAS;2026;Renewal audit;2-Inspection order accepted;Audit rattaché par SIREN;SIRET audit 75366031500056 → entité « MEDITERRANEAN FOOD SOLUTIONS » (SIRET base 75366031500031)
+616;84954105700022;Natur'opéra;2024;Documentary review;4-Certification finished;Audit rattaché par SIREN;SIRET audit 84954105700022 → entité « Natur'Opéra » (SIRET base 84954105700014)
+619;33425815900014;BOYAUDERIE SISTERONNAISE;2024;Annual inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 33425815900014, SIREN 334258159 absent de la base, nom non rapproché
+631;;AQUITAINE SPECIALITES;2022;Documentary review;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+635;08608029800036;SOCIETE FRANCAISE DE DIFFUSION DES VINAIGRES D'ORLEANS SAS;2023;Initial inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 08608029800036 → entité « MARTIN POURET » (SIRET base 08608029800010)
+643;75366031500056;MEDITERRANEAN FOOD SOLUTIONS SAS;2025;Documentary review;4-Certification finished;Audit rattaché par SIREN;SIRET audit 75366031500056 → entité « MEDITERRANEAN FOOD SOLUTIONS » (SIRET base 75366031500031)
+647;;COMPAGNIE DES PATISSIERS;2024;Renewal audit;4-Certification finished;Audit rattaché par nom;"SIRET audit """" → entité « COMPAGNIE DES PATISSIERS » (SIRET base 40119370100026)"
+652;;CIDRES LEBRUN;2022;Annual inspection;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+674;34795652600037;LES QUATRE SAISONS;2026;Renewal audit;2-Inspection order accepted;Audit rattaché par nom;"SIRET audit ""34795652600037"" → entité « LES QUATRE SAISONS » (SIRET base 32304875100024)"
+678;08608029800036;SOCIETE FRANCAISE DE DIFFUSION DES VINAIGRES D'ORLEANS SAS;2024;Documentary review;4-Certification finished;Audit rattaché par SIREN;SIRET audit 08608029800036 → entité « MARTIN POURET » (SIRET base 08608029800010)
+693;80378260600021;OCCITANE PLATS CUISINES SAS;2025;Initial inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 80378260600021 → entité « OCCITANE PLATS CUISINES » (SIRET base 80378260600013)
+700;;COMPAGNIE DES PATISSIERS;2023;Annual inspection;4-Certification finished;Audit rattaché par nom;"SIRET audit """" → entité « COMPAGNIE DES PATISSIERS » (SIRET base 40119370100026)"
+704;01575153000013;MULOT ET PETITJEAN SA;2023;Documentary review;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 01575153000013, SIREN 015751530 absent de la base, nom non rapproché
+723;;RICA LEWIS;2023;Renewal audit;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+730;75366031500056;MEDITERRANEAN FOOD SOLUTIONS SAS;2023;Documentary review;4-Certification finished;Audit rattaché par SIREN;SIRET audit 75366031500056 → entité « MEDITERRANEAN FOOD SOLUTIONS » (SIRET base 75366031500031)
+734;35382104400131;PAGES VEDRENNE;2025;Renewal audit;4-Certification finished;Audit rattaché par SIREN;SIRET audit 35382104400131 → entité « PAGES VEDRENNE » (SIRET base 35382104400065)
+742;01575153000013;MULOT ET PETITJEAN SA;2026;Renewal audit;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 01575153000013, SIREN 015751530 absent de la base, nom non rapproché
+758;;COMPAGNIE DES PATISSIERS;2022;Initial inspection;4-Certification finished;Audit rattaché par nom;"SIRET audit """" → entité « COMPAGNIE DES PATISSIERS » (SIRET base 40119370100026)"
+768;38238136600048;BISCUITERIE DE PROVENCE SA;2022;Annual inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 38238136600048, SIREN 382381366 absent de la base, nom non rapproché
+772;75366031500056;MEDITERRANEAN FOOD SOLUTIONS SAS;2022;Initial inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 75366031500056 → entité « MEDITERRANEAN FOOD SOLUTIONS » (SIRET base 75366031500031)
+775;520082405;COMPAGNIE DU BICARBONATE;2026;Renewal audit;2-Inspector's Infoportal;Audit rattaché par SIREN;SIRET audit 520082405 → entité « COMPAGNIE DU BICARBONATE » (SIRET base 52008240500025)
+786;38791777600107;FRESH FOOD VILLAGE;2025;Documentary review;4-Certification finished;Audit rattaché par SIREN;SIRET audit 38791777600107 → entité « FRESH FOOD VILLAGE » (SIRET base 38791777600073)
+806;01575153000013;MULOT ET PETITJEAN SA;2022;Annual inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 01575153000013, SIREN 015751530 absent de la base, nom non rapproché
+819;;CIDRES LEBRUN;2023;Documentary review;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+828;38233895200015;SPH GERARD BERTRAND  - SITE PRINCIPAL;2023;Annual inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 38233895200015 → entité « SPH GERARD BERTRAND » (SIRET base 38233895200023)
+834;75366031500056;MEDITERRANEAN FOOD SOLUTIONS SAS;2024;Annual inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 75366031500056 → entité « MEDITERRANEAN FOOD SOLUTIONS » (SIRET base 75366031500031)
+843;57213300700177;LA BROSSE ET DUPONT;2022;Annual inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 57213300700177 → entité « LA BROSSE ET DUPONT » (SIRET base 57213300700144)
+845;34768107400063;CHARLES & ALICE;2022;Annual inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 34768107400063 → entité « CHARLES ET ALICE » (SIRET base 34768107400048)
+871;;KINDY PROJECT;2022;Documentary review;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+872;32866639100029;ACCOR LUBRIFIANTS;2026;Initial inspection;2-Inspector's Infoportal;Audit rattaché par SIREN;SIRET audit 32866639100029 → entité « ACCOR LUBRIFIANTS » (SIRET base 32866639100013)
+873;38791777600107;FRESH FOOD VILLAGE;2024;Initial inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 38791777600107 → entité « FRESH FOOD VILLAGE » (SIRET base 38791777600073)
+893;34768107400063;CHARLES & ALICE;2023;Annual inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 34768107400063 → entité « CHARLES ET ALICE » (SIRET base 34768107400048)
+902;57213300700177;LA BROSSE ET DUPONT;2025;Annual inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 57213300700177 → entité « LA BROSSE ET DUPONT » (SIRET base 57213300700144)
+912;35382104400131;PAGES VEDRENNE;2024;Annual inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 35382104400131 → entité « PAGES VEDRENNE » (SIRET base 35382104400065)
+914;82106484700030;CHICHE   SAS;2025;Initial inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 82106484700030 → entité « CHICHE » (SIRET base 82106484700022)
+920;39562010700015;DUCS DE GASCOGNE;2025;Initial inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 39562010700015, SIREN 395620107 absent de la base, nom non rapproché
+924;;TRIPES PAILLARD;2022;Documentary review;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+930;81175764000024;TERRA CERES;2022;Documentary review;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 81175764000024, SIREN 811757640 absent de la base, nom non rapproché
+958;66020113800030;HUILERIE EMILE NOEL SAS;2022;Initial inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 66020113800030, SIREN 660201138 absent de la base, nom non rapproché
+967;55850337100178;GROUPE FRANCAISE DE  GASTRONOMIE;2024;Initial inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 55850337100178 → entité « GROUPE FRANCAISE DE GASTRONOMIE » (SIRET base 55850337100160)
+975;49949540600054;CULTURE POM;2026;Renewal audit;2-Inspection order accepted;Audit rattaché par SIREN;SIRET audit 49949540600054 → entité « Culture Pom » (SIRET base 49949540600021)
+991;81499482800022;LES GLACIERS PARISIENS (ALPEREL)   SAS;2023;Annual inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 81499482800022, SIREN 814994828 absent de la base, nom non rapproché
+996;55850337100178;GROUPE FRANCAISE DE  GASTRONOMIE;2023;Annual inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 55850337100178 → entité « GROUPE FRANCAISE DE GASTRONOMIE » (SIRET base 55850337100160)
+1013;38238136600048;BISCUITERIE DE PROVENCE SA;2023;Documentary review;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 38238136600048, SIREN 382381366 absent de la base, nom non rapproché
+1025;;OVALIS;2022;Initial inspection;4-Certification finished;SIRET manquant;"SIRET brut : """", nom non rapproché à une entité de la base"
+1036;57213300700177;LA BROSSE ET DUPONT;2023;Renewal audit;4-Certification finished;Audit rattaché par SIREN;SIRET audit 57213300700177 → entité « LA BROSSE ET DUPONT » (SIRET base 57213300700144)
+1041;34329151400036;"CULTURE MIEL ";2024;Annual inspection;4-Certification finished;SIRET inconnu dans la base FEEF;SIRET Ecocert : 34329151400036, SIREN 343291514 absent de la base, nom non rapproché
+1045;34795652600037;LES QUATRE SAISONS;2024;Initial inspection;4-Certification finished;Audit rattaché par nom;"SIRET audit ""34795652600037"" → entité « LES QUATRE SAISONS » (SIRET base 32304875100024)"
+1049;32135524000037;JC DAVID;2026;Documentary review;2-Inspector's Infoportal;Audit rattaché par nom;"SIRET audit ""32135524000037"" → entité « JC DAVID » (SIRET base 43910041300020)"
+1053;55850337100178;GROUPE FRANCAISE DE  GASTRONOMIE;2026;Annual inspection;2-Inspector's Infoportal;Audit rattaché par SIREN;SIRET audit 55850337100178 → entité « GROUPE FRANCAISE DE GASTRONOMIE » (SIRET base 55850337100160)
+1060;08608029800036;SOCIETE FRANCAISE DE DIFFUSION DES VINAIGRES D'ORLEANS SAS;2025;Renewal audit;4-Certification finished;Audit rattaché par SIREN;SIRET audit 08608029800036 → entité « MARTIN POURET » (SIRET base 08608029800010)
+1061;38219585700026;ALPES BISCUITS;2023;Annual inspection;4-Certification finished;Audit rattaché par SIREN;SIRET audit 38219585700026 → entité « ALPES BISCUITS » (SIRET base 38219585700018)

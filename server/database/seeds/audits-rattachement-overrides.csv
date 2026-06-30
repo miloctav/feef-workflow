@@ -11,3 +11,6 @@ ecocertId,siretCible,entreprise,commentaire
 298993,30491543200021,CONSERVERIE DU SUD (SA BRUNET),SIRET absent du CSV Ecocert, rattaché au SIRET FEEF connu via ecocertId
 270071,35333323000012,SA VINS JEAN LOUIS PARSAT,SIRET absent du CSV Ecocert, rattaché au SIRET FEEF connu via ecocertId
 300662,38020082400072,ZAPHIR / AMALRIC,SIRET CSV Ecocert inconnu en base, rattaché au SIRET FEEF connu via ecocertId
+180311,38251081600038,LUCIEN GEORGELIN CEREALES,rattaché à Lucien Georgelin SARL (vu avec Grégoire, FEEF)
+65990,33779606400059,SODALIS France,SIRET absent du fichier Ecocert, entité SODALIS FRANCE existante (FEEF)
+20424,59977943800031,ROSTAIN,SIRET Ecocert 39977943800031 erroné (1er chiffre), entité ROSTAIN 59977943800031 (FEEF)

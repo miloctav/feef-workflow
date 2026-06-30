@@ -4,7 +4,7 @@ import { Pool } from 'pg'
 import Papa from 'papaparse'
 import { readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
-import { eq, sql } from 'drizzle-orm'
+import { eq, sql, and, isNull } from 'drizzle-orm'
 import { entities, accounts, oes, entityFieldVersions } from '../schema'
 import { readCompletedXlsx, isUsableSiret, normalizeSiret, type CompletedXlsxRow } from './read-completed-xlsx'
 
@@ -1044,6 +1044,214 @@ async function seedEntities() {
   console.log('─── Passe 6 ───────────────────────────')
   console.log(`✅ ID Ecocert insérés : ${ecocertLinked}`)
   console.log(`⚠️  Non trouvés       : ${ecocertNotFound}`)
+  console.log('────────────────────────────────────────\n')
+
+  // ──────────────────────────────────────────────────────────
+  // PASSE 7 — Entités additionnelles (Nouveaux Ecocert + SGS)
+  //
+  // Source : entities-additional.csv (retours FEEF/Ecocert de juin 2026).
+  // Upsert par SIRET puis CRM ID. Crée l'OE si besoin (ex. « SGS »).
+  // Les liens mère-fille déclarés par parentSiret sont posés ensuite.
+  // ──────────────────────────────────────────────────────────
+  console.log('📋 Passe 7 : entités additionnelles (Ecocert + SGS)...\n')
+
+  const oeIdByName = new Map<string, number>([['ECOCERT', ECOCERT_OE_ID]])
+  async function getOrCreateOe(name: string): Promise<number> {
+    const key = name.trim().toUpperCase()
+    if (oeIdByName.has(key)) return oeIdByName.get(key)!
+    const [found] = await db.select({ id: oes.id }).from(oes).where(eq(oes.name, name)).limit(1)
+    let id: number
+    if (found) {
+      id = found.id
+    }
+    else {
+      const [createdOe] = await db.insert(oes).values({ name, createdBy }).returning({ id: oes.id })
+      id = createdOe.id
+      console.log(`  🏢 OE créé : ${name}`)
+    }
+    oeIdByName.set(key, id)
+    return id
+  }
+
+  type AdditionalRow = {
+    name: string; siret: string; type: string; mode: string; parentSiret: string
+    oe: string; ecocertId: string; sgsCode: string; crmId: string
+    address: string; postalCode: string; city: string; region: string; phoneNumber: string; firstLabelingDate: string
+  }
+  let additionalRows: AdditionalRow[] = []
+  try {
+    additionalRows = Papa.parse<AdditionalRow>(
+      readFileSync(resolve(import.meta.dirname, 'entities-additional.csv'), 'utf-8').replace(/^﻿/, ''),
+      { header: true, skipEmptyLines: true, delimiter: ';', transformHeader: (h) => h.trim() },
+    ).data
+  }
+  catch {
+    // Fichier absent : aucune entité additionnelle.
+  }
+
+  let addCreated = 0
+  let addUpdated = 0
+  const additionalIdBySiret = new Map<string, number>()
+
+  for (const row of additionalRows) {
+    const siret = normalizeSiret(row.siret)
+    if (!isUsableSiret(siret) || !row.name?.trim()) continue
+
+    const oeId = await getOrCreateOe(row.oe || 'ECOCERT')
+    const crmId = parseCrmId(row.crmId)
+    const region = parseRegion(row.region)
+    const common: Record<string, unknown> = {
+      name: row.name.trim(),
+      type: row.type === 'GROUP' ? 'GROUP' : 'COMPANY',
+      mode: row.mode === 'FOLLOWER' ? 'FOLLOWER' : 'MASTER',
+      oeId,
+      deletedAt: null,
+      ...(crmId ? { crmId } : {}),
+      ...(row.ecocertId?.trim() ? { ecocertId: row.ecocertId.trim() } : {}),
+      ...(region ? { region } : {}),
+      ...(cleanText(row.address) ? { address: cleanText(row.address) } : {}),
+      ...(cleanText(row.postalCode) ? { postalCode: cleanText(row.postalCode) } : {}),
+      ...(cleanText(row.city) ? { city: cleanText(row.city) } : {}),
+      ...(cleanText(row.phoneNumber) ? { phoneNumber: cleanText(row.phoneNumber) } : {}),
+      updatedBy: createdBy,
+      updatedAt: new Date(),
+    }
+
+    let [existing] = await db.select().from(entities).where(eq(entities.siret, siret)).limit(1)
+    if (!existing && crmId) {
+      ;[existing] = await db.select().from(entities).where(eq(entities.crmId, crmId)).limit(1)
+    }
+
+    let entityId: number
+    if (existing) {
+      await db.update(entities).set(common as any).where(eq(entities.id, existing.id))
+      entityId = existing.id
+      addUpdated++
+    }
+    else {
+      const [ins] = await db
+        .insert(entities)
+        .values({ siret, createdBy, createdAt: new Date(), ...common } as any)
+        .returning({ id: entities.id })
+      entityId = ins.id
+      addCreated++
+    }
+    additionalIdBySiret.set(siret, entityId)
+
+    // Date de première labellisation éventuelle (fournie pour le SGS).
+    const fld = (row.firstLabelingDate || '').trim()
+    if (fld) {
+      const d = new Date(fld)
+      if (!isNaN(d.getTime())) {
+        const [ex] = await db
+          .select({ id: entityFieldVersions.id })
+          .from(entityFieldVersions)
+          .where(and(eq(entityFieldVersions.entityId, entityId), eq(entityFieldVersions.fieldKey, 'firstLabelingDate')))
+          .limit(1)
+        if (!ex) {
+          await db.insert(entityFieldVersions).values({ entityId, fieldKey: 'firstLabelingDate', valueDate: d, createdBy, createdAt: new Date() })
+        }
+      }
+    }
+  }
+
+  // Liens parents déclarés dans le fichier additionnel (ex. MAISON COLLET).
+  for (const row of additionalRows) {
+    const siret = normalizeSiret(row.siret)
+    const parentSiret = normalizeSiret(row.parentSiret)
+    if (!isUsableSiret(siret) || !isUsableSiret(parentSiret)) continue
+    const childId = additionalIdBySiret.get(siret)
+    let parentId = additionalIdBySiret.get(parentSiret)
+    if (!parentId) {
+      const [p] = await db.select({ id: entities.id }).from(entities).where(eq(entities.siret, parentSiret)).limit(1)
+      parentId = p?.id
+    }
+    if (childId && parentId && childId !== parentId) {
+      await db
+        .update(entities)
+        .set({ parentGroupId: parentId, updatedBy: createdBy, updatedAt: new Date() })
+        .where(eq(entities.id, childId))
+    }
+  }
+
+  console.log('─── Passe 7 ───────────────────────────')
+  console.log(`✅ Créées       : ${addCreated}`)
+  console.log(`✏️  Mises à jour : ${addUpdated}`)
+  console.log('────────────────────────────────────────\n')
+
+  // ──────────────────────────────────────────────────────────
+  // PASSE 8 — Overrides de mode (maître / suiveuse) validés par la FEEF
+  //
+  // entity-mode-overrides.csv impose le mode final d'une entité par SIRET,
+  // à partir des onglets « FOLLOWER avec audits » et « MASTER sans audit »
+  // complétés par la FEEF.
+  // ──────────────────────────────────────────────────────────
+  console.log('📋 Passe 8 : overrides de mode (FEEF)...\n')
+
+  let modeOverridden = 0
+  try {
+    const modeRows = Papa.parse<{ siret: string; mode: string }>(
+      readFileSync(resolve(import.meta.dirname, 'entity-mode-overrides.csv'), 'utf-8').replace(/^﻿/, ''),
+      { header: true, skipEmptyLines: true, delimiter: ';', transformHeader: (h) => h.trim() },
+    ).data
+    for (const r of modeRows) {
+      const siret = normalizeSiret(r.siret)
+      const mode = (r.mode || '').trim().toUpperCase()
+      if (!isUsableSiret(siret) || (mode !== 'MASTER' && mode !== 'FOLLOWER')) continue
+      await db
+        .update(entities)
+        .set({ mode: mode as 'MASTER' | 'FOLLOWER', updatedBy: createdBy, updatedAt: new Date() })
+        .where(eq(entities.siret, siret))
+      modeOverridden++
+    }
+  }
+  catch {
+    // Fichier absent : pas d'override de mode.
+  }
+  console.log('─── Passe 8 ───────────────────────────')
+  console.log(`✅ Modes forcés : ${modeOverridden}`)
+  console.log('────────────────────────────────────────\n')
+
+  // ──────────────────────────────────────────────────────────
+  // PASSE 9 — Invariant parent/fille + nettoyage ecocertId des suiveuses
+  //
+  // Invariant : sur un lien parent-fille, un seul côté est MASTER. Si les deux
+  // sont MASTER (tête de groupe auditée ET fille auditée), on casse le lien :
+  // chacune reste autonome (pas de relation). Si le parent est FOLLOWER (groupe
+  // non labellisé), on garde le lien et la fille reste MASTER.
+  //
+  // Règle FOLLOWER : une entité suiveuse ne porte pas d'ecocertId (la
+  // labellisation découle du groupe), donc on le retire.
+  // ──────────────────────────────────────────────────────────
+  console.log('📋 Passe 9 : invariant parent/fille + ecocertId suiveuses...\n')
+
+  const allForInvariant = await db
+    .select({ id: entities.id, mode: entities.mode, parentGroupId: entities.parentGroupId })
+    .from(entities)
+    .where(isNull(entities.deletedAt))
+  const modeById = new Map(allForInvariant.map((e) => [e.id, e.mode]))
+
+  let linksBroken = 0
+  for (const e of allForInvariant) {
+    if (e.parentGroupId == null) continue
+    if (e.mode === 'MASTER' && modeById.get(e.parentGroupId) === 'MASTER') {
+      await db
+        .update(entities)
+        .set({ parentGroupId: null, updatedBy: createdBy, updatedAt: new Date() })
+        .where(eq(entities.id, e.id))
+      linksBroken++
+    }
+  }
+
+  const followerCleared = await db
+    .update(entities)
+    .set({ ecocertId: null, ecocertIds: null, updatedBy: createdBy, updatedAt: new Date() })
+    .where(eq(entities.mode, 'FOLLOWER'))
+    .returning({ id: entities.id })
+
+  console.log('─── Passe 9 ───────────────────────────')
+  console.log(`🔗 Liens MASTER/MASTER cassés    : ${linksBroken}`)
+  console.log(`🧹 ecocertId retirés (suiveuses) : ${followerCleared.length}`)
   console.log('────────────────────────────────────────\n')
 
   writeReport(report, import.meta.dirname)

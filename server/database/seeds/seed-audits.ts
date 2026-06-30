@@ -328,6 +328,71 @@ async function seedAudits() {
   }
   console.log(`🏢 ${liveEntities.length} entités actives indexées (SIRET / SIREN / nom)\n`)
 
+  // ──────────────────────────────────────────────────────────
+  // Décisions FEEF/Ecocert (retours de juin 2026) :
+  //   - ecocert-canonical.csv : ecocertId « porteur du contrat » par entité
+  //     (cas de doublons), qui prime sur la déduction automatique.
+  //   - audits-excluded-codes.csv : dossiers Ecocert appartenant à une AUTRE
+  //     société non suivie (ex. COURBEYRE), dont les audits ne sont pas importés.
+  //   - audits-validated-nonmatches.csv : entreprises non rattachées validées
+  //     par la FEEF (sortantes / biopartenaire mutualisé), à ne plus compter
+  //     comme anomalie ouverte.
+  // ──────────────────────────────────────────────────────────
+  const loadCsv = <T>(file: string, delimiter: string): T[] => {
+    try {
+      return Papa.parse<T>(
+        readFileSync(resolve(import.meta.dirname, file), 'utf-8').replace(/^﻿/, ''),
+        { header: true, skipEmptyLines: true, delimiter, transformHeader: (h) => h.trim() },
+      ).data
+    }
+    catch {
+      return []
+    }
+  }
+
+  const canonicalEcocertBySiret = new Map<string, string>()
+  for (const r of loadCsv<{ siret: string; canonicalEcocertId: string }>('ecocert-canonical.csv', ';')) {
+    const siret = normalizeSiret(r.siret)
+    const code = (r.canonicalEcocertId ?? '').trim()
+    if (isUsableSiret(siret) && code) canonicalEcocertBySiret.set(siret, code)
+  }
+
+  const excludedCodes = new Set<string>()
+  for (const r of loadCsv<{ ecocertId: string }>('audits-excluded-codes.csv', ';')) {
+    const code = (r.ecocertId ?? '').trim()
+    if (code) excludedCodes.add(code)
+  }
+
+  // Nom normalisé SANS forme juridique : le nouvel export Ecocert ajoute
+  // « SA / SAS / SARL... » aux raisons sociales, alors que le tableau FEEF
+  // ne les a pas. On les neutralise pour fiabiliser l'appariement.
+  const stripLegalForm = (raw: string): string =>
+    normalizeName(raw).replace(/\b(SAS|SASU|SARL|SA|EURL|SNC|SCEA|SCA|GIE|EARL|SE)\b/g, '').replace(/\s+/g, ' ').trim()
+
+  const validatedByName = new Map<string, string>()
+  const validatedBySiret = new Map<string, string>()
+  for (const r of loadCsv<{ nomClient: string; ecoSiret: string; motif: string }>('audits-validated-nonmatches.csv', ';')) {
+    const motif = (r.motif ?? '').trim()
+    const nameKey = stripLegalForm(r.nomClient ?? '')
+    const siret = normalizeSiret(r.ecoSiret ?? '')
+    if (nameKey) validatedByName.set(nameKey, motif)
+    if (isUsableSiret(siret)) validatedBySiret.set(siret, motif)
+  }
+  /** Renvoie le motif de validation FEEF (sortant / biopartenaire) ou ''. */
+  const validatedMotif = (nom: string, siret: string): string => {
+    const s = normalizeSiret(siret)
+    return (isUsableSiret(s) && validatedBySiret.get(s))
+      || validatedByName.get(stripLegalForm(nom))
+      || ''
+  }
+  console.log(`🎯 Décisions FEEF : ${canonicalEcocertBySiret.size} ecocertId canoniques, ${excludedCodes.size} code(s) exclu(s), ${validatedByName.size} non-rattachés validés\n`)
+
+  // Suiveuses dont on ignore les audits Ecocert (label porté par le groupe).
+  // Une ligne par couple (entité, ECOCERT_ID) pour le rapport.
+  const followerSkipped = new Map<number, { entity: EntityRef; codes: Set<string>; count: number }>()
+  let excludedAuditCount = 0
+  let followerAuditSkipped = 0
+
   type MatchVia = 'override' | 'siret' | 'siren' | 'ecocert' | 'nom'
 
   /** Cherche une entité par SIRET exact, puis par SIREN. */
@@ -442,6 +507,13 @@ async function seedAudits() {
     const clientName = (row['CLIENT_NAME'] ?? '').trim()
     const ecocertId = (row['ECOCERT_ID'] ?? '').trim()
 
+    // Code Ecocert exclu (dossier d'une autre société non suivie, ex. COURBEYRE)
+    // validé par la FEEF : on n'importe pas ces audits.
+    if (ecocertId && excludedCodes.has(ecocertId)) {
+      excludedAuditCount++
+      continue
+    }
+
     // Rattachement en cascade : SIRET exact → SIREN → ECOCERT_ID → nom.
     // On ne rattache jamais vers une entité supprimée (sortante).
     const match = matchEntity(siret, ecocertId, clientName)
@@ -461,6 +533,20 @@ async function seedAudits() {
     }
 
     const entity = match.entity
+
+    // Règle FOLLOWER : une entité suiveuse ne porte pas d'ecocertId et on
+    // n'importe pas ses audits (la labellisation découle du groupe / siège,
+    // confirmé par Ecocert pour le multisite). On les recense pour le rapport.
+    if (entity.mode === 'FOLLOWER') {
+      if (!followerSkipped.has(entity.id)) {
+        followerSkipped.set(entity.id, { entity, codes: new Set(), count: 0 })
+      }
+      const bucket = followerSkipped.get(entity.id)!
+      if (ecocertId) bucket.codes.add(ecocertId)
+      bucket.count++
+      followerAuditSkipped++
+      continue
+    }
 
     // Accumulation pour le rapport des entités multi-ECOCERT_ID.
     if (ecocertId) {
@@ -573,6 +659,8 @@ async function seedAudits() {
 
   console.log('\n─── Résumé ────────────────────────────')
   console.log(`🚫 « Not contracted » ignorées : ${skippedNotContracted}`)
+  console.log(`🚫 Codes exclus (autre société) : ${excludedAuditCount}`)
+  console.log(`👥 Audits suiveuses ignorés   : ${followerAuditSkipped} (${followerSkipped.size} entités)`)
   console.log(`✅ Créés                     : ${created}`)
   console.log(`   ↪ rattachés par override FEEF : ${matchedByOverride}`)
   console.log(`   ↪ rattachés par SIREN     : ${matchedBySiren}`)
@@ -605,7 +693,14 @@ async function seedAudits() {
       updatedAt: new Date(),
     }
 
-    if (byEcocert.size === 1) {
+    // ecocertId unique conservé = dossier « porteur du contrat » désigné par
+    // Ecocert (ecocert-canonical.csv), sinon l'unique code si non ambigu.
+    const canonical = canonicalEcocertBySiret.get(entity.siret)
+    if (canonical) {
+      updateData.ecocertId = canonical
+      ecocertUpdated++
+    }
+    else if (byEcocert.size === 1) {
       const [ecocertId] = [...byEcocert.keys()]
       updateData.ecocertId = ecocertId
       ecocertUpdated++
@@ -663,6 +758,66 @@ async function seedAudits() {
 
   console.log(`✅ firstLabelingDate insérée  : ${firstLabelingSet}`)
   console.log(`✓  Déjà définie (inchangée)  : ${firstLabelingAlreadySet}`)
+
+  // ──────────────────────────────────────────────────────────
+  // Import des audits SGS (autre organisme évaluateur).
+  //
+  // Source : audits-sgs.csv (retour FEEF). Les entités SGS ont été créées par
+  // seed-entities (Passe 7) ; on les retrouve par SIRET et on crée un audit
+  // sous l'OE « SGS ». Ces audits comptent dans entityIdsWithAudit, donc les
+  // entités SGS ne ressortent pas comme « MASTER sans audit ».
+  // ──────────────────────────────────────────────────────────
+  console.log('\n📋 Import des audits SGS...')
+
+  type SgsAuditRow = { siret: string; name: string; type: string; monitoringMode: string; status: string; plannedDate: string; auditorName: string }
+  let sgsCreated = 0
+  const sgsRows = Papa.parse<SgsAuditRow>(
+    (() => { try { return readFileSync(resolve(import.meta.dirname, 'audits-sgs.csv'), 'utf-8').replace(/^﻿/, '') } catch { return '' } })(),
+    { header: true, skipEmptyLines: true, delimiter: ';', transformHeader: (h) => h.trim() },
+  ).data
+
+  if (sgsRows.length > 0) {
+    const [foundSgs] = await db.select({ id: oes.id }).from(oes).where(eq(oes.name, 'SGS')).limit(1)
+    let SGS_OE_ID: number
+    if (foundSgs) {
+      SGS_OE_ID = foundSgs.id
+    }
+    else {
+      const [createdSgs] = await db.insert(oes).values({ name: 'SGS', createdBy }).returning({ id: oes.id })
+      SGS_OE_ID = createdSgs.id
+      console.log('🏢 OE SGS créé en base')
+    }
+
+    for (const r of sgsRows) {
+      const siret = normalizeSiret(r.siret)
+      if (!isUsableSiret(siret)) continue
+      const found = findBySiret(siret)
+      if (!found) {
+        report.push({ ligne: 'SGS', siret, nom: r.name ?? '', saison: '', type_audit: r.type ?? '', statut_ecocert: 'SGS', probleme: 'Entité SGS introuvable', details: `SIRET SGS ${r.siret} non rapproché à une entité` })
+        continue
+      }
+      const entity = found.entity
+      const now = new Date()
+      const plannedDate = (r.plannedDate ?? '').trim()
+      await db.insert(audits).values({
+        entityId: entity.id,
+        oeId: SGS_OE_ID,
+        type: (r.type || 'MONITORING') as AuditTypeEnum,
+        ...((r.monitoringMode || '').trim() ? { monitoringMode: r.monitoringMode.trim() as MonitoringModeEnum } : {}),
+        status: (r.status || 'SCHEDULED') as AuditStatusEnum,
+        ...((r.auditorName || '').trim() ? { externalAuditorName: r.auditorName.trim() } : {}),
+        ...(plannedDate ? { plannedDate } : {}),
+        createdBy,
+        updatedBy: createdBy,
+        createdAt: now,
+        updatedAt: now,
+      })
+      entityIdsWithAudit.add(entity.id)
+      auditCountByEntity.set(entity.id, (auditCountByEntity.get(entity.id) ?? 0) + 1)
+      sgsCreated++
+    }
+  }
+  console.log(`✅ Audits SGS créés : ${sgsCreated}`)
 
   // ──────────────────────────────────────────────────────────
   // Nettoyage des ecocertId orphelins + datasets du rapport qualité.
@@ -1065,8 +1220,13 @@ async function seedAudits() {
       // Les rattachements approximatifs par SIREN/nom sont volontairement
       // exclus : ils sont déterministes et déjà validés, ce ne sont pas des
       // erreurs à re-traiter. Seuls les audits réellement perdus figurent ici.
-      const unmatchedRows = report.filter(r =>
-        r.probleme === 'SIRET manquant' || r.probleme === 'SIRET inconnu dans la base FEEF')
+      // Chaque non-rattaché est annoté « Validation FEEF » : les sortants et
+      // les cas biopartenaire validés par la FEEF sont distingués des
+      // anomalies réellement ouvertes (objectif : aucune ouverte).
+      const unmatchedRows = report
+        .filter(r => r.probleme === 'SIRET manquant' || r.probleme === 'SIRET inconnu dans la base FEEF')
+        .map(r => ({ ...r, validation: validatedMotif(r.nom, r.siret) }))
+        .sort((a, b) => (a.validation ? 1 : 0) - (b.validation ? 1 : 0) || String(a.nom).localeCompare(String(b.nom), 'fr'))
       addSheet('Audits non rattachés', [
         { key: 'ligne', label: 'Ligne CSV', width: 10 },
         { key: 'nom', label: 'Nom client Ecocert', width: 45 },
@@ -1075,8 +1235,29 @@ async function seedAudits() {
         { key: 'type_audit', label: 'Type audit', width: 22 },
         { key: 'statut_ecocert', label: 'Statut Ecocert', width: 28 },
         { key: 'probleme', label: 'Problème', width: 28 },
+        { key: 'validation', label: 'Validation FEEF', width: 30 },
         { key: 'details', label: 'Détails', width: 80 },
       ], unmatchedRows)
+
+      // Onglet : suiveuses dont les audits Ecocert sont ignorés (label porté
+      // par le groupe). C'est la liste demandée par la FEEF des entités qui
+      // avaient un ecocertId mais qu'on ne suit pas.
+      const followerSkippedRows = [...followerSkipped.values()]
+        .map(b => ({
+          nom_feef: b.entity.name,
+          siret_feef: b.entity.siret,
+          codes_ecocert: [...b.codes].sort().join(', '),
+          groupe: b.entity.parentGroupId ? (entityNameById.get(b.entity.parentGroupId) ?? '') : '',
+          nb_audits_ignores: b.count,
+        }))
+        .sort((a, b) => a.nom_feef.localeCompare(b.nom_feef, 'fr'))
+      addSheet('Suiveuses ignorées', [
+        { key: 'nom_feef', label: 'Entité FEEF (suiveuse)', width: 45 },
+        { key: 'siret_feef', label: 'SIRET FEEF', width: 18 },
+        { key: 'codes_ecocert', label: 'Code(s) Ecocert ignorés', width: 28 },
+        { key: 'groupe', label: 'Groupe (parent)', width: 45 },
+        { key: 'nb_audits_ignores', label: 'Nb audits ignorés', width: 18 },
+      ], followerSkippedRows)
 
       // Onglet 2 : doublons multi-ECOCERT_ID (feuille déjà construite).
       XLSX.utils.book_append_sheet(wb, ws, 'Doublons ECOCERT_ID')
@@ -1124,6 +1305,27 @@ async function seedAudits() {
       console.warn(`⚠️  Rapport XLSX ignoré : ${e instanceof Error ? e.message : e}`)
     }
   }
+
+  // ──────────────────────────────────────────────────────────
+  // Bilan final : on distingue les non-rattachés validés par la FEEF
+  // (sortants / biopartenaire mutualisé) des anomalies réellement ouvertes.
+  // Objectif des corrections de juin 2026 : aucune anomalie ouverte.
+  // ──────────────────────────────────────────────────────────
+  const unmatchedFinal = report.filter(r =>
+    r.probleme === 'SIRET manquant' || r.probleme === 'SIRET inconnu dans la base FEEF')
+  const openUnmatched = unmatchedFinal.filter(r => !validatedMotif(r.nom, r.siret))
+  console.log('\n─── Bilan non-rattachés ───────────────')
+  console.log(`📋 Total non-rattachés        : ${unmatchedFinal.length}`)
+  console.log(`✔️  Validés FEEF (sortant/bio) : ${unmatchedFinal.length - openUnmatched.length}`)
+  console.log(`${openUnmatched.length === 0 ? '✅' : '⚠️ '} Anomalies ouvertes        : ${openUnmatched.length}`)
+  if (openUnmatched.length > 0) {
+    const distinct = [...new Map(openUnmatched.map(r => [normalizeName(r.nom) + r.siret, r])).values()]
+    for (const r of distinct.slice(0, 50)) {
+      console.log(`     L${r.ligne} | ${r.nom} | SIRET ${r.siret} | ${r.saison} | ${r.probleme}`)
+    }
+    if (distinct.length > 50) console.log(`     ... et ${distinct.length - 50} autres`)
+  }
+  console.log('────────────────────────────────────────')
 
   await pool.end()
   console.log('🏁 Import terminé')
