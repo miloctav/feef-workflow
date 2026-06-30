@@ -1,0 +1,12 @@
+﻿categorie;nom_feef;siret_feef;ecocert_id_feef_db;nb_ecocert_ids_distincts;ecocert_id_ecocert;nb_audits;noms_client_ecocert;saisons;rattachement_via;match_ecocert_id_feef
+Changement de numéro de dossier (bénin);CAROLA;91542023600019;179209;2;179209;4;DES EAUX MINERALES DE RIBEAUVILLE;2023, 2024, 2025, 2026;siret;Oui
+Changement de numéro de dossier (bénin);CAROLA;91542023600019;179209;2;84482;1;CAROLA;2022;nom;Non
+Changement de numéro de dossier (bénin);Culture Pom;49949540600021;264641;2;264641;4;CULTURE POM;2022, 2023, 2024, 2025;siret;Oui
+Changement de numéro de dossier (bénin);Culture Pom;49949540600021;264641;2;298867;1;CULTURE POM;2026;siren;Non
+Changement de numéro de dossier (bénin);DANIEL ALLAIRE SAS;32290299000017;84459;2;281345;4;Collectif AEB services;2023, 2024, 2025, 2026;siret;Non
+Changement de numéro de dossier (bénin);DANIEL ALLAIRE SAS;32290299000017;84459;2;84459;1;ALLAIRE;2022;siret;Oui
+Changement de numéro de dossier (bénin);FUNKIE (ex FUNKY VEGGIE);82140786300025;166668;2;166668;4;FUNKY VEGGIE;2022, 2023, 2024, 2025;siret;Oui
+Changement de numéro de dossier (bénin);FUNKIE (ex FUNKY VEGGIE);82140786300025;166668;2;200481;1;FUNKIE;2026;siret;Non
+Doublon interne Ecocert;GROUPE FRANCAISE DE GASTRONOMIE;55850337100160;199225;3;199225;2;GROUPE FRANCAISE DE GASTRONOMIE;2025, 2026;siret;Oui
+Doublon interne Ecocert;GROUPE FRANCAISE DE GASTRONOMIE;55850337100160;199225;3;233287;4;GROUPE FRANCAISE DE  GASTRONOMIE;2022, 2023, 2024, 2026;siren;Non
+Doublon interne Ecocert;GROUPE FRANCAISE DE GASTRONOMIE;55850337100160;199225;3;274849;1;GROUPE FRANCAISE DE  GASTRONOMIE;2023;nom;Non
