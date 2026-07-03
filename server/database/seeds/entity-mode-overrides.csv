@@ -45,7 +45,8 @@
 56207071400174;FOLLOWER;MASTER sans audit (pas labellisé);PRODEF | pas labellisé (filles labellsiées comagnie du midi - hygiene et nature)
 43839430600015;FOLLOWER;MASTER sans audit (pas labellisé);RIVIERE DIFFUSION | pas labellisé (fillers les mets de provence - Rivière)
 48768155300045;FOLLOWER;MASTER sans audit (suiveuse);SILL SAS
+50042760400037;FOLLOWER;MASTER sans audit (suiveuse);TERRE D'EMBRUNS
 75048552600024;MASTER;MASTER sans audit (tête de groupe);SUDAGRO
 83919443800017;MASTER;MASTER sans audit (tête de groupe);SUSTN FOOD (MARQUE HOOPE)
 30942263200021;MASTER;MASTER sans audit (tête de groupe);UPCS Groupe DEBROAS
-43196744700019;MASTER;MASTER sans audit (tête de groupe);ZOLUX / SAINT BERNARD
+43196744700019;MASTER;MASTER (porte les audits, doublon SAINT BERNARD ecarte);ZOLUX / SAINT BERNARD

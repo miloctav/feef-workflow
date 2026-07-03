@@ -1,0 +1,9 @@
+﻿categorie;nom_feef;siret_feef;ecocert_id_feef_db;nb_ecocert_ids_distincts;ecocert_id_ecocert;nb_audits;noms_client_ecocert;saisons;rattachement_via;match_ecocert_id_feef
+Changement de numéro de dossier (bénin);Culture Pom;49949540600021;264641;2;264641;4;CULTURE POM;2022, 2023, 2024, 2025;siret;Oui
+Changement de numéro de dossier (bénin);Culture Pom;49949540600021;264641;2;298867;1;CULTURE POM;2026;siren;Non
+Changement de numéro de dossier (bénin);FUNKIE (ex FUNKY VEGGIE);82140786300025;166668;2;166668;4;FUNKY VEGGIE;2022, 2023, 2024, 2025;siret;Oui
+Changement de numéro de dossier (bénin);FUNKIE (ex FUNKY VEGGIE);82140786300025;166668;2;200481;1;FUNKIE SAS;2026;siret;Non
+Doublon interne Ecocert;GROUPE FRANCAISE DE GASTRONOMIE;55850337100160;199225;2;199225;2;GROUPE FRANCAISE DE GASTRONOMIE SA;2025, 2026;siret;Oui
+Doublon interne Ecocert;GROUPE FRANCAISE DE GASTRONOMIE;55850337100160;199225;2;233287;4;GROUPE FRANCAISE DE  GASTRONOMIE;2022, 2023, 2024, 2026;siren;Non
+Doublon interne Ecocert;LUCIEN GEORGELIN SAS;38251081600038;20955;2;180311;1;LUCIEN GEORGELIN CEREALES SAS;2022;override;Non
+Doublon interne Ecocert;LUCIEN GEORGELIN SAS;38251081600038;20955;2;20955;5;LUCIEN GEORGELIN SARL;2022, 2023, 2024, 2025, 2026;siret;Oui

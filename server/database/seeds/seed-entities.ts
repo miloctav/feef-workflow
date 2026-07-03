@@ -190,6 +190,35 @@ async function seedEntities() {
   console.log(`📄 Fichier source : ${filePath}`)
   console.log(`📋 ${rows.length} lignes lues\n`)
 
+  // ── Exclusions FEEF (doublons signalés hors xlsx) ──
+  // Certaines entités du xlsx sont des doublons identifiés après coup par la
+  // FEEF (SIRET renseigné dans entities-excluded-siret.csv). On les promeut en
+  // « SKIP_DUPLICATE » : elles ne sont donc pas recréées lors de l'import.
+  // Voir aussi audits-excluded-codes.csv pour l'équivalent côté audits.
+  {
+    const excludedPath = resolve(import.meta.dirname, 'entities-excluded-siret.csv')
+    const excludedRows = Papa.parse<{ siret: string; raison: string }>(
+      readFileSync(excludedPath, 'utf-8').replace(/^﻿/, ''),
+      { header: true, delimiter: ';', skipEmptyLines: true },
+    ).data
+    const excluded = new Map(
+      excludedRows
+        .filter((r) => r.siret?.trim())
+        .map((r) => [normalizeSiret(r.siret.trim()), r.raison?.trim() ?? '']),
+    )
+    let excludedCount = 0
+    for (const row of rows) {
+      const reason = excluded.get(row.siret)
+      if (reason && row.status !== 'EXISTING') {
+        row.status = 'SKIP_DUPLICATE'
+        row.comment = row.comment ? `${row.comment} | ${reason}` : reason
+        excludedCount++
+        console.log(`  🚫 Exclue (doublon FEEF) : ${row.name} (${row.siret})`)
+      }
+    }
+    console.log(`🚫 Exclusions FEEF appliquées : ${excludedCount}\n`)
+  }
+
   // ──────────────────────────────────────────────────────────
   // PURGE — On vide les entités et toutes les données qui en
   // dépendent (audits, revues documentaires, contrats, événements...).
