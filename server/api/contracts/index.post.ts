@@ -5,7 +5,8 @@ import { forInsert } from '~~/server/utils/tracking'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 import { Role } from '#shared/types/roles'
 import { uploadFile } from '~~/server/services/garage'
-import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
+import { getMimeTypeFromFilename, assertAllowedUploadExtension } from '~~/server/utils/mimeTypes'
+import { assertUploadSize } from '~~/server/utils/uploadLimits'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -95,6 +96,10 @@ export default defineEventHandler(async (event) => {
       message: 'Le fichier est obligatoire',
     })
   }
+
+  // Valider le type et la taille du fichier
+  assertAllowedUploadExtension(fileData.filename)
+  assertUploadSize(fileData.data.length)
 
   // Récupérer entityId depuis body OU user.currentEntityId pour ENTITY
   let entityId = body.entityId ? Number(body.entityId) : null

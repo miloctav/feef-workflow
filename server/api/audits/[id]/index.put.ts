@@ -149,6 +149,9 @@ export default defineEventHandler(async (event) => {
   }
 
   // Vérifications de permissions selon le rôle
+  // Seuls FEEF et OE peuvent modifier un audit. On rejette explicitement tout
+  // autre rôle (ENTITY, AUDITOR) en deny-by-default, sans dépendre uniquement de
+  // requireAuditAccess (qui autorise l'AUDITEUR en écriture pour la notation).
   if (currentUser.role === Role.OE) {
     // OE ne peut modifier que certains champs
     if (feefDecision !== undefined) {
@@ -157,11 +160,22 @@ export default defineEventHandler(async (event) => {
         message: 'Seul FEEF peut modifier la décision FEEF',
       })
     }
+    // OE ne peut pas réassigner l'audit à un autre OE (mass assignment)
+    if (oeId !== undefined && oeId !== currentUser.oeId) {
+      throw createError({
+        statusCode: 403,
+        message: 'Un OE ne peut pas réassigner un audit à une autre organisation',
+      })
+    }
     // OE peut modifier: score, oeOpinion, oeOpinionArgumentaire, status
   } else if (currentUser.role === Role.FEEF) {
     // FEEF peut tout modifier
   } else {
-    // Autres rôles: pas d'accès (déjà géré par requireAuditAccess)
+    // ENTITY, AUDITOR et tout autre rôle : interdits en écriture sur un audit
+    throw createError({
+      statusCode: 403,
+      message: 'Vous n\'êtes pas autorisé à modifier un audit',
+    })
   }
 
   // Si oeId est fourni, v�rifier que l'OE existe

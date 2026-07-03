@@ -1,4 +1,5 @@
 import type { EmailTemplate, ActionCreatedEmailData } from '~~/server/types/mail'
+import { escapeHtml } from '~~/server/utils/escapeHtml'
 
 /**
  * Template d'email pour la notification d'une nouvelle action
@@ -38,7 +39,7 @@ export const actionCreatedTemplate: EmailTemplate<ActionCreatedEmailData> = {
           <tr>
             <td style="padding: 40px;">
               <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 24px; font-weight: 600;">
-                Bonjour ${data.firstName} ${data.lastName},
+                Bonjour ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)},
               </h2>
 
               <p style="margin: 0 0 20px; color: #4b5563; font-size: 16px; line-height: 1.6;">
@@ -50,15 +51,15 @@ export const actionCreatedTemplate: EmailTemplate<ActionCreatedEmailData> = {
                 <tr>
                   <td style="padding: 20px;">
                     <p style="margin: 0 0 8px; color: #1f2937; font-size: 18px; font-weight: 600;">
-                      ${data.actionTitle}
+                      ${escapeHtml(data.actionTitle)}
                     </p>
                     <p style="margin: 0 0 12px; color: #4b5563; font-size: 14px; line-height: 1.6;">
-                      ${data.actionDescription}
+                      ${escapeHtml(data.actionDescription)}
                     </p>
                     <table role="presentation" style="width: 100%;">
                       <tr>
                         <td style="padding: 4px 0; color: #6b7280; font-size: 14px;">
-                          <strong>Entité :</strong> ${data.entityName}
+                          <strong>Entité :</strong> ${escapeHtml(data.entityName)}
                         </td>
                       </tr>
                       <tr>

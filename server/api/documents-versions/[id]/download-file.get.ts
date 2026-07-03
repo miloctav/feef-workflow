@@ -3,6 +3,7 @@ import { documentVersions } from '~~/server/database/schema'
 import { eq } from 'drizzle-orm'
 import { getSignedUrl } from '~~/server/services/garage'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
+import { assertDocumentaryReviewDownloadAccess } from '~~/server/utils/documentaryReviewAccess'
 import { Role } from '#shared/types/roles'
 
 export default defineEventHandler(async (event) => {
@@ -73,6 +74,8 @@ export default defineEventHandler(async (event) => {
       })
     }
     entityId = version.documentaryReview.entityId
+    // Contrôles allowOeDocumentsAccess + catégorie (comme le download groupé)
+    assertDocumentaryReviewDownloadAccess(user, version.documentaryReview)
   } else if (version.contract) {
     if (version.contract.deletedAt) {
       throw createError({
@@ -138,10 +141,21 @@ export default defineEventHandler(async (event) => {
     // Récupérer le type MIME
     const contentType = version.mimeType || fileResponse.headers.get('content-type') || 'application/octet-stream'
 
+    // Assainir le nom de fichier avant de l'injecter dans l'en-tête.
+    // Sans cela, un guillemet ou un CR/LF dans le paramètre permet une injection
+    // d'en-tête (response splitting) et le contrôle du nom réel du fichier.
+    const rawName = filename || 'document'
+    const safeAsciiName = rawName
+      .replace(/[\r\n"\\/]/g, '') // retire quotes, antislash, slash et retours ligne
+      .replace(/[^\x20-\x7E]/g, '_') // remplace tout caractère non ASCII imprimable
+      .slice(0, 255) || 'document'
+    // Variante RFC 5987 pour préserver les caractères UTF-8 (accents)
+    const encodedName = encodeURIComponent(rawName).slice(0, 255)
+
     // Configurer les headers de réponse pour forcer le téléchargement
     setHeaders(event, {
       'Content-Type': contentType,
-      'Content-Disposition': `attachment; filename="${filename || 'document'}"`,
+      'Content-Disposition': `attachment; filename="${safeAsciiName}"; filename*=UTF-8''${encodedName}`,
       'Cache-Control': 'no-cache',
     })
 

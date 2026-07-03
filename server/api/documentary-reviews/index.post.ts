@@ -4,6 +4,7 @@ import { eq, and, isNull } from 'drizzle-orm'
 import { forInsert } from '~~/server/utils/tracking'
 import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
 import { DocumentaryReviewCategory, canAccessDocumentaryReviewCategory } from '#shared/types/enums'
+import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 
 export default defineEventHandler(async (event) => {
   // Authentification et vérification du rôle FEEF
@@ -33,6 +34,15 @@ export default defineEventHandler(async (event) => {
       message: 'Entité non trouvée',
     })
   }
+
+  // Vérifier que l'utilisateur a accès en écriture à cette entité.
+  // Sans ce contrôle, tout utilisateur authentifié pouvait créer une revue
+  // documentaire dans le dossier de n'importe quelle entité (IDOR en écriture).
+  await requireEntityAccess({
+    user,
+    entityId: body.entityId,
+    accessType: AccessType.WRITE,
+  })
 
   let documentData: {
     title: string

@@ -2,7 +2,8 @@ import { db } from '~~/server/database'
 import { contracts, documentVersions, accountsToEntities } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { uploadFile } from '~~/server/services/garage'
-import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
+import { getMimeTypeFromFilename, assertAllowedUploadExtension } from '~~/server/utils/mimeTypes'
+import { assertUploadSize } from '~~/server/utils/uploadLimits'
 import { Role } from '#shared/types/roles'
 import { recordEvent } from '~~/server/services/events'
 
@@ -48,6 +49,10 @@ export default defineEventHandler(async (event) => {
       message: 'Aucun fichier fourni',
     })
   }
+
+  // Valider le type et la taille du fichier
+  assertAllowedUploadExtension(fileData.filename)
+  assertUploadSize(fileData.data.length)
 
   // Récupérer le contrat
   const contract = await db.query.contracts.findFirst({

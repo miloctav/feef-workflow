@@ -41,7 +41,16 @@ export default defineEventHandler(async (event) => {
     // FEEF peut tout faire
 
   } else if (currentUser.role === Role.OE && currentUser.oeRole === OERole.ADMIN) {
-    // OE ADMIN peut créer des comptes pour son propre OE
+    // OE ADMIN peut créer des comptes pour son propre OE.
+    // Liste blanche stricte : uniquement OE et AUDITOR. Toute autre valeur
+    // (notamment FEEF) est refusée en deny-by-default pour empêcher une
+    // élévation de privilège vers un compte super-admin.
+    if (role !== Role.OE && role !== Role.AUDITOR) {
+      throw createError({
+        statusCode: 403,
+        message: 'Vous ne pouvez créer que des comptes OE ou auditeur',
+      })
+    }
 
     // Pour les comptes OE, vérifier que l'oeId correspond
     if (role === Role.OE && currentUser.oeId !== oeId) {
@@ -63,14 +72,7 @@ export default defineEventHandler(async (event) => {
         })
       }
     }
-
-    // Pour les entités, un OE ne peut pas en créer
-    if (role === Role.ENTITY) {
-      throw createError({
-        statusCode: 403,
-        message: 'Vous n\'êtes pas autorisé à créer des comptes entreprise',
-      })
-    }
+    // Note : la liste blanche ci-dessus (OE/AUDITOR) exclut déjà ENTITY et FEEF.
 
   } else {
     throw createError({

@@ -207,13 +207,25 @@ export function parsePaginationParams(
 function createSqlIdentifier(path: string): any {
   const parts = path.split('.')
 
+  // Sécurité : chaque segment d'identifiant doit être un nom SQL simple.
+  // Cette fonction peut recevoir des chemins issus de la configuration (sûrs),
+  // mais on valide systématiquement pour éviter toute injection SQL par
+  // identifiant si une entrée utilisateur venait à l'atteindre (cf. filtres).
+  const SAFE_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+  for (const part of parts) {
+    if (!SAFE_IDENTIFIER.test(part)) {
+      throw createError({
+        statusCode: 400,
+        message: 'Identifiant de colonne invalide',
+      })
+    }
+  }
+
   // Construire manuellement la référence SQL avec dot notation
-  // On retourne directement l'objet qui peut être utilisé dans les requêtes
   if (parts.length === 1) {
     return sql.identifier(parts[0])
   } else {
-    // Pour les relations, on construit la référence complète
-    // ex: entity.name -> sql.raw('entity.name')
+    // Segments déjà validés ci-dessus : construction sûre de la référence
     return sql.raw(parts.map(p => `"${p}"`).join('.'))
   }
 }
@@ -261,20 +273,16 @@ function buildFilterConditions(
     if (config.allowedFilters?.local?.includes(key)) {
       column = (table as any)[key]
     }
-    // Vérifier si c'est un filtre relationnel mappé
+    // Vérifier si c'est un filtre relationnel mappé (uniquement via la whitelist)
     else if (config.allowedFilters?.relations?.[key]) {
       const mappedField = config.allowedFilters.relations[key]
       if (mappedField.includes('.')) {
         column = createSqlIdentifier(mappedField)
       }
     }
-    // Vérifier si c'est une dot notation directe autorisée
-    else if (key.includes('.')) {
-      const mappedField = config.allowedFilters?.relations?.[key] || key
-      if (mappedField.includes('.')) {
-        column = createSqlIdentifier(mappedField)
-      }
-    }
+    // Note : aucune branche de "dot notation directe" ici. Un nom de paramètre
+    // contenant un point mais absent de allowedFilters.relations est ignoré,
+    // sinon la clé (contrôlée par le client) atteindrait sql.raw (injection SQL).
 
     if (column) {
       // Support multiple values (OR condition)

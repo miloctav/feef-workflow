@@ -2,6 +2,7 @@ import { eq, and } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { auditNotation, audits } from '~~/server/database/schema'
 import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
+import { Role } from '#shared/types/roles'
 import { forInsert } from '~~/server/utils/tracking'
 import { getAuditScoreDefinition } from '~~/server/config/auditNotation.config'
 import type { AuditScoreKey } from '~~/server/config/auditNotation.config'
@@ -61,6 +62,19 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       message: 'ID de l\'audit invalide',
+    })
+  }
+
+  // Seuls FEEF, OE et AUDITEUR peuvent noter un audit. On rejette explicitement
+  // ENTITY (deny-by-default) en plus du contrôle d'accès à l'audit.
+  if (
+    currentUser.role !== Role.FEEF &&
+    currentUser.role !== Role.OE &&
+    currentUser.role !== Role.AUDITOR
+  ) {
+    throw createError({
+      statusCode: 403,
+      message: 'Vous n\'êtes pas autorisé à noter un audit',
     })
   }
 

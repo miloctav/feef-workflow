@@ -30,7 +30,13 @@ import { getLatestFieldValueFromVersions } from '~~/server/utils/entity-fields'
 
 const escapeCsvCell = (value: unknown): string => {
   if (value === null || value === undefined) return ''
-  const str = String(value)
+  let str = String(value)
+  // Neutraliser l'injection de formules : un tableur interprète une cellule
+  // commençant par = + - @ (ou tab/CR) comme une formule. On préfixe alors
+  // d'une apostrophe pour forcer l'interprétation en texte.
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`
+  }
   if (/[",\n\r;]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`
   }

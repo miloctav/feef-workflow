@@ -51,3 +51,44 @@ export function getMimeTypeFromFilename(filename: string): string {
 
   return ext && mimeTypes[ext] ? mimeTypes[ext] : 'application/octet-stream'
 }
+
+/**
+ * Extensions de fichiers autorisées à l'upload (documents métier).
+ *
+ * On exclut volontairement les formats exécutables dans le navigateur
+ * (html, svg, js, css, xml, json, ico) : servis depuis le domaine de
+ * l'application, ils permettraient un XSS stocké.
+ */
+export const ALLOWED_UPLOAD_EXTENSIONS = new Set([
+  // Documents bureautiques
+  'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+  'odt', 'ods', 'odp', 'rtf',
+  // Texte
+  'txt', 'csv',
+  // Images matricielles (pas de SVG)
+  'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp',
+  // Archives
+  'zip',
+])
+
+/**
+ * Retourne l'extension normalisée (minuscule, sans point) d'un nom de fichier.
+ */
+export function getFileExtension(filename: string): string {
+  return filename.split('.').pop()?.toLowerCase() || ''
+}
+
+/**
+ * Valide qu'un fichier a une extension autorisée à l'upload.
+ * @throws createError 400 si l'extension n'est pas autorisée
+ */
+export function assertAllowedUploadExtension(filename: string): void {
+  const ext = getFileExtension(filename)
+
+  if (!ext || !ALLOWED_UPLOAD_EXTENSIONS.has(ext)) {
+    throw createError({
+      statusCode: 400,
+      message: `Type de fichier non autorisé. Formats acceptés : ${Array.from(ALLOWED_UPLOAD_EXTENSIONS).join(', ')}`,
+    })
+  }
+}

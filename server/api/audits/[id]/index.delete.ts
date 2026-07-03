@@ -3,6 +3,7 @@ import { db } from '~~/server/database'
 import { audits } from '~~/server/database/schema'
 import { softDelete } from '~~/server/utils/softDelete'
 import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
+import { Role } from '#shared/types/roles'
 
 /**
  * DELETE /api/audits/:id
@@ -31,6 +32,15 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       message: 'ID de l\'audit invalide',
+    })
+  }
+
+  // Seuls FEEF et OE peuvent supprimer un audit (deny-by-default pour ENTITY/AUDITOR,
+  // que requireAuditAccess ne bloque pas systématiquement en écriture)
+  if (currentUser.role !== Role.FEEF && currentUser.role !== Role.OE) {
+    throw createError({
+      statusCode: 403,
+      message: 'Vous n\'êtes pas autorisé à supprimer un audit',
     })
   }
 

@@ -2,6 +2,7 @@ import { db } from '~~/server/database'
 import { documentaryReviews, documentVersions, contracts, audits } from '~~/server/database/schema'
 import { eq, and, isNull, desc } from 'drizzle-orm'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
+import { assertDocumentaryReviewDownloadAccess } from '~~/server/utils/documentaryReviewAccess'
 import { Role } from '#shared/types/roles'
 
 export default defineEventHandler(async (event) => {
@@ -54,6 +55,8 @@ export default defineEventHandler(async (event) => {
     }
 
     entityId = documentaryReview.entityId
+    // Contrôles allowOeDocumentsAccess + catégorie (comme le download groupé)
+    assertDocumentaryReviewDownloadAccess(user, documentaryReview)
   } else if (contractId) {
     const contract = await db.query.contracts.findFirst({
       where: and(

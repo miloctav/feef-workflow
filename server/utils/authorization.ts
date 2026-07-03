@@ -274,8 +274,14 @@ export async function verifyAuditAccessForUser(
     return audit.auditorId === user.id
   }
 
-  // ENTITY : accès si l'audit appartient à l'entité courante
+  // ENTITY : accès en LECTURE seule aux audits de l'entité courante.
+  // Aucune écriture d'audit n'est légitime pour une entreprise (notation, avis,
+  // décision et statut sont pilotés par l'OE/l'AUDITEUR/la FEEF). On refuse donc
+  // explicitement le WRITE pour empêcher toute élévation de privilège.
   if (user.role === Role.ENTITY) {
+    if (accessType === AccessType.WRITE) {
+      return false
+    }
     return audit.entityId === user.currentEntityId
   }
 

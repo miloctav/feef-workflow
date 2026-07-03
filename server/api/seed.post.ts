@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import { db } from '../database'
 import { accounts } from '../database/schema'
 import { eq } from 'drizzle-orm'
@@ -25,7 +26,6 @@ export default defineEventHandler(async (event) => {
     const providedToken = tokenFromHeader || tokenFromQuery
 
     const config = useRuntimeConfig(event)
-    console.log('Runtime config :', config)
     const expectedToken = config.seedToken
 
     if (!expectedToken) {
@@ -35,7 +35,14 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    if (!providedToken || providedToken !== expectedToken) {
+    // Comparaison en temps constant pour éviter une attaque temporelle sur le token
+    const providedBuf = Buffer.from(providedToken || '')
+    const expectedBuf = Buffer.from(expectedToken)
+    const tokenValid =
+      providedBuf.length === expectedBuf.length &&
+      timingSafeEqual(providedBuf, expectedBuf)
+
+    if (!tokenValid) {
       throw createError({
         statusCode: 401,
         statusMessage: 'Unauthorized: Invalid or missing seed token',

@@ -2,7 +2,8 @@ import { db } from '~~/server/database'
 import { audits, documentVersions, entities, accountsToEntities } from '~~/server/database/schema'
 import { eq, and, isNull, isNotNull, desc } from 'drizzle-orm'
 import { uploadFile } from '~~/server/services/garage'
-import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
+import { getMimeTypeFromFilename, assertAllowedUploadExtension } from '~~/server/utils/mimeTypes'
+import { assertUploadSize } from '~~/server/utils/uploadLimits'
 import { auditStateMachine } from '~~/server/state-machine'
 import { detectAndCompleteActionsForDocumentUpload, checkAndCompleteAllPendingActions } from '~~/server/services/actions'
 import { recordEvent } from '~~/server/services/events'
@@ -71,6 +72,10 @@ export default defineEventHandler(async (event) => {
       message: 'Aucun fichier fourni',
     })
   }
+
+  // Valider le type et la taille du fichier avant tout traitement
+  assertAllowedUploadExtension(fileData.filename)
+  assertUploadSize(fileData.data.length)
 
   // Récupérer l'audit et vérifier les autorisations
   const audit = await db.query.audits.findFirst({

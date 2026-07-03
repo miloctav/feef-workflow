@@ -1,4 +1,5 @@
 import type { EmailTemplate, TwoFactorCodeData } from '~~/server/types/mail'
+import { escapeHtml } from '~~/server/utils/escapeHtml'
 
 /**
  * Template d'email pour l'envoi du code 2FA
@@ -38,7 +39,7 @@ export const twoFactorCodeTemplate: EmailTemplate<TwoFactorCodeData> = {
           <tr>
             <td style="padding: 40px;">
               <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 24px; font-weight: 600;">
-                Bonjour ${data.firstName} ${data.lastName},
+                Bonjour ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)},
               </h2>
 
               <p style="margin: 0 0 20px; color: #4b5563; font-size: 16px; line-height: 1.6;">
@@ -75,7 +76,7 @@ export const twoFactorCodeTemplate: EmailTemplate<TwoFactorCodeData> = {
                 © ${new Date().getFullYear()} FEEF Workflow. Tous droits réservés.
               </p>
               <p style="margin: 10px 0 0; color: #9ca3af; font-size: 12px;">
-                Cet email a été envoyé à ${data.email}
+                Cet email a été envoyé à ${escapeHtml(data.email)}
               </p>
             </td>
           </tr>

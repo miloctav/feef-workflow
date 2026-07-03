@@ -3,6 +3,7 @@ import { documentVersions } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { getSignedUrl } from '~~/server/services/garage'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
+import { assertDocumentaryReviewDownloadAccess } from '~~/server/utils/documentaryReviewAccess'
 import { Role } from '#shared/types/roles'
 
 export default defineEventHandler(async (event) => {
@@ -70,6 +71,8 @@ export default defineEventHandler(async (event) => {
       })
     }
     entityId = version.documentaryReview.entityId
+    // Contrôles allowOeDocumentsAccess + catégorie (comme le download groupé)
+    assertDocumentaryReviewDownloadAccess(user, version.documentaryReview)
   } else if (version.contract) {
     // Vérifier que le contract n'est pas soft-deleted
     if (version.contract.deletedAt) {

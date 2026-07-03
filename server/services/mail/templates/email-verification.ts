@@ -1,4 +1,5 @@
 import type { EmailTemplate, EmailChangeVerificationData } from '~~/server/types/mail'
+import { escapeHtml } from '~~/server/utils/escapeHtml'
 
 /**
  * Template d'email pour la vérification de changement d'adresse email
@@ -38,7 +39,7 @@ export const emailChangeVerificationTemplate: EmailTemplate<EmailChangeVerificat
           <tr>
             <td style="padding: 40px;">
               <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 24px; font-weight: 600;">
-                Bonjour ${data.firstName} ${data.lastName},
+                Bonjour ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)},
               </h2>
 
               <p style="margin: 0 0 20px; color: #4b5563; font-size: 16px; line-height: 1.6;">
@@ -51,13 +52,13 @@ export const emailChangeVerificationTemplate: EmailTemplate<EmailChangeVerificat
                   Ancienne adresse :
                 </p>
                 <p style="margin: 0 0 15px; color: #1f2937; font-size: 16px;">
-                  ${data.oldEmail}
+                  ${escapeHtml(data.oldEmail)}
                 </p>
                 <p style="margin: 0 0 10px; color: #6b7280; font-size: 14px; font-weight: 600;">
                   Nouvelle adresse :
                 </p>
                 <p style="margin: 0; color: #1f2937; font-size: 16px; font-weight: 600;">
-                  ${data.email}
+                  ${escapeHtml(data.email)}
                 </p>
               </div>
 
@@ -80,7 +81,7 @@ export const emailChangeVerificationTemplate: EmailTemplate<EmailChangeVerificat
               <!-- Message important -->
               <div style="margin-top: 30px; padding: 20px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
                 <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
-                  <strong>Important :</strong> Votre adresse email actuelle (${data.oldEmail}) restera active jusqu'à ce que vous confirmiez ce changement.
+                  <strong>Important :</strong> Votre adresse email actuelle (${escapeHtml(data.oldEmail)}) restera active jusqu'à ce que vous confirmiez ce changement.
                 </p>
               </div>
 
@@ -109,7 +110,7 @@ export const emailChangeVerificationTemplate: EmailTemplate<EmailChangeVerificat
                 © ${new Date().getFullYear()} FEEF Workflow. Tous droits réservés.
               </p>
               <p style="margin: 10px 0 0; color: #9ca3af; font-size: 12px;">
-                Cet email a été envoyé à ${data.email}
+                Cet email a été envoyé à ${escapeHtml(data.email)}
               </p>
             </td>
           </tr>

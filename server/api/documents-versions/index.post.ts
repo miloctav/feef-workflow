@@ -2,7 +2,8 @@ import { db } from '~~/server/database'
 import { documentaryReviews, documentVersions, entities, accountsToEntities, contracts } from '~~/server/database/schema'
 import { eq, and, isNull, isNotNull, desc } from 'drizzle-orm'
 import { uploadFile } from '~~/server/services/garage'
-import { getMimeTypeFromFilename } from '~~/server/utils/mimeTypes'
+import { getMimeTypeFromFilename, assertAllowedUploadExtension } from '~~/server/utils/mimeTypes'
+import { MAX_UPLOAD_SIZE_BYTES, assertUploadSize } from '~~/server/utils/uploadLimits'
 import { Role } from '#shared/types/roles'
 
 export default defineEventHandler(async (event) => {
@@ -51,6 +52,10 @@ export default defineEventHandler(async (event) => {
       message: 'Aucun fichier fourni',
     })
   }
+
+  // Valider le type et la taille du fichier avant tout traitement
+  assertAllowedUploadExtension(fileData.filename)
+  assertUploadSize(fileData.data.length)
 
   let entityId: number
   let documentId: number

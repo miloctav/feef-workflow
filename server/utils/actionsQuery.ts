@@ -27,16 +27,16 @@ export async function buildActionsWhereForUser(
     conditions.push(eq(actions.status, 'PENDING'))
   }
 
-  // If auditId is provided, bypass role filtering and show all actions for this audit
+  // Les filtres auditId/entityId sont appliqués comme conditions ADDITIONNELLES.
+  // Ils ne doivent jamais court-circuiter le cloisonnement par rôle ci-dessous,
+  // sinon n'importe quel utilisateur pourrait lister les actions d'un audit ou
+  // d'une entité tiers en passant simplement l'ID en query (IDOR).
   if (options.auditId) {
     conditions.push(eq(actions.auditId, options.auditId))
-    return conditions
   }
 
-  // If entityId is provided, bypass role filtering and show all actions for this entity
   if (options.entityId) {
     conditions.push(eq(actions.entityId, options.entityId))
-    return conditions
   }
 
   if (user.role === Role.FEEF) {

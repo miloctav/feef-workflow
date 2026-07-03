@@ -1,4 +1,5 @@
 import type { EmailTemplate, ActionReminderEmailData } from '~~/server/types/mail'
+import { escapeHtml } from '~~/server/utils/escapeHtml'
 
 /**
  * Template d'email pour le rappel de deadline d'une action
@@ -7,7 +8,7 @@ export const actionReminderTemplate: EmailTemplate<ActionReminderEmailData> = {
   type: 'action-reminder',
 
   getSubject: (data) => {
-    return `Rappel : ${data.actionTitle} — échéance dans ${data.daysRemaining} jour(s)`
+    return `Rappel : ${data.actionTitle}, échéance dans ${data.daysRemaining} jour(s)`
   },
 
   getHtml: (data) => {
@@ -37,7 +38,7 @@ export const actionReminderTemplate: EmailTemplate<ActionReminderEmailData> = {
           <tr>
             <td style="padding: 40px;">
               <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 24px; font-weight: 600;">
-                Bonjour ${data.firstName} ${data.lastName},
+                Bonjour ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)},
               </h2>
 
               <p style="margin: 0 0 20px; color: #4b5563; font-size: 16px; line-height: 1.6;">
@@ -63,13 +64,13 @@ export const actionReminderTemplate: EmailTemplate<ActionReminderEmailData> = {
                 <tr>
                   <td style="padding: 20px;">
                     <p style="margin: 0 0 8px; color: #1f2937; font-size: 18px; font-weight: 600;">
-                      ${data.actionTitle}
+                      ${escapeHtml(data.actionTitle)}
                     </p>
                     <p style="margin: 0 0 12px; color: #4b5563; font-size: 14px; line-height: 1.6;">
-                      ${data.actionDescription}
+                      ${escapeHtml(data.actionDescription)}
                     </p>
                     <p style="margin: 0; color: #6b7280; font-size: 14px;">
-                      <strong>Entité :</strong> ${data.entityName}
+                      <strong>Entité :</strong> ${escapeHtml(data.entityName)}
                     </p>
                   </td>
                 </tr>

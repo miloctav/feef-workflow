@@ -11,6 +11,7 @@ import {
 import { Role, OERole } from '#shared/types/roles'
 import { AuditStatus } from '#shared/types/enums'
 import { getActionCountsForUser } from '~~/server/utils/getActionCountsForUser'
+import { verifyEntityAccessForUser, AccessType } from '~~/server/utils/authorization'
 
 /**
  * GET /api/audits
@@ -111,10 +112,23 @@ export default defineEventHandler(async (event) => {
       // Seulement PENDING_OE_CHOICE → uniquement les audits non assignés
       whereConditions.push(isNull(auditsTable.oeId))
     } else {
-      // Pas de PENDING_OE_CHOICE → filtrer par OE de l'utilisateur
-      // Si un entityId est fourni dans la requête, ne pas filtrer par oeId
-      // Cela permet de voir tous les audits de cette entité, même ceux d'autres OE
-      if (!query.entityId && user.oeId !== null) {
+      // Pas de PENDING_OE_CHOICE → filtrer par OE de l'utilisateur.
+      // La levée du filtre oeId quand un entityId est fourni n'est autorisée que
+      // si l'OE a réellement accès à cette entité, sinon il pourrait lister les
+      // audits d'entités gérées par des OE concurrents (IDOR).
+      let canSeeAllAuditsOfEntity = false
+      if (query.entityId) {
+        const entityIdInt = parseInt(query.entityId as string)
+        if (!isNaN(entityIdInt)) {
+          canSeeAllAuditsOfEntity = await verifyEntityAccessForUser(
+            user,
+            entityIdInt,
+            AccessType.READ
+          )
+        }
+      }
+
+      if (!canSeeAllAuditsOfEntity && user.oeId !== null) {
         whereConditions.push(eq(auditsTable.oeId, user.oeId))
       }
 

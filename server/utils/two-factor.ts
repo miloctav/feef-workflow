@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto'
 import { eq, and, isNull, gt } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { twoFactorCodes } from '~~/server/database/schema'
@@ -12,8 +13,9 @@ export function generate2FACode(): string {
   if (config.devMode === true) {
     return '000000'
   }
-  // Génère un nombre entre 0 et 999999, paddé à 6 chiffres
-  return Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
+  // Génère un nombre entre 0 et 999999 avec un générateur cryptographique
+  // (Math.random n'est pas sûr : son état est prédictible), paddé à 6 chiffres
+  return randomInt(0, 1000000).toString().padStart(6, '0')
 }
 
 /**

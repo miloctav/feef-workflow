@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { entities } from '~~/server/database/schema'
 import { forUpdate } from '~~/server/utils/tracking'
+import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 
 interface UpdateEntityBody {
   name?: string
@@ -49,6 +50,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Vérifier que l'utilisateur a bien accès à CETTE entité en écriture.
+  // Sans ce contrôle, une entité pouvait modifier n'importe quelle autre entité
+  // en passant simplement son ID dans l'URL (IDOR).
+  await requireEntityAccess({
+    user: currentUser,
+    entityId: entityIdInt,
+    accessType: AccessType.WRITE,
+  })
+
   // Vérifier que l'entité existe
   const existingEntity = await db.query.entities.findFirst({
     where: eq(entities.id, entityIdInt),
@@ -65,6 +75,24 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<UpdateEntityBody>(event)
 
   const { name, siret, type, mode, parentGroupId, oeId, accountManagerId, address, addressComplement, postalCode, city, region, phoneNumber } = body
+
+  // Les champs structurels (rattachement, type, SIRET) sont réservés à la FEEF.
+  // Une entité ne peut modifier que ses propres informations de contact/adresse.
+  if (currentUser.role !== Role.FEEF) {
+    if (
+      siret !== undefined ||
+      type !== undefined ||
+      mode !== undefined ||
+      parentGroupId !== undefined ||
+      oeId !== undefined ||
+      accountManagerId !== undefined
+    ) {
+      throw createError({
+        statusCode: 403,
+        message: 'Seule la FEEF peut modifier le rattachement, le type ou le SIRET d\'une entité',
+      })
+    }
+  }
 
   // Vérifier qu'au moins un champ est fourni
   if (
