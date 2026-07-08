@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref } from 'vue'
 import {
   Chart,
   BarController,
@@ -23,18 +23,15 @@ Chart.register(
 )
 
 // Use dashboard overview composable
-const { scheduledAuditsChartData, loading } = useDashboardOverview()
+const { scheduledAuditsChartData } = useDashboardOverview()
 
 const chartRef = ref<HTMLCanvasElement | null>(null)
-const chartInstance = ref<Chart<'bar', number[], string> | null>(null)
 
-function renderChart() {
-  if (!chartRef.value || !scheduledAuditsChartData.value) return
-  if (chartInstance.value) chartInstance.value.destroy()
-
+useChart(chartRef, () => {
   const { labels, initial, renewal, monitoring } = scheduledAuditsChartData.value
+  if (!labels.length) return null
 
-  chartInstance.value = new Chart(chartRef.value, {
+  return {
     type: 'bar',
     data: {
       labels,
@@ -100,16 +97,7 @@ function renderChart() {
         },
       },
     },
-  })
-}
-
-onMounted(() => {
-  renderChart()
-})
-
-// Re-render when data changes
-watch(scheduledAuditsChartData, () => {
-  renderChart()
+  }
 })
 </script>
 

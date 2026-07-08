@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref } from 'vue'
 import {
   Chart,
   BarController,
@@ -12,20 +12,17 @@ import {
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
-const { compareScheduledAuditsChart, loading } = useDashboardCompare()
+const { compareScheduledAuditsChart } = useDashboardCompare()
 
 const chartRef = ref<HTMLCanvasElement | null>(null)
-const chartInstance = ref<Chart<'bar', number[], string> | null>(null)
 
-function renderChart() {
-  if (!chartRef.value || !compareScheduledAuditsChart.value) return
-  if (chartInstance.value) chartInstance.value.destroy()
+useChart(chartRef, () => {
+  const chart = compareScheduledAuditsChart.value
+  if (!chart || !chart.labels.length) return null
 
-  const { labels, datasets } = compareScheduledAuditsChart.value
-
-  chartInstance.value = new Chart(chartRef.value, {
+  return {
     type: 'bar',
-    data: { labels, datasets },
+    data: { labels: chart.labels, datasets: chart.datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -47,11 +44,8 @@ function renderChart() {
         },
       },
     },
-  })
-}
-
-onMounted(() => renderChart())
-watch(compareScheduledAuditsChart, () => renderChart())
+  }
+})
 </script>
 
 <template>

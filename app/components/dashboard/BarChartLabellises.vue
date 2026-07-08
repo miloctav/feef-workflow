@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref } from 'vue'
 import {
   Chart,
   BarController,
@@ -13,25 +13,18 @@ import {
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
 // Use dashboard overview composable
-const { labeledEntitiesChartData, loading } = useDashboardOverview()
+const { labeledEntitiesChartData } = useDashboardOverview()
 
 const chartRef = ref<HTMLCanvasElement | null>(null)
-const chartInstance = ref<Chart<'bar', number[], string> | null>(null)
 
-// Fonction pour mettre à jour le graphique (appelée au montage et lors du changement de plage)
-function renderChart() {
-  if (!chartRef.value || !labeledEntitiesChartData.value) return
-
-  if (chartInstance.value) {
-    chartInstance.value.destroy()
-  }
-
+useChart(chartRef, () => {
   const { years, initial, renewal, monitoring } = labeledEntitiesChartData.value
+  if (!years.length) return null
 
-  chartInstance.value = new Chart(chartRef.value, {
+  return {
     type: 'bar',
     data: {
-      labels: years,
+      labels: years.map(String),
       datasets: [
         {
           label: 'Initial',
@@ -85,16 +78,7 @@ function renderChart() {
         },
       },
     },
-  })
-}
-
-onMounted(() => {
-  renderChart()
-})
-
-// Mettre à jour le graphique quand les données changent
-watch(labeledEntitiesChartData, () => {
-  renderChart()
+  }
 })
 </script>
 
@@ -114,7 +98,3 @@ watch(labeledEntitiesChartData, () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Ajoutez ici vos styles personnalisés si nécessaire */
-</style>
