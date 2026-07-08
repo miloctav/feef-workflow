@@ -156,10 +156,15 @@ const route = useRoute()
 
 // Lire le filtre status depuis l'URL
 const urlStatus = route.query.status as string | undefined
-// Par défaut : afficher uniquement les audits en cours, sauf si un filtre statut est passé via l'URL
+// Par défaut, les listes d'audits n'affichent que les audits en cours. Deux exceptions :
+// - un filtre statut passé via l'URL (lien depuis le tableau de bord) ;
+// - une table affichée sans barre de filtres (fiche entité, espace entreprise) : l'utilisateur
+//   ne pourrait pas retirer le filtre, on affiche donc tout l'historique.
 const initialFilters: Record<string, any> = urlStatus
   ? { status: urlStatus.includes(',') ? urlStatus.split(',') : [urlStatus] }
-  : { inProgress: true }
+  : props.hasFilters
+    ? { inProgress: true }
+    : {}
 
 // Items pour le filtre statut (pas d'option "Tous", un array vide = pas de filtre)
 const auditStatusItems = getAuditStatusItems(false)

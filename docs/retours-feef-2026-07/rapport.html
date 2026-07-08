@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retours FEEF | navigation du 08/07/2026</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --surface: #ffffff;
+    --border: #e4e0d8;
+    --text: #1c1b19;
+    --muted: #6b6660;
+    --accent: #1e5fa8;
+    --ok: #1a7f4b;
+    --warn: #a8620c;
+    --bad: #b03030;
+    --neutral: #6b6660;
+    --code-bg: #f3f1ec;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a;
+      --surface: #1e1e23;
+      --border: #33333c;
+      --text: #e8e6e3;
+      --muted: #9a958e;
+      --accent: #6ba3e8;
+      --ok: #5cc98d;
+      --warn: #e0a24a;
+      --bad: #e87a7a;
+      --neutral: #9a958e;
+      --code-bg: #26262d;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px 96px; }
+
+  header.hero {
+    padding: 56px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+  .kicker {
+    text-transform: uppercase; letter-spacing: .12em; font-size: 12px;
+    color: var(--muted); font-weight: 600; margin: 0 0 12px;
+  }
+  h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 0 0 16px; letter-spacing: -.02em; }
+  .lede { font-size: 18px; color: var(--muted); max-width: 68ch; margin: 0; }
+
+  .verdict {
+    margin-top: 28px; padding: 18px 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--ok); border-radius: 6px; box-shadow: var(--shadow);
+  }
+  .verdict strong { color: var(--ok); }
+
+  h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--muted); font-weight: 700;
+    margin: 56px 0 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 21px; margin: 0 0 8px; letter-spacing: -.01em; }
+  h4 { font-size: 15px; margin: 24px 0 8px; color: var(--muted); font-weight: 600; }
+  p { margin: 0 0 14px; }
+
+  .causes { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  .cause {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 18px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .cause .tag {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 5px;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 13px;
+  }
+  .cause .t { font-weight: 600; line-height: 1.35; }
+  .cause .d { font-size: 14px; color: var(--muted); line-height: 1.5; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .scroller { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .pill {
+    display: inline-block; padding: 2px 9px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+    border: 1px solid currentColor;
+  }
+  .p-ok { color: var(--ok); }
+  .p-bug { color: var(--bad); }
+  .p-missing { color: var(--warn); }
+  .p-info { color: var(--neutral); }
+
+  code, kbd {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: .89em; background: var(--code-bg);
+    padding: 1px 5px; border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; overflow-x: auto;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px; line-height: 1.55; margin: 0 0 16px;
+  }
+  pre code { background: none; padding: 0; }
+  .hl { background: rgba(176,48,48,.12); border-radius: 3px; }
+  @media (prefers-color-scheme: dark) { .hl { background: rgba(232,122,122,.16); } }
+
+  section.block {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 26px 28px; margin-bottom: 18px; box-shadow: var(--shadow);
+  }
+  .block > .head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .block .tag {
+    flex: none; width: 26px; height: 26px; border-radius: 5px; background: var(--accent);
+    color: #fff; font-weight: 700; font-size: 13px;
+    display: inline-flex; align-items: center; justify-content: center; align-self: center;
+  }
+
+  .quote {
+    border-left: 3px solid var(--border); padding: 4px 0 4px 16px;
+    color: var(--muted); font-style: italic; margin: 0 0 18px;
+  }
+  .note {
+    border-left: 3px solid var(--warn); background: var(--code-bg);
+    padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 18px 0; font-size: 14.5px;
+  }
+  .note.good { border-left-color: var(--ok); }
+
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0 0 16px; }
+  ol.steps li {
+    counter-increment: s; position: relative; padding-left: 38px; margin-bottom: 12px;
+  }
+  ol.steps li::before {
+    content: counter(s); position: absolute; left: 0; top: 1px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--code-bg); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--muted);
+  }
+  ul.clean { padding-left: 20px; margin: 0 0 14px; }
+  ul.clean li { margin-bottom: 7px; }
+
+  .opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
+  .opt { border: 1px solid var(--border); border-radius: 8px; padding: 18px; background: var(--bg); }
+  .opt.reco { border-color: var(--ok); }
+  .opt h4 { margin-top: 0; color: var(--text); font-size: 16px; }
+  .opt .badge { font-size: 11px; font-weight: 700; color: var(--ok); text-transform: uppercase; letter-spacing: .08em; }
+  .pro::before { content: "+ "; color: var(--ok); font-weight: 700; }
+  .con::before { content: "− "; color: var(--bad); font-weight: 700; }
+
+  footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+  a { color: var(--accent); }
+  .anchor { scroll-margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="kicker">Réunion FEEF | analyse technique</p>
+  <h1>Retours de la navigation du 08/07/2026</h1>
+  <p class="lede">
+    Quinze remarques remontées par Emmanuelle. Elles se ramènent à trois causes racines,
+    un bug de rendu, un problème d'environnement, et une série de fonctionnalités
+    jamais construites.
+  </p>
+  <div class="verdict">
+    <strong>La donnée importée est saine.</strong>
+    Aucun symptôme constaté ne vient d'un import raté. Les entités et les audits sont en base,
+    correctement rattachés. Ce qui manque, c'est l'affichage | et deux ou trois libellés qui induisent en erreur.
+  </div>
+</header>
+
+<h2>Les cinq causes</h2>
+<div class="causes">
+  <div class="cause">
+    <span class="tag">A</span>
+    <span class="t">Un filtre invisible masque l'historique</span>
+    <span class="d">Les tableaux d'audits n'affichent que les audits « en cours », par défaut, sans moyen de le désactiver.</span>
+  </div>
+  <div class="cause">
+    <span class="tag">B</span>
+    <span class="t">Le mapping des statuts Ecocert est incomplet</span>
+    <span class="d">197 lignes sur 1060 ont un statut que le script ne reconnaît pas. Elles deviennent « planifié ».</span>
+  </div>
+  <div class="cause">
+    <span class="tag">C</span>
+    <span class="t">L'UI n'affiche les suiveuses que pour un « Groupe »</span>
+    <span class="d">LSDH est enregistrée comme « Entreprise ». Ses 4 suiveuses existent mais ne sont jamais lues.</span>
+  </div>
+  <div class="cause">
+    <span class="tag">D</span>
+    <span class="t">Les graphiques plantent au rendu</span>
+    <span class="d">Chart.js dessine une instance détruite. Les données, elles, sont bien présentes.</span>
+  </div>
+  <div class="cause">
+    <span class="tag">E</span>
+    <span class="t">La prod tourne en mode développement</span>
+    <span class="d"><code>NUXT_DEV_MODE=true</code> détourne tous les emails et crée les comptes déjà actifs.</span>
+  </div>
+</div>
+
+<h2>Chaque remarque, et sa cause</h2>
+<div class="scroller">
+<table>
+  <thead>
+    <tr><th>Ce qu'a dit la FEEF</th><th>Verdict</th><th>Cause</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Mettre le bon logo</td><td><span class="pill p-info">Oubli</span></td><td>Nouveau logo reçu, jamais intégré. Bonus : le logo est en 404 sur la page de login.</td></tr>
+    <tr><td>Je n'ai pas réussi à modifier mon rôle</td><td><span class="pill p-missing">Jamais construit</span></td><td>Champ grisé, non envoyé, ignoré par l'API. Et l'édition de compte est sans doute cassée en entier.</td></tr>
+    <tr><td>Sarah n'a pas reçu d'email</td><td><span class="pill p-bug">Bug</span></td><td><strong>E</strong> | l'email est parti chez Maxime. Aucun bouton de renvoi n'existe.</td></tr>
+    <tr><td>« Planifié » affiche des dates 2022 et 2023</td><td><span class="pill p-bug">Bug</span></td><td><strong>B</strong> | 3 audits fantômes, statut source non reconnu.</td></tr>
+    <tr><td>Mettre plan d'action au-dessus de avis</td><td><span class="pill p-info">Trivial</span></td><td>Ordre codé en dur, une ligne à déplacer.</td></tr>
+    <tr><td>Nemo Invest n'a pas de date planifiée</td><td><span class="pill p-bug">Colonne inadaptée</span></td><td>La colonne affiche <code>plannedDate</code>, vide pour cet audit. La vraie info est la date de réalisation.</td></tr>
+    <tr><td>État des dossiers : 257, je ne comprends pas</td><td><span class="pill p-bug">Chiffre absurde</span></td><td>Additionne des entités, des audits et des contrats. Compte certaines entités deux fois.</td></tr>
+    <tr><td>Audits : 198, pas égal aux blocs au-dessus</td><td><span class="pill p-bug">Par construction</span></td><td>Deux API comptent différemment. L'écart est mathématiquement inévitable.</td></tr>
+    <tr><td>Graphiques : aucune donnée</td><td><span class="pill p-bug">Bug</span></td><td><strong>D</strong> | erreur JavaScript. Les données existent (28 audits, 852 labellisations).</td></tr>
+    <tr><td>324 entités labellisées, delta avec le réel</td><td><span class="pill p-bug">Libellé faux</span></td><td>Le KPI s'appelle « Nombre d'entités ». C'est un comptage brut de la table.</td></tr>
+    <tr><td>Vérifier les rattachements sans fiche à fiche</td><td><span class="pill p-missing">Jamais construit</span></td><td>Aucune colonne parent ni enfants dans la liste, alors que l'API charge déjà le parent.</td></tr>
+    <tr><td>LSDH n'a pas ses suiveuses</td><td><span class="pill p-ok">Donnée OK</span></td><td><strong>C</strong> | les 4 suiveuses sont en base. L'UI ne les lit pas.</td></tr>
+    <tr><td>Export Excel + produits, certifications, contacts</td><td><span class="pill p-missing">Jamais construit</span></td><td>Export CSV uniquement. Les champs existent, ailleurs que dans la table entités.</td></tr>
+    <tr><td>Colonnes « audit planifié » et « statut », filtrables</td><td><span class="pill p-missing">Jamais construit</span></td><td>Pas de champ statut sur une entité. L'API supporte 8 tris, l'UI en expose 1.</td></tr>
+    <tr><td>Bouvard : il manque des audits</td><td><span class="pill p-ok">Donnée OK</span></td><td><strong>A</strong> | 7 audits en base, 5 masqués par le filtre.</td></tr>
+    <tr><td>Bouvard : l'audit initial n'est pas en « fini »</td><td><span class="pill p-bug">Doublon Ecocert</span></td><td><strong>B</strong> | ce n'est pas le bon audit. Le vrai initial est bien terminé.</td></tr>
+    <tr><td>Maison Collet : données manquantes</td><td><span class="pill p-ok">Donnée OK</span></td><td><strong>A</strong> | son unique audit est terminé, donc invisible. À confirmer.</td></tr>
+    <tr><td>LSDH : date de référence non modifiable</td><td><span class="pill p-info">Volontaire</span></td><td>Réservée à la FEEF. Mais elle est vide sur tout l'import, ce qui bloque les relances d'anniversaire.</td></tr>
+    <tr><td>LSDH : comment rattacher des entreprises ?</td><td><span class="pill p-missing">Interdit</span></td><td>Le rattachement d'une entité existante est réservé à la FEEF (403).</td></tr>
+    <tr><td>LSDH : pas d'historique d'audits</td><td><span class="pill p-bug">Bug</span></td><td><strong>A</strong>, plus une session peut-être sans entité courante.</td></tr>
+    <tr><td>Frise étapes : pas la liste des actions</td><td><span class="pill p-missing">Jamais construit</span></td><td>La frise n'affiche que des statuts. Elle ne lit jamais la table des actions.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Le détail</h2>
+
+<section class="block anchor" id="a">
+  <div class="head"><span class="tag">A</span><h3>Un filtre invisible masque tout l'historique</h3></div>
+  <p>Les tableaux d'audits appliquent un filtre par défaut qui exclut les audits terminés.</p>
+<pre><code>const initialFilters = urlStatus
+  ? { status: [...] }
+  : <span class="hl">{ inProgress: true }</span>   // exclut COMPLETED, REFUSED_*</code></pre>
+  <p>
+    Le même composant est monté <strong>sans barre de filtres</strong> dans l'onglet Audits d'une fiche entité
+    et dans « Mes audits » côté entreprise. L'utilisateur ne voit donc <em>ni le filtre, ni le moyen de le retirer</em>.
+  </p>
+  <h4>Ce que ça produit</h4>
+  <ul class="clean">
+    <li><strong>Biscuiterie Bouvard</strong> : 7 audits en base, 5 terminés donc masqués. Seuls 2 s'affichent.</li>
+    <li><strong>LSDH</strong> : 8 audits terminés sur 10, invisibles.</li>
+    <li><strong>Maison Collet</strong> : son unique audit est terminé. L'onglet paraît <em>entièrement vide</em>, ce qui a fait croire à un import raté.</li>
+  </ul>
+  <div class="note good">
+    <strong>À vérifier en 10 secondes :</strong> ouvrir la fiche Maison Collet et ajouter
+    <code>?status=COMPLETED</code> à l'URL. Si l'audit apparaît, l'import est confirmé bon.
+  </div>
+</section>
+
+<section class="block anchor" id="b">
+  <div class="head"><span class="tag">B</span><h3>Comment le statut est déterminé à l'import Ecocert</h3></div>
+  <p>Le fichier source contient 1126 lignes. Trois filtres successifs s'appliquent.</p>
+  <ol class="steps">
+    <li><strong>Filtre contrat.</strong> Seules les lignes <code>Contracted</code> sont importées : <strong>1060 sur 1126</strong>. Les 66 <code>Not contracted</code> sont ignorées.</li>
+    <li><strong>Filtre suiveuse.</strong> Si l'entité est une suiveuse, ses audits ne sont pas importés : le label est porté par le groupe ou le siège. Règle validée par Ecocert.</li>
+    <li><strong>Traduction du statut.</strong> La colonne <code>AUDIT_STATUT</code> d'Ecocert est traduite en statut de workflow FEEF.</li>
+  </ol>
+<pre><code>switch (statutEcocert) {
+  case '4-certification finished'        → TERMINÉ
+  case '3-inspection finished - pool'    → EN ATTENTE AVIS OE
+  case '3-certification in progress'     → EN ATTENTE DÉCISION FEEF
+  case '3-certification order accepted'  → EN ATTENTE DÉCISION FEEF
+  case '2-inspection in progress'        → EN ATTENTE RAPPORT (si date de fin passée)
+  <span class="hl">default                                → EN PLANIFICATION</span>
+}
+<span class="hl">si EN PLANIFICATION et qu'une date planifiée existe → PLANIFIÉ</span></code></pre>
+  <p>La dernière règle est celle qui pose problème : <strong>tout statut non reconnu devient « planifié » dès qu'une date existe, sans aucun contrôle sur l'année.</strong></p>
+
+  <h4>Répartition réelle des 1060 lignes</h4>
+  <div class="scroller">
+  <table>
+    <thead><tr><th>Statut Ecocert</th><th>Reconnu</th><th>Devient</th><th class="num">Lignes</th></tr></thead>
+    <tbody>
+      <tr><td><code>4-Certification finished</code></td><td><span class="pill p-ok">oui</span></td><td>Terminé</td><td class="num">852</td></tr>
+      <tr><td><code>2-Inspector's Infoportal</code></td><td><span class="pill p-bug">non</span></td><td>En planification</td><td class="num">80</td></tr>
+      <tr><td><code>2-Inspector's Infoportal</code></td><td><span class="pill p-bug">non</span></td><td>Planifié</td><td class="num">10</td></tr>
+      <tr><td><code>2-Inspection order accepted</code></td><td><span class="pill p-bug">non</span></td><td>En planification</td><td class="num">64</td></tr>
+      <tr><td><code>2-Inspection order accepted</code></td><td><span class="pill p-bug">non</span></td><td>Planifié</td><td class="num">41</td></tr>
+      <tr><td><code>1-Inspection order created</code></td><td><span class="pill p-bug">non</span></td><td>En planification</td><td class="num">2</td></tr>
+      <tr><td><code>3-Inspection finished - Pool</code></td><td><span class="pill p-ok">oui</span></td><td>En attente avis OE</td><td class="num">4</td></tr>
+      <tr><td><code>3-Certification order accepted</code></td><td><span class="pill p-ok">oui</span></td><td>En attente décision FEEF</td><td class="num">4</td></tr>
+      <tr><td><code>3-Certification in progress</code></td><td><span class="pill p-ok">oui</span></td><td>En attente décision FEEF</td><td class="num">2</td></tr>
+      <tr><td><code>2-Inspection in progress</code></td><td><span class="pill p-ok">oui</span></td><td>En planification</td><td class="num">1</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-top:16px"><strong>197 lignes sur 1060</strong> ont un statut que le script ne connaît pas.</p>
+
+  <div class="note">
+    <strong>Nuance à porter en réunion.</strong>
+    <code>2-Inspector's Infoportal</code> et <code>2-Inspection order accepted</code> désignent des audits
+    <em>commandés mais pas encore réalisés</em>. Les classer en « planification » est donc
+    fonctionnellement <strong>correct</strong>. Le vrai problème est ailleurs :
+    quand la commande date de 2022, l'audit est mort, pas planifié.
+  </div>
+
+  <h4>Les 3 audits fantômes</h4>
+  <p>Ce sont les seuls audits « planifié » avec une date passée. Tous portent le même statut source non reconnu.</p>
+  <div class="scroller">
+  <table>
+    <thead><tr><th>Année</th><th>Client</th><th>Type</th><th>Ecocert ID</th></tr></thead>
+    <tbody>
+      <tr><td>2022</td><td><strong>BISCUITS BOUVARD SAS</strong></td><td>Initial inspection</td><td><code>62851</code></td></tr>
+      <tr><td>2022</td><td>CSP Paris Fashion Group</td><td>Additional inspection</td><td><code>203932</code></td></tr>
+      <tr><td>2022</td><td>LOC MARIA BISCUITS</td><td>Renewal audit</td><td><code>188498</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-top:16px">
+    Emmanuelle a vu <strong>les deux faces du même incident</strong> : ces audits apparaissent dans le tableau
+    « planifié » du dashboard, et celui de Bouvard est le doublon Ecocert qui lui fait dire que
+    « l'audit initial n'est pas en fini ». Le vrai audit initial de Bouvard est bien terminé,
+    simplement masqué par la cause A.
+  </p>
+  <div class="note good">
+    <strong>Les chiffres du dashboard sont cohérents.</strong> Le mapping produit 147 audits en planification
+    et 48 planifiés en 2026. Avec les 8 audits SGS, on retrouve les « 142 + 56 » affichés.
+  </div>
+</section>
+
+<section class="block anchor" id="c">
+  <div class="head"><span class="tag">C</span><h3>Les suiveuses de LSDH sont invisibles</h3></div>
+  <p class="quote">« LSDH n'a pas ses suiveuses mais L'Abeille est bien rattachée au groupe LSDH »</p>
+  <p>
+    <strong>La donnée est correcte.</strong> LSDH a bien ses 4 suiveuses en base :
+    L'ABEILLE, LES CRUDETTES, JUS DE FRUITS D'ALSACE, FRUITS ET SAVEURS.
+    Une seule entité LSDH, aucun doublon.
+  </p>
+  <h4>La cause</h4>
+  <p>
+    LSDH est enregistrée en <code>type = Entreprise</code>, pas <code>Groupe</code>.
+    Le seed ne promeut une mère en « Groupe » que si elle est créée de toutes pièces.
+    LSDH existait déjà dans le fichier source avec son propre SIRET, elle est donc restée « Entreprise ».
+  </p>
+  <p>Or l'interface discrimine sur ce type :</p>
+<pre><code>type === GROUPE      → affiche les entités filles      ✓
+type === ENTREPRISE  → affiche le groupe parent (null) ✗</code></pre>
+  <p>
+    Les 4 suiveuses sont bien chargées par l'API, mais <strong>jamais lues</strong>.
+    L'export, lui, lit la relation dans l'autre sens (chaque fille affiche son parent),
+    d'où le « pas rattachées dans le workflow, mais ok sur l'extract ».
+  </p>
+  <div class="note good">
+    <strong>Décision prise :</strong> LSDH sera passée en « Groupe » manuellement via l'interface.
+    Le cas d'une entreprise maître portant des suiveuses est jugé incohérent et ne sera pas supporté.
+  </div>
+</section>
+
+<section class="block anchor" id="d">
+  <div class="head"><span class="tag">D</span><h3>Pourquoi les graphiques sont blancs</h3></div>
+  <p>Les titres s'affichent, le reste est vide. La console dit :</p>
+<pre><code>Uncaught TypeError: Cannot read properties of null (reading 'save')
+    at Bt._drawDataset  →  Bt.draw  →  ul._update</code></pre>
+  <p>Chart.js dessine une instance <strong>déjà détruite</strong>. Le scénario :</p>
+  <ol class="steps">
+    <li>Le composant graphique monte avant son parent. Les données ne sont pas encore chargées, mais le garde de sécurité ne bloque pas : un « graphique fantôme » vide est créé et son animation démarre.</li>
+    <li>Le parent charge les données.</li>
+    <li>Le graphique se redessine, ce qui <strong>détruit</strong> le graphique fantôme.</li>
+    <li>L'animation du fantôme tourne toujours. Au frame suivant elle dessine sur un canvas détruit et lève l'exception.</li>
+    <li>L'exception casse la boucle de rendu, <strong>partagée entre tous les graphiques</strong>. Les deux restent blancs.</li>
+  </ol>
+  <p>Cela explique que le bug ne se voie pas en local : le chargement y est assez rapide pour arriver avant le montage.</p>
+  <div class="note good">
+    <strong>Ce n'est pas un problème de données.</strong> 28 audits tombent dans la fenêtre des 12 prochains mois,
+    et les 852 audits terminés se répartissent sur 2022 à 2026 (110 / 211 / 218 / 228 / 85).
+    Les deux graphiques ont largement de quoi s'afficher.
+  </div>
+</section>
+
+<section class="block anchor" id="e">
+  <div class="head"><span class="tag">E</span><h3>L'email de Sarah, et le mode développement</h3></div>
+  <p>
+    <strong>La production tourne avec <code>NUXT_DEV_MODE=true</code>.</strong>
+    Cause connue, à corriger séparément. Trois conséquences en cascade :
+  </p>
+  <ol class="steps">
+    <li><strong>Le mail est détourné.</strong> En mode dev, tout destinataire est remplacé par <code>maxime@miloctav.fr</code>, en dur dans la configuration. L'email d'activation de Sarah est parti chez Maxime.</li>
+    <li><strong>Le compte est créé déjà actif</strong>, avec le mot de passe <code>password</code>.</li>
+    <li><strong>Le renvoi est impossible</strong> : l'endpoint refuse un compte déjà actif.</li>
+  </ol>
+  <h4>Trois faiblesses qui subsisteront même après le passage en production</h4>
+  <ul class="clean">
+    <li><strong>L'erreur d'envoi est avalée.</strong> L'API retourne « compte créé » même si le mail a échoué. L'interface n'affiche jamais cette information.</li>
+    <li><strong>Aucun bouton « renvoyer l'email ».</strong> L'endpoint existe, il n'est exposé nulle part. C'est la réponse à son « quel est le process ? » : aujourd'hui, aucun recours.</li>
+    <li><strong>Le lien peut être invalide</strong> si nginx ne propage pas les en-têtes <code>X-Forwarded-*</code> : il pointerait sur <code>localhost:3000</code>.</li>
+  </ul>
+  <p>À valider par ailleurs : le domaine expéditeur <code>notifications.monpmeplus.fr</code> est-il vérifié dans Resend (SPF/DKIM) ?</p>
+</section>
+
+<h2>Les chiffres du tableau de bord</h2>
+
+<section class="block">
+  <h3>Deux moteurs de comptage indépendants</h3>
+  <p>Le dashboard agrège deux API qui ne comptent pas la même chose. L'écart est <strong>structurel</strong>, pas accidentel.</p>
+  <div class="scroller">
+  <table>
+    <thead><tr><th></th><th>Les cartes du haut</th><th>Le bandeau « État des dossiers »</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Granularité</strong></td><td>tous les audits</td><td>un seul audit par entité (le plus récent)</td></tr>
+      <tr><td><strong>Audits terminés</strong></td><td>exclus</td><td>inclus</td></tr>
+      <tr><td><strong>Audits refusés</strong></td><td>inclus</td><td>exclus</td></tr>
+      <tr><td><strong>Éléments supprimés</strong></td><td>comptés</td><td>comptés</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-top:16px">
+    Une entité portant 5 audits historiques « planifiés » pèse <strong>5</strong> dans la carte et <strong>1</strong> dans le bandeau.
+  </p>
+
+  <h4>« État des dossiers : 257 »</h4>
+  <p>Ce total additionne des objets de nature différente :</p>
+  <ul class="clean">
+    <li>la phase « candidature » compte des audits <em>plus</em> des contrats <em>plus</em> des entités ;</li>
+    <li>les quatre autres comptent le dernier audit de chaque entité.</li>
+  </ul>
+  <p>
+    Ce n'est <strong>ni un nombre d'entités, ni un nombre d'audits</strong>. Une même entité peut être comptée deux fois.
+    Emmanuelle a raison de ne pas comprendre : <strong>ce chiffre ne veut rien dire de précis</strong>.
+  </p>
+
+  <h4>Bloc Décision</h4>
+  <ul class="clean">
+    <li><strong>Ordre des cartes</strong> : codé en dur, une ligne à déplacer.</li>
+    <li><strong>Trou réel</strong> : le statut « validation du plan d'action » n'a aucune carte, alors qu'il est compté dans le bandeau. Le total de la colonne est donc toujours inférieur.</li>
+    <li><strong>Libellé trompeur</strong> : « En attente attestation » compte en réalité « En attente de décision FEEF ».</li>
+    <li><strong>Nemo Invest</strong> : la colonne affiche la date <em>planifiée</em>, vide pour cet audit. La vraie information serait la date de réalisation, non affichée.</li>
+  </ul>
+  <div class="note">
+    <strong>À trancher avec la FEEF :</strong> pour un audit en attente d'avis, veut-on voir la date de réalisation
+    ou la date planifiée ? Cela détermine si on change la colonne, ou si on répare la donnée.
+  </div>
+</section>
+
+<h2>Entités</h2>
+
+<section class="block">
+  <h3>« Total entités labellisées = 324 »</h3>
+  <p>
+    Ce libellé <strong>n'existe pas</strong> dans l'application. Le compteur s'appelle « Nombre d'entités ».
+    C'est un comptage brut de la table, sans aucun filtre : il inclut les groupes, les suiveuses,
+    les entités jamais auditées et même les entités supprimées.
+  </p>
+  <div class="note good">
+    <strong>Définition retenue le 08/07 :</strong> une entité est <em>labellisée</em> si elle est
+    <strong>maître</strong> et qu'elle possède <strong>au moins un audit terminé</strong>.
+    « Au moins un », et non « le dernier » : une entité en cours de renouvellement reste labellisée.
+    La décision FEEF n'est pas utilisable comme critère, elle n'est pas fiable sur les audits importés.
+  </div>
+
+  <h3 style="margin-top:28px">Ce qui manque dans la liste</h3>
+  <ul class="clean">
+    <li><strong>Aucune colonne parent ni enfants</strong>, alors que l'API charge déjà le parent et ne l'affiche jamais. Voir les rattachements sans faire du fiche à fiche est donc impossible aujourd'hui.</li>
+    <li><strong>Un seul tri exposé</strong> (« dernière mise à jour ») alors que l'API en supporte huit.</li>
+    <li><strong>« Dernier audit »</strong> est un badge sans date, et « dernier » signifie le plus récemment créé, pas le plus récent en date d'audit.</li>
+    <li><strong>Pas de champ « statut »</strong> sur une entité. Le seul statut est celui du dernier audit.</li>
+  </ul>
+
+  <h3 style="margin-top:28px">Export</h3>
+  <p>
+    Il existe, en <strong>CSV uniquement</strong>. Il contient déjà le groupe parent (d'où le « ok sur l'extract »),
+    mais pas les enfants, ni d'audit planifié.
+  </p>
+  <p>Les champs demandés pour Katrin existent tous, mais dans une table séparée de champs versionnés :</p>
+  <div class="scroller">
+  <table>
+    <thead><tr><th>Demande</th><th>Où c'est stocké</th></tr></thead>
+    <tbody>
+      <tr><td>Type de produits</td><td>nature des produits, marques, ratios alimentaire / non alimentaire, nombre de gammes</td></tr>
+      <tr><td>Autres certifications</td><td>bio, QSE, RSE, commerce équitable</td></tr>
+      <tr><td>Contacts</td><td>pilote, dirigeant, comptabilité</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-top:16px">Les ajouter à l'export est faisable, mais demande de charger chaque champ et de résoudre sa dernière version.</p>
+</section>
+
+<h2>Espace entreprise</h2>
+
+<section class="block">
+  <h3>Date de référence</h3>
+  <p>
+    Non modifiable : <strong>c'est volontaire</strong>, elle est réservée à la FEEF.
+    Mais surtout, <strong>elle est vide pour toutes les entités importées</strong> : elle n'est posée
+    qu'à la clôture d'un audit initial via le workflow, et les scripts d'import ne la remplissent jamais.
+  </p>
+  <div class="note">
+    <strong>Conséquence à ne pas rater.</strong> La tâche automatique de relance d'anniversaire ignore
+    toute entité sans date de référence. <strong>Les relances ne partiront jamais</strong> pour les entités importées.
+  </div>
+
+  <h3 style="margin-top:28px">« Comment je peux rattacher des entreprises ? »</h3>
+  <p>
+    <strong>Elle ne peut pas.</strong> Rattacher une entité existante est réservé à la FEEF (erreur 403).
+    Une entreprise peut seulement <em>créer</em> une nouvelle suiveuse, jamais en rattacher une existante.
+  </p>
+
+  <h3 style="margin-top:28px">« Dans la frise étapes on n'a pas la liste des actions »</h3>
+  <p>
+    Conforme au code : la frise n'affiche <strong>que des statuts</strong>, à partir d'une liste figée.
+    Elle ne consulte jamais la table des actions. Les actions s'affichent ailleurs dans l'application.
+  </p>
+  <p>
+    De plus, le script qui génère les actions ne le fait que pour les audits <strong>non terminés</strong>.
+    LSDH n'a donc aucune action sur ses 8 audits terminés.
+  </p>
+  <div class="note">
+    <strong>À confirmer :</strong> le script de génération des actions a-t-il été lancé en production ?
+    Il n'est enchaîné à aucun autre et doit être exécuté explicitement, en dernier.
+  </div>
+</section>
+
+<h2>Besoin nouveau : permettre à la FEEF de corriger un audit</h2>
+
+<section class="block">
+  <p>
+    La FEEF doit pouvoir <strong>modifier le statut d'un audit</strong> et <strong>renseigner ses dates importantes</strong>,
+    via un modal ou un panneau dédié. C'est ce qui permettra de traiter les 3 audits fantômes de 2022
+    sans intervention en base.
+  </p>
+  <div class="opts">
+    <div class="opt">
+      <h4>Option 1 | Transition forcée</h4>
+      <p>Un endpoint qui fait avancer l'audit dans le workflow en court-circuitant les règles de validation.</p>
+      <ul class="clean">
+        <li class="pro">Reste dans le modèle existant.</li>
+        <li class="pro">Les effets attendus continuent de s'exécuter : création des tâches, génération d'attestation.</li>
+        <li class="con">Contourner les règles est précisément ce contre quoi le workflow protège.</li>
+        <li class="con">Risque d'amener un audit dans un état incohérent, par exemple « en attente d'avis » sans rapport.</li>
+        <li class="con">Effets de bord indésirables sur des données historiques : emails, notifications, attestations.</li>
+      </ul>
+    </div>
+    <div class="opt reco">
+      <span class="badge">Recommandée</span>
+      <h4>Option 2 | Édition directe, réservée à la FEEF</h4>
+      <p>Un formulaire éditant le statut et les dates, hors workflow, avec journalisation de chaque modification.</p>
+      <ul class="clean">
+        <li class="pro">Correspond au besoin réel : <strong>réparer des données d'import</strong>, pas faire avancer un dossier.</li>
+        <li class="pro">Aucun effet de bord. Entièrement traçable.</li>
+        <li class="con">Deux chemins d'écriture coexistent sur le statut d'un audit.</li>
+        <li class="con">Il faut garantir qu'aucune action ni notification n'est déclenchée.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<h2>Décisions actées le 08/07/2026</h2>
+<div class="scroller">
+<table>
+  <thead><tr><th>Sujet</th><th>Décision</th></tr></thead>
+  <tbody>
+    <tr><td>LSDH « Entreprise » avec suiveuses</td><td>Incohérent. Passage en « Groupe » <strong>à la main via l'UI</strong>. Ne pas corriger le seed.</td></tr>
+    <tr><td>Définition de « labellisée »</td><td>Maître <strong>et</strong> au moins un audit terminé. Pas de critère sur la décision FEEF.</td></tr>
+    <tr><td>197 statuts Ecocert non reconnus</td><td>La FEEF tranche. Lui fournir l'outil de correction dans l'interface.</td></tr>
+    <tr><td><code>NUXT_DEV_MODE=true</code> en prod</td><td>Cause connue du problème d'email. Corrigé plus tard, hors de ce lot.</td></tr>
+    <tr><td>Nouveau logo</td><td>Reçu, pas encore intégré. À faire.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>À vérifier avant la prochaine session</h2>
+<section class="block">
+  <ol class="steps">
+    <li>Ouvrir la fiche <strong>Maison Collet</strong> avec <code>?status=COMPLETED</code> pour confirmer que son audit est bien en base.</li>
+    <li>Reproduire l'<strong>édition d'un compte</strong> : le composable appelle une méthode HTTP qui ne correspond à aucune route. L'update est peut-être cassé en entier, pas seulement le rôle.</li>
+    <li>Vérifier que l'<strong>entité courante</strong> est bien renseignée sur la session du gestionnaire LSDH.</li>
+    <li>Confirmer si le <strong>script des actions</strong> a été lancé en production.</li>
+    <li>Vérifier la propagation des en-têtes <strong><code>X-Forwarded-*</code></strong> dans nginx (liens d'activation).</li>
+    <li>Vérifier que <strong><code>notifications.monpmeplus.fr</code></strong> est validé dans Resend.</li>
+    <li>Signaler à Ecocert deux divergences de SIRET : <strong>LAITERIE COLLET</strong> et <strong>ROSTAIN</strong>.</li>
+  </ol>
+</section>
+
+<footer>
+  Analyse du 08/07/2026 | aucune correction appliquée.
+  Version technique détaillée avec références de fichiers : <code>docs/retours-feef-2026-07/ANALYSE.md</code>
+</footer>
+
+</div>
+</body>
+</html>
