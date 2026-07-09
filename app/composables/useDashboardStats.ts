@@ -177,18 +177,18 @@ export function getCardMappings(role: DashboardRole): Array<{
       category: 'Decision',
       cards: [
         {
-          shortText: 'En attente de l\'avis de l\'OE',
-          auditStatus: 'PENDING_OE_OPINION',
-          color: 'border-purple-500',
-          bgColor: 'bg-purple-50',
-          to: `${prefix}/audits?status=PENDING_OE_OPINION`,
-        },
-        {
           shortText: 'Plan d\'action en attente',
           auditStatus: 'PENDING_CORRECTIVE_PLAN',
           color: 'border-orange-500',
           bgColor: 'bg-orange-50',
           to: `${prefix}/audits?status=PENDING_CORRECTIVE_PLAN`,
+        },
+        {
+          shortText: 'En attente de l\'avis de l\'OE',
+          auditStatus: 'PENDING_OE_OPINION',
+          color: 'border-purple-500',
+          bgColor: 'bg-purple-50',
+          to: `${prefix}/audits?status=PENDING_OE_OPINION`,
         },
         {
           shortText: 'En attente attestation',
