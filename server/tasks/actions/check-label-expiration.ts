@@ -60,14 +60,16 @@ export default defineTask({
             // Step 2: Process each MASTER entity
             logger.step('Process entities for expiration')
             for (const entity of masterEntities) {
-                // Find the latest audit with labelExpirationDate not null
+                // Find the audit carrying the furthest label expiration date.
+                // On trie par labelExpirationDate et non par createdAt : sur les audits
+                // importés, createdAt ne reflète pas la chronologie des décisions FEEF.
                 const latestAudit = await db.query.audits.findFirst({
                     where: and(
                         eq(audits.entityId, entity.id),
                         isNull(audits.deletedAt),
                         isNotNull(audits.labelExpirationDate) // labelExpirationDate IS NOT NULL
                     ),
-                    orderBy: [desc(audits.createdAt)],
+                    orderBy: [desc(audits.labelExpirationDate)],
                     columns: {
                         id: true,
                         labelExpirationDate: true,

@@ -7,6 +7,7 @@ import { db } from '~~/server/database'
 import { audits as auditsTable, entities as entitiesTable, events as eventsTable, actions as actionsTable, oes as oesTable } from '~~/server/database/schema'
 import { and, eq, isNull, isNotNull, ne, sql } from 'drizzle-orm'
 import { Role } from '#shared/types/roles'
+import { everLabeledEntityConditions, labeledEntityConditions, latestLabelExpirationPerEntity } from '~~/server/utils/dashboard'
 
 export default defineEventHandler(async (event) => {
   // Authentication & authorization — FEEF only
@@ -17,14 +18,17 @@ export default defineEventHandler(async (event) => {
 
   // Common soft-delete conditions
   const auditNotDeleted = isNull(auditsTable.deletedAt)
-  const entityNotDeleted = isNull(entitiesTable.deletedAt)
   const actionNotDeleted = isNull(actionsTable.deletedAt)
+
+  // Sous-requête : date d'expiration de label la plus lointaine, par entité
+  const labelExpiration = latestLabelExpirationPerEntity()
 
   const [
     oesList,
     auditsByStatusByOe,
     actionAlertsByOe,
-    entityCountByOe,
+    labeledEntityCountByOe,
+    everLabeledEntityCountByOe,
     auditGapByOe,
     processDurationByOe,
     scheduledAuditsByMonthByOe,
@@ -65,13 +69,23 @@ export default defineEventHandler(async (event) => {
       .where(actionNotDeleted)
       .groupBy(auditsTable.oeId, auditsTable.status),
 
-    // 4a. Entity count by OE
+    // 4a. Labeled entity count by OE (MASTER entities with a still valid label)
     db.select({
       oeId: entitiesTable.oeId,
       count: sql<number>`COUNT(*)::int`,
     })
       .from(entitiesTable)
-      .where(entityNotDeleted)
+      .innerJoin(labelExpiration, eq(labelExpiration.entityId, entitiesTable.id))
+      .where(and(...labeledEntityConditions(labelExpiration)))
+      .groupBy(entitiesTable.oeId),
+
+    // 4a bis. Ever labeled entity count by OE (historical total, never decreases)
+    db.select({
+      oeId: entitiesTable.oeId,
+      count: sql<number>`COUNT(*)::int`,
+    })
+      .from(entitiesTable)
+      .where(and(...everLabeledEntityConditions()))
       .groupBy(entitiesTable.oeId),
 
     // 4b. Average audit gap (days) by OE
@@ -232,7 +246,8 @@ export default defineEventHandler(async (event) => {
       oes: oesList,
       auditsByStatusByOe,
       actionAlertsByOe,
-      entityCountByOe,
+      labeledEntityCountByOe,
+      everLabeledEntityCountByOe,
       auditGapByOe,
       processDurationByOe,
       scheduledAuditsByMonthByOe,

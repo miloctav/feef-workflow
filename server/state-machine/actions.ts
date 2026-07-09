@@ -10,6 +10,7 @@ import { db } from '~~/server/database'
 import { audits, entities } from '~~/server/database/schema'
 import { eq } from 'drizzle-orm'
 import { forUpdate } from '~~/server/utils/tracking'
+import { computeLabelExpirationDate } from '~~/shared/utils/label'
 import type { Audit } from '~~/server/database/schema'
 import type { H3Event } from 'h3'
 
@@ -57,9 +58,7 @@ export async function checkIfActionPlanNeeded(audit: Audit, event: H3Event): Pro
  * Elle calcule labelExpirationDate = date actuelle + 365 jours.
  */
 export async function calculateLabelExpiration(audit: Audit, event: H3Event): Promise<void> {
-  const expirationDate = new Date()
-  expirationDate.setFullYear(expirationDate.getFullYear() + 1)
-  const labelExpirationDate = expirationDate.toISOString().split('T')[0] // Format YYYY-MM-DD
+  const labelExpirationDate = computeLabelExpirationDate()
 
   console.log(`[State Machine Action] Calcul de la date d'expiration du label pour audit ${audit.id}`)
   console.log(`[State Machine Action] Date d'expiration : ${labelExpirationDate}`)

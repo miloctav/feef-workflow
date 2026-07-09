@@ -8,6 +8,7 @@ import { audits as auditsTable, entities as entitiesTable, events as eventsTable
 import { and, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm'
 import { Role, OERole } from '#shared/types/roles'
 import { ActionType } from '~~/shared/types/actions'
+import { everLabeledEntityConditions, labeledEntityConditions, latestLabelExpirationPerEntity } from '~~/server/utils/dashboard'
 
 export default defineEventHandler(async (event) => {
     // Authentication
@@ -152,8 +153,13 @@ export default defineEventHandler(async (event) => {
         )
         .as('latest_audit_per_entity')
 
+    // Subquery: furthest label expiration date per entity
+    const labelExpiration = latestLabelExpirationPerEntity()
+
     const [
-        entityCountResult,
+        labeledEntityCountResult,
+        everLabeledEntityCountResult,
+        firstLabelingYearResult,
         auditGapResult,
         processDurationResult,
         scheduledAuditsResult,
@@ -162,13 +168,46 @@ export default defineEventHandler(async (event) => {
         caseSubmissionResult,
         contractProgressResult,
     ] = await Promise.all([
-        // 1. Entity Count - Total count of all entities
+        // 1. Labeled Entity Count - MASTER entities whose label is still valid
         db
             .select({
                 count: sql<number>`COUNT(*)::int`,
             })
             .from(entitiesTable)
-            .where(entityWhereConditions.length > 0 ? and(...entityWhereConditions) : undefined),
+            .innerJoin(labelExpiration, eq(labelExpiration.entityId, entitiesTable.id))
+            .where(
+                and(
+                    ...labeledEntityConditions(labelExpiration),
+                    ...entityWhereConditions,
+                ),
+            ),
+
+        // 1b. Ever Labeled Entity Count - MASTER entities labeled at least once (historical total)
+        db
+            .select({
+                count: sql<number>`COUNT(*)::int`,
+            })
+            .from(entitiesTable)
+            .where(
+                and(
+                    ...everLabeledEntityConditions(),
+                    ...entityWhereConditions,
+                ),
+            ),
+
+        // 1c. First labeling year - used to date the historical counter
+        db
+            .select({
+                year: sql<number | null>`MIN(EXTRACT(YEAR FROM ${eventsTable.performedAt}))::int`,
+            })
+            .from(eventsTable)
+            .innerJoin(auditsTable, eq(auditsTable.id, eventsTable.auditId))
+            .where(
+                and(
+                    eq(eventsTable.type, 'AUDIT_FEEF_DECISION_ACCEPTED'),
+                    ...(auditWhereConditions.length > 0 ? auditWhereConditions : []),
+                ),
+            ),
 
         // 2. Average Audit Gap - Difference between plannedDate and actualStartDate (in days)
         db
@@ -296,7 +335,9 @@ export default defineEventHandler(async (event) => {
     ])
 
     // Process results
-    const entityCount = entityCountResult[0]?.count || 0
+    const labeledEntityCount = labeledEntityCountResult[0]?.count || 0
+    const everLabeledEntityCount = everLabeledEntityCountResult[0]?.count || 0
+    const firstLabelingYear = firstLabelingYearResult[0]?.year ?? null
 
     // Convert average gap from days to months (rounded to 1 decimal)
     const avgGapDays = auditGapResult[0]?.avgGapDays
@@ -402,7 +443,9 @@ export default defineEventHandler(async (event) => {
 
     return {
         data: {
-            entityCount,
+            labeledEntityCount,
+            everLabeledEntityCount,
+            firstLabelingYear,
             avgAuditGapMonths: avgGapMonths,
             avgProcessDurationMonths: avgDurationMonths,
             scheduledAuditsByMonth,

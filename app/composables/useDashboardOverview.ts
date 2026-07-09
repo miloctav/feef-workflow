@@ -3,7 +3,9 @@
  */
 
 export interface DashboardOverviewData {
-    entityCount: number
+    labeledEntityCount: number
+    everLabeledEntityCount: number
+    firstLabelingYear: number | null
     avgAuditGapMonths: number | null
     avgProcessDurationMonths: number | null
     scheduledAuditsByMonth: Record<string, { initial: number, renewal: number, monitoring: number }>
@@ -41,9 +43,20 @@ export function useDashboardOverview() {
         }
     }
 
-    // Formatted entity count
-    const formattedEntityCount = computed(() => {
-        return data.value?.entityCount?.toString() || '0'
+    // Formatted labeled entity count
+    const formattedLabeledEntityCount = computed(() => {
+        return data.value?.labeledEntityCount?.toString() || '0'
+    })
+
+    // Formatted historical labeled entity count
+    const formattedEverLabeledEntityCount = computed(() => {
+        return data.value?.everLabeledEntityCount?.toString() || '0'
+    })
+
+    // Sous-titre du compteur historique (ex. « depuis 2022 »)
+    const everLabeledSubtitle = computed(() => {
+        const year = data.value?.firstLabelingYear
+        return year ? `depuis ${year}` : 'cumul historique'
     })
 
     // Formatted average audit gap (e.g., "+3.5 mois" or "-2.1 mois")
@@ -100,7 +113,9 @@ export function useDashboardOverview() {
         fetchOverview,
         refresh: fetchOverview,
         // Formatted values
-        formattedEntityCount,
+        formattedLabeledEntityCount,
+        formattedEverLabeledEntityCount,
+        everLabeledSubtitle,
         formattedAvgAuditGap,
         formattedAvgProcessDuration,
         // Chart data

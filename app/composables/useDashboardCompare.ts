@@ -37,7 +37,8 @@ interface CompareApiData {
   oes: Array<{ id: number, name: string }>
   auditsByStatusByOe: Array<{ oeId: number | null, status: string, count: number }>
   actionAlertsByOe: Array<{ oeId: number | null, auditStatus: string | null, overdueCount: number, upcomingCount: number }>
-  entityCountByOe: Array<{ oeId: number | null, count: number }>
+  labeledEntityCountByOe: Array<{ oeId: number | null, count: number }>
+  everLabeledEntityCountByOe: Array<{ oeId: number | null, count: number }>
   auditGapByOe: Array<{ oeId: number | null, avgGapDays: number | null }>
   processDurationByOe: Array<{ oeId: number | null, avgDurationDays: number | null }>
   scheduledAuditsByMonthByOe: Array<{ oeId: number | null, month: string, count: number }>
@@ -74,7 +75,10 @@ export interface OverviewOe {
   oeId: number | null
   oeName: string
   dot: string
-  entityCount: number
+  labeledEntityCount: number
+  everLabeledEntityCount: number
+  /** Nombre total d'audits de l'OE, sert à masquer les OE sans aucune activité */
+  auditCount: number
   avgAuditGapMonths: number | null
   avgProcessDurationMonths: number | null
 }
@@ -334,9 +338,14 @@ export function useDashboardCompare() {
     return sortedOeIds.value.map((oeId) => {
       const info = getOeInfo(oeId)
 
-      const entityCount = data.entityCountByOe.find(r => r.oeId === oeId)?.count ?? 0
+      const labeledEntityCount = data.labeledEntityCountByOe.find(r => r.oeId === oeId)?.count ?? 0
+      const everLabeledEntityCount = data.everLabeledEntityCountByOe.find(r => r.oeId === oeId)?.count ?? 0
 
-      const gapDays  = data.auditGapByOe.find(r => r.oeId === oeId)?.avgGapDays ?? null
+      const auditCount = data.auditsByStatusByOe
+        .filter(r => r.oeId === oeId)
+        .reduce((sum, r) => sum + r.count, 0)
+
+      const gapDays = data.auditGapByOe.find(r => r.oeId === oeId)?.avgGapDays ?? null
       const avgAuditGapMonths = gapDays !== null
         ? Math.round((gapDays / 30.44) * 10) / 10
         : null
@@ -350,7 +359,9 @@ export function useDashboardCompare() {
         oeId,
         oeName: info.name,
         dot: info.dot,
-        entityCount,
+        labeledEntityCount,
+        everLabeledEntityCount,
+        auditCount,
         avgAuditGapMonths,
         avgProcessDurationMonths,
       }

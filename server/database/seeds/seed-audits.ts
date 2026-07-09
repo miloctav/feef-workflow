@@ -7,6 +7,7 @@ import { resolve } from 'path'
 import { eq, isNull, isNotNull, and } from 'drizzle-orm'
 import { audits, entities, accounts, oes, notifications, events, actions, auditNotation, documentVersions, entityFieldVersions } from '../schema'
 import { normalizeSiret, isUsableSiret } from './read-completed-xlsx'
+import { computeLabelExpirationDate } from '../../../shared/utils/label'
 
 // ============================================================
 // Mapping AUDIT_TYPE CSV → enums DB
@@ -600,6 +601,12 @@ async function seedAudits() {
 
     const status = mapAuditStatus(row['AUDIT_STATUT'] ?? '', actualEndDate, plannedDate)
     const feefDecision = status === 'COMPLETED' ? 'ACCEPTED' : null
+    const decisionDate = parseDatetime(row['DATE_DECISION'] ?? '')
+
+    // Même règle que la state machine : date de décision FEEF + 1 an
+    const labelExpirationDate = feefDecision === 'ACCEPTED'
+      ? computeLabelExpirationDate(decisionDate ?? actualEndDate ?? new Date())
+      : null
 
     const now = new Date()
     const createdAt = (dateLimite && dateLimite < now) ? dateLimite : now
@@ -612,6 +619,7 @@ async function seedAudits() {
         ...(monitoringMode !== null ? { monitoringMode } : {}),
         status,
         ...(feefDecision ? { feefDecision } : {}),
+        ...(labelExpirationDate ? { labelExpirationDate } : {}),
         ...(auditorName ? { externalAuditorName: auditorName } : {}),
         ...(plannedDate ? { plannedDate: toDateString(plannedDate) } : {}),
         ...(actualStartDate ? { actualStartDate: toDateString(actualStartDate) } : {}),
@@ -623,7 +631,6 @@ async function seedAudits() {
       }).returning({ id: audits.id })
 
       if (status === 'COMPLETED' && feefDecision === 'ACCEPTED') {
-        const decisionDate = parseDatetime(row['DATE_DECISION'] ?? '')
         await db.insert(events).values({
           type: 'AUDIT_FEEF_DECISION_ACCEPTED',
           category: 'AUDIT',

@@ -18,7 +18,9 @@ const {
   loading: overviewLoading,
   error: overviewError,
   fetchOverview,
-  formattedEntityCount,
+  formattedLabeledEntityCount,
+  formattedEverLabeledEntityCount,
+  everLabeledSubtitle,
   formattedAvgAuditGap,
   formattedAvgProcessDuration,
   scheduledAuditsChartData,
@@ -112,6 +114,22 @@ const PHASE_CONFIG = [
       COMPLETED: 'Terminés',
     } as Record<string, string>,
   },
+]
+
+// Explications des indicateurs, affichées au survol de l'icône d'information
+const STAT_HINTS = {
+  labeled: "Entités mères dont un audit a une date de fin de validité non échue (décision FEEF + 1 an). Une entité en cours de renouvellement reste comptée tant que son label précédent court.",
+  everLabeled: "Entités mères ayant obtenu le label au moins une fois. Cumul historique : une entité y reste même si son label a expiré, car aucune sortie du label n'est enregistrée.",
+  auditGap: "Écart moyen entre la date d'audit planifiée et la date de début réelle, sur les audits disposant des deux dates. Une valeur positive signifie que les audits ont lieu après la date prévue.",
+  processDuration: "Durée moyenne entre l'ouverture du dossier et la décision FEEF, sur les dossiers ayant abouti à une décision.",
+} as const
+
+// Colonnes du tableau de comparaison par OE (hors colonne « OE »)
+const compareColumns = [
+  { label: 'Label en cours', hint: STAT_HINTS.labeled },
+  { label: 'Déjà labellisées', hint: STAT_HINTS.everLabeled },
+  { label: 'Écart audit', hint: STAT_HINTS.auditGap },
+  { label: 'Durée processus', hint: STAT_HINTS.processDuration },
 ]
 
 const progressBarStats = computed(() => data.value?.progressBarStats)
@@ -208,9 +226,9 @@ function formatMonths(val: number | null): string {
   return `${sign}${val.toFixed(1)} mois`
 }
 
-// Only show OEs with at least one entity in the compare overview table
+// Only show OEs with at least one audit in the compare overview table
 const visibleCompareOverviewStats = computed(() =>
-  compareOverviewStats.value.filter(oe => oe.entityCount > 0),
+  compareOverviewStats.value.filter(oe => oe.auditCount > 0),
 )
 </script>
 
@@ -253,44 +271,35 @@ const visibleCompareOverviewStats = computed(() =>
     <!-- Normal mode: 3 stat cards -->
     <div
       v-if="!isCompareMode"
-      class="flex flex-row gap-4 px-4 mb-4"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-4 mb-4"
     >
-      <div class="bg-white rounded-xl shadow p-4 flex-1 flex flex-col items-center justify-center">
-        <span class="text-gray-500 text-sm mb-1">Nombre d'entités</span>
-        <USkeleton
-          v-if="overviewLoading"
-          class="h-8 w-16"
-        />
-        <span
-          v-else
-          class="text-2xl font-bold text-primary-600"
-          >{{ formattedEntityCount }}</span
-        >
-      </div>
-      <div class="bg-white rounded-xl shadow p-4 flex-1 flex flex-col items-center justify-center">
-        <span class="text-gray-500 text-sm mb-1 text-center">Écart moyen audit planifié/réel</span>
-        <USkeleton
-          v-if="overviewLoading"
-          class="h-6 w-24"
-        />
-        <span
-          v-else
-          class="text-base font-semibold text-gray-800"
-          >{{ formattedAvgAuditGap }}</span
-        >
-      </div>
-      <div class="bg-white rounded-xl shadow p-4 flex-1 flex flex-col items-center justify-center">
-        <span class="text-gray-500 text-sm mb-1 text-center">Durée moyenne du processus</span>
-        <USkeleton
-          v-if="overviewLoading"
-          class="h-6 w-24"
-        />
-        <span
-          v-else
-          class="text-base font-semibold text-gray-800"
-          >{{ formattedAvgProcessDuration }}</span
-        >
-      </div>
+      <DashboardStatCard
+        label="Label en cours de validité"
+        :value="formattedLabeledEntityCount"
+        :hint="STAT_HINTS.labeled"
+        highlight
+        :loading="overviewLoading"
+      />
+      <DashboardStatCard
+        label="Déjà labellisées"
+        :value="formattedEverLabeledEntityCount"
+        :subtitle="everLabeledSubtitle"
+        :hint="STAT_HINTS.everLabeled"
+        highlight
+        :loading="overviewLoading"
+      />
+      <DashboardStatCard
+        label="Écart moyen audit planifié/réel"
+        :value="formattedAvgAuditGap"
+        :hint="STAT_HINTS.auditGap"
+        :loading="overviewLoading"
+      />
+      <DashboardStatCard
+        label="Durée moyenne du processus"
+        :value="formattedAvgProcessDuration"
+        :hint="STAT_HINTS.processDuration"
+        :loading="overviewLoading"
+      />
     </div>
 
     <!-- Compare mode: stats table per OE -->
@@ -310,9 +319,16 @@ const visibleCompareOverviewStats = computed(() =>
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
               <th class="text-left px-4 py-2 font-semibold text-gray-600">OE</th>
-              <th class="text-right px-4 py-2 font-semibold text-gray-600">Entités</th>
-              <th class="text-right px-4 py-2 font-semibold text-gray-600">Écart audit</th>
-              <th class="text-right px-4 py-2 font-semibold text-gray-600">Durée processus</th>
+              <th
+                v-for="col in compareColumns"
+                :key="col.label"
+                class="text-right px-4 py-2 font-semibold text-gray-600"
+              >
+                <div class="inline-flex items-center gap-1.5">
+                  <span>{{ col.label }}</span>
+                  <InfoTooltip :text="col.hint" />
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -331,7 +347,10 @@ const visibleCompareOverviewStats = computed(() =>
                 </div>
               </td>
               <td class="px-4 py-2 text-right font-bold text-primary-600">
-                {{ oe.entityCount }}
+                {{ oe.labeledEntityCount }}
+              </td>
+              <td class="px-4 py-2 text-right font-semibold text-gray-700">
+                {{ oe.everLabeledEntityCount }}
               </td>
               <td class="px-4 py-2 text-right text-gray-700">
                 {{ formatMonths(oe.avgAuditGapMonths) }}
@@ -342,7 +361,7 @@ const visibleCompareOverviewStats = computed(() =>
             </tr>
             <tr v-if="visibleCompareOverviewStats.length === 0">
               <td
-                colspan="4"
+                :colspan="compareColumns.length + 1"
                 class="px-4 py-4 text-center text-gray-400 italic"
               >
                 Aucune donnée
