@@ -22,8 +22,12 @@ export default defineEventHandler(async (event) => {
   const entityId = query.entityId ? Number(query.entityId) : undefined
   const oeId = query.oeId ? Number(query.oeId) : undefined
 
+  // ENTITY peut demander à voir aussi les actions des autres rôles sur ses propres
+  // entités/audits (consultation seule). Ignoré pour les autres rôles.
+  const includeOtherRoles = user.role === Role.ENTITY && query.includeOtherRoles === 'true'
+
   // Build WHERE conditions based on user context
-  const userConditions = await buildActionsWhereForUser(user, [], { auditId, entityId })
+  const userConditions = await buildActionsWhereForUser(user, [], { auditId, entityId, includeOtherRoles })
 
   // FEEF can filter actions by OE (via audit.oeId)
   if (user.role === Role.FEEF && oeId) {

@@ -21,6 +21,7 @@ const firstLabelingDateField = computed(() => {
 })
 
 const isFeef = computed(() => user.value?.role === Role.FEEF)
+const isEntity = computed(() => user.value?.role === Role.ENTITY)
 
 // Gestion des slidesovers d'édition
 const isReferenceDateEditorOpen = ref(false)
@@ -69,6 +70,9 @@ const handleEditorUpdated = async () => {
 
       <!-- Dashboard -->
       <div v-else class="space-y-6">
+        <!-- Actions en attente chez les autres intervenants (consultation seule) -->
+        <OtherRolesActionsCard v-if="isEntity" :entity-id="currentEntity.id" />
+
         <!-- Première rangée : Date de référence + OE Info -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ReferenceDateCard

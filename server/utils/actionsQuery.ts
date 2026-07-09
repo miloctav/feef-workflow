@@ -15,7 +15,17 @@ import type { PaginationConfig } from '~~/server/utils/pagination'
 export async function buildActionsWhereForUser(
   user: Account,
   additionalConditions: SQL[] = [],
-  options: { includeAllStatuses?: boolean; auditId?: number; entityId?: number } = {},
+  options: {
+    includeAllStatuses?: boolean
+    auditId?: number
+    entityId?: number
+    /**
+     * ENTITY uniquement : inclut aussi les actions assignées aux autres rôles
+     * (FEEF, OE, AUDITOR) portant sur ses entités et leurs audits, en lecture seule.
+     * Sans effet pour les autres rôles, dont le cloisonnement reste inchangé.
+     */
+    includeOtherRoles?: boolean
+  } = {},
 ): Promise<SQL[]> {
   const conditions: SQL[] = [
     isNull(actions.deletedAt),
@@ -62,8 +72,13 @@ export async function buildActionsWhereForUser(
         conditions.push(sql`1 = 0`)
       }
       else {
+        // Le périmètre reste borné aux entités de l'utilisateur : les actions
+        // liées à un audit portent toujours l'entityId de l'audit concerné.
         conditions.push(inArray(actions.entityId, entityIds))
-        conditions.push(sql`'ENTITY' = ANY(${actions.assignedRoles})`)
+
+        if (!options.includeOtherRoles) {
+          conditions.push(sql`'ENTITY' = ANY(${actions.assignedRoles})`)
+        }
       }
     }
   }
