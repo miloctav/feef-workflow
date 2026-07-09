@@ -25,9 +25,7 @@ export function useSortableColumn(currentSort: Ref<string>, setSort: (v: string)
                 class: '-mx-2.5',
                 // Logic de clic : si actif et asc -> desc, sinon -> asc
                 onClick: () => {
-                    const newSort = `${sortField}:${isActive && order === 'asc' ? 'desc' : 'asc'}`
-                    console.log('[useSortableColumn] Clicked. New sort:', newSort)
-                    setSort(newSort)
+                    setSort(`${sortField}:${isActive && order === 'asc' ? 'desc' : 'asc'}`)
                 }
             })
         }

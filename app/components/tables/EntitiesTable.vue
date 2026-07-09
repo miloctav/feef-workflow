@@ -25,8 +25,8 @@
         <div
           :class="
             user?.role === Role.FEEF
-              ? 'grid grid-cols-1 md:grid-cols-4 gap-4'
-              : 'grid grid-cols-1 md:grid-cols-3 gap-4'
+              ? 'grid grid-cols-1 md:grid-cols-3 gap-4'
+              : 'grid grid-cols-1 md:grid-cols-2 gap-4'
           "
         >
           <FilterSelect
@@ -50,14 +50,6 @@
             @update:model-value="updateFilter('oeId', $event)"
             :items="oeItems"
             placeholder="OE"
-          />
-          <FilterSelect
-            v-if="user?.role === Role.FEEF"
-            label="Chargé de compte"
-            :model-value="filters.accountManagerId"
-            @update:model-value="updateFilter('accountManagerId', $event)"
-            :items="accountManagerItems"
-            placeholder="Chargé de compte"
           />
         </div>
       </template>
@@ -113,14 +105,6 @@
           size="sm"
         >
           OE: {{ getFilterLabel('oeId', filters.oeId) }}
-        </UBadge>
-        <UBadge
-          v-if="filters.accountManagerId != null"
-          variant="subtle"
-          color="success"
-          size="sm"
-        >
-          Chargé: {{ getFilterLabel('accountManagerId', filters.accountManagerId) }}
         </UBadge>
       </template>
 
@@ -403,9 +387,6 @@ const entityModeItems = getEntityModeItems(true) // true = inclure "Tous les mod
 const oeItems = ref<Array<{ label: string; value: number | null }>>([
   { label: 'Tous les OE', value: null },
 ])
-const accountManagerItems = ref<Array<{ label: string; value: number | null }>>([
-  { label: 'Tous les chargés', value: null },
-])
 
 // Charger les OEs pour le filtre
 const loadOEs = async () => {
@@ -422,24 +403,6 @@ const loadOEs = async () => {
   }
 }
 
-// Charger les chargés de compte pour le filtre (uniquement rôle FEEF)
-const loadAccountManagers = async () => {
-  try {
-    const response = await $fetch<{
-      data: Array<{ id: number; firstname: string; lastname: string }>
-    }>('/api/accounts?role=FEEF&limit=100')
-    accountManagerItems.value = [
-      { label: 'Tous les chargés', value: null },
-      ...response.data.map((account) => ({
-        label: `${account.firstname} ${account.lastname}`,
-        value: account.id,
-      })),
-    ]
-  } catch (e) {
-    console.error('Erreur lors du chargement des chargés de compte:', e)
-  }
-}
-
 // Charger les données au montage du composant
 onMounted(() => {
   // Les filtres URL sont déjà dans initialParams de useEntities
@@ -447,7 +410,6 @@ onMounted(() => {
 
   if (user.value?.role === Role.FEEF) {
     loadOEs()
-    loadAccountManagers()
   }
 })
 
@@ -476,10 +438,6 @@ const getFilterLabel = (
   if (filterName === 'oeId') {
     const oe = oeItems.value.find((item) => item.value === filterValue)
     return oe?.label || String(filterValue)
-  }
-  if (filterName === 'accountManagerId') {
-    const manager = accountManagerItems.value.find((item) => item.value === filterValue)
-    return manager?.label || String(filterValue)
   }
   return String(filterValue)
 }
@@ -671,17 +629,17 @@ const handleCreate = async (close: () => void) => {
 const columns = computed<TableColumn<EntityWithRelations>[]>(() => [
   {
     accessorKey: 'name',
-    header: 'Nom',
+    header: createSortableHeader('Nom', 'name'),
     cell: ({ row }) => row.original.name,
   },
   {
     accessorKey: 'siret',
-    header: 'SIRET',
+    header: createSortableHeader('SIRET', 'siret'),
     cell: ({ row }) => row.original.siret || '-',
   },
   {
     accessorKey: 'type',
-    header: "Type d'entité",
+    header: createSortableHeader("Type d'entité", 'type'),
     cell: ({ row }) => {
       const type = row.original.type
       const label = getEntityTypeLabel(type)
@@ -691,7 +649,8 @@ const columns = computed<TableColumn<EntityWithRelations>[]>(() => [
   },
   {
     accessorKey: 'mode',
-    header: 'Mode labellisation',
+    header: createSortableHeader('Mode', 'mode'),
+    meta: { class: { th: 'w-32', td: 'w-32' } },
     cell: ({ row }) => {
       const mode = row.original.mode
       const label = getEntityModeLabel(mode)
@@ -701,20 +660,13 @@ const columns = computed<TableColumn<EntityWithRelations>[]>(() => [
   },
   {
     accessorKey: 'oe',
-    header: 'Organisme Évaluateur',
+    header: createSortableHeader('OE', 'oe.name'),
+    meta: { class: { th: 'w-32', td: 'w-32' } },
     cell: ({ row }) => row.original.oe?.name || '-',
   },
   {
-    accessorKey: 'accountManager',
-    header: 'Chargé de compte',
-    cell: ({ row }) => {
-      const manager = row.original.accountManager
-      return manager ? `${manager.firstname} ${manager.lastname}` : '-'
-    },
-  },
-  {
     accessorKey: 'audits',
-    header: 'Dernier audit',
+    header: createSortableHeader('Dernier audit', 'audits.status'),
     cell: ({ row }) => {
       const latestAudit = row.original.audits?.[0]
 
@@ -733,6 +685,14 @@ const columns = computed<TableColumn<EntityWithRelations>[]>(() => [
         { color: statusColor, variant: 'soft', size: 'sm' },
         () => displayText
       )
+    },
+  },
+  {
+    accessorKey: 'plannedDate',
+    header: createSortableHeader('Date planifiée', 'audits.plannedDate'),
+    cell: ({ row }) => {
+      const plannedDate = row.original.audits?.[0]?.plannedDate
+      return plannedDate ? formatDate(plannedDate) : '-'
     },
   },
   {

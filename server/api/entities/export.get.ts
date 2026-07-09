@@ -1,11 +1,12 @@
 import { and, eq, isNull, inArray } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { entities as entitiesTable, accountsToEntities, audits as auditsTable, actions, contracts } from '~~/server/database/schema'
+import { entities as entitiesTable, audits as auditsTable, actions, contracts } from '~~/server/database/schema'
 import {
   parsePaginationParams,
   buildWhereConditions,
   buildOrderBy,
 } from '~~/server/utils/pagination'
+import { entitiesPaginationConfig } from '~~/server/utils/entities-query'
 import { Role, OERole } from '#shared/types/roles'
 import {
   AuditStatusLabels,
@@ -74,27 +75,7 @@ export default defineEventHandler(async (event) => {
   // Forcer le mode unlimited pour récupérer toutes les entités filtrées
   query.limit = '-1'
 
-  const config = {
-    table: entitiesTable,
-    searchFields: ['name', 'siret'],
-    allowedFilters: {
-      local: ['type', 'mode', 'oeId', 'accountManagerId', 'parentGroupId'],
-    },
-    allowedSorts: {
-      local: ['createdAt', 'updatedAt', 'name', 'type', 'mode'],
-      relations: ['oe.name', 'accountManager.lastname', 'accountManager.firstname'],
-    },
-    junctionFilters: {
-      accountId: {
-        junctionTable: accountsToEntities,
-        localIdColumn: accountsToEntities.entityId,
-        targetIdColumn: accountsToEntities.accountId,
-        roleColumn: accountsToEntities.role,
-        roleParam: 'accountIdRole',
-      },
-    },
-    defaultSort: 'updatedAt:desc',
-  }
+  const config = entitiesPaginationConfig
 
   const params = parsePaginationParams(query, config)
   const whereConditions = await buildWhereConditions(params, config)

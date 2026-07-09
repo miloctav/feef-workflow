@@ -1,6 +1,6 @@
 import { and, or, eq, isNull, isNotNull, inArray, sql } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { entities as entitiesTable, accountsToEntities, audits, actions, contracts } from '~~/server/database/schema'
+import { entities as entitiesTable, audits, actions, contracts } from '~~/server/database/schema'
 import {
   parsePaginationParams,
   buildWhereConditions,
@@ -8,6 +8,7 @@ import {
   buildCountQuery,
   formatResponse,
 } from '~~/server/utils/pagination'
+import { entitiesPaginationConfig } from '~~/server/utils/entities-query'
 import { Role, OERole } from '#shared/types/roles'
 
 /**
@@ -19,7 +20,8 @@ import { Role, OERole } from '#shared/types/roles'
  * - page: numéro de page (défaut: 1)
  * - limit: items par page (défaut: 25, max: 100, -1 = tous)
  * - search: recherche globale sur name, siret
- * - sort: tri (ex: createdAt:desc, name:asc, oe.name:asc, accountManager.lastname:asc)
+ * - sort: tri (ex: createdAt:desc, updatedAt:desc, name:asc, siret:asc, type:asc, mode:asc,
+ *   oe.name:asc, accountManager.lastname:asc, audits.status:asc, audits.plannedDate:asc)
  * - type: filtre par type (COMPANY, GROUP) - support multiple: type=COMPANY,GROUP
  * - mode: filtre par mode (MASTER, FOLLOWER)
  * - oeId: filtre par OE (support multiple: oeId=1,2,3)
@@ -64,29 +66,8 @@ export default defineEventHandler(async (event) => {
     query.accountId = String(user.id)
   }
 
-  // Configuration de la pagination
-  const config = {
-    table: entitiesTable,
-    searchFields: ['name', 'siret'],
-    allowedFilters: {
-      local: ['type', 'mode', 'oeId', 'accountManagerId', 'parentGroupId'],
-    },
-    allowedSorts: {
-      local: ['createdAt', 'updatedAt', 'name', 'type', 'mode'],
-      relations: ['oe.name', 'accountManager.lastname', 'accountManager.firstname'],
-    },
-    // Filtre via table de jonction pour les comptes ENTITY
-    junctionFilters: {
-      accountId: {
-        junctionTable: accountsToEntities,
-        localIdColumn: accountsToEntities.entityId,    // On veut récupérer les entityId
-        targetIdColumn: accountsToEntities.accountId,  // Filtrés par accountId
-        roleColumn: accountsToEntities.role,           // Support du filtre par rôle (optionnel)
-        roleParam: 'accountIdRole',                    // Nom du paramètre pour filtrer par rôle
-      },
-    },
-    defaultSort: 'updatedAt:desc',
-  }
+  // Configuration de la pagination (partagée avec l'export CSV)
+  const config = entitiesPaginationConfig
 
   // 1. Parser les paramètres de pagination
   const params = parsePaginationParams(query, config)
@@ -184,7 +165,9 @@ export default defineEventHandler(async (event) => {
         columns: {
           id: true,
           type: true,
+          monitoringMode: true,
           status: true,
+          plannedDate: true,
         },
       },
     },

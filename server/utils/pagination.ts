@@ -66,11 +66,34 @@ export interface PaginationConfig<TTable extends PgTable> {
    * Configuration des tris autorisés
    * - local: colonnes de la table principale
    * - relations: colonnes relationnelles (dot notation)
+   *
+   * Attention : les tris `relations` supposent que la colonne relationnelle est
+   * accessible directement dans la clause ORDER BY de la requête. Ce n'est pas le
+   * cas avec l'API relationnelle de Drizzle (`db.query.*` avec `with`), qui expose
+   * les relations via des jointures latérales agrégées. Pour trier sur une relation,
+   * utiliser `customSorts` avec une sous-requête corrélée.
    */
   allowedSorts?: {
     local?: string[]
     relations?: string[]
   }
+
+  /**
+   * Tris personnalisés : mapping d'un nom de tri vers une expression SQL.
+   * Permet de trier sur une valeur calculée (sous-requête corrélée, CASE, etc.)
+   * là où une simple colonne ne suffit pas.
+   *
+   * L'ordre (asc/desc) et le `NULLS LAST` sont appliqués automatiquement.
+   *
+   * Exemple:
+   * {
+   *   'oe.name': sql`(select ${oes.name} from ${oes} where ${oes.id} = ${entities.oeId})`
+   * }
+   */
+  customSorts?: Record<string, SQL>
+
+  /** Colonne de départage appliquée après le tri principal (stabilise la pagination) */
+  tiebreakColumn?: any
 
   /**
    * Configuration des filtres via tables de jonction (many-to-many)
@@ -466,8 +489,12 @@ export function buildOrderBy(
   const table = config.table
   let column: any = null
 
+  // Tri personnalisé (expression SQL) : prioritaire sur les colonnes
+  if (config.customSorts?.[sort.field]) {
+    column = config.customSorts[sort.field]
+  }
   // Vérifier si c'est un tri local autorisé
-  if (config.allowedSorts?.local?.includes(sort.field)) {
+  else if (config.allowedSorts?.local?.includes(sort.field)) {
     column = (table as any)[sort.field]
   }
   // Vérifier si c'est un tri relationnel autorisé (dot notation)
@@ -481,7 +508,15 @@ export function buildOrderBy(
 
   // Appliquer l'ordre avec NULLS LAST
   const orderFn = sort.order === 'asc' ? asc : desc
-  return sql`${orderFn(column)} NULLS LAST`
+  const primary = sql`${orderFn(column)} NULLS LAST`
+
+  // Départage : sans colonne unique en second critère, deux lignes de même valeur
+  // (ex: tri sur `type`) peuvent changer d'ordre entre deux requêtes et donc
+  // apparaître deux fois, ou jamais, lors de la navigation entre les pages.
+  const tiebreak = config.tiebreakColumn ?? (table as any).id
+  if (!tiebreak) return primary
+
+  return [primary, asc(tiebreak)]
 }
 
 /**
