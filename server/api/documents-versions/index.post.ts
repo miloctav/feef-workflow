@@ -5,6 +5,7 @@ import { uploadFile } from '~~/server/services/garage'
 import { getMimeTypeFromFilename, assertAllowedUploadExtension } from '~~/server/utils/mimeTypes'
 import { MAX_UPLOAD_SIZE_BYTES, assertUploadSize } from '~~/server/utils/uploadLimits'
 import { Role } from '#shared/types/roles'
+import { canWriteDocumentaryReviewCategory } from '#shared/types/enums'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -89,6 +90,14 @@ export default defineEventHandler(async (event) => {
 
     entityId = documentaryReview.entityId
     documentId = documentaryReviewId
+
+    // Certaines catégories sont en lecture seule sauf pour la FEEF
+    if (!canWriteDocumentaryReviewCategory(user.role, documentaryReview.category)) {
+      throw createError({
+        statusCode: 403,
+        message: 'Vous n\'avez pas le droit de déposer un document dans cette catégorie',
+      })
+    }
 
     // Autorisation pour documentaryReview
     if (user.role === Role.FEEF) {

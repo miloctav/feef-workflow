@@ -4,7 +4,7 @@ import { eq, and, isNull } from 'drizzle-orm'
 import { forUpdate } from '~~/server/utils/tracking'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
-import { DocumentaryReviewCategory, canAccessDocumentaryReviewCategory } from '#shared/types/enums'
+import { DocumentaryReviewCategory, canWriteDocumentaryReviewCategory } from '#shared/types/enums'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -44,11 +44,11 @@ export default defineEventHandler(async (event) => {
     errorMessage: 'Vous n\'avez pas accès à ce document'
   })
 
-  // Vérifier l'accès à la catégorie actuelle du document
-  if (!canAccessDocumentaryReviewCategory(user.role, documentaryReview.category)) {
+  // Vérifier le droit d'écriture sur la catégorie actuelle du document
+  if (!canWriteDocumentaryReviewCategory(user.role, documentaryReview.category)) {
     throw createError({
       statusCode: 403,
-      message: 'Vous n\'avez pas accès à cette catégorie de document',
+      message: 'Vous n\'avez pas le droit de modifier un document de cette catégorie',
     })
   }
 
@@ -96,11 +96,11 @@ export default defineEventHandler(async (event) => {
         message: `category doit être l'une des valeurs suivantes: ${validCategories.join(', ')}`,
       })
     }
-    // Vérifier l'accès à la nouvelle catégorie
-    if (!canAccessDocumentaryReviewCategory(user.role, body.category)) {
+    // Vérifier le droit d'écriture sur la nouvelle catégorie
+    if (!canWriteDocumentaryReviewCategory(user.role, body.category)) {
       throw createError({
         statusCode: 403,
-        message: 'Vous n\'avez pas accès à cette catégorie de document',
+        message: 'Vous n\'avez pas le droit de déplacer un document dans cette catégorie',
       })
     }
     updateData.category = body.category

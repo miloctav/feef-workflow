@@ -3,7 +3,7 @@ import { documentaryReviews, documentsType, entities } from '~~/server/database/
 import { eq, and, isNull } from 'drizzle-orm'
 import { forInsert } from '~~/server/utils/tracking'
 import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
-import { DocumentaryReviewCategory, canAccessDocumentaryReviewCategory } from '#shared/types/enums'
+import { DocumentaryReviewCategory, canWriteDocumentaryReviewCategory } from '#shared/types/enums'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 
 export default defineEventHandler(async (event) => {
@@ -108,11 +108,11 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Vérifier l'accès à la catégorie selon le rôle
-  if (!canAccessDocumentaryReviewCategory(user.role, documentData.category)) {
+  // Vérifier le droit d'écriture sur la catégorie selon le rôle
+  if (!canWriteDocumentaryReviewCategory(user.role, documentData.category)) {
     throw createError({
       statusCode: 403,
-      message: 'Vous n\'avez pas accès à cette catégorie de document',
+      message: 'Vous n\'avez pas le droit d\'ajouter un document dans cette catégorie',
     })
   }
 

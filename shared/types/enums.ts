@@ -324,6 +324,7 @@ export const DocumentaryReviewCategory = {
   AUDIT: 'AUDIT',
   OTHER: 'OTHER',
   CORRECTIVE_ACTION_PROOF: 'CORRECTIVE_ACTION_PROOF',
+  PAST_AUDIT_REPORT: 'PAST_AUDIT_REPORT',
 } as const
 
 export type DocumentaryReviewCategoryType = typeof DocumentaryReviewCategory[keyof typeof DocumentaryReviewCategory]
@@ -336,6 +337,7 @@ export const DocumentaryReviewCategoryLabels: Record<DocumentaryReviewCategoryTy
   [DocumentaryReviewCategory.AUDIT]: 'Documents d\'audits',
   [DocumentaryReviewCategory.OTHER]: 'Autres',
   [DocumentaryReviewCategory.CORRECTIVE_ACTION_PROOF]: 'Preuves du plan d\'action correctif',
+  [DocumentaryReviewCategory.PAST_AUDIT_REPORT]: 'Rapports d\'audit passés',
 }
 
 /**
@@ -346,16 +348,18 @@ export const DocumentaryReviewCategoryIcons: Record<DocumentaryReviewCategoryTyp
   [DocumentaryReviewCategory.AUDIT]: 'i-lucide-clipboard-check',
   [DocumentaryReviewCategory.OTHER]: 'i-lucide-file',
   [DocumentaryReviewCategory.CORRECTIVE_ACTION_PROOF]: 'i-lucide-file-badge',
+  [DocumentaryReviewCategory.PAST_AUDIT_REPORT]: 'i-lucide-history',
 }
 
 /**
  * Couleurs de badge pour les catégories (pour Nuxt UI)
  */
-export const DocumentaryReviewCategoryColors: Record<DocumentaryReviewCategoryType, 'primary' | 'success' | 'neutral' | 'warning'> = {
+export const DocumentaryReviewCategoryColors: Record<DocumentaryReviewCategoryType, 'primary' | 'success' | 'neutral' | 'warning' | 'info'> = {
   [DocumentaryReviewCategory.CANDIDACY]: 'primary',
   [DocumentaryReviewCategory.AUDIT]: 'success',
   [DocumentaryReviewCategory.OTHER]: 'neutral',
   [DocumentaryReviewCategory.CORRECTIVE_ACTION_PROOF]: 'warning',
+  [DocumentaryReviewCategory.PAST_AUDIT_REPORT]: 'info',
 }
 
 /**
@@ -375,18 +379,29 @@ export function getDocumentaryReviewCategoryIcon(category: DocumentaryReviewCate
 /**
  * Obtenir la couleur du badge d'une catégorie
  */
-export function getDocumentaryReviewCategoryColor(category: DocumentaryReviewCategoryType): 'primary' | 'success' | 'neutral' | 'warning' {
+export function getDocumentaryReviewCategoryColor(category: DocumentaryReviewCategoryType): 'primary' | 'success' | 'neutral' | 'warning' | 'info' {
   return DocumentaryReviewCategoryColors[category] || 'neutral'
 }
 
 /**
- * Obtenir la liste des catégories avec labels
+ * Catégories dont le contenu est alimenté par un import dédié et non par
+ * la création manuelle d'une revue documentaire ou un modèle de document.
+ */
+export const IMPORT_ONLY_DOCUMENTARY_REVIEW_CATEGORIES: DocumentaryReviewCategoryType[] = [
+  DocumentaryReviewCategory.PAST_AUDIT_REPORT,
+]
+
+/**
+ * Obtenir la liste des catégories avec labels, hors catégories alimentées
+ * uniquement par import (elles ne doivent pas apparaître dans les sélecteurs).
  */
 export function getDocumentaryReviewCategoryItems(): Array<{ label: string; value: DocumentaryReviewCategoryType }> {
-  return Object.entries(DocumentaryReviewCategory).map(([_, value]) => ({
-    label: DocumentaryReviewCategoryLabels[value as DocumentaryReviewCategoryType],
-    value: value as DocumentaryReviewCategoryType,
-  }))
+  return Object.values(DocumentaryReviewCategory)
+    .filter(value => !IMPORT_ONLY_DOCUMENTARY_REVIEW_CATEGORIES.includes(value))
+    .map(value => ({
+      label: DocumentaryReviewCategoryLabels[value],
+      value,
+    }))
 }
 
 /**
@@ -397,7 +412,17 @@ export const DocumentaryReviewCategoryAccess: Record<DocumentaryReviewCategoryTy
   [DocumentaryReviewCategory.AUDIT]: [Role.OE, Role.AUDITOR, Role.ENTITY],
   [DocumentaryReviewCategory.OTHER]: [Role.OE, Role.AUDITOR, Role.ENTITY],
   [DocumentaryReviewCategory.CORRECTIVE_ACTION_PROOF]: [Role.OE, Role.AUDITOR, Role.ENTITY],
+  [DocumentaryReviewCategory.PAST_AUDIT_REPORT]: [Role.FEEF, Role.OE, Role.AUDITOR, Role.ENTITY],
 }
+
+/**
+ * Catégories en lecture seule pour tous les rôles sauf la FEEF.
+ * Les rapports d'audit passés sont un historique repris par la FEEF :
+ * personne d'autre ne peut y déposer, modifier ou supprimer un document.
+ */
+export const FEEF_ONLY_WRITE_DOCUMENTARY_REVIEW_CATEGORIES: DocumentaryReviewCategoryType[] = [
+  DocumentaryReviewCategory.PAST_AUDIT_REPORT,
+]
 
 /**
  * Labels français pour les rôles (pour affichage frontend)
@@ -414,6 +439,15 @@ export const RoleLabels: Record<RoleType, string> = {
  */
 export function canAccessDocumentaryReviewCategory(role: RoleType, category: DocumentaryReviewCategoryType): boolean {
   return DocumentaryReviewCategoryAccess[category]?.includes(role) ?? false
+}
+
+/**
+ * Vérifier si un rôle peut écrire dans une catégorie (créer, déposer, supprimer)
+ */
+export function canWriteDocumentaryReviewCategory(role: RoleType, category: DocumentaryReviewCategoryType): boolean {
+  if (!canAccessDocumentaryReviewCategory(role, category)) return false
+  if (FEEF_ONLY_WRITE_DOCUMENTARY_REVIEW_CATEGORIES.includes(category)) return role === Role.FEEF
+  return true
 }
 
 /**

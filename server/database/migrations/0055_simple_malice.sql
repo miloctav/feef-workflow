@@ -1,0 +1,1 @@
+ALTER TYPE "public"."document_category" ADD VALUE 'PAST_AUDIT_REPORT';

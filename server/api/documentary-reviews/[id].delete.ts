@@ -3,7 +3,7 @@ import { documentaryReviews } from '~~/server/database/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { forDelete } from '~~/server/utils/tracking'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
-import { canAccessDocumentaryReviewCategory } from '#shared/types/enums'
+import { canWriteDocumentaryReviewCategory } from '#shared/types/enums'
 
 export default defineEventHandler(async (event) => {
   // Authentification
@@ -43,11 +43,11 @@ export default defineEventHandler(async (event) => {
     errorMessage: 'Vous n\'avez pas accès à ce document'
   })
 
-  // Vérifier l'accès à la catégorie du document
-  if (!canAccessDocumentaryReviewCategory(user.role, documentaryReview.category)) {
+  // Vérifier le droit d'écriture sur la catégorie du document
+  if (!canWriteDocumentaryReviewCategory(user.role, documentaryReview.category)) {
     throw createError({
       statusCode: 403,
-      message: 'Vous n\'avez pas accès à cette catégorie de document',
+      message: 'Vous n\'avez pas le droit de supprimer un document de cette catégorie',
     })
   }
 

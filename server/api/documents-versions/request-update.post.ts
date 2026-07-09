@@ -2,6 +2,7 @@ import { eq, and, isNull } from 'drizzle-orm'
 import { db } from '~~/server/database'
 import { documentVersions, documentaryReviews, contracts } from '~~/server/database/schema'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
+import { canWriteDocumentaryReviewCategory } from '#shared/types/enums'
 
 export default defineEventHandler(async (event) => {
   // 1. Authentification
@@ -37,6 +38,14 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 404,
         message: 'Revue documentaire introuvable',
+      })
+    }
+
+    // Les catégories en lecture seule ne peuvent pas faire l'objet d'une demande de mise à jour
+    if (!canWriteDocumentaryReviewCategory(user.role, documentaryReview.category)) {
+      throw createError({
+        statusCode: 403,
+        message: 'Vous ne pouvez pas demander la mise à jour d\'un document de cette catégorie',
       })
     }
 

@@ -133,7 +133,7 @@ import type { AuditWithRelations } from '~~/app/types/audits'
 import type { AuditDocumentTypeType } from '~~/app/types/auditDocuments'
 import { Role } from '#shared/types/roles'
 import { AuditDocumentTypeLabels, AuditDocumentType } from '~~/app/types/auditDocuments'
-import { AuditPhase, type AuditPhaseType } from '#shared/types/enums'
+import { AuditPhase, type AuditPhaseType, canWriteDocumentaryReviewCategory } from '#shared/types/enums'
 import DocumentViewerHeader from './document-viewer/DocumentViewerHeader.vue'
 import DocumentViewerLoading from './document-viewer/DocumentViewerLoading.vue'
 import DocumentViewerPendingRequest from './document-viewer/DocumentViewerPendingRequest.vue'
@@ -222,7 +222,12 @@ const canUploadDocument = computed(() => {
 
   // Permissions par type de document
   if (documentType.value === 'documentaryReview') {
-    return role === Role.ENTITY || role === Role.FEEF
+    if (!props.documentaryReview) return false
+    // Certaines catégories, comme les rapports d'audit passés, sont réservées à la FEEF
+    return (
+      (role === Role.ENTITY || role === Role.FEEF) &&
+      canWriteDocumentaryReviewCategory(role, props.documentaryReview.category)
+    )
   }
 
   if (documentType.value === 'contract') {

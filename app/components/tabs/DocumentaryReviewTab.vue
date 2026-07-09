@@ -166,8 +166,20 @@
           </template>
 
           <template #trailing="{ item }">
+            <ImportPastAuditReportsModal
+              v-if="
+                item.value === DocumentaryReviewCategory.PAST_AUDIT_REPORT &&
+                user?.role === Role.FEEF &&
+                currentEntity
+              "
+              :entity-id="currentEntity.id"
+            />
             <AddDocumentaryReviewModal
-              v-if="(user?.role === Role.FEEF || user?.role === Role.ENTITY) && currentEntity"
+              v-else-if="
+                item.value !== DocumentaryReviewCategory.PAST_AUDIT_REPORT &&
+                (user?.role === Role.FEEF || user?.role === Role.ENTITY) &&
+                currentEntity
+              "
               :entity-id="currentEntity.id"
               :category="item.value as DocumentaryReviewCategoryType"
               button-label="Ajouter un document"
@@ -274,6 +286,7 @@
                           <DocumentRequestUpdateModal
                             v-if="
                               (user?.role === Role.FEEF || user?.role === Role.OE) &&
+                              canRequestUpdate(document) &&
                               !hasPendingRequest(document.id)
                             "
                             :documentary-review-id="document.id"
@@ -320,14 +333,17 @@
 import type { DocumentaryReview } from '~~/app/types/documentaryReviews'
 import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
 import {
+  DocumentaryReviewCategory,
   DocumentaryReviewCategoryLabels,
   DocumentaryReviewCategoryIcons,
   DocumentaryReviewCategoryColors,
   DocumentaryReviewCategoryAccess,
   RoleLabels,
   canAccessDocumentaryReviewCategory,
+  canWriteDocumentaryReviewCategory,
 } from '#shared/types/enums'
 import AddDocumentaryReviewModal from '~/components/modals/AddDocumentaryReviewModal.vue'
+import ImportPastAuditReportsModal from '~/components/modals/ImportPastAuditReportsModal.vue'
 
 const { user } = useAuth()
 
@@ -411,6 +427,7 @@ const documentsByCategory = computed(() => {
     AUDIT: [],
     OTHER: [],
     CORRECTIVE_ACTION_PROOF: [],
+    PAST_AUDIT_REPORT: [],
   }
 
   documentaryReviews.value.forEach((doc) => {
@@ -425,6 +442,13 @@ const accordionItems = computed(() => {
   return Object.entries(documentsByCategory.value)
     .filter(([categoryKey]) =>
       !user.value?.role || canAccessDocumentaryReviewCategory(user.value.role, categoryKey as any)
+    )
+    // Les rapports d'audit passés ne concernent pas toutes les entités : la section
+    // reste masquée tant qu'elle est vide, sauf pour la FEEF qui doit pouvoir importer
+    .filter(([categoryKey, documents]) =>
+      categoryKey !== DocumentaryReviewCategory.PAST_AUDIT_REPORT ||
+      documents.length > 0 ||
+      user.value?.role === Role.FEEF
     )
     .map(([categoryKey, documents]) => ({
       title:
@@ -448,6 +472,7 @@ function getCategoryIconColor(categoryKey: string): string {
     AUDIT: 'text-green-500',
     OTHER: 'text-gray-500',
     CORRECTIVE_ACTION_PROOF: 'text-orange-500',
+    PAST_AUDIT_REPORT: 'text-sky-500',
   }
   return colors[categoryKey] || 'text-gray-500'
 }
@@ -458,6 +483,7 @@ function getCategoryBackgroundClass(color: string): string {
     success: 'bg-green-100',
     neutral: 'bg-gray-100',
     warning: 'bg-orange-100',
+    info: 'bg-sky-100',
   }
   return colorMap[color] || 'bg-gray-100'
 }
@@ -500,6 +526,12 @@ function openDocumentViewer(document: DocumentaryReview) {
 // Rafraîchir les demandes après qu'une demande a été créée
 async function handleUpdateRequested(documentId: number) {
   await checkPendingRequest(documentId)
+}
+
+// Une demande de mise à jour n'a pas de sens sur une catégorie en lecture seule
+function canRequestUpdate(document: DocumentaryReview): boolean {
+  if (!user.value?.role) return false
+  return canWriteDocumentaryReviewCategory(user.value.role, document.category)
 }
 
 // Vérifier si un document a une demande en attente
