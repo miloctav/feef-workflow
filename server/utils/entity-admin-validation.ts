@@ -9,6 +9,9 @@ export interface ValidationResult {
   reason?: string
 }
 
+/** Nombre maximum d'entreprises suiveuses rattachables à un groupe. */
+export const MAX_GROUP_CHILDREN = 10
+
 /**
  * Structure minimale d'entité utilisée par les helpers de validation.
  * Les champs optionnels sont chargés en fonction du contexte.
@@ -69,13 +72,22 @@ export async function countAllAudits(entityId: number): Promise<number> {
 }
 
 /**
+ * Liste les entités suiveuses (childEntities) liées à un parent.
+ */
+export async function listChildEntities(
+  parentEntityId: number,
+): Promise<Array<{ id: number; name: string; type: EntityTypeType }>> {
+  return db.query.entities.findMany({
+    where: and(eq(entities.parentGroupId, parentEntityId), isNull(entities.deletedAt)),
+    columns: { id: true, name: true, type: true },
+  })
+}
+
+/**
  * Compte les entités suiveuses (childEntities) liées à un parent.
  */
 export async function countChildEntities(parentEntityId: number): Promise<number> {
-  const rows = await db.query.entities.findMany({
-    where: and(eq(entities.parentGroupId, parentEntityId), isNull(entities.deletedAt)),
-    columns: { id: true },
-  })
+  const rows = await listChildEntities(parentEntityId)
   return rows.length
 }
 
@@ -121,35 +133,79 @@ export function canConvertToMaster(entity: EntityForValidation): ValidationResul
 
 /**
  * Le type d'une entité (COMPANY ↔ GROUP) peut changer uniquement si :
- * - aucun audit
- * - aucune entité suiveuse rattachée
- * - pas de parentGroupId (sinon la cohérence GROUP↔COMPANY peut être rompue)
+ * - les suiveuses rattachées restent compatibles avec le nouveau type
+ * - le parent éventuel reste compatible avec le nouveau type
+ *
+ * Les audits ne bloquent pas : le type n'intervient que dans l'attestation générée
+ * en fin de cycle, jamais dans le déroulé de l'audit lui-même. Corriger le type
+ * pendant un audit en cours produit donc la bonne attestation à l'arrivée.
+ *
+ * Renvoie le nombre d'audits en cours et terminés rattachés, à utiliser comme warnings.
  */
-export async function canChangeType(entity: EntityForValidation): Promise<ValidationResult> {
-  const allAudits = await countAllAudits(entity.id)
-  if (allAudits > 0) {
-    return {
-      ok: false,
-      reason: `Impossible de changer le type : ${allAudits} audit(s) rattaché(s). Le type doit être figé dès qu'un audit existe.`,
-    }
+export interface ChangeTypeResult extends ValidationResult {
+  activeAudits: number
+  completedAudits: number
+}
+
+export async function canChangeType(
+  entity: EntityForValidation,
+  newType: EntityTypeType,
+): Promise<ChangeTypeResult> {
+  const blocked = (reason: string): ChangeTypeResult => ({
+    ok: false,
+    reason,
+    activeAudits: 0,
+    completedAudits: 0,
+  })
+
+  if (newType === entity.type) {
+    return blocked('L\'entité est déjà de ce type.')
   }
 
-  const children = await countChildEntities(entity.id)
-  if (children > 0) {
-    return {
-      ok: false,
-      reason: `Impossible de changer le type : ${children} entité(s) suiveuse(s) rattachée(s). Délier d'abord.`,
+  const children = await listChildEntities(entity.id)
+  if (children.length > 0) {
+    if (newType === EntityType.GROUP) {
+      const invalid = children.filter(child => child.type !== EntityType.COMPANY)
+      if (invalid.length > 0) {
+        return blocked(
+          `Impossible de passer en Groupe : ${invalid.length} suiveuse(s) ne sont pas des entreprises (${invalid.map(c => c.name).join(', ')}). Délier d'abord.`,
+        )
+      }
+      if (children.length > MAX_GROUP_CHILDREN) {
+        return blocked(
+          `Impossible de passer en Groupe : ${children.length} suiveuses rattachées, la limite est de ${MAX_GROUP_CHILDREN}.`,
+        )
+      }
+    } else {
+      // Une entreprise maître n'accueille qu'un unique groupe suiveur.
+      if (children.length > 1) {
+        return blocked(
+          `Impossible de passer en Entreprise : ${children.length} suiveuses rattachées, une entreprise ne peut en accueillir qu'une seule. Délier d'abord.`,
+        )
+      }
+      if (children[0]!.type !== EntityType.GROUP) {
+        return blocked(
+          `Impossible de passer en Entreprise : la suiveuse « ${children[0]!.name} » n'est pas un groupe. Délier d'abord.`,
+        )
+      }
     }
   }
 
   if (entity.parentGroupId) {
-    return {
-      ok: false,
-      reason: 'Impossible de changer le type : l\'entité est liée à un parent. Délier d\'abord.',
+    const parent = await loadEntityForAdmin(entity.parentGroupId)
+    if (!parent) {
+      return blocked('Parent introuvable.')
+    }
+    if (parent.type === newType) {
+      return blocked(
+        `Impossible de changer le type : le parent « ${parent.name} » est du même type. Un groupe n'accueille que des entreprises suiveuses, et inversement. Délier d'abord.`,
+      )
     }
   }
 
-  return { ok: true }
+  const activeAudits = await countActiveAudits(entity.id)
+  const allAudits = await countAllAudits(entity.id)
+  return { ok: true, activeAudits, completedAudits: allAudits - activeAudits }
 }
 
 /**
@@ -364,8 +420,8 @@ export async function canAcceptNewChild(parentEntityId: number, parentType: Enti
     return { ok: true }
   }
   const existing = await countChildEntities(parentEntityId)
-  if (existing >= 10) {
-    return { ok: false, reason: 'Limite de 10 entreprises suiveuses atteinte pour ce groupe.' }
+  if (existing >= MAX_GROUP_CHILDREN) {
+    return { ok: false, reason: `Limite de ${MAX_GROUP_CHILDREN} entreprises suiveuses atteinte pour ce groupe.` }
   }
   return { ok: true }
 }

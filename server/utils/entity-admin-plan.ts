@@ -191,9 +191,19 @@ export async function planAdminChange(
 
   // --- Cas 2 : changement de type ---
   if (body.type !== undefined && body.type !== entity.type) {
-    const check = await canChangeType(entity)
+    const check = await canChangeType(entity, body.type)
     if (!check.ok) {
       return blocked(check.reason ?? 'Changement de type impossible.')
+    }
+    if (check.completedAudits > 0) {
+      warnings.push(
+        `${check.completedAudits} audit(s) terminé(s) existent déjà pour cette entité : leurs attestations et rapports conserveront l'ancien type. Le nouveau type ne s'appliquera qu'aux audits à venir.`,
+      )
+    }
+    if (check.activeAudits > 0) {
+      warnings.push(
+        `${check.activeAudits} audit(s) en cours pour cette entité : leur attestation sera générée avec le nouveau type « ${entityLabel(body.type, 'type')} ».`,
+      )
     }
     changes.push({
       field: 'type',
