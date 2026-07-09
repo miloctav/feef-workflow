@@ -11,8 +11,12 @@ import {
 const { user } = useAuth()
 
 // Récupérer l'audit courant depuis le composable
-const { currentAudit } = useAudits()
+const { currentAudit, fetchAudit } = useAudits()
 const { currentEntity, fetchEntity } = useEntities()
+
+// Édition administrative de l'audit : réservée à la FEEF
+const canAdminEdit = computed(() => user.value?.role === Role.FEEF)
+const isAdminSlideoverOpen = ref(false)
 
 // Sélectionner l'onglet initial en fonction du statut de l'audit
 const getInitialTab = () => {
@@ -168,6 +172,14 @@ const handleActionCompleted = async () => {
   await fetchActions()
 }
 
+// Après une édition administrative : recharger l'audit, ses actions et les compteurs
+const handleAdminApplied = async () => {
+  if (!currentAudit.value) return
+  await fetchAudit(currentAudit.value.id)
+  await fetchActions()
+  triggerActionRefresh({ auditId: String(currentAudit.value.id) })
+}
+
 // Helper pour récupérer la valeur d'un champ
 const getFieldValue = (key: string) => {
   if (!currentEntity.value?.fields) return null
@@ -205,6 +217,17 @@ const getFieldValue = (key: string) => {
             >
               {{ auditStatusLabel }}
             </UBadge>
+
+            <!-- Édition administrative, réservée à la FEEF -->
+            <UButton
+              v-if="canAdminEdit"
+              icon="i-lucide-settings-2"
+              size="xs"
+              color="neutral"
+              variant="outline"
+              label="Modifier"
+              @click="isAdminSlideoverOpen = true"
+            />
           </div>
 
           <!-- Informations principales -->
@@ -442,5 +465,12 @@ const getFieldValue = (key: string) => {
         </template>
       </UTabs>
     </div>
+
+    <AuditAdminSlideover
+      v-if="canAdminEdit"
+      v-model:open="isAdminSlideoverOpen"
+      :audit="currentAudit"
+      :on-applied="handleAdminApplied"
+    />
   </div>
 </template>

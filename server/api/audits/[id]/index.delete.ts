@@ -1,22 +1,29 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray, isNull, or } from 'drizzle-orm'
 import { db } from '~~/server/database'
-import { audits } from '~~/server/database/schema'
-import { softDelete } from '~~/server/utils/softDelete'
+import { actions, audits, notifications } from '~~/server/database/schema'
+import { forDelete, forUpdate } from '~~/server/utils/tracking'
 import { requireAuditAccess, AccessType } from '~~/server/utils/authorization'
 import { Role } from '#shared/types/roles'
 
 /**
  * DELETE /api/audits/:id
  *
- * Supprime (soft delete) un audit
+ * Supprime (soft delete) un audit ainsi que ce qui en dépend et resterait
+ * visible dans l'application :
+ * - les actions de l'audit sont annulées puis soft deleted (sinon elles
+ *   continueraient d'apparaître dans les listes de tâches, notamment côté FEEF
+ *   qui ne filtre pas sur les audits supprimés) ;
+ * - les notifications rattachées à l'audit sont supprimées (elles pointeraient
+ *   vers un audit inaccessible).
+ *
+ * Les notations, versions de documents et événements sont conservés : ils ne
+ * sont accessibles qu'à travers l'audit et constituent la piste d'audit.
  *
  * Autorisations: FEEF et OE
  */
 export default defineEventHandler(async (event) => {
-  // Authentification requise
   const { user: currentUser } = await requireUserSession(event)
 
-  // Récupérer l'ID de l'audit à supprimer
   const auditId = getRouterParam(event, 'id')
 
   if (!auditId) {
@@ -48,23 +55,62 @@ export default defineEventHandler(async (event) => {
   await requireAuditAccess({
     user: currentUser,
     auditId: auditIdInt,
-    accessType: AccessType.WRITE
+    accessType: AccessType.WRITE,
   })
 
-  // V�rifier que l'audit existe
+  // Vérifier que l'audit existe
   const audit = await db.query.audits.findFirst({
-    where: eq(audits.id, auditIdInt),
+    where: and(eq(audits.id, auditIdInt), isNull(audits.deletedAt)),
   })
 
   if (!audit) {
     throw createError({
       statusCode: 404,
-      message: 'Audit non trouv�',
+      message: 'Audit non trouvé',
     })
   }
 
-  // Soft delete de l'audit
-  await softDelete(event, audits, eq(audits.id, auditIdInt))
+  await db.transaction(async (tx) => {
+    // Annuler les actions encore en attente pour couper les relances et rappels
+    await tx
+      .update(actions)
+      .set(forUpdate(event, { status: 'CANCELLED' }))
+      .where(
+        and(
+          eq(actions.auditId, auditIdInt),
+          eq(actions.status, 'PENDING'),
+          isNull(actions.deletedAt),
+        ),
+      )
+
+    // Puis les sortir définitivement des listes
+    await tx
+      .update(actions)
+      .set(forDelete(event))
+      .where(and(eq(actions.auditId, auditIdInt), isNull(actions.deletedAt)))
+
+    // Les notifications n'ont pas de soft delete : suppression physique.
+    // On vise aussi celles rattachées aux actions de l'audit, qui pointeraient
+    // sinon vers une action devenue invisible.
+    const auditActionIds = db
+      .select({ id: actions.id })
+      .from(actions)
+      .where(eq(actions.auditId, auditIdInt))
+
+    await tx
+      .delete(notifications)
+      .where(
+        or(
+          eq(notifications.auditId, auditIdInt),
+          inArray(notifications.actionId, auditActionIds),
+        ),
+      )
+
+    await tx
+      .update(audits)
+      .set(forDelete(event))
+      .where(eq(audits.id, auditIdInt))
+  })
 
   return {
     success: true,

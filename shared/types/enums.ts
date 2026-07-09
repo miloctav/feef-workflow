@@ -516,3 +516,74 @@ export function getRegionItems(): Array<{ label: string; value: FrenchRegionType
     value: value as FrenchRegionType,
   }))
 }
+/**
+ * Avis rendu par l'organisme évaluateur à l'issue de l'audit
+ */
+export const OeOpinion = {
+  FAVORABLE: 'FAVORABLE',
+  UNFAVORABLE: 'UNFAVORABLE',
+  RESERVED: 'RESERVED',
+} as const
+
+export type OeOpinionType = typeof OeOpinion[keyof typeof OeOpinion]
+
+export const OeOpinionLabels: Record<OeOpinionType, string> = {
+  [OeOpinion.FAVORABLE]: 'Favorable',
+  [OeOpinion.UNFAVORABLE]: 'Défavorable',
+  [OeOpinion.RESERVED]: 'Réservé',
+}
+
+export function getOeOpinionItems(): Array<{ label: string; value: OeOpinionType }> {
+  return Object.values(OeOpinion).map(value => ({
+    label: OeOpinionLabels[value],
+    value,
+  }))
+}
+
+/**
+ * Décision finale de labellisation prise par la FEEF
+ */
+export const FeefDecision = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+} as const
+
+export type FeefDecisionType = typeof FeefDecision[keyof typeof FeefDecision]
+
+export const FeefDecisionLabels: Record<FeefDecisionType, string> = {
+  [FeefDecision.PENDING]: 'En attente',
+  [FeefDecision.ACCEPTED]: 'Accepté',
+  [FeefDecision.REJECTED]: 'Refusé',
+}
+
+export function getFeefDecisionItems(): Array<{ label: string; value: FeefDecisionType }> {
+  return Object.values(FeefDecision).map(value => ({
+    label: FeefDecisionLabels[value],
+    value,
+  }))
+}
+
+/**
+ * Type de plan d'action correctif exigé après l'audit
+ */
+export const ActionPlanType = {
+  NONE: 'NONE',
+  SHORT: 'SHORT',
+  LONG: 'LONG',
+} as const
+
+export type ActionPlanTypeType = typeof ActionPlanType[keyof typeof ActionPlanType]
+
+export const ActionPlanTypeLabels: Record<ActionPlanTypeType, string> = {
+  [ActionPlanType.NONE]: 'Aucun',
+  [ActionPlanType.SHORT]: 'Court terme',
+  [ActionPlanType.LONG]: 'Long terme',
+}
+
+export function getActionPlanTypeItems(): Array<{ label: string; value: ActionPlanTypeType }> {
+  return Object.values(ActionPlanType).map(value => ({
+    label: ActionPlanTypeLabels[value],
+    value,
+  }))
+}

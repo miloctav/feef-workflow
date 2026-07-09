@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
 
   // Récupérer l'audit par son ID avec toutes les relations
   const audit = await db.query.audits.findFirst({
-    where: eq(audits.id, auditId),
+    where: and(eq(audits.id, auditId), isNull(audits.deletedAt)),
     with: {
       entity: {
         with: {
