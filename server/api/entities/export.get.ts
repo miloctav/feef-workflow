@@ -20,6 +20,7 @@ import {
   type EntityModeType,
 } from '#shared/types/enums'
 import { getLatestFieldValueFromVersions } from '~~/server/utils/entity-fields'
+import type { EntityFieldKey } from '~~/server/database/entity-fields-config'
 
 /**
  * GET /api/entities/export
@@ -51,6 +52,52 @@ const formatDateFr = (date: Date | string | null | undefined): string => {
     month: 'long',
     day: 'numeric',
   })
+}
+
+// Champs versionnés récupérés pour l'export
+const exportFieldKeys: EntityFieldKey[] = [
+  'firstLabelingDate',
+  'productsNature',
+  'productsBrands',
+  'bioLabelPresent',
+  'qseLabelPresent',
+  'qseLabelOther',
+  'rseLabelPresent',
+  'rseLabelOther',
+  'fairtradeLabelPresent',
+  'fairtradeLabelOther',
+  'pilotLastName',
+  'pilotFirstName',
+  'pilotRole',
+  'pilotPhone',
+  'pilotEmail',
+  'ceoLastName',
+  'ceoFirstName',
+  'ceoRole',
+  'ceoPhone',
+  'ceoEmail',
+  'accountingLastName',
+  'accountingFirstName',
+  'accountingRole',
+  'accountingPhone',
+  'accountingEmail',
+]
+
+/**
+ * Formate un contact en une cellule lisible :
+ * "Prénom Nom (Fonction) - email - téléphone"
+ */
+const formatContact = (parts: {
+  firstName: unknown
+  lastName: unknown
+  role: unknown
+  email: unknown
+  phone: unknown
+}): string => {
+  const name = [parts.firstName, parts.lastName].filter(Boolean).join(' ').trim()
+  const identity = parts.role ? `${name} (${parts.role})`.trim() : name
+
+  return [identity, parts.email, parts.phone].filter(Boolean).join(' - ')
 }
 
 export default defineEventHandler(async (event) => {
@@ -124,8 +171,13 @@ export default defineEventHandler(async (event) => {
       oe: { columns: { id: true, name: true } },
       accountManager: { columns: { id: true, firstname: true, lastname: true } },
       parentGroup: { columns: { id: true, name: true } },
+      childEntities: {
+        columns: { id: true, name: true },
+        where: (child, { isNull }) => isNull(child.deletedAt),
+        orderBy: (child, { asc }) => [asc(child.name)],
+      },
       fieldVersions: {
-        where: (fv, { eq }) => eq(fv.fieldKey, 'firstLabelingDate'),
+        where: (fv, { inArray }) => inArray(fv.fieldKey, exportFieldKeys),
         columns: { fieldKey: true, valueString: true, valueNumber: true, valueBoolean: true, valueDate: true, createdAt: true },
         orderBy: (fv, { desc }) => [desc(fv.createdAt)],
       },
@@ -153,8 +205,15 @@ export default defineEventHandler(async (event) => {
     "Type d'entité",
     'Mode labellisation',
     'Groupe parent',
+    'Entités filles',
     'Organisme Évaluateur',
     'Chargé de compte',
+    'Nature des produits',
+    'Marques commercialisées',
+    'Autres certifications',
+    'Contact pilote',
+    'Contact dirigeant',
+    'Contact comptabilité',
     'Adresse',
     "Complément d'adresse",
     'Code postal',
@@ -179,10 +238,27 @@ export default defineEventHandler(async (event) => {
       ? `${entity.accountManager.firstname} ${entity.accountManager.lastname}`
       : ''
 
-    const firstLabelingDate = getLatestFieldValueFromVersions(
-      entity.fieldVersions as any,
-      'firstLabelingDate'
-    )
+    const field = (key: EntityFieldKey) =>
+      getLatestFieldValueFromVersions(entity.fieldVersions as any, key)
+
+    const firstLabelingDate = field('firstLabelingDate')
+
+    // Agrégation des labellisations en une seule cellule lisible
+    const certifications: string[] = []
+    if (field('bioLabelPresent') === true) certifications.push('Bio')
+
+    const certificationGroups: Array<[string, EntityFieldKey, EntityFieldKey]> = [
+      ['QSE', 'qseLabelPresent', 'qseLabelOther'],
+      ['RSE', 'rseLabelPresent', 'rseLabelOther'],
+      ['Équitable', 'fairtradeLabelPresent', 'fairtradeLabelOther'],
+    ]
+
+    for (const [label, presentKey, otherKey] of certificationGroups) {
+      const values = [field(presentKey), field(otherKey)].filter(Boolean).join(', ')
+      if (values) certifications.push(`${label} : ${values}`)
+    }
+
+    const childEntitiesLabel = (entity.childEntities ?? []).map((child) => child.name).join(' | ')
 
     const row = [
       entity.name ?? '',
@@ -193,8 +269,33 @@ export default defineEventHandler(async (event) => {
       getEntityTypeLabel(entity.type as EntityTypeType),
       getEntityModeLabel(entity.mode as EntityModeType),
       entity.parentGroup?.name ?? '',
+      childEntitiesLabel,
       entity.oe?.name ?? '',
       manager,
+      field('productsNature') ?? '',
+      field('productsBrands') ?? '',
+      certifications.join(' | '),
+      formatContact({
+        firstName: field('pilotFirstName'),
+        lastName: field('pilotLastName'),
+        role: field('pilotRole'),
+        email: field('pilotEmail'),
+        phone: field('pilotPhone'),
+      }),
+      formatContact({
+        firstName: field('ceoFirstName'),
+        lastName: field('ceoLastName'),
+        role: field('ceoRole'),
+        email: field('ceoEmail'),
+        phone: field('ceoPhone'),
+      }),
+      formatContact({
+        firstName: field('accountingFirstName'),
+        lastName: field('accountingLastName'),
+        role: field('accountingRole'),
+        email: field('accountingEmail'),
+        phone: field('accountingPhone'),
+      }),
       entity.address ?? '',
       entity.addressComplement ?? '',
       entity.postalCode ?? '',
