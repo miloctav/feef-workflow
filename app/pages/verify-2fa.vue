@@ -146,7 +146,7 @@ async function resendCode() {
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
         <img
-          src="/assets/images/Logo-PMEplus.png"
+          src="~/assets/images/Logo-PMEplus.png"
           alt="Logo PME+"
           class="h-20 w-auto mx-auto mb-4"
         />
