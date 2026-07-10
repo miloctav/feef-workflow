@@ -1,10 +1,11 @@
 <template>
   <UModal v-model:open="isOpen">
     <UButton
-      color="secondary"
-      variant="outline"
+      :color="color"
+      :variant="variant"
       icon="i-lucide-alert-circle"
-      :label="buttonLabel"
+      :label="iconOnly ? undefined : buttonLabel"
+      :aria-label="iconOnly ? buttonLabel : undefined"
       :size="buttonSize"
     />
     <template #content>
@@ -72,8 +73,10 @@ interface Props {
   documentTitle: string
   buttonLabel?: string
   buttonSize?: 'xs' | 'sm' | 'md' | 'lg'
-  color?: string
-  variant?: 'solid' | 'outline' | 'soft' | 'ghost' | 'link'
+  color?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'neutral'
+  variant?: 'solid' | 'outline' | 'soft' | 'subtle' | 'ghost' | 'link'
+  /** Affiche uniquement l'icône, le libellé devient l'aria-label */
+  iconOnly?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {

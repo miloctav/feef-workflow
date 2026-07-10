@@ -19,5 +19,27 @@ export interface UpdateDocumentaryReviewData {
   category?: DocumentaryReviewCategoryType
 }
 
-// Type pour un documentary review (depuis la DB)
-export type DocumentaryReview = DBDocumentaryReview
+// Compte minimal renvoyé par l'API sur les versions
+export interface DocumentVersionAccount {
+  id: number
+  firstname: string | null
+  lastname: string | null
+}
+
+// Version de document telle que renvoyée par la liste des documentary reviews
+export interface DocumentaryReviewVersion {
+  id: number
+  uploadAt: string | Date
+  s3Key: string | null
+  mimeType: string | null
+  askedBy: number | null
+  askedAt: string | Date | null
+  comment: string | null
+  uploadByAccount?: DocumentVersionAccount | null
+  askedByAccount?: DocumentVersionAccount | null
+}
+
+// Type pour un documentary review (depuis la DB), enrichi des versions par l'API de liste
+export type DocumentaryReview = DBDocumentaryReview & {
+  documentVersions?: DocumentaryReviewVersion[]
+}

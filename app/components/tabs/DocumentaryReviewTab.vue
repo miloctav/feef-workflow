@@ -25,19 +25,17 @@
       />
     </div>
 
-    <!-- Documents organisés par catégorie -->
     <div
       v-else
       class="space-y-4"
     >
       <!-- Header avec bouton d'ajout global -->
-      <div class="flex items-center justify-between pb-2">
+      <div class="flex items-center justify-between">
         <div>
           <h2 class="text-lg font-semibold text-gray-900">Revue documentaire</h2>
-          <p class="text-sm text-gray-600 mt-1">Gérez les documents de l'entité</p>
+          <p class="text-sm text-gray-600 mt-0.5">Gérez les documents de l'entité</p>
         </div>
         <div class="flex items-center gap-2">
-          <!-- Bouton télécharger tout -->
           <UButton
             v-if="canViewDocuments && documentaryReviews.length > 0"
             color="primary"
@@ -49,9 +47,8 @@
             Télécharger tout
           </UButton>
 
-          <!-- Bouton ajouter document -->
           <AddDocumentaryReviewModal
-            v-if="(user?.role === Role.FEEF || user?.role === Role.ENTITY) && currentEntity"
+            v-if="canCreateDocuments && currentEntity"
             :entity-id="currentEntity.id"
             button-label="Ajouter un document"
             button-size="md"
@@ -73,7 +70,7 @@
           <div class="flex-1">
             <h5 class="font-medium text-green-800 mb-1">Revue documentaire validée par l'entité</h5>
             <p class="text-sm text-green-700">
-              Marquée comme prête le {{ formatDate(currentEntity.documentaryReviewReadyAt, true) }}
+              Marquée comme prête le {{ formatDateTime(currentEntity.documentaryReviewReadyAt) }}
               <span v-if="currentEntity.documentaryReviewReadyByAccount">
                 par {{ currentEntity.documentaryReviewReadyByAccount.firstname }}
                 {{ currentEntity.documentaryReviewReadyByAccount.lastname }}
@@ -121,204 +118,107 @@
         icon="i-lucide-lock"
       />
 
-      <UCard
-        v-if="canViewDocuments"
-        v-for="category in accordionItems"
-        :key="category.value"
-        class="overflow-hidden"
-      >
-        <UAccordion
-          type="single"
-          :items="[category]"
-          :default-value="category.value"
+      <template v-if="canViewDocuments">
+        <!-- Recherche et filtres -->
+        <div class="flex flex-col sm:flex-row gap-2">
+          <UInput
+            v-model="search"
+            icon="i-lucide-search"
+            placeholder="Rechercher un document..."
+            class="flex-1"
+            :ui="{ trailing: 'pe-1' }"
+          >
+            <template
+              v-if="search"
+              #trailing
+            >
+              <UButton
+                color="neutral"
+                variant="link"
+                size="sm"
+                icon="i-lucide-x"
+                aria-label="Effacer la recherche"
+                @click="search = ''"
+              />
+            </template>
+          </UInput>
+
+          <USelect
+            v-model="statusFilter"
+            :items="statusFilterItems"
+            class="sm:w-64"
+          />
+        </div>
+
+        <!-- Aucun résultat pour la recherche -->
+        <div
+          v-if="filteredSections.length === 0"
+          class="rounded-lg border border-dashed border-gray-200 px-4 py-12 text-center"
         >
-          <template #leading="{ item }">
-            <div class="flex items-center gap-4">
-              <div
-                class="p-3 rounded-lg"
-                :class="getCategoryBackgroundClass(item.badgeColor)"
-              >
-                <UIcon
-                  :name="item.icon"
-                  class="w-6 h-6"
-                  :class="item.iconColor"
-                />
-              </div>
-              <div>
-                <h3 class="font-bold text-lg text-gray-900">{{ item.title }}</h3>
-                <p class="text-sm text-gray-600 mt-0.5">
-                  {{ item.documents.length }} document{{ item.documents.length > 1 ? 's' : '' }}
-                </p>
-                <div class="flex items-center gap-1 mt-1">
-                  <span class="text-xs text-gray-400">Accès :</span>
-                  <UBadge
-                    v-for="role in item.accessRoles"
-                    :key="role"
-                    size="xs"
-                    variant="soft"
-                    color="neutral"
-                  >
-                    {{ RoleLabels[role] }}
-                  </UBadge>
-                </div>
-              </div>
-            </div>
-          </template>
+          <UIcon
+            name="i-lucide-search-x"
+            class="w-8 h-8 mx-auto mb-2 text-gray-300"
+          />
+          <p class="text-sm text-gray-500">Aucun document ne correspond à votre recherche</p>
+        </div>
 
-          <template #trailing="{ item }">
-            <ImportPastAuditReportsModal
-              v-if="
-                item.value === DocumentaryReviewCategory.PAST_AUDIT_REPORT &&
-                user?.role === Role.FEEF &&
-                currentEntity
-              "
-              :entity-id="currentEntity.id"
+        <div
+          v-else
+          class="space-y-3"
+        >
+          <DocumentaryReviewSection
+            v-for="section in filteredSections"
+            :key="section.value"
+            :title="section.title"
+            :icon="section.icon"
+            :icon-color="section.iconColor"
+            :documents="section.documents"
+            :pending-count="section.pendingCount"
+            :access-label="section.accessLabel"
+            :can-drop="section.canWrite && canCreateDocuments"
+            :empty-label="
+              hasActiveFilter
+                ? 'Aucun document ne correspond à votre recherche'
+                : 'Aucun document dans cette catégorie'
+            "
+            @drop="handleSectionDrop(section.value, $event)"
+          >
+            <template #actions>
+              <ImportPastAuditReportsModal
+                v-if="
+                  section.value === DocumentaryReviewCategory.PAST_AUDIT_REPORT &&
+                  user?.role === Role.FEEF &&
+                  currentEntity
+                "
+                :entity-id="currentEntity.id"
+              />
+              <AddDocumentaryReviewModal
+                v-else-if="section.canWrite && canCreateDocuments && currentEntity"
+                :entity-id="currentEntity.id"
+                :category="section.value as DocumentaryReviewCategoryType"
+                button-label="Ajouter"
+                button-size="xs"
+                button-variant="soft"
+              />
+            </template>
+
+            <DocumentaryReviewRow
+              v-for="document in section.documents"
+              :key="document.id"
+              :document="document"
+              :can-delete="user?.role === Role.FEEF"
+              :can-request-update="canRequestUpdate(document)"
+              :can-upload="section.canWrite && canCreateDocuments"
+              :delete-loading="deleteLoading"
+              :uploading="uploadingDocumentId === document.id"
+              @open="openDocumentViewer"
+              @delete="handleDelete"
+              @upload="handleUploadVersion"
+              @update-requested="refreshDocuments"
             />
-            <AddDocumentaryReviewModal
-              v-else-if="
-                item.value !== DocumentaryReviewCategory.PAST_AUDIT_REPORT &&
-                (user?.role === Role.FEEF || user?.role === Role.ENTITY) &&
-                currentEntity
-              "
-              :entity-id="currentEntity.id"
-              :category="item.value as DocumentaryReviewCategoryType"
-              button-label="Ajouter un document"
-              button-size="md"
-              button-variant="solid"
-            />
-          </template>
-
-          <template #content="{ item }">
-            <!-- Liste des documents -->
-            <div class="px-6 pb-6 pt-4">
-              <div
-                v-if="item.documents.length === 0"
-                class="text-center py-8 text-gray-500"
-              >
-                <UIcon
-                  name="i-lucide-inbox"
-                  class="w-12 h-12 mx-auto mb-2 text-gray-300"
-                />
-                <p>Aucun document dans cette catégorie</p>
-              </div>
-
-              <div
-                v-else
-                class="space-y-3"
-              >
-                <div
-                  v-for="document in item.documents"
-                  :key="document.id"
-                  class="p-4 rounded-lg border-2 transition-all duration-200 group border-gray-200 hover:border-blue-400 hover:shadow-lg bg-white cursor-pointer"
-                  @click="openDocumentViewer(document)"
-                >
-                  <div class="flex items-start gap-4">
-                    <!-- Icône du document -->
-                    <div class="flex-shrink-0">
-                      <div class="p-3 rounded-lg bg-blue-50">
-                        <UIcon
-                          name="i-lucide-file-text"
-                          class="w-6 h-6 text-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    <!-- Informations du document -->
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-start justify-between gap-4">
-                        <div class="flex-1 min-w-0">
-                          <div class="flex items-center gap-2">
-                            <h4
-                              class="font-semibold text-base text-gray-900 group-hover:text-blue-900"
-                            >
-                              {{ document.title }}
-                            </h4>
-                            <UBadge
-                              v-if="hasPendingRequest(document.id)"
-                              color="warning"
-                              variant="soft"
-                              size="sm"
-                              class="flex items-center gap-1"
-                            >
-                              <UIcon
-                                name="i-lucide-alert-circle"
-                                class="w-3 h-3"
-                              />
-                              Demande en attente
-                            </UBadge>
-                            <UIcon
-                              name="i-lucide-eye"
-                              class="w-4 h-4 text-gray-400 group-hover:text-blue-500"
-                            />
-                          </div>
-                          <p
-                            v-if="document.description"
-                            class="text-sm text-gray-600 mt-1.5"
-                          >
-                            {{ document.description }}
-                          </p>
-
-                          <!-- Métadonnées -->
-                          <div class="flex flex-wrap items-center gap-4 mt-3 text-xs text-gray-500">
-                            <span class="flex items-center gap-1.5">
-                              <UIcon
-                                name="i-lucide-calendar"
-                                class="w-3.5 h-3.5"
-                              />
-                              Créé le {{ formatDate(document.createdAt) }}
-                            </span>
-                            <span
-                              v-if="document.updatedAt && document.updatedAt !== document.createdAt"
-                              class="flex items-center gap-1.5"
-                            >
-                              <UIcon
-                                name="i-lucide-refresh-cw"
-                                class="w-3.5 h-3.5"
-                              />
-                              Modifié le {{ formatDate(document.updatedAt) }}
-                            </span>
-                          </div>
-                        </div>
-
-                        <!-- Actions -->
-                        <div class="flex-shrink-0 flex gap-2">
-                          <!-- Bouton demande de mise à jour (FEEF ou OE, seulement si pas de demande en attente) -->
-                          <DocumentRequestUpdateModal
-                            v-if="
-                              (user?.role === Role.FEEF || user?.role === Role.OE) &&
-                              canRequestUpdate(document) &&
-                              !hasPendingRequest(document.id)
-                            "
-                            :documentary-review-id="document.id"
-                            :document-title="document.title"
-                            button-label="Demander MAJ"
-                            button-size="sm"
-                            @update-requested="handleUpdateRequested(document.id)"
-                            @click.stop
-                          />
-
-                          <!-- Bouton supprimer (FEEF seulement) -->
-                          <UButton
-                            v-if="user?.role === Role.FEEF"
-                            color="error"
-                            size="sm"
-                            icon="i-lucide-trash-2"
-                            variant="soft"
-                            :loading="deleteLoading"
-                            @click.stop="handleDelete(document)"
-                          >
-                            Supprimer
-                          </UButton>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </template>
-        </UAccordion>
-      </UCard>
+          </DocumentaryReviewSection>
+        </div>
+      </template>
     </div>
 
     <!-- Document Viewer -->
@@ -332,11 +232,17 @@
 <script setup lang="ts">
 import type { DocumentaryReview } from '~~/app/types/documentaryReviews'
 import type { DocumentaryReviewCategoryType } from '#shared/types/enums'
+import type { DocumentaryReviewStatusType } from '~~/app/utils/documentaryReviewStatus'
+import {
+  DocumentaryReviewStatus,
+  DocumentaryReviewStatusMeta,
+  getDocumentaryReviewStatus,
+} from '~~/app/utils/documentaryReviewStatus'
+import { formatDateTime } from '~~/app/utils/dates'
 import {
   DocumentaryReviewCategory,
   DocumentaryReviewCategoryLabels,
   DocumentaryReviewCategoryIcons,
-  DocumentaryReviewCategoryColors,
   DocumentaryReviewCategoryAccess,
   RoleLabels,
   canAccessDocumentaryReviewCategory,
@@ -345,6 +251,7 @@ import {
 import AddDocumentaryReviewModal from '~/components/modals/AddDocumentaryReviewModal.vue'
 import ImportPastAuditReportsModal from '~/components/modals/ImportPastAuditReportsModal.vue'
 
+const toast = useToast()
 const { user } = useAuth()
 
 // Récupérer l'entité courante depuis le composable
@@ -356,46 +263,33 @@ const {
   fetchError,
   deleteLoading,
   fetchDocumentaryReviews,
+  createDocumentaryReview,
   deleteDocumentaryReview,
 } = useDocumentaryReviews()
 
+const { createDocumentVersion } = useDocumentVersions()
 const { toggleDocumentsAccess, toggleDocumentsAccessLoading } = useEntities()
-
-// État pour tracker les documents avec demandes en attente
-const documentsWithPendingRequests = ref<Set<number>>(new Set())
 
 // État de chargement pour le téléchargement groupé
 const downloadAllLoading = ref(false)
 
-// Fonction pour vérifier si un document a une demande en attente
-async function checkPendingRequest(documentId: number) {
-  try {
-    const response = await $fetch<{ data: any[] }>('/api/documents-versions', {
-      query: { documentaryReviewId: documentId },
-    })
+// Document en cours d'upload (glisser-déposer ou sélecteur de fichier)
+const uploadingDocumentId = ref<number | null>(null)
 
-    const hasPending = response.data.some(
-      (version) => version.s3Key === null && version.askedBy !== null
-    )
+// Recherche et filtre de statut
+const search = ref('')
+const statusFilter = ref<'ALL' | DocumentaryReviewStatusType>('ALL')
 
-    if (hasPending) {
-      documentsWithPendingRequests.value.add(documentId)
-    } else {
-      documentsWithPendingRequests.value.delete(documentId)
-    }
-  } catch (error) {
-    // Ignorer les erreurs silencieusement
-  }
-}
+const statusFilterItems = [
+  { label: 'Tous les statuts', value: 'ALL' },
+  ...Object.entries(DocumentaryReviewStatusMeta).map(([value, meta]) => ({
+    label: meta.label,
+    value,
+    icon: meta.icon,
+  })),
+]
 
-// Vérifier les demandes en attente au montage (les documents sont déjà chargés par EntityPage)
-onMounted(async () => {
-  if (currentEntity.value && documentaryReviews.value.length > 0) {
-    // Vérifier les demandes en attente pour tous les documents (en parallèle)
-    const checks = documentaryReviews.value.map((doc) => checkPendingRequest(doc.id))
-    await Promise.all(checks)
-  }
-})
+const hasActiveFilter = computed(() => search.value.trim() !== '' || statusFilter.value !== 'ALL')
 
 // Vérifier si l'utilisateur peut voir le statut de la revue documentaire (OE ou FEEF)
 const showDocumentaryReviewStatus = computed(() => {
@@ -411,6 +305,11 @@ const canViewDocuments = computed(() => {
   return true
 })
 
+// Seuls FEEF et ENTITY peuvent créer des documents et déposer des fichiers
+const canCreateDocuments = computed(() => {
+  return user.value?.role === Role.FEEF || user.value?.role === Role.ENTITY
+})
+
 // Afficher le bouton pour activer le partage (uniquement pour ENTITY)
 const showEnableAccessButton = computed(() => {
   return (
@@ -420,90 +319,80 @@ const showEnableAccessButton = computed(() => {
   )
 })
 
-// Organiser les documents par catégorie
-const documentsByCategory = computed(() => {
-  const categories: Record<DocumentaryReviewCategoryType, DocumentaryReview[]> = {
-    CANDIDACY: [],
-    AUDIT: [],
-    OTHER: [],
-    CORRECTIVE_ACTION_PROOF: [],
-    PAST_AUDIT_REPORT: [],
-  }
+const CategoryIconColors: Record<string, string> = {
+  CANDIDACY: 'text-blue-500',
+  AUDIT: 'text-green-500',
+  OTHER: 'text-gray-500',
+  CORRECTIVE_ACTION_PROOF: 'text-orange-500',
+  PAST_AUDIT_REPORT: 'text-sky-500',
+}
 
-  documentaryReviews.value.forEach((doc) => {
-    categories[doc.category].push(doc)
+// Documents filtrés par la recherche et le statut
+const filteredDocuments = computed(() => {
+  const term = search.value.trim().toLowerCase()
+
+  return documentaryReviews.value.filter((document) => {
+    if (statusFilter.value !== 'ALL' && getDocumentaryReviewStatus(document) !== statusFilter.value) {
+      return false
+    }
+
+    if (!term) return true
+
+    return (
+      document.title.toLowerCase().includes(term) ||
+      (document.description?.toLowerCase().includes(term) ?? false)
+    )
   })
-
-  return categories
 })
 
-// Préparer les items pour l'accordion (filtré par catégories accessibles au rôle)
-const accordionItems = computed(() => {
-  return Object.entries(documentsByCategory.value)
-    .filter(([categoryKey]) =>
-      !user.value?.role || canAccessDocumentaryReviewCategory(user.value.role, categoryKey as any)
-    )
+// Catégories accessibles à l'utilisateur, dans l'ordre de l'énumération
+const visibleCategories = computed(() => {
+  return Object.values(DocumentaryReviewCategory).filter((category) => {
+    if (user.value?.role && !canAccessDocumentaryReviewCategory(user.value.role, category)) {
+      return false
+    }
+
     // Les rapports d'audit passés ne concernent pas toutes les entités : la section
     // reste masquée tant qu'elle est vide, sauf pour la FEEF qui doit pouvoir importer
-    .filter(([categoryKey, documents]) =>
-      categoryKey !== DocumentaryReviewCategory.PAST_AUDIT_REPORT ||
-      documents.length > 0 ||
-      user.value?.role === Role.FEEF
-    )
-    .map(([categoryKey, documents]) => ({
-      title:
-        DocumentaryReviewCategoryLabels[categoryKey as keyof typeof DocumentaryReviewCategoryLabels],
-      icon: DocumentaryReviewCategoryIcons[
-        categoryKey as keyof typeof DocumentaryReviewCategoryIcons
-      ],
-      iconColor: getCategoryIconColor(categoryKey),
-      badgeColor:
-        DocumentaryReviewCategoryColors[categoryKey as keyof typeof DocumentaryReviewCategoryColors],
-      value: categoryKey,
-      documents: documents,
-      accessRoles: DocumentaryReviewCategoryAccess[categoryKey as keyof typeof DocumentaryReviewCategoryAccess],
-    }))
+    if (category === DocumentaryReviewCategory.PAST_AUDIT_REPORT) {
+      const hasDocuments = documentaryReviews.value.some((doc) => doc.category === category)
+      return hasDocuments || user.value?.role === Role.FEEF
+    }
+
+    return true
+  })
 })
 
-// Fonctions utilitaires
-function getCategoryIconColor(categoryKey: string): string {
-  const colors: Record<string, string> = {
-    CANDIDACY: 'text-blue-500',
-    AUDIT: 'text-green-500',
-    OTHER: 'text-gray-500',
-    CORRECTIVE_ACTION_PROOF: 'text-orange-500',
-    PAST_AUDIT_REPORT: 'text-sky-500',
+// Sections affichées : une par catégorie, masquée si un filtre est actif et ne remonte rien
+const filteredSections = computed(() => {
+  return visibleCategories.value
+    .map((category) => {
+      const documents = filteredDocuments.value.filter((doc) => doc.category === category)
+
+      return {
+        value: category,
+        title: DocumentaryReviewCategoryLabels[category],
+        icon: DocumentaryReviewCategoryIcons[category],
+        iconColor: CategoryIconColors[category] ?? 'text-gray-500',
+        documents,
+        pendingCount: documents.filter(
+          (doc) => getDocumentaryReviewStatus(doc) === DocumentaryReviewStatus.PENDING_REQUEST
+        ).length,
+        accessLabel: DocumentaryReviewCategoryAccess[category]
+          .map((role) => RoleLabels[role])
+          .join(', '),
+        canWrite: user.value?.role
+          ? canWriteDocumentaryReviewCategory(user.value.role, category)
+          : false,
+      }
+    })
+    .filter((section) => !hasActiveFilter.value || section.documents.length > 0)
+})
+
+async function refreshDocuments() {
+  if (currentEntity.value) {
+    await fetchDocumentaryReviews(currentEntity.value.id)
   }
-  return colors[categoryKey] || 'text-gray-500'
-}
-
-function getCategoryBackgroundClass(color: string): string {
-  const colorMap: Record<string, string> = {
-    primary: 'bg-blue-100',
-    success: 'bg-green-100',
-    neutral: 'bg-gray-100',
-    warning: 'bg-orange-100',
-    info: 'bg-sky-100',
-  }
-  return colorMap[color] || 'bg-gray-100'
-}
-
-function formatDate(date: Date | string, includeTime: boolean = false): string {
-  if (!date) return ''
-  const d = new Date(date)
-
-  const options: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }
-
-  if (includeTime) {
-    options.hour = '2-digit'
-    options.minute = '2-digit'
-  }
-
-  return d.toLocaleDateString('fr-FR', options)
 }
 
 async function handleDelete(document: DocumentaryReview) {
@@ -511,6 +400,53 @@ async function handleDelete(document: DocumentaryReview) {
 
   if (confirmed) {
     await deleteDocumentaryReview(document.id)
+  }
+}
+
+// Déposer un fichier sur une ligne ajoute une version au document existant
+async function handleUploadVersion(document: DocumentaryReview, file: File) {
+  uploadingDocumentId.value = document.id
+
+  try {
+    const result = await createDocumentVersion(document.id, file, 'documentaryReview')
+
+    if (result.success) {
+      await refreshDocuments()
+    }
+  } finally {
+    uploadingDocumentId.value = null
+  }
+}
+
+// Déposer un fichier sur une section crée un document nommé d'après le fichier
+async function handleSectionDrop(category: DocumentaryReviewCategoryType, file: File) {
+  if (!currentEntity.value) return
+
+  const title = file.name.replace(/\.[^.]+$/, '').trim() || file.name
+
+  const created = await createDocumentaryReview({
+    entityId: currentEntity.value.id,
+    title,
+    category,
+  })
+
+  if (!created.success || !created.data) return
+
+  uploadingDocumentId.value = created.data.id
+
+  try {
+    const uploaded = await createDocumentVersion(created.data.id, file, 'documentaryReview')
+
+    if (!uploaded.success) {
+      toast.add({
+        title: 'Document créé sans fichier',
+        description: `Le document « ${title} » a été créé, mais le fichier n'a pas pu être déposé.`,
+        color: 'warning',
+      })
+    }
+  } finally {
+    uploadingDocumentId.value = null
+    await refreshDocuments()
   }
 }
 
@@ -523,20 +459,15 @@ function openDocumentViewer(document: DocumentaryReview) {
   isViewerOpen.value = true
 }
 
-// Rafraîchir les demandes après qu'une demande a été créée
-async function handleUpdateRequested(documentId: number) {
-  await checkPendingRequest(documentId)
-}
+// Le viewer permet de déposer des versions : rafraîchir les statuts à sa fermeture
+watch(isViewerOpen, (open) => {
+  if (!open) refreshDocuments()
+})
 
 // Une demande de mise à jour n'a pas de sens sur une catégorie en lecture seule
 function canRequestUpdate(document: DocumentaryReview): boolean {
-  if (!user.value?.role) return false
+  if (user.value?.role !== Role.FEEF && user.value?.role !== Role.OE) return false
   return canWriteDocumentaryReviewCategory(user.value.role, document.category)
-}
-
-// Vérifier si un document a une demande en attente
-function hasPendingRequest(documentId: number): boolean {
-  return documentsWithPendingRequests.value.has(documentId)
 }
 
 // Gérer l'activation de l'accès aux documents pour l'OE
@@ -545,11 +476,7 @@ async function handleEnableAccess() {
     return
   }
 
-  const result = await toggleDocumentsAccess(currentEntity.value.id)
-
-  if (result.success) {
-    // L'entité a déjà été mise à jour par le composable
-  }
+  await toggleDocumentsAccess(currentEntity.value.id)
 }
 
 // Fonction pour télécharger tous les documents
@@ -580,15 +507,12 @@ async function handleDownloadAll() {
     link.click()
     document.body.removeChild(link)
 
-    // Toast de succès
-    const toast = useToast()
     toast.add({
       title: 'Succès',
       description: "Téléchargement de l'archive démarré",
       color: 'success',
     })
   } catch (error: any) {
-    const toast = useToast()
     toast.add({
       title: 'Erreur',
       description: error.message || "Erreur lors du téléchargement de l'archive",

@@ -1,6 +1,6 @@
 import { db } from '~~/server/database'
-import { documentaryReviews } from '~~/server/database/schema'
-import { eq, and, isNull, inArray } from 'drizzle-orm'
+import { documentaryReviews, documentVersions } from '~~/server/database/schema'
+import { eq, and, isNull, inArray, desc } from 'drizzle-orm'
 import { requireEntityAccess, AccessType } from '~~/server/utils/authorization'
 import { getAccessibleDocumentaryReviewCategories } from '#shared/types/enums'
 
@@ -31,12 +31,27 @@ export default defineEventHandler(async (event) => {
   const accessibleCategories = getAccessibleDocumentaryReviewCategories(user.role)
 
   // Récupérer les documentary reviews de l'entité (excluant les soft-deleted, filtrés par catégories accessibles)
+  // Les versions sont incluses pour permettre au front d'afficher le statut de chaque document
+  // (déposé, demande en attente, manquant) sans requête supplémentaire par document
   const reviews = await db.query.documentaryReviews.findMany({
     where: and(
       eq(documentaryReviews.entityId, entityId),
       isNull(documentaryReviews.deletedAt),
       inArray(documentaryReviews.category, accessibleCategories)
     ),
+    with: {
+      documentVersions: {
+        orderBy: [desc(documentVersions.uploadAt)],
+        with: {
+          uploadByAccount: {
+            columns: { id: true, firstname: true, lastname: true },
+          },
+          askedByAccount: {
+            columns: { id: true, firstname: true, lastname: true },
+          },
+        },
+      },
+    },
   })
 
   return {
