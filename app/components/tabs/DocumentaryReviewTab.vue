@@ -181,16 +181,30 @@
                 ? 'Aucun document ne correspond à votre recherche'
                 : 'Aucun document dans cette catégorie'
             "
-            @drop="handleSectionDrop(section.value, $event)"
+            @drop="importFiles(section.value, $event)"
           >
             <template #actions>
-              <ImportPastAuditReportsModal
-                v-if="
+              <!-- Progression de l'import groupé, à la place des actions de la section -->
+              <span
+                v-if="importState?.category === section.value"
+                class="flex items-center gap-1.5 text-xs font-medium text-primary-700 pr-1"
+              >
+                <UIcon
+                  name="i-lucide-loader-circle"
+                  class="w-3.5 h-3.5 animate-spin"
+                />
+                Import {{ importState.done }}/{{ importState.total }}
+              </span>
+
+              <ImportFilesButton
+                v-else-if="
                   section.value === DocumentaryReviewCategory.PAST_AUDIT_REPORT &&
-                  user?.role === Role.FEEF &&
+                  section.canWrite &&
+                  canCreateDocuments &&
                   currentEntity
                 "
-                :entity-id="currentEntity.id"
+                label="Importer des rapports"
+                @select="importFiles(section.value, $event)"
               />
               <AddDocumentaryReviewModal
                 v-else-if="section.canWrite && canCreateDocuments && currentEntity"
@@ -249,7 +263,6 @@ import {
   canWriteDocumentaryReviewCategory,
 } from '#shared/types/enums'
 import AddDocumentaryReviewModal from '~/components/modals/AddDocumentaryReviewModal.vue'
-import ImportPastAuditReportsModal from '~/components/modals/ImportPastAuditReportsModal.vue'
 
 const toast = useToast()
 const { user } = useAuth()
@@ -275,6 +288,13 @@ const downloadAllLoading = ref(false)
 
 // Document en cours d'upload (glisser-déposer ou sélecteur de fichier)
 const uploadingDocumentId = ref<number | null>(null)
+
+// Import groupé en cours : catégorie ciblée et progression, pour n'en autoriser qu'un à la fois
+const importState = ref<{
+  category: DocumentaryReviewCategoryType
+  done: number
+  total: number
+} | null>(null)
 
 // Recherche et filtre de statut
 const search = ref('')
@@ -418,36 +438,94 @@ async function handleUploadVersion(document: DocumentaryReview, file: File) {
   }
 }
 
-// Déposer un fichier sur une section crée un document nommé d'après le fichier
-async function handleSectionDrop(category: DocumentaryReviewCategoryType, file: File) {
-  if (!currentEntity.value) return
+// Le titre du document reprend le nom du fichier, sans son extension.
+// Le fichier lui-même conserve son nom d'origine.
+function buildDocumentTitle(filename: string): string {
+  const withoutExtension = filename.replace(/\.[^.]+$/, '').trim()
+  return (withoutExtension || filename).slice(0, 255)
+}
 
-  const title = file.name.replace(/\.[^.]+$/, '').trim() || file.name
+// Un fichier = un document créé puis alimenté par sa première version
+async function importFile(category: DocumentaryReviewCategoryType, file: File) {
+  const created = await createDocumentaryReview(
+    {
+      entityId: currentEntity.value!.id,
+      title: buildDocumentTitle(file.name),
+      category,
+    },
+    { silent: true }
+  )
 
-  const created = await createDocumentaryReview({
-    entityId: currentEntity.value.id,
-    title,
-    category,
-  })
-
-  if (!created.success || !created.data) return
+  if (!created.success || !created.data) {
+    throw new Error(created.error ?? 'Erreur lors de la création du document')
+  }
 
   uploadingDocumentId.value = created.data.id
 
   try {
-    const uploaded = await createDocumentVersion(created.data.id, file, 'documentaryReview')
+    const uploaded = await createDocumentVersion(created.data.id, file, 'documentaryReview', undefined, {
+      silent: true,
+      refreshVersions: false,
+    })
 
     if (!uploaded.success) {
-      toast.add({
-        title: 'Document créé sans fichier',
-        description: `Le document « ${title} » a été créé, mais le fichier n'a pas pu être déposé.`,
-        color: 'warning',
-      })
+      // L'upload a échoué : ne pas laisser un document sans fichier
+      await deleteDocumentaryReview(created.data.id, { silent: true })
+      throw new Error(uploaded.error ?? "Erreur lors de l'upload du fichier")
     }
   } finally {
     uploadingDocumentId.value = null
-    await refreshDocuments()
   }
+}
+
+// Déposer ou sélectionner des fichiers sur une section crée un document par fichier
+async function importFiles(category: DocumentaryReviewCategoryType, files: File[]) {
+  if (!currentEntity.value || files.length === 0 || importState.value) return
+
+  importState.value = { category, done: 0, total: files.length }
+
+  const failures: string[] = []
+
+  // Import séquentiel : l'ordre des documents créés suit celui des fichiers
+  for (const file of files) {
+    try {
+      await importFile(category, file)
+    } catch {
+      failures.push(file.name)
+    }
+
+    importState.value.done++
+  }
+
+  const succeeded = files.length - failures.length
+
+  importState.value = null
+
+  await refreshDocuments()
+
+  if (succeeded > 0) {
+    toast.add({
+      title: 'Import terminé',
+      description: `${succeeded} document${succeeded > 1 ? 's' : ''} ajouté${succeeded > 1 ? 's' : ''} dans « ${DocumentaryReviewCategoryLabels[category]} »`,
+      color: 'success',
+    })
+  }
+
+  if (failures.length > 0) {
+    toast.add({
+      title: 'Import incomplet',
+      description: `${failures.length} fichier${failures.length > 1 ? 's' : ''} non importé${failures.length > 1 ? 's' : ''} : ${formatFailureList(failures)}`,
+      color: 'error',
+    })
+  }
+}
+
+// Lister les fichiers en échec sans noyer le toast quand il y en a beaucoup
+function formatFailureList(filenames: string[]): string {
+  const shown = filenames.slice(0, 3).join(', ')
+  const remaining = filenames.length - 3
+
+  return remaining > 0 ? `${shown} et ${remaining} autre${remaining > 1 ? 's' : ''}` : shown
 }
 
 // Gestion du DocumentViewer

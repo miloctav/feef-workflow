@@ -73,6 +73,12 @@
           class="w-8 h-8 mx-auto mb-2 text-gray-300"
         />
         <p class="text-sm text-gray-500">{{ emptyLabel }}</p>
+        <p
+          v-if="canDrop"
+          class="text-xs text-gray-400 mt-1"
+        >
+          Glissez-déposez vos fichiers ici pour les ajouter
+        </p>
       </div>
 
       <div
@@ -93,7 +99,7 @@
           name="i-lucide-upload-cloud"
           class="w-5 h-5"
         />
-        Déposer pour créer un document dans « {{ title }} »
+        Déposer pour ajouter des documents dans « {{ title }} »
       </span>
     </div>
   </div>
@@ -119,7 +125,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  drop: [file: File]
+  drop: [files: File[]]
 }>()
 
 const isOpen = ref(props.defaultOpen)
@@ -146,8 +152,8 @@ function onDrop(event: DragEvent) {
   dragDepth.value = 0
   if (!props.canDrop) return
 
-  const file = event.dataTransfer?.files?.[0]
-  if (file) emit('drop', file)
+  const files = Array.from(event.dataTransfer?.files ?? [])
+  if (files.length > 0) emit('drop', files)
 }
 
 function hasFiles(event: DragEvent): boolean {

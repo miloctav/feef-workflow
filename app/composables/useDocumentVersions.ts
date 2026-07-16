@@ -97,13 +97,20 @@ export const useDocumentVersions = () => {
 
   /**
    * Créer une nouvelle version de document avec upload de fichier
+   *
+   * `silent` supprime les toasts et `refreshVersions` évite de recharger la liste
+   * des versions : lors d'un import groupé, l'appelant gère lui-même le récapitulatif
+   * et le rafraîchissement final.
    */
   const createDocumentVersion = async (
     id: number,
     file: File,
     type: 'documentaryReview' | 'contract' | 'audit' = 'documentaryReview',
-    auditDocumentType?: AuditDocumentTypeType
+    auditDocumentType?: AuditDocumentTypeType,
+    options: { silent?: boolean, refreshVersions?: boolean } = {}
   ) => {
+    const { silent = false, refreshVersions = true } = options
+
     createLoading.value = true
 
     try {
@@ -137,27 +144,33 @@ export const useDocumentVersions = () => {
       })
 
       // Rafraîchir la liste complète (car une demande existante a pu être mise à jour)
-      if (type === 'audit') {
-        await fetchDocumentVersions(id, type, auditDocumentType)
-      } else {
-        await fetchDocumentVersions(id, type)
+      if (refreshVersions) {
+        if (type === 'audit') {
+          await fetchDocumentVersions(id, type, auditDocumentType)
+        } else {
+          await fetchDocumentVersions(id, type)
+        }
       }
 
-      toast.add({
-        title: 'Succès',
-        description: 'Fichier uploadé avec succès',
-        color: 'success',
-      })
+      if (!silent) {
+        toast.add({
+          title: 'Succès',
+          description: 'Fichier uploadé avec succès',
+          color: 'success',
+        })
+      }
 
       return { success: true, data: response.data }
     } catch (e: any) {
       const errorMessage = e.data?.message || e.message || 'Erreur lors de l\'upload du fichier'
 
-      toast.add({
-        title: 'Erreur',
-        description: errorMessage,
-        color: 'error',
-      })
+      if (!silent) {
+        toast.add({
+          title: 'Erreur',
+          description: errorMessage,
+          color: 'error',
+        })
+      }
 
       return { success: false, error: errorMessage }
     } finally {

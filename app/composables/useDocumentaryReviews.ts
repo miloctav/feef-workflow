@@ -56,8 +56,14 @@ export const useDocumentaryReviews = () => {
 
   /**
    * Créer un nouveau documentary review
+   *
+   * `silent` supprime les toasts : lors d'un import groupé, l'appelant affiche
+   * un seul récapitulatif plutôt qu'une notification par fichier.
    */
-  const createDocumentaryReview = async (data: CreateDocumentaryReviewData) => {
+  const createDocumentaryReview = async (
+    data: CreateDocumentaryReviewData,
+    options: { silent?: boolean } = {}
+  ) => {
     createLoading.value = true
 
     try {
@@ -69,21 +75,25 @@ export const useDocumentaryReviews = () => {
       // Ajouter le nouveau document à la liste
       documentaryReviews.value.push(response.data)
 
-      toast.add({
-        title: 'Succès',
-        description: 'Document créé avec succès',
-        color: 'success',
-      })
+      if (!options.silent) {
+        toast.add({
+          title: 'Succès',
+          description: 'Document créé avec succès',
+          color: 'success',
+        })
+      }
 
       return { success: true, data: response.data }
     } catch (e: any) {
       const errorMessage = e.data?.message || e.message || 'Erreur lors de la création du document'
 
-      toast.add({
-        title: 'Erreur',
-        description: errorMessage,
-        color: 'error',
-      })
+      if (!options.silent) {
+        toast.add({
+          title: 'Erreur',
+          description: errorMessage,
+          color: 'error',
+        })
+      }
 
       return { success: false, error: errorMessage }
     } finally {
@@ -138,8 +148,11 @@ export const useDocumentaryReviews = () => {
 
   /**
    * Supprimer un documentary review (soft delete)
+   *
+   * `silent` supprime les toasts : utilisé pour les suppressions de compensation,
+   * quand le document vient d'être créé mais que son fichier n'a pas pu être déposé.
    */
-  const deleteDocumentaryReview = async (id: number) => {
+  const deleteDocumentaryReview = async (id: number, options: { silent?: boolean } = {}) => {
     deleteLoading.value = true
 
     try {
@@ -155,21 +168,25 @@ export const useDocumentaryReviews = () => {
         currentDocumentaryReview.value = null
       }
 
-      toast.add({
-        title: 'Succès',
-        description: 'Document supprimé avec succès',
-        color: 'success',
-      })
+      if (!options.silent) {
+        toast.add({
+          title: 'Succès',
+          description: 'Document supprimé avec succès',
+          color: 'success',
+        })
+      }
 
       return { success: true }
     } catch (e: any) {
       const errorMessage = e.data?.message || e.message || 'Erreur lors de la suppression du document'
 
-      toast.add({
-        title: 'Erreur',
-        description: errorMessage,
-        color: 'error',
-      })
+      if (!options.silent) {
+        toast.add({
+          title: 'Erreur',
+          description: errorMessage,
+          color: 'error',
+        })
+      }
 
       return { success: false, error: errorMessage }
     } finally {
